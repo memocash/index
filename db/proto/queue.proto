@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package queue_pb;
+
+option go_package = "github.com/memocash/server/db/proto/gen";
+
+service Queue {
+  rpc SaveMessages (Messages) returns (ErrorReply) {
+  }
+  rpc DeleteMessages (MessageUids) returns (ErrorReply) {
+  }
+  rpc GetMessage (RequestSingle) returns (Message) {
+  }
+  rpc GetMessages (Request) returns (Messages) {
+  }
+  rpc GetTopicList (EmptyRequest) returns (TopicListReply) {
+  }
+  rpc GetMessageCount (CountRequest) returns (TopicCount) {
+  }
+}
+
+message Messages {
+  repeated Message messages = 1;
+}
+
+message Message {
+  bytes uid = 1;
+  string topic = 2;
+  bytes message = 3;
+  int64 timestamp = 4;
+}
+
+message ErrorReply {
+  string error = 1;
+}
+
+message MessageUids {
+  string topic = 1;
+  repeated bytes uids = 2;
+}
+
+message RequestSingle {
+  string topic = 1;
+  bytes uid = 2;
+}
+
+message Request {
+  string topic = 1;
+  bytes start = 2;
+  uint32 max = 3;
+  repeated bytes prefixes = 4;
+  repeated bytes uids = 5;
+  bool wait = 6;
+  bool newest = 7;
+}
+
+message EmptyRequest {
+}
+
+message Topic {
+  string name = 1;
+  uint64 count = 2;
+}
+
+message TopicListReply {
+  repeated Topic topics = 1;
+}
+
+message CountRequest {
+  string topic = 1;
+  bytes prefix = 2;
+}
+
+message TopicCount {
+  uint64 count = 1;
+}
