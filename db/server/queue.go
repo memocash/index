@@ -1,9 +1,11 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/db/proto/gen"
+	"github.com/jchavannes/jgo/jlog"
+	"github.com/memocash/server/db/proto/queue_pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"net"
@@ -14,7 +16,15 @@ const (
 )
 
 type Queue struct {
-	gen.UnimplementedQueueServer
+	queue_pb.UnimplementedQueueServer
+}
+
+func (q *Queue) SaveMessages(_ context.Context, msg *queue_pb.Messages) (*queue_pb.ErrorReply, error) {
+	jlog.Logf("Received %d messages\n", len(msg.Messages))
+	for _, message := range msg.Messages {
+		jlog.Logf("message: %x %s\n", message.Uid, message.Message)
+	}
+	return nil, nil
 }
 
 func (q *Queue) Run() error {
@@ -23,7 +33,7 @@ func (q *Queue) Run() error {
 		return jerr.Get("failed to listen", err)
 	}
 	server := grpc.NewServer(grpc.MaxRecvMsgSize(32*10e6), grpc.MaxSendMsgSize(32*10e6))
-	gen.RegisterQueueServer(server, q)
+	queue_pb.RegisterQueueServer(server, q)
 	reflection.Register(server)
 	err = server.Serve(lis)
 	if err != nil {
