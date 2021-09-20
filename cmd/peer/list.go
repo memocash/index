@@ -22,10 +22,10 @@ var listCmd = &cobra.Command{
 var getCmd = &cobra.Command{
 	Use: "get",
 	Run: func(cmd *cobra.Command, args []string) {
-		adminIndex := client.NewIndex()
-		if err := adminIndex.Get(); err != nil {
+		peerGet := client.NewPeerGet()
+		if err := peerGet.Get(); err != nil {
 			jerr.Get("fatal error getting admin index", err).Fatal()
 		}
-		jlog.Logf("adminIndex.Message: %s\n", adminIndex.Message)
+		jlog.Logf("peerGet.Message: %s\n", peerGet.Message)
 	},
 }

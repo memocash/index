@@ -16,15 +16,22 @@ var KnownNodes = []string{
 }
 
 type Server struct {
+	Peer *peer.Peer
+}
+
+func (s *Server) GetAddr() error {
+	if s.Peer == nil {
+		return jerr.New("error peer not set")
+	}
+	s.Peer.QueueMessage(wire.NewMsgGetAddr(), nil)
+	return nil
 }
 
 func (s *Server) Run() error {
-	//var hasAskedForPeers bool
 	params := &chaincfg.MainNetParams
 	params.Net = bchutil.MainnetMagic
-	var bitcoinPeer *peer.Peer
 	var err error
-	bitcoinPeer, err = peer.NewOutboundPeer(&peer.Config{
+	s.Peer, err = peer.NewOutboundPeer(&peer.Config{
 		UserAgentName:    "memo-node",
 		UserAgentVersion: "0.3.0",
 		ChainParams:      params,
@@ -73,11 +80,6 @@ func (s *Server) Run() error {
 			OnPing: func(p *peer.Peer, msg *wire.MsgPing) {
 				jlog.Log("on ping from peer")
 				jlog.Logf("Nonce: %d\n", msg.Nonce)
-				/*if !hasAskedForPeers {
-					bitcoinPeer.QueueMessage(wire.NewMsgGetAddr(), nil)
-					hasAskedForPeers = true
-					jlog.Log("queued get addr")
-				}*/
 			},
 			OnMerkleBlock: func(p *peer.Peer, msg *wire.MsgMerkleBlock) {
 				jlog.Log("on merkle from peer")
@@ -98,8 +100,8 @@ func (s *Server) Run() error {
 	if err != nil {
 		return jerr.Get("error getting network connection", err)
 	}
-	bitcoinPeer.AssociateConnection(conn)
-	bitcoinPeer.WaitForDisconnect()
+	s.Peer.AssociateConnection(conn)
+	s.Peer.WaitForDisconnect()
 	return jerr.Newf("error node disconnected")
 }
 
