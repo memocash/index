@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/jchavannes/jgo/db_util"
 	"math"
 	"strconv"
 )
@@ -15,6 +16,10 @@ type Shard struct {
 	Total uint32 `mapstructure:"TOTAL"`
 	Host  string `mapstructure:"HOST"`
 	Port  int    `mapstructure:"PORT"`
+}
+
+func (s Shard) String() string {
+	return db_util.GetShardString(uint(s.Min), uint(s.Total))
 }
 
 func (s Shard) GetHost() string {

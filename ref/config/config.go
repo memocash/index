@@ -37,6 +37,9 @@ type Config struct {
 
 	SaveMetrics bool `mapstructure:"SAVE_METRICS"`
 
+	DataPrefix             string `mapstructure:"DATA_PREFIX"`
+	OpenFilesCacheCapacity int    `mapstructure:"OPEN_FILES_CACHE_CAPACITY"`
+
 	ProcessLimit struct {
 		Utxos int `mapstructure:"UTXOS"`
 	} `mapstructure:"PROCESS_LIMIT"`
@@ -137,6 +140,14 @@ func GetSelfRpc() RpcConfig {
 		Host: host,
 		Port: _config.ServerPort,
 	}
+}
+
+func GetDataPrefix() string {
+	return _config.DataPrefix
+}
+
+func GetOpenFilesCacheCapacity() int {
+	return _config.OpenFilesCacheCapacity
 }
 
 func GetHost(port uint) string {

@@ -1,8 +1,10 @@
 package item
 
 import (
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/server/db/client"
+	"github.com/memocash/server/ref/config"
 	"time"
 )
 
@@ -38,4 +40,19 @@ func (t *Message) Deserialize(data []byte) {
 	}
 	t.Created = jutil.GetByteTime(data[:8])
 	t.Message = string(data[8:])
+}
+
+func GetMessage(id uint) (*Message, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(jutil.GetUintData(id)), config.GetQueueShards())
+	queueClient := client.NewClient(shardConfig.GetHost())
+	if err := queueClient.GetSingle(TopicMessage, jutil.GetUintData(id)); err != nil {
+		return nil, jerr.Get("error getting single client message", err)
+	}
+	if len(queueClient.Messages) != 1 {
+		return nil, jerr.Newf("error unexpected number of messages: %d", len(queueClient.Messages))
+	}
+	var message = new(Message)
+	message.SetUid(queueClient.Messages[0].Uid)
+	message.Deserialize(queueClient.Messages[0].Message)
+	return message, nil
 }

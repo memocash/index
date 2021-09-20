@@ -26,11 +26,11 @@ var serverCmd = &cobra.Command{
 			errorHandler <- jerr.Get("fatal error running node server", err)
 		}()
 		go func() {
-			err := server.NewServer(config.DefaultShard0Port).Run()
+			err := server.NewServer(config.DefaultShard0Port, 0).Run()
 			errorHandler <- jerr.Get("fatal error running db queue server shard 0", err)
 		}()
 		go func() {
-			err := server.NewServer(config.DefaultShard1Port).Run()
+			err := server.NewServer(config.DefaultShard1Port, 1).Run()
 			errorHandler <- jerr.Get("fatal error running db queue server shard 1", err)
 		}()
 		jerr.Get("fatal memo server error encountered", <-errorHandler).Fatal()

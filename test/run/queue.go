@@ -8,12 +8,13 @@ import (
 
 type Queue struct {
 	Port   uint
+	Shard  uint
 	Server *server.Server
 	Error  error
 }
 
 func (q *Queue) Start() error {
-	q.Server = server.NewServer(q.Port)
+	q.Server = server.NewServer(q.Port, q.Shard)
 	jlog.Logf("Starting queue server on port: %d\n", q.Port)
 	go func() {
 		err := q.Server.Run()
@@ -26,8 +27,9 @@ func (q *Queue) End() {
 	q.Server.Stop()
 }
 
-func NewQueue(port uint) *Queue {
+func NewQueue(port uint, shard uint) *Queue {
 	return &Queue{
-		Port: port,
+		Port:  port,
+		Shard: shard,
 	}
 }
