@@ -24,23 +24,23 @@ var serverCmd = &cobra.Command{
 		var errorHandler = make(chan error)
 		go func() {
 			err := api.NewServer().Run()
-			errorHandler <- jerr.Get("fatal error running api server", err)
+			errorHandler <- jerr.Get("error running api server", err)
 		}()
 		go func() {
 			err := admin.NewServer().Run()
-			errorHandler <- jerr.Get("fatal error running admin server", err)
+			errorHandler <- jerr.Get("error running admin server", err)
 		}()
 		go func() {
 			err := node.NewServer().Run()
-			errorHandler <- jerr.Get("fatal error running node server", err)
+			errorHandler <- jerr.Get("error running node server", err)
 		}()
 		go func() {
 			err := server.NewServer(config.DefaultShard0Port, 0).Run()
-			errorHandler <- jerr.Get("fatal error running db queue server shard 0", err)
+			errorHandler <- jerr.Get("error running db queue server shard 0", err)
 		}()
 		go func() {
 			err := server.NewServer(config.DefaultShard1Port, 1).Run()
-			errorHandler <- jerr.Get("fatal error running db queue server shard 1", err)
+			errorHandler <- jerr.Get("error running db queue server shard 1", err)
 		}()
 		jerr.Get("fatal memo server error encountered", <-errorHandler).Fatal()
 	},

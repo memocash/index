@@ -100,7 +100,7 @@ func (s *Server) Run() error {
 	}
 	bitcoinPeer.AssociateConnection(conn)
 	bitcoinPeer.WaitForDisconnect()
-	return nil
+	return jerr.Newf("error node disconnected")
 }
 
 func NewServer() *Server {
