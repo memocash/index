@@ -13,6 +13,7 @@ import (
 
 const (
 	TopicMessage = "message"
+	TopicPeer    = "peer"
 )
 
 type Object interface {

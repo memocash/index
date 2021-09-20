@@ -218,6 +218,8 @@ github.com/jchavannes/gorm v0.0.0-20190714222221-6e209826f9bd h1:SyXcDofoDn1nwNx
 github.com/jchavannes/gorm v0.0.0-20190714222221-6e209826f9bd/go.mod h1:utXzNh8giZEFprSHsuauEeZXuH6BVCbzuo0uKS+c37s=
 github.com/jchavannes/jgo v0.0.0-20210919164617-6d1158555a8b h1:I3J6W9ncVwYD2LZJTHhUfC0OvBQKppPYnta2ZlWl4xs=
 github.com/jchavannes/jgo v0.0.0-20210919164617-6d1158555a8b/go.mod h1:J1NTAoh6LjpbL9q1kGE5MnOcDqgk4MAsZxONoQzY+2k=
+github.com/jchavannes/jgo v0.0.0-20210920044702-60625d59d9b9 h1:iyu45xr5R2jwJIweXlKlkdBZfzaY1VHJTbVaXWwQ1VU=
+github.com/jchavannes/jgo v0.0.0-20210920044702-60625d59d9b9/go.mod h1:J1NTAoh6LjpbL9q1kGE5MnOcDqgk4MAsZxONoQzY+2k=
 github.com/jessevdk/go-flags v0.0.0-20141203071132-1679536dcc89/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jinzhu/gorm v1.9.16 h1:+IyIjPEABKRpsu/F8OvDPy9fyQlgsg2luMV2ZIH5i5o=

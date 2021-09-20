@@ -7,6 +7,7 @@ import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
+	"github.com/memocash/server/db/item"
 	"net"
 )
 
@@ -30,8 +31,17 @@ func (s *Server) Run() error {
 		Listeners: peer.MessageListeners{
 			OnAddr: func(p *peer.Peer, msg *wire.MsgAddr) {
 				jlog.Log("on addr")
-				for _, addr := range msg.AddrList {
+				var objects = make([]item.Object, len(msg.AddrList))
+				for i, addr := range msg.AddrList {
 					jlog.Logf("Ip: %s, port: %d, services: %d\n", addr.IP, addr.Port, addr.Services)
+					objects[i] = &item.Peer{
+						Ip:       addr.IP,
+						Port:     addr.Port,
+						Services: uint64(addr.Services),
+					}
+				}
+				if err := item.Save(objects); err != nil {
+					jerr.Get("error saving peers", err).Print()
 				}
 			},
 			OnVerAck: func(p *peer.Peer, msg *wire.MsgVerAck) {
