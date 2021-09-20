@@ -5,8 +5,9 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/api"
 	"github.com/memocash/server/cmd/test"
-	"github.com/memocash/server/db/queue"
+	"github.com/memocash/server/db/server"
 	"github.com/memocash/server/node"
+	"github.com/memocash/server/ref/config"
 	"github.com/spf13/cobra"
 )
 
@@ -25,11 +26,11 @@ var serverCmd = &cobra.Command{
 			errorHandler <- jerr.Get("fatal error running node server", err)
 		}()
 		go func() {
-			err := queue.NewServer(queue.DefaultShard0Port).Run()
+			err := server.NewServer(config.DefaultShard0Port).Run()
 			errorHandler <- jerr.Get("fatal error running db queue server shard 0", err)
 		}()
 		go func() {
-			err := queue.NewServer(queue.DefaultShard1Port).Run()
+			err := server.NewServer(config.DefaultShard1Port).Run()
 			errorHandler <- jerr.Get("fatal error running db queue server shard 1", err)
 		}()
 		jerr.Get("fatal memo server error encountered", <-errorHandler).Fatal()

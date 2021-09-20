@@ -2,7 +2,7 @@ package suite
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/db/queue"
+	"github.com/memocash/server/ref/config"
 	"github.com/memocash/server/test/run"
 )
 
@@ -12,12 +12,12 @@ type Suite struct {
 }
 
 func (s *Suite) Start() error {
-	s.Queue0 = run.NewQueue(queue.DefaultShard0Port)
+	s.Queue0 = run.NewQueue(config.DefaultShard0Port)
 	if err := s.Queue0.Start(); err != nil {
 		return jerr.Get("error starting queue 0 server", err)
 	}
-	s.Queue1 = run.NewQueue(queue.DefaultShard1Port)
-	if err := s.Queue0.Start(); err != nil {
+	s.Queue1 = run.NewQueue(config.DefaultShard1Port)
+	if err := s.Queue1.Start(); err != nil {
 		return jerr.Get("error starting queue 1 server", err)
 	}
 	return nil
@@ -43,9 +43,11 @@ func (s *Suite) EndPrint() {
 }
 
 func (s *Suite) End() error {
-	s.Queue0.End()
-	if s.Queue0.Error != nil {
-		return jerr.Get("queue error", s.Queue0.Error)
+	if s.Queue0.End(); s.Queue0.Error != nil {
+		return jerr.Get("server test suite queue0 error", s.Queue0.Error)
+	}
+	if s.Queue1.End(); s.Queue1.Error != nil {
+		return jerr.Get("server test suite queue1 error", s.Queue1.Error)
 	}
 	return nil
 }

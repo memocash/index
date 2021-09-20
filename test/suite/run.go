@@ -22,4 +22,3 @@ func Run(test *Test, args []string) error {
 	}
 	return nil
 }
-

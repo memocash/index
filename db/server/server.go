@@ -1,8 +1,7 @@
-package queue
+package server
 
 import (
 	"context"
-	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/db/proto/queue_pb"
@@ -11,14 +10,10 @@ import (
 	"net"
 )
 
-const (
-	DefaultShard0Port = 26780
-	DefaultShard1Port = 26781
-)
-
 type Server struct {
-	Port uint
-	Grpc *grpc.Server
+	Port    uint
+	Stopped bool
+	Grpc    *grpc.Server
 	queue_pb.UnimplementedQueueServer
 }
 
@@ -27,11 +22,11 @@ func (s *Server) SaveMessages(_ context.Context, msg *queue_pb.Messages) (*queue
 	for _, message := range msg.Messages {
 		jlog.Logf("message: %x %s\n", message.Uid, message.Message)
 	}
-	return nil, nil
+	return &queue_pb.ErrorReply{}, nil
 }
 
 func (s *Server) Run() error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", s.Port))
+	lis, err := net.Listen("tcp", GetHost(s.Port))
 	if err != nil {
 		return jerr.Get("failed to listen", err)
 	}
@@ -47,6 +42,7 @@ func (s *Server) Run() error {
 func (s *Server) Stop() {
 	if s.Grpc != nil {
 		s.Grpc.Stop()
+		s.Stopped = true
 	}
 }
 
