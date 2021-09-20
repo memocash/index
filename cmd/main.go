@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/api"
 	"github.com/memocash/server/cmd/test"
@@ -14,8 +13,12 @@ import (
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Run Server",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if err := config.Init(cmd); err != nil {
+			jerr.Get("fatal error initializing config", err).Fatal()
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Default")
 		var errorHandler = make(chan error)
 		go func() {
 			err := api.NewServer().Run()

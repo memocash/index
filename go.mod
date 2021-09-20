@@ -6,7 +6,7 @@ require (
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/jchavannes/bchutil v0.0.0-20190601153950-94d7f52a5867
 	github.com/jchavannes/btcd v0.0.0-20210319161304-69acdff53c2e
-	github.com/jchavannes/jgo v0.0.0-20210920044702-60625d59d9b9
+	github.com/jchavannes/jgo v0.0.0-20210920055349-e5f7098eea6a
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
 	github.com/syndtr/goleveldb v1.0.0

@@ -3,7 +3,6 @@ package item
 import (
 	"crypto/rand"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/ref/config"
@@ -34,9 +33,6 @@ func GetShardByte32(b []byte) uint32 {
 }
 
 func GetShard(shard uint) uint {
-	if shard == config.ShardSingle {
-		return shard
-	}
 	return shard % uint(GetShardCount())
 }
 
@@ -82,15 +78,9 @@ func Save(objects []Object) error {
 	wg.Add(len(shardMessages))
 	var errs []error
 	for shardT, messagesT := range shardMessages {
-		jlog.Logf("shardT: %d, len(messagesT): %d\n", shardT, len(messagesT))
 		go func(shard uint, messages []*client.Message) {
 			defer wg.Done()
-			var shardConfig config.Shard
-			if shard == config.ShardSingle {
-				shardConfig = config.GetQueueSingle()
-			} else {
-				shardConfig = config.GetShardConfig(uint32(shard), configs)
-			}
+			shardConfig := config.GetShardConfig(uint32(shard), configs)
 			queueClient := client.NewClient(shardConfig.GetHost())
 			err := queueClient.Save(messages, time.Now())
 			if err != nil {

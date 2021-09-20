@@ -30,14 +30,13 @@ func (s *Server) Run() error {
 		ChainParams:      params,
 		Listeners: peer.MessageListeners{
 			OnAddr: func(p *peer.Peer, msg *wire.MsgAddr) {
-				jlog.Log("on addr")
+				jlog.Logf("on addr: %d\n", len(msg.AddrList))
 				var objects = make([]item.Object, len(msg.AddrList))
-				for i, addr := range msg.AddrList {
-					jlog.Logf("Ip: %s, port: %d, services: %d\n", addr.IP, addr.Port, addr.Services)
+				for i := range msg.AddrList {
 					objects[i] = &item.Peer{
-						Ip:       addr.IP,
-						Port:     addr.Port,
-						Services: uint64(addr.Services),
+						Ip:       msg.AddrList[i].IP,
+						Port:     msg.AddrList[i].Port,
+						Services: uint64(msg.AddrList[i].Services),
 					}
 				}
 				if err := item.Save(objects); err != nil {

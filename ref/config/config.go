@@ -33,8 +33,6 @@ type Config struct {
 
 	QueueShards []Shard `mapstructure:"QUEUE_SHARDS"`
 
-	QueueSingle Shard `mapstructure:"QUEUE_SINGLE"`
-
 	SaveMetrics bool `mapstructure:"SAVE_METRICS"`
 
 	DataPrefix             string `mapstructure:"DATA_PREFIX"`
@@ -113,10 +111,6 @@ func GetInitBlockParent() string {
 
 func GetQueueShards() []Shard {
 	return _config.QueueShards
-}
-
-func GetQueueSingle() Shard {
-	return _config.QueueSingle
 }
 
 func GetSaveMetrics() bool {
