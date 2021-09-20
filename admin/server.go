@@ -1,4 +1,4 @@
-package api
+package admin
 
 import (
 	"fmt"
@@ -13,14 +13,14 @@ type Server struct {
 func (s *Server) Run() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Memo API 0.1")
+		fmt.Fprint(w, "Memo Admin 0.1")
 	})
 	server := http.Server{
-		Addr:    config.GetHost(config.GetApiPort()),
+		Addr:    config.GetHost(config.GetAdminPort()),
 		Handler: mux,
 	}
 	if err := server.ListenAndServe(); err != nil {
-		return jerr.Get("error listening and serving api server", err)
+		return jerr.Get("error listening and serving admin server", err)
 	}
 	return nil
 }

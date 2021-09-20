@@ -12,6 +12,8 @@ const (
 	FlagConfig = "config"
 
 	Localhost         = "127.0.0.1"
+	DefaultApiPort    = 10000
+	DefaultAdminPort  = 26770
 	DefaultShard0Port = 26780
 	DefaultShard1Port = 26781
 	DefaultServerPort = 19021
@@ -35,6 +37,9 @@ type Config struct {
 
 	SaveMetrics bool `mapstructure:"SAVE_METRICS"`
 
+	ApiPort   uint `mapstructure:"API_PORT"`
+	AdminPort uint `mapstructure:"ADMIN_PORT"`
+
 	DataPrefix             string `mapstructure:"DATA_PREFIX"`
 	OpenFilesCacheCapacity int    `mapstructure:"OPEN_FILES_CACHE_CAPACITY"`
 
@@ -52,6 +57,8 @@ var DefaultConfig = Config{
 	InitBlockParent: DefaultInitBlockParent,
 	ServerHost:      Localhost,
 	ServerPort:      DefaultServerPort,
+	ApiPort:         DefaultApiPort,
+	AdminPort:       DefaultAdminPort,
 	QueueShards: []Shard{{
 		Total: 2,
 		Host:  Localhost,
@@ -123,6 +130,14 @@ func GetServerPort() int {
 
 func GetProcessLimitUtxos() int {
 	return _config.ProcessLimit.Utxos
+}
+
+func GetApiPort() uint {
+	return _config.ApiPort
+}
+
+func GetAdminPort() uint {
+	return _config.AdminPort
 }
 
 func GetSelfRpc() RpcConfig {

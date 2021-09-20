@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/server/admin"
 	"github.com/memocash/server/api"
 	"github.com/memocash/server/cmd/peer"
 	"github.com/memocash/server/cmd/test"
@@ -24,6 +25,10 @@ var serverCmd = &cobra.Command{
 		go func() {
 			err := api.NewServer().Run()
 			errorHandler <- jerr.Get("fatal error running api server", err)
+		}()
+		go func() {
+			err := admin.NewServer().Run()
+			errorHandler <- jerr.Get("fatal error running admin server", err)
 		}()
 		go func() {
 			err := node.NewServer().Run()
