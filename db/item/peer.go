@@ -1,8 +1,10 @@
 package item
 
 import (
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/server/db/client"
+	"github.com/memocash/server/ref/config"
 )
 
 type Peer struct {
@@ -37,4 +39,24 @@ func (p *Peer) SetUid(uid []byte) {
 
 func (p *Peer) Deserialize(data []byte) {
 	p.Services = jutil.GetUint64(data)
+}
+
+func GetPeers(shard uint32, startId []byte) ([]*Peer, error) {
+	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	var startIdBytes []byte
+	if len(startId) > 0 {
+		startIdBytes = startId
+	}
+	err := dbClient.GetLarge(TopicPeer, startIdBytes, false, false)
+	if err != nil {
+		return nil, jerr.Get("error getting peers from queue client", err)
+	}
+	var peers = make([]*Peer, len(dbClient.Messages))
+	for i := range dbClient.Messages {
+		peers[i] = new(Peer)
+		peers[i].SetUid(dbClient.Messages[i].Uid)
+		peers[i].Deserialize(dbClient.Messages[i].Message)
+	}
+	return peers, nil
 }

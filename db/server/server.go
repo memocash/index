@@ -110,6 +110,44 @@ func (s *Server) GetMessage(_ context.Context, request *queue_pb.RequestSingle) 
 	}, nil
 }
 
+func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*queue_pb.Messages, error) {
+	var messages []*store.Message
+	var err error
+	if len(request.Uids) > 0 {
+		messages, err = store.GetMessagesByUids(request.Topic, s.Shard, request.Uids)
+		if err != nil {
+			return nil, jerr.Get("error getting messages by uids", err)
+		}
+	} else {
+		for i := 0; i < 2; i++ {
+			messages, err = store.GetMessages(request.Topic, s.Shard, request.Prefixes, request.Start, int(request.Max),
+				request.Newest)
+			if err != nil {
+				return nil, jerr.Getf(err, "error getting messages for topic: %s", request.Topic)
+			}
+			if len(messages) == 0 && request.Wait && i == 0 {
+				err = <-ListenNew(ctx, request.Topic, request.Start, request.Prefixes)
+				if err != nil {
+					return nil, jerr.Get("error listening for new topic item", err)
+				}
+			} else {
+				break
+			}
+		}
+	}
+	var queueMessages = make([]*queue_pb.Message, len(messages))
+	for i := range messages {
+		queueMessages[i] = &queue_pb.Message{
+			Topic:   request.Topic,
+			Uid:     messages[i].Uid,
+			Message: messages[i].Message,
+		}
+	}
+	return &queue_pb.Messages{
+		Messages: queueMessages,
+	}, nil
+}
+
 func (s *Server) Run() error {
 	lis, err := net.Listen("tcp", GetHost(s.Port))
 	if err != nil {

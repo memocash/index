@@ -19,7 +19,7 @@ type Server struct {
 }
 
 func (s *Server) Run() error {
-	var hasAskedForPeers bool
+	//var hasAskedForPeers bool
 	params := &chaincfg.MainNetParams
 	params.Net = bchutil.MainnetMagic
 	var bitcoinPeer *peer.Peer
@@ -73,11 +73,11 @@ func (s *Server) Run() error {
 			OnPing: func(p *peer.Peer, msg *wire.MsgPing) {
 				jlog.Log("on ping from peer")
 				jlog.Logf("Nonce: %d\n", msg.Nonce)
-				if !hasAskedForPeers {
+				/*if !hasAskedForPeers {
 					bitcoinPeer.QueueMessage(wire.NewMsgGetAddr(), nil)
 					hasAskedForPeers = true
 					jlog.Log("queued get addr")
-				}
+				}*/
 			},
 			OnMerkleBlock: func(p *peer.Peer, msg *wire.MsgMerkleBlock) {
 				jlog.Log("on merkle from peer")

@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/api"
+	"github.com/memocash/server/cmd/peer"
 	"github.com/memocash/server/cmd/test"
 	"github.com/memocash/server/db/server"
 	"github.com/memocash/server/node"
@@ -43,6 +44,7 @@ var serverCmd = &cobra.Command{
 func Execute() error {
 	serverCmd.AddCommand(
 		test.GetCommand(),
+		peer.GetCommand(),
 	)
 	if err := serverCmd.Execute(); err != nil {
 		return jerr.Get("error executing server command", err)
