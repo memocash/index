@@ -22,7 +22,7 @@ var serverCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var errorHandler = make(chan error)
-		nodeServer := node.NewServer()
+		nodeServer := node.NewServer(node.GetLocalhost(), node.DefaultPort)
 		go func() {
 			err := api.NewServer().Run()
 			errorHandler <- jerr.Get("error running api server", err)

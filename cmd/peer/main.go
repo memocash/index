@@ -11,6 +11,8 @@ var peerCmd = &cobra.Command{
 func GetCommand() *cobra.Command {
 	peerCmd.AddCommand(
 		listCmd,
+		listFoundPeersCmd,
+		listPeerFoundsCmd,
 		getCmd,
 	)
 	return peerCmd

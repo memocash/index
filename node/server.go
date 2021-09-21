@@ -1,6 +1,8 @@
 package node
 
 import (
+	"encoding/hex"
+	"fmt"
 	"github.com/jchavannes/bchutil"
 	"github.com/jchavannes/btcd/chaincfg"
 	"github.com/jchavannes/btcd/peer"
@@ -11,12 +13,19 @@ import (
 	"net"
 )
 
-var KnownNodes = []string{
-	"127.0.0.1:8333",
+const (
+	DefaultPort = 8333
+)
+
+func GetLocalhost() net.IP {
+	var localhostByte, _ = hex.DecodeString("00000000000000000000ffff7f000001")
+	return localhostByte
 }
 
 type Server struct {
 	Peer *peer.Peer
+	Ip   []byte
+	Port uint16
 }
 
 func (s *Server) GetAddr() error {
@@ -28,9 +37,11 @@ func (s *Server) GetAddr() error {
 }
 
 func (s *Server) Run() error {
+	jlog.Logf("IP: %s\n", net.IP(s.Ip))
 	params := &chaincfg.MainNetParams
 	params.Net = bchutil.MainnetMagic
 	var err error
+	connectionAddress := fmt.Sprintf("%s:%d", net.IP(s.Ip), s.Port)
 	s.Peer, err = peer.NewOutboundPeer(&peer.Config{
 		UserAgentName:    "memo-node",
 		UserAgentVersion: "0.3.0",
@@ -38,12 +49,24 @@ func (s *Server) Run() error {
 		Listeners: peer.MessageListeners{
 			OnAddr: func(p *peer.Peer, msg *wire.MsgAddr) {
 				jlog.Logf("on addr: %d\n", len(msg.AddrList))
-				var objects = make([]item.Object, len(msg.AddrList))
+				var objects = make([]item.Object, len(msg.AddrList)*3)
 				for i := range msg.AddrList {
-					objects[i] = &item.Peer{
+					objects[i*3] = &item.Peer{
 						Ip:       msg.AddrList[i].IP,
 						Port:     msg.AddrList[i].Port,
 						Services: uint64(msg.AddrList[i].Services),
+					}
+					objects[i*3+1] = &item.PeerFound{
+						Ip:         msg.AddrList[i].IP,
+						Port:       msg.AddrList[i].Port,
+						FinderIp:   s.Ip,
+						FinderPort: s.Port,
+					}
+					objects[i*3+2] = &item.FoundPeer{
+						Ip:        s.Ip,
+						Port:      s.Port,
+						FoundIp:   msg.AddrList[i].IP,
+						FoundPort: msg.AddrList[i].Port,
 					}
 				}
 				if err := item.Save(objects); err != nil {
@@ -91,12 +114,12 @@ func (s *Server) Run() error {
 				jlog.Logf("version: %d, user agent: %s\n", msg.ProtocolVersion, msg.UserAgent)
 			},
 		},
-	}, KnownNodes[0])
+	}, connectionAddress)
 	if err != nil {
 		return jerr.Get("error getting new outbound bitcoinPeer", err)
 	}
-	jlog.Logf("Starting node: %s\n", KnownNodes[0])
-	conn, err := net.Dial("tcp", KnownNodes[0])
+	jlog.Logf("Starting node: %s\n", connectionAddress)
+	conn, err := net.Dial("tcp", connectionAddress)
 	if err != nil {
 		return jerr.Get("error getting network connection", err)
 	}
@@ -105,6 +128,9 @@ func (s *Server) Run() error {
 	return jerr.Newf("error node disconnected")
 }
 
-func NewServer() *Server {
-	return &Server{}
+func NewServer(ip []byte, port uint16) *Server {
+	return &Server{
+		Ip:   ip,
+		Port: port,
+	}
 }
