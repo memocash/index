@@ -60,10 +60,14 @@ var DefaultConfig = Config{
 	ApiPort:         DefaultApiPort,
 	AdminPort:       DefaultAdminPort,
 	QueueShards: []Shard{{
+		Min:   0,
+		Max:   0,
 		Total: 2,
 		Host:  Localhost,
 		Port:  DefaultShard0Port,
 	}, {
+		Min:   1,
+		Max:   1,
 		Total: 2,
 		Host:  Localhost,
 		Port:  DefaultShard1Port,

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/ref/config"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -18,7 +19,8 @@ const (
 var conns = make(map[string]*leveldb.DB)
 
 func getDb(topic string, shard uint) (*leveldb.DB, error) {
-	if conns[topic] == nil {
+	connId := fmt.Sprintf("%d:%s", shard, topic)
+	if conns[connId] == nil {
 		filename := GetDbFile(topic, shard)
 		err := os.MkdirAll(filepath.Dir(filename), os.ModePerm)
 		if err != nil {
@@ -34,9 +36,9 @@ func getDb(topic string, shard uint) (*leveldb.DB, error) {
 		if err != nil {
 			return nil, jerr.Get("error opening level db", err)
 		}
-		conns[topic] = db
+		conns[connId] = db
 	}
-	return conns[topic], nil
+	return conns[connId], nil
 }
 
 func GetDbPrefix() string {

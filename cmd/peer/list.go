@@ -3,6 +3,7 @@ package peer
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/server/admin/client"
 	"github.com/memocash/server/db/item"
 	"github.com/spf13/cobra"
@@ -12,7 +13,11 @@ import (
 var listCmd = &cobra.Command{
 	Use: "list",
 	Run: func(cmd *cobra.Command, args []string) {
-		peers, err := item.GetPeers(0, nil)
+		var shard uint32
+		if len(args) > 0 {
+			shard = jutil.GetUInt32FromString(args[0])
+		}
+		peers, err := item.GetPeers(shard, nil)
 		if err != nil {
 			jerr.Get("fatal error getting peers", err).Fatal()
 		}
@@ -26,7 +31,11 @@ var listCmd = &cobra.Command{
 var listFoundPeersCmd = &cobra.Command{
 	Use: "list-found-peers",
 	Run: func(cmd *cobra.Command, args []string) {
-		foundPeers, err := item.GetFoundPeers(0, nil)
+		var shard uint32
+		if len(args) > 0 {
+			shard = jutil.GetUInt32FromString(args[0])
+		}
+		foundPeers, err := item.GetFoundPeers(shard, nil)
 		if err != nil {
 			jerr.Get("fatal error getting found peers", err).Fatal()
 		}
@@ -41,7 +50,11 @@ var listFoundPeersCmd = &cobra.Command{
 var listPeerFoundsCmd = &cobra.Command{
 	Use: "list-peer-founds",
 	Run: func(cmd *cobra.Command, args []string) {
-		foundPeers, err := item.GetPeerFounds(0, nil)
+		var shard uint32
+		if len(args) > 0 {
+			shard = jutil.GetUInt32FromString(args[0])
+		}
+		foundPeers, err := item.GetPeerFounds(shard, nil)
 		if err != nil {
 			jerr.Get("fatal error getting peer founds", err).Fatal()
 		}
