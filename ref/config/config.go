@@ -21,6 +21,8 @@ const (
 	DefaultInitBlock       = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
 	DefaultInitBlockParent = "000000000000000000925634d697d3dcd7a8f5aef312f043f4cb278fd9152baa"
 	DefaultInitBlockHeight = 0
+
+	DefaultDataDir = "db/data"
 )
 
 type Config struct {
@@ -39,6 +41,8 @@ type Config struct {
 
 	ApiPort   uint `mapstructure:"API_PORT"`
 	AdminPort uint `mapstructure:"ADMIN_PORT"`
+
+	DataDir string `mapstructure:"DATA_DIR"`
 
 	DataPrefix             string `mapstructure:"DATA_PREFIX"`
 	OpenFilesCacheCapacity int    `mapstructure:"OPEN_FILES_CACHE_CAPACITY"`
@@ -59,6 +63,7 @@ var DefaultConfig = Config{
 	ServerPort:      DefaultServerPort,
 	ApiPort:         DefaultApiPort,
 	AdminPort:       DefaultAdminPort,
+	DataDir:         DefaultDataDir,
 	QueueShards: []Shard{{
 		Min:   0,
 		Max:   0,
@@ -165,4 +170,8 @@ func GetOpenFilesCacheCapacity() int {
 
 func GetHost(port uint) string {
 	return fmt.Sprintf("%s:%d", Localhost, port)
+}
+
+func GetDataDir() string {
+	return _config.DataDir
 }

@@ -50,7 +50,11 @@ func GetDbPrefix() string {
 }
 
 func GetDbDir(shard uint) string {
-	return "data/" + GetDbPrefix() + config.GetShardConfig(uint32(shard), config.GetQueueShards()).String()
+	dataDir := config.GetDataDir()
+	if dataDir == "" {
+		dataDir = "data"
+	}
+	return dataDir + "/" + GetDbPrefix() + config.GetShardConfig(uint32(shard), config.GetQueueShards()).String()
 }
 
 func GetDbFile(topic string, shard uint) string {
