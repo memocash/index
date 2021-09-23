@@ -10,12 +10,13 @@ import (
 )
 
 const (
-	UrlIndex        = "/"
-	UrlNodeGetAddrs = "/node/get_addrs"
+	UrlIndex              = "/"
+	UrlNodeGetAddrs       = "/node/get_addrs"
+	UrlNodeConnectDefault = "/node/connect_default"
 )
 
 type Server struct {
-	Node *node.Server
+	Nodes *node.Group
 }
 
 func (s *Server) Run() error {
@@ -25,7 +26,13 @@ func (s *Server) Run() error {
 	})
 	mux.HandleFunc(UrlNodeGetAddrs, func(w http.ResponseWriter, r *http.Request) {
 		jlog.Log("Node get addrs request")
-		s.Node.GetAddr()
+		for _, serverNode := range s.Nodes.Nodes {
+			serverNode.GetAddr()
+		}
+	})
+	mux.HandleFunc(UrlNodeConnectDefault, func(w http.ResponseWriter, r *http.Request) {
+		jlog.Log("Node connect default")
+		s.Nodes.AddDefaultNode()
 	})
 	server := http.Server{
 		Addr:    config.GetHost(config.GetAdminPort()),
@@ -37,8 +44,8 @@ func (s *Server) Run() error {
 	return nil
 }
 
-func NewServer(nodeServer *node.Server) *Server {
+func NewServer(group *node.Group) *Server {
 	return &Server{
-		Node: nodeServer,
+		Nodes: group,
 	}
 }

@@ -216,8 +216,6 @@ github.com/jchavannes/btcd v0.0.0-20210319161304-69acdff53c2e h1:t0oVOQUvccm+WSP
 github.com/jchavannes/btcd v0.0.0-20210319161304-69acdff53c2e/go.mod h1:LT04U6Te63iodzZKaN1Kp/jcTWxN9/ugYpxvLrt1kfA=
 github.com/jchavannes/gorm v0.0.0-20190714222221-6e209826f9bd h1:SyXcDofoDn1nwNxiiFOFY/t8fV8ZfGqBrHMxhdrsP1w=
 github.com/jchavannes/gorm v0.0.0-20190714222221-6e209826f9bd/go.mod h1:utXzNh8giZEFprSHsuauEeZXuH6BVCbzuo0uKS+c37s=
-github.com/jchavannes/jgo v0.0.0-20210920055349-e5f7098eea6a h1:wYarREKLyb6cp2zncJjCLKRPK7RlnK5+yfA1ZVG+rBI=
-github.com/jchavannes/jgo v0.0.0-20210920055349-e5f7098eea6a/go.mod h1:J1NTAoh6LjpbL9q1kGE5MnOcDqgk4MAsZxONoQzY+2k=
 github.com/jchavannes/jgo v0.0.0-20210920225626-5a88f5951c3c h1:f1Vxhiuy7P1eqWTbuMfbR1cp4aNq3oNgQrycAslL7x4=
 github.com/jchavannes/jgo v0.0.0-20210920225626-5a88f5951c3c/go.mod h1:J1NTAoh6LjpbL9q1kGE5MnOcDqgk4MAsZxONoQzY+2k=
 github.com/jessevdk/go-flags v0.0.0-20141203071132-1679536dcc89/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=

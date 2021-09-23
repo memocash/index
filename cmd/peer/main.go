@@ -14,6 +14,7 @@ func GetCommand() *cobra.Command {
 		listFoundPeersCmd,
 		listPeerFoundsCmd,
 		getCmd,
+		connectDefaultCmd,
 	)
 	return peerCmd
 }
