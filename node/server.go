@@ -128,6 +128,12 @@ func (s *Server) Run() error {
 	return jerr.Newf("error node disconnected")
 }
 
+func (s *Server) Disconnect() {
+	if s.Peer != nil {
+		s.Peer.Disconnect()
+	}
+}
+
 func NewServer(ip []byte, port uint16) *Server {
 	return &Server{
 		Ip:   ip,
