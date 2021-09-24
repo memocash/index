@@ -4,7 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/admin/client"
+	"github.com/memocash/server/admin/client/peer"
 	"github.com/memocash/server/db/item"
 	"github.com/spf13/cobra"
 	"net"
@@ -69,9 +69,9 @@ var listPeerFoundsCmd = &cobra.Command{
 var getCmd = &cobra.Command{
 	Use: "get",
 	Run: func(cmd *cobra.Command, args []string) {
-		peerGet := client.NewPeerGet()
+		peerGet := peer.NewGet()
 		if err := peerGet.Get(); err != nil {
-			jerr.Get("fatal error getting admin index", err).Fatal()
+			jerr.Get("fatal error getting peer get", err).Fatal()
 		}
 		jlog.Logf("peerGet.Message: %s\n", peerGet.Message)
 	},

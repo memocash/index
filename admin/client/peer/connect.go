@@ -1,4 +1,4 @@
-package client
+package peer
 
 import (
 	"github.com/jchavannes/jgo/jerr"
@@ -8,11 +8,11 @@ import (
 	"net/http"
 )
 
-type PeerConnect struct {
+type Connect struct {
 	Message string
 }
 
-func (i *PeerConnect) Get() error {
+func (i *Connect) Get() error {
 	resp, err := http.Get("http://" + config.GetHost(config.GetAdminPort()) + admin.UrlNodeConnectDefault)
 	if err != nil {
 		return jerr.Get("error getting node connect default", err)
@@ -25,6 +25,6 @@ func (i *PeerConnect) Get() error {
 	return nil
 }
 
-func NewPeerConnect() *PeerConnect {
-	return &PeerConnect{}
+func NewConnect() *Connect {
+	return &Connect{}
 }
