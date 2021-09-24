@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/admin"
 	"github.com/memocash/server/api"
 	"github.com/memocash/server/cmd/peer"
@@ -23,8 +24,9 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var errorHandler = make(chan error)
 		nodeGroup := node.NewGroup()
+		apiServer := api.NewServer()
 		go func() {
-			err := api.NewServer().Run()
+			err := apiServer.Run()
 			errorHandler <- jerr.Get("error running api server", err)
 		}()
 		go func() {
@@ -39,6 +41,7 @@ var serverCmd = &cobra.Command{
 			err := server.NewServer(config.DefaultShard1Port, 1).Run()
 			errorHandler <- jerr.Get("error running db queue server shard 1", err)
 		}()
+		jlog.Logf("Server started on port: %d...\n", apiServer.Port)
 		jerr.Get("fatal memo server error encountered", <-errorHandler).Fatal()
 	},
 }

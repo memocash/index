@@ -6,13 +6,15 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/node"
 	"github.com/memocash/server/ref/config"
+	"net"
 	"net/http"
 )
 
 const (
-	UrlIndex              = "/"
-	UrlNodeGetAddrs       = "/node/get_addrs"
-	UrlNodeConnectDefault = "/node/connect_default"
+	UrlIndex               = "/"
+	UrlNodeGetAddrs        = "/node/get_addrs"
+	UrlNodeConnectDefault  = "/node/connect_default"
+	UrlNodeListConnections = "/node/list_connections"
 )
 
 type Server struct {
@@ -33,6 +35,12 @@ func (s *Server) Run() error {
 	mux.HandleFunc(UrlNodeConnectDefault, func(w http.ResponseWriter, r *http.Request) {
 		jlog.Log("Node connect default")
 		s.Nodes.AddDefaultNode()
+	})
+	mux.HandleFunc(UrlNodeListConnections, func(w http.ResponseWriter, r *http.Request) {
+		jlog.Log("Node list connections")
+		for id, serverNode := range s.Nodes.Nodes {
+			fmt.Fprintf(w, "%s - %s:%d\n", id, net.IP(serverNode.Ip), serverNode.Port)
+		}
 	})
 	server := http.Server{
 		Addr:    config.GetHost(config.GetAdminPort()),

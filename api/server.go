@@ -8,6 +8,7 @@ import (
 )
 
 type Server struct {
+	Port uint
 }
 
 func (s *Server) Run() error {
@@ -16,7 +17,7 @@ func (s *Server) Run() error {
 		fmt.Fprint(w, "Memo API 0.1")
 	})
 	server := http.Server{
-		Addr:    config.GetHost(config.GetApiPort()),
+		Addr:    config.GetHost(s.Port),
 		Handler: mux,
 	}
 	if err := server.ListenAndServe(); err != nil {
@@ -26,5 +27,7 @@ func (s *Server) Run() error {
 }
 
 func NewServer() *Server {
-	return &Server{}
+	return &Server{
+		Port: config.GetApiPort(),
+	}
 }
