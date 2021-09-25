@@ -46,7 +46,7 @@ func (s *Server) Run() error {
 	mux.HandleFunc(UrlNodeListConnections, func(w http.ResponseWriter, r *http.Request) {
 		jlog.Log("Node list connections")
 		for id, serverNode := range s.Nodes.Nodes {
-			fmt.Fprintf(w, "%s - %s:%d\n", id, net.IP(serverNode.Ip), serverNode.Port)
+			fmt.Fprintf(w, "%s - %s:%d (%t)\n", id, net.IP(serverNode.Ip), serverNode.Port, serverNode.Peer.Connected())
 		}
 	})
 	mux.HandleFunc(UrlNodeDisconnect, func(w http.ResponseWriter, r *http.Request) {

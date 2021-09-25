@@ -15,7 +15,7 @@ func (g *Group) AddDefaultNode() {
 
 func (g *Group) AddNode(ip []byte, port uint16) {
 	nodeId := groupNodeId(ip, port)
-	if _, exists := g.Nodes[nodeId]; exists {
+	if _, exists := g.Nodes[nodeId]; exists && g.Nodes[nodeId].Peer.Connected() {
 		return
 	}
 	g.Nodes[nodeId] = NewServer(ip, port)
