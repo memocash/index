@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	TopicMessage   = "message"
-	TopicPeer      = "peer"
-	TopicPeerFound = "peer_found"
-	TopicFoundPeer = "found_peer"
+	TopicMessage        = "message"
+	TopicPeer           = "peer"
+	TopicPeerFound      = "peer_found"
+	TopicFoundPeer      = "found_peer"
+	TopicPeerConnection = "peer_connection"
 )
 
 type Object interface {

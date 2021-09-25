@@ -49,3 +49,14 @@ var listConnectionsCmd = &cobra.Command{
 		jlog.Logf("listConnections.Connections:\n%s\n", listConnections.Connections)
 	},
 }
+
+var historyCmd = &cobra.Command{
+	Use: "history",
+	Run: func(cmd *cobra.Command, args []string) {
+		history := peer.NewHistory()
+		if err := history.Get(); err != nil {
+			jerr.Get("fatal error getting peer history", err).Fatal()
+		}
+		jlog.Logf("history.Connections:\n%s\n", history.Connections)
+	},
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
+	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/node"
 	"github.com/memocash/server/ref/config"
 	"io/ioutil"
@@ -28,6 +29,7 @@ const (
 	UrlNodeConnectDefault  = "/node/connect_default"
 	UrlNodeListConnections = "/node/list_connections"
 	UrlNodeDisconnect      = "/node/disconnect"
+	UrlNodeHistory         = "/node/history"
 )
 
 type Server struct {
@@ -68,6 +70,18 @@ func (s *Server) Run() error {
 		for id, serverNode := range s.Nodes.Nodes {
 			fmt.Fprintf(w, "%s - %s:%d (%t)\n", id, net.IP(serverNode.Ip), serverNode.Port,
 				serverNode.Peer != nil && serverNode.Peer.Connected())
+		}
+	})
+	mux.HandleFunc(UrlNodeHistory, func(w http.ResponseWriter, r *http.Request) {
+		jlog.Log("Node list history")
+		peerConnections, err := item.GetPeerConnections(0, nil)
+		if err != nil {
+			jerr.Get("fatal error getting peer connections", err).Fatal()
+		}
+		fmt.Fprintf(w, "History peer connections: %d\n", len(peerConnections))
+		for i := 0; i < len(peerConnections) && i < 10; i++ {
+			fmt.Fprintf(w, "Peer connection: %s:%d - %s - %d\n", net.IP(peerConnections[i].Ip), peerConnections[i].Port,
+				peerConnections[i].Time.Format("2006-01-02 15:04:05"), peerConnections[i].Status)
 		}
 	})
 	mux.HandleFunc(UrlNodeDisconnect, func(w http.ResponseWriter, r *http.Request) {
