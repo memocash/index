@@ -16,9 +16,15 @@ type NodeDisconnectRequest struct {
 	NodeId string
 }
 
+type NodeConnectRequest struct {
+	Ip   []byte
+	Port uint16
+}
+
 const (
 	UrlIndex               = "/"
 	UrlNodeGetAddrs        = "/node/get_addrs"
+	UrlNodeConnect         = "/node/connect"
 	UrlNodeConnectDefault  = "/node/connect_default"
 	UrlNodeListConnections = "/node/list_connections"
 	UrlNodeDisconnect      = "/node/disconnect"
@@ -39,6 +45,20 @@ func (s *Server) Run() error {
 			serverNode.GetAddr()
 		}
 	})
+	mux.HandleFunc(UrlNodeConnect, func(w http.ResponseWriter, r *http.Request) {
+		jlog.Log("Node connect")
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			jerr.Get("error reading node connect body", err).Print()
+			return
+		}
+		var connectRequest = new(NodeConnectRequest)
+		if err := json.Unmarshal(body, connectRequest); err != nil {
+			jerr.Get("error unmarshalling node connect request", err).Print()
+			return
+		}
+		s.Nodes.AddNode(connectRequest.Ip, connectRequest.Port)
+	})
 	mux.HandleFunc(UrlNodeConnectDefault, func(w http.ResponseWriter, r *http.Request) {
 		jlog.Log("Node connect default")
 		s.Nodes.AddDefaultNode()
@@ -46,7 +66,8 @@ func (s *Server) Run() error {
 	mux.HandleFunc(UrlNodeListConnections, func(w http.ResponseWriter, r *http.Request) {
 		jlog.Log("Node list connections")
 		for id, serverNode := range s.Nodes.Nodes {
-			fmt.Fprintf(w, "%s - %s:%d (%t)\n", id, net.IP(serverNode.Ip), serverNode.Port, serverNode.Peer.Connected())
+			fmt.Fprintf(w, "%s - %s:%d (%t)\n", id, net.IP(serverNode.Ip), serverNode.Port,
+				serverNode.Peer != nil && serverNode.Peer.Connected())
 		}
 	})
 	mux.HandleFunc(UrlNodeDisconnect, func(w http.ResponseWriter, r *http.Request) {
