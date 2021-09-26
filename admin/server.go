@@ -27,6 +27,7 @@ const (
 	UrlNodeGetAddrs        = "/node/get_addrs"
 	UrlNodeConnect         = "/node/connect"
 	UrlNodeConnectDefault  = "/node/connect_default"
+	UrlNodeConnectNext     = "/node/connect_next"
 	UrlNodeListConnections = "/node/list_connections"
 	UrlNodeDisconnect      = "/node/disconnect"
 	UrlNodeHistory         = "/node/history"
@@ -64,6 +65,10 @@ func (s *Server) Run() error {
 	mux.HandleFunc(UrlNodeConnectDefault, func(w http.ResponseWriter, r *http.Request) {
 		jlog.Log("Node connect default")
 		s.Nodes.AddDefaultNode()
+	})
+	mux.HandleFunc(UrlNodeConnectNext, func(w http.ResponseWriter, r *http.Request) {
+		jlog.Log("Node connect next")
+		s.Nodes.AddNextNode()
 	})
 	mux.HandleFunc(UrlNodeListConnections, func(w http.ResponseWriter, r *http.Request) {
 		jlog.Log("Node list connections")

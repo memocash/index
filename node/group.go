@@ -3,20 +3,34 @@ package node
 import (
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/server/db/item"
 )
 
 type Group struct {
-	Nodes map[string]*Server
+	Nodes      map[string]*Server
+	LastPeerId []byte
 }
 
 func (g *Group) AddDefaultNode() {
 	g.AddNode(GetLocalhost(), DefaultPort)
 }
 
+func (g *Group) AddNextNode() error {
+	newPeer, err := item.GetNextPeer(0, g.LastPeerId)
+	if err != nil {
+		return jerr.Get("error getting next peer", err)
+	}
+	g.LastPeerId = newPeer.GetUid()
+	g.AddNode(newPeer.Ip, newPeer.Port)
+	return nil
+}
+
 func (g *Group) AddNode(ip []byte, port uint16) {
 	nodeId := groupNodeId(ip, port)
-	if _, exists := g.Nodes[nodeId]; exists && g.Nodes[nodeId].Peer.Connected() {
-		return
+	if _, exists := g.Nodes[nodeId]; exists {
+		if g.Nodes[nodeId].Peer != nil && g.Nodes[nodeId].Peer.Connected() {
+			return
+		}
 	}
 	g.Nodes[nodeId] = NewServer(ip, port)
 	go func() {

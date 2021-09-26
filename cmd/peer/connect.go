@@ -20,6 +20,17 @@ var connectDefaultCmd = &cobra.Command{
 	},
 }
 
+var connectNextCmd = &cobra.Command{
+	Use: "connect-next",
+	Run: func(cmd *cobra.Command, args []string) {
+		peerConnectNext := peer.NewConnectNext()
+		if err := peerConnectNext.Get(); err != nil {
+			jerr.Get("fatal error getting peer connect next", err).Fatal()
+		}
+		jlog.Logf("peerConnectNext.Message: %s\n", peerConnectNext.Message)
+	},
+}
+
 var connectCmd = &cobra.Command{
 	Use: "connect",
 	Run: func(cmd *cobra.Command, args []string) {

@@ -170,6 +170,20 @@ func (s *Client) GetLarge(topic string, start []byte, wait bool, newest bool) er
 	return nil
 }
 
+func (s *Client) GetNext(topic string, start []byte, wait bool, newest bool) error {
+	startPlusOne := jutil.CombineBytes(start, []byte{0x0})
+	if err := s.GetWOpts(Opts{
+		Topic:  topic,
+		Start:  startPlusOne,
+		Wait:   wait,
+		Max:    1,
+		Newest: newest,
+	}); err != nil {
+		return jerr.Get("error getting with opts", err)
+	}
+	return nil
+}
+
 type Opts struct {
 	Topic    string
 	Start    []byte

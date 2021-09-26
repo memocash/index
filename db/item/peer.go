@@ -60,3 +60,19 @@ func GetPeers(shard uint32, startId []byte) ([]*Peer, error) {
 	}
 	return peers, nil
 }
+
+func GetNextPeer(shard uint32, startId []byte) (*Peer, error) {
+	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	err := dbClient.GetNext(TopicPeer, startId, false, false)
+	if err != nil {
+		return nil, jerr.Get("error getting peers from queue client", err)
+	}
+	if len(dbClient.Messages) != 1 {
+		return nil, jerr.Newf("error unexpected next peer message len (%d)", len(dbClient.Messages))
+	}
+	var peer = new(Peer)
+	peer.SetUid(dbClient.Messages[0].Uid)
+	peer.Deserialize(dbClient.Messages[0].Message)
+	return peer, nil
+}
