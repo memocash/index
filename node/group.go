@@ -8,7 +8,17 @@ import (
 
 type Group struct {
 	Nodes      map[string]*Server
+	Looping    bool
 	LastPeerId []byte
+}
+
+func (g Group) HasActive() bool {
+	for _, node := range g.Nodes {
+		if node.Peer != nil && node.Peer.Connected() {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *Group) AddDefaultNode() {
@@ -34,9 +44,13 @@ func (g *Group) AddNode(ip []byte, port uint16) {
 	}
 	g.Nodes[nodeId] = NewServer(ip, port)
 	go func() {
-		err := g.Nodes[nodeId].Run()
-		if err != nil {
+		if err := g.Nodes[nodeId].Run(); err != nil {
 			jerr.Get("error node failed", err).Print()
+		}
+		if g.Looping && !g.HasActive() {
+			if err := g.AddNextNode(); err != nil {
+				jerr.Get("error adding next node in looper", err).Print()
+			}
 		}
 	}()
 }

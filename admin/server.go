@@ -31,6 +31,8 @@ const (
 	UrlNodeListConnections = "/node/list_connections"
 	UrlNodeDisconnect      = "/node/disconnect"
 	UrlNodeHistory         = "/node/history"
+	UrlNodeLoopingEnable   = "/node/looping_enable"
+	UrlNodeLoopingDisable  = "/node/looping_disable"
 )
 
 type Server struct {
@@ -69,6 +71,20 @@ func (s *Server) Run() error {
 	mux.HandleFunc(UrlNodeConnectNext, func(w http.ResponseWriter, r *http.Request) {
 		jlog.Log("Node connect next")
 		s.Nodes.AddNextNode()
+	})
+	mux.HandleFunc(UrlNodeLoopingEnable, func(w http.ResponseWriter, r *http.Request) {
+		jlog.Log("Node looping enable")
+		if s.Nodes.Looping {
+			return
+		}
+		s.Nodes.Looping = true
+		if !s.Nodes.HasActive() {
+			s.Nodes.AddNextNode()
+		}
+	})
+	mux.HandleFunc(UrlNodeLoopingDisable, func(w http.ResponseWriter, r *http.Request) {
+		jlog.Log("Node looping disabled")
+		s.Nodes.Looping = false
 	})
 	mux.HandleFunc(UrlNodeListConnections, func(w http.ResponseWriter, r *http.Request) {
 		jlog.Log("Node list connections")
