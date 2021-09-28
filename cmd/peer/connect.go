@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
@@ -68,6 +69,11 @@ var historyCmd = &cobra.Command{
 		if err := history.Get(); err != nil {
 			jerr.Get("fatal error getting peer history", err).Fatal()
 		}
-		jlog.Logf("history.Connections:\n%s\n", history.Connections)
+		jlog.Logf("history.Connections (%d):\n", len(history.Connections))
+		for i := 0; i < len(history.Connections) && i < 10; i++ {
+			conn := history.Connections[i]
+			fmt.Printf("Peer connection: %s:%d - %s - %d\n", net.IP(conn.Ip), conn.Port,
+				conn.Time.Format("2006-01-02 15:04:05"), conn.Status)
+		}
 	},
 }

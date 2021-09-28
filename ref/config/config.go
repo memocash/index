@@ -129,6 +129,13 @@ func GetQueueShards() []Shard {
 	return _config.QueueShards
 }
 
+func GetTotalShards() uint32 {
+	if len(_config.QueueShards) == 0 {
+		return 0
+	}
+	return _config.QueueShards[0].Total
+}
+
 func GetSaveMetrics() bool {
 	return _config.SaveMetrics
 }
