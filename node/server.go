@@ -99,6 +99,9 @@ func (s *Server) Run() error {
 			},
 			OnVerAck: func(p *peer.Peer, msg *wire.MsgVerAck) {
 				log("ver ack from peer\n")
+				if err := s.GetAddr(); err != nil {
+					jerr.Get("error peer get addr", err).Print()
+				}
 			},
 			OnHeaders: func(p *peer.Peer, msg *wire.MsgHeaders) {
 				log("on headers from peer\n")
@@ -140,7 +143,7 @@ func (s *Server) Run() error {
 		},
 	}, connectionAddress)
 	if err != nil {
-		return jerr.Get("error getting new outbound bitcoinPeer", err)
+		return jerr.Get("error getting new outbound peer", err)
 	}
 	log("Starting node\n")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -159,8 +162,18 @@ func (s *Server) Run() error {
 	log("Associating connection\n")
 	s.Peer.AssociateConnection(conn)
 	log("wait for disconnect\n")
-	s.Peer.WaitForDisconnect()
-	return jerr.Newf("error node disconnected")
+	disconnected := make(chan interface{})
+	go func() {
+		s.Peer.WaitForDisconnect()
+		<-disconnected
+	}()
+	select {
+	case <-time.NewTimer(1 * time.Minute).C:
+		s.Disconnect()
+		return nil
+	case <-disconnected:
+		return jerr.Newf("error node disconnected")
+	}
 }
 
 func (s *Server) Disconnect() {
