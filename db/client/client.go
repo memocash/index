@@ -179,7 +179,7 @@ func (s *Client) GetNext(topic string, start []byte, wait bool, newest bool) err
 		Max:    1,
 		Newest: newest,
 	}); err != nil {
-		return jerr.Get("error getting with opts", err)
+		return jerr.Get("error getting next with opts", err)
 	}
 	return nil
 }

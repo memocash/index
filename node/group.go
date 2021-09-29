@@ -3,13 +3,18 @@ package node
 import (
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
+	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/db/item"
+	"net"
+	"time"
 )
 
 type Group struct {
 	Nodes      map[string]*Server
 	Looping    bool
 	LastPeerId []byte
+	StartTime  time.Time
 }
 
 func (g Group) HasActive() bool {
@@ -26,12 +31,36 @@ func (g *Group) AddDefaultNode() {
 }
 
 func (g *Group) AddNextNode() error {
-	newPeer, err := item.GetNextPeer(0, g.LastPeerId)
-	if err != nil {
-		return jerr.Get("error getting next peer", err)
+	var peerToUse *item.Peer
+	for attempt := 1; ; attempt++ {
+		newPeer, err := item.GetNextPeer(0, g.LastPeerId)
+		if err != nil && !client.IsEntryNotFoundError(err) {
+			return jerr.Get("error getting next peer", err)
+		}
+		if newPeer == nil {
+			return jerr.Newf("error unable to find usable new peer, %d attempts", attempt)
+		}
+		jlog.Logf("newPeer: %x\n", newPeer.GetUid())
+		jlog.Logf("newPeer: %s:%d\n", net.IP(newPeer.Ip), newPeer.Port)
+		g.LastPeerId = newPeer.GetUid()
+		peerConnection, err := item.GetPeerConnectionLast(newPeer.Ip, newPeer.Port)
+		if err != nil && !client.IsEntryNotFoundError(err) {
+			return jerr.Get("error getting last peer connection for new peer", err)
+		}
+		if peerConnection == nil || g.StartTime.IsZero() || peerConnection.Time.Before(g.StartTime) {
+			peerToUse = newPeer
+			jlog.Logf("Found new peer after %d attempts\n", attempt)
+			break
+		}
 	}
-	g.LastPeerId = newPeer.GetUid()
-	g.AddNode(newPeer.Ip, newPeer.Port)
+	jlog.Logf("peerToUse: %s:%d\n", net.IP(peerToUse.Ip), peerToUse.Port)
+	if len(g.Nodes) > 0 {
+		jerr.Newf("fatal exiting").Fatal()
+	}
+	if peerToUse == nil {
+		return jerr.New("error no peer found")
+	}
+	g.AddNode(peerToUse.Ip, peerToUse.Port)
 	return nil
 }
 

@@ -67,8 +67,9 @@ func GetNextPeer(shard uint32, startId []byte) (*Peer, error) {
 	err := dbClient.GetNext(TopicPeer, startId, false, false)
 	if err != nil {
 		return nil, jerr.Get("error getting peers from queue client", err)
-	}
-	if len(dbClient.Messages) != 1 {
+	} else if len(dbClient.Messages) == 0 {
+		return nil, jerr.Get("error next peer not found", client.EntryNotFoundError)
+	} else if len(dbClient.Messages) != 1 {
 		return nil, jerr.Newf("error unexpected next peer message len (%d)", len(dbClient.Messages))
 	}
 	var peer = new(Peer)
