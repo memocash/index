@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/admin"
+	"github.com/memocash/server/admin/admin"
 	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/ref/config"
 	"io/ioutil"

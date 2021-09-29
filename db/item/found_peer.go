@@ -47,15 +47,27 @@ func (p *FoundPeer) SetUid(uid []byte) {
 
 func (p *FoundPeer) Deserialize([]byte) {}
 
-func GetFoundPeers(shard uint32, startId []byte) ([]*FoundPeer, error) {
+func GetFoundPeers(shard uint32, startId []byte, ip []byte, port uint16) ([]*FoundPeer, error) {
+	var prefix []byte
+	if len(ip) > 0 {
+		prefix = append(prefix, jutil.BytePadPrefix(ip, IpBytePadSize)...)
+		if port > 0 {
+			prefix = append(prefix, jutil.GetUintData(uint(port))...)
+		}
+	}
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var startIdBytes []byte
 	if len(startId) > 0 {
 		startIdBytes = startId
 	}
-	err := dbClient.GetLarge(TopicFoundPeer, startIdBytes, false, false)
-	if err != nil {
+	opts := client.Opts{
+		Topic: TopicFoundPeer,
+		Start: startIdBytes,
+		Max:   client.LargeLimit,
+		Prefixes: [][]byte{prefix},
+	}
+	if err := dbClient.GetWOpts(opts); err != nil {
 		return nil, jerr.Get("error getting found peers from queue client", err)
 	}
 	var foundPeers = make([]*FoundPeer, len(dbClient.Messages))

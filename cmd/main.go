@@ -3,11 +3,11 @@ package cmd
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/server/admin"
+	admin "github.com/memocash/server/admin/server"
 	"github.com/memocash/server/api"
 	"github.com/memocash/server/cmd/peer"
 	"github.com/memocash/server/cmd/test"
-	"github.com/memocash/server/db/server"
+	db "github.com/memocash/server/db/server"
 	"github.com/memocash/server/node"
 	"github.com/memocash/server/ref/config"
 	"github.com/spf13/cobra"
@@ -34,11 +34,11 @@ var serverCmd = &cobra.Command{
 			errorHandler <- jerr.Get("error running admin server", err)
 		}()
 		go func() {
-			err := server.NewServer(config.DefaultShard0Port, 0).Run()
+			err := db.NewServer(config.DefaultShard0Port, 0).Run()
 			errorHandler <- jerr.Get("error running db queue server shard 0", err)
 		}()
 		go func() {
-			err := server.NewServer(config.DefaultShard1Port, 1).Run()
+			err := db.NewServer(config.DefaultShard1Port, 1).Run()
 			errorHandler <- jerr.Get("error running db queue server shard 1", err)
 		}()
 		jlog.Logf("Server started on port: %d...\n", apiServer.Port)

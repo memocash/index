@@ -22,6 +22,7 @@ func GetCommand() *cobra.Command {
 		disconnectCmd,
 		loopingEnableCmd,
 		loopingDisableCmd,
+		foundPeersCmd,
 	)
 	return peerCmd
 }
