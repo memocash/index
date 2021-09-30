@@ -11,6 +11,17 @@ import (
 
 type PeerConnectionStatus int
 
+func (s PeerConnectionStatus) String() string {
+	switch s {
+	case PeerConnectionStatusFail:
+		return "fail"
+	case PeerConnectionStatusSuccess:
+		return "success"
+	default:
+		return "unknown"
+	}
+}
+
 const (
 	PeerConnectionStatusFail    PeerConnectionStatus = 0
 	PeerConnectionStatusSuccess PeerConnectionStatus = 1

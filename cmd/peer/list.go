@@ -66,6 +66,30 @@ var listPeerFoundsCmd = &cobra.Command{
 	},
 }
 
+var listAttemptsCmd = &cobra.Command{
+	Use: "list-attempts",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) < 1 {
+			jerr.Newf("error must give peer address").Fatal()
+		}
+		host, portString, err := net.SplitHostPort(args[0])
+		if err != nil {
+			jerr.Get("error splitting input host port", err)
+		}
+		ip := net.ParseIP(host)
+		if ip == nil {
+			jerr.New("error parsing host ip")
+		}
+		port := jutil.GetUInt16FromString(portString)
+		lastPeerConnection, err := item.GetPeerConnectionLast(ip, port)
+		if err != nil {
+			jerr.Get("fatal error last peer connection", err).Fatal()
+		}
+		jlog.Logf("lastPeerConnection: %s:%d - %s %s\n", net.IP(lastPeerConnection.Ip), lastPeerConnection.Port,
+			lastPeerConnection.Time.Format("2006-01-02 15:04:05"), lastPeerConnection.Status)
+	},
+}
+
 var getCmd = &cobra.Command{
 	Use: "get",
 	Run: func(cmd *cobra.Command, args []string) {

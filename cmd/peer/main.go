@@ -13,6 +13,7 @@ func GetCommand() *cobra.Command {
 		listCmd,
 		listFoundPeersCmd,
 		listPeerFoundsCmd,
+		listAttemptsCmd,
 		getCmd,
 		connectDefaultCmd,
 		connectNextCmd,
