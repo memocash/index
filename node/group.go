@@ -47,7 +47,13 @@ func (g *Group) AddNextNode() error {
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return jerr.Get("error getting last peer connection for new peer", err)
 		}
-		if peerConnection == nil || g.StartTime.IsZero() || peerConnection.Time.Before(g.StartTime) {
+		if peerConnection != nil {
+			jlog.Logf("peerConnection: %s:%d - %s %s\n", net.IP(peerConnection.Ip), peerConnection.Port,
+				peerConnection.Time.Format("2006-01-02 15:04:05"), peerConnection.Status)
+		} else {
+			jlog.Log("no peer connection found")
+		}
+		if peerConnection == nil || peerConnection.Time.Before(g.StartTime) {
 			peerToUse = newPeer
 			jlog.Logf("Found new peer after %d attempts\n", attempt)
 			break
