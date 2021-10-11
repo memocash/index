@@ -17,6 +17,7 @@ import (
 
 type Server struct {
 	Nodes *node.Group
+	Port  uint
 }
 
 func (s *Server) Run() error {
@@ -190,7 +191,7 @@ func (s *Server) Run() error {
 		}
 	})
 	server := http.Server{
-		Addr:    config.GetHost(config.GetAdminPort()),
+		Addr:    config.GetHost(s.Port),
 		Handler: mux,
 	}
 	if err := server.ListenAndServe(); err != nil {
@@ -202,5 +203,6 @@ func (s *Server) Run() error {
 func NewServer(group *node.Group) *Server {
 	return &Server{
 		Nodes: group,
+		Port: config.GetAdminPort(),
 	}
 }
