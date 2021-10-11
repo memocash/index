@@ -176,7 +176,7 @@ func GetOpenFilesCacheCapacity() int {
 }
 
 func GetHost(port uint) string {
-	return fmt.Sprintf("%s:%d", Localhost, port)
+	return fmt.Sprintf("[%s]:%d", Localhost, port)
 }
 
 func GetDataDir() string {

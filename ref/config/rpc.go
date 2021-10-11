@@ -11,7 +11,7 @@ type RpcConfig struct {
 }
 
 func (r RpcConfig) String() string {
-	return fmt.Sprintf("%s:%d", r.Host, r.Port)
+	return fmt.Sprintf("[%s]:%d", r.Host, r.Port)
 }
 
 func (r RpcConfig) IsSet() bool {

@@ -62,7 +62,7 @@ func (s *Server) Run() error {
 	params := &chaincfg.MainNetParams
 	params.Net = bchutil.MainnetMagic
 	var err error
-	connectionAddress := fmt.Sprintf("%s:%d", net.IP(s.Ip), s.Port)
+	connectionAddress := fmt.Sprintf("[%s]:%d", net.IP(s.Ip), s.Port)
 	log := func(msg string, params ...interface{}) {
 		jlog.Logf(connectionAddress+": "+msg, params...)
 	}

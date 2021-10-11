@@ -60,7 +60,7 @@ func (g *Group) AddNextNode() error {
 		}
 	}
 	jlog.Logf("peerToUse: %s:%d\n", net.IP(peerToUse.Ip), peerToUse.Port)
-	if len(g.Nodes) > 0 {
+	if len(g.Nodes) > 100 {
 		jerr.Newf("fatal exiting").Fatal()
 	}
 	if peerToUse == nil {

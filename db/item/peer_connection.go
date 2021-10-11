@@ -91,9 +91,8 @@ func GetPeerConnectionLast(ip []byte, port uint16) (*PeerConnection, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(ip), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	err := dbClient.GetWOpts(client.Opts{
-		Topic:  TopicPeerConnection,
-		Newest: true,
-		Max:    1,
+		Topic: TopicPeerConnection,
+		Max:   1,
 		Prefixes: [][]byte{jutil.CombineBytes(
 			jutil.BytePadPrefix(ip, IpBytePadSize),
 			jutil.GetUintData(uint(port)),
