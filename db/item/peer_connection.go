@@ -67,14 +67,39 @@ func (p *PeerConnection) Deserialize(data []byte) {
 	p.Status = PeerConnectionStatus(jutil.GetInt(data))
 }
 
-func GetPeerConnections(shard uint32, startId []byte) ([]*PeerConnection, error) {
-	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+type PeerConnectionsRequest struct {
+	Shard   uint32
+	StartId []byte
+	Ip      []byte
+	Port    uint32
+}
+
+func (r PeerConnectionsRequest) GetShard() uint32 {
+	if len(r.Ip) > 0 {
+		return client.GetByteShard32(r.Ip)
+	}
+	return r.Shard
+}
+
+func GetPeerConnections(request PeerConnectionsRequest) ([]*PeerConnection, error) {
+	shardConfig := config.GetShardConfig(request.GetShard(), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var startIdBytes []byte
-	if len(startId) > 0 {
-		startIdBytes = startId
+	if len(request.StartId) > 0 {
+		startIdBytes = request.StartId
 	}
-	err := dbClient.GetLarge(TopicPeerConnection, startIdBytes, false, false)
+	var prefixes [][]byte
+	if len(request.Ip) > 0 {
+		prefixes = [][]byte{jutil.CombineBytes(
+			jutil.BytePadPrefix(request.Ip, IpBytePadSize),
+			jutil.GetUintData(uint(request.Port)),
+		)}
+	}
+	err := dbClient.GetWOpts(client.Opts{
+		Topic:    TopicPeerConnection,
+		Start:    startIdBytes,
+		Prefixes: prefixes,
+	})
 	if err != nil {
 		return nil, jerr.Get("error getting peer connections from queue client", err)
 	}

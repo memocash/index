@@ -4,6 +4,27 @@ import {useRouter} from "next/router";
 
 function View() {
     const router = useRouter()
+    useEffect(() => {
+        fetch("/api/peer", {
+            method: "POST",
+            body: JSON.stringify({
+                Ip: router.query.ip,
+                Port: router.query.port,
+            })
+        })
+            .then(res => {
+                if (res.ok) {
+                    return res.json()
+                }
+                return Promise.reject(res)
+            })
+            .then(data => {
+                console.log(data)
+            })
+            .catch(res => {
+                console.log(res)
+            })
+    }, [])
     return (
         <Page>
             <div>

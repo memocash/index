@@ -13,6 +13,8 @@ type NodeConnectRequest struct {
 
 type NodeHistoryRequest struct {
 	SuccessOnly bool
+	Ip          string
+	Port        uint32
 }
 
 type NodeHistoryResponse struct {

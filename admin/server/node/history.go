@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/ref/config"
+	"net"
 )
 
 var historyRoute = admin.Route{
@@ -22,7 +23,12 @@ var historyRoute = admin.Route{
 		var shard uint32
 	PeerConnectionsLoop:
 		for {
-			peerConnections, err := item.GetPeerConnections(shard, startId)
+			peerConnections, err := item.GetPeerConnections(item.PeerConnectionsRequest{
+				Shard:   shard,
+				StartId: startId,
+				Ip:      net.ParseIP(historyRequest.Ip),
+				Port:    historyRequest.Port,
+			})
 			if err != nil {
 				jerr.Get("fatal error getting peer connections", err).Fatal()
 			}
