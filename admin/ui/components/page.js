@@ -19,6 +19,10 @@ export default function Page(props) {
                     <Link href="/about">
                         <a>About</a>
                     </Link>
+                    &middot;
+                    <Link href="/posts/first-post">
+                        <a>First Post</a>
+                    </Link>
                 </p>
             </main>
             <footer className={styles.footer}>
