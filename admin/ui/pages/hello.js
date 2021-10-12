@@ -4,23 +4,27 @@ import {useEffect, useState} from "react";
 function Hello() {
     const [hello, setHello] = useState("")
     const [version, setVersion] = useState("")
+    const [loading, setLoading] = useState(true)
     useEffect(() => {
         fetch("/api/hello")
             .then(res => res.json())
             .then(data => {
                 setHello(data.Name)
                 setVersion(data.Version)
+                setLoading(false)
             })
-    })
+    }, [])
     return (
         <Page>
             <div>
                 <h1>
                     Hello Page
                 </h1>
-                <p>
-                    {hello} - {version}
-                </p>
+                {loading ?
+                    <p>Loading...</p>
+                    :
+                    <p>{hello} - {version}</p>
+                }
             </div>
         </Page>
     )
