@@ -1,0 +1,10 @@
+ul.list {
+    list-style: none;
+}
+ul.list li {
+    padding: 0;
+}
+ul.list li a {
+    display: block;
+    padding: 5px 10px;
+}

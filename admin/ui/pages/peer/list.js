@@ -1,8 +1,10 @@
-import Page from "../components/page";
+import Page from "../../components/page";
+import Pagination from "../../components/util/pagination";
 import {useEffect, useState} from "react";
-import Pagination from "../components/util/pagination";
+import Link from 'next/link';
+import styles from '../../styles/Peers.module.css';
 
-function Peers() {
+function List() {
     const [loading, setLoading] = useState(true)
     const [allPeers, setAllPeers] = useState([])
     const [peers, setPeers] = useState([])
@@ -48,12 +50,23 @@ function Peers() {
                     }</>
                     :
                     <div>
-                        <div>
-                            {peers.map(peer => (
-                                <p>{peer.Ip}:{peer.Port}</p>
+                        <ul className={styles.list}>
+                            {peers.map((peer, key) => (
+                                <li key={key}>
+                                    <Link href={{
+                                        pathname: "/peer/view",
+                                        query: {
+                                            ip: peer.Ip,
+                                            port: peer.Port
+                                        }
+                                    }}>
+                                        <a>{peer.Ip}:{peer.Port}</a>
+                                    </Link>
+                                </li>
                             ))}
-                        </div>
-                        <Pagination totalRecords={totalPeers} pageLimit={10} pageNeighbours={1} onPageChanged={onPageChanged}/>
+                        </ul>
+                        <Pagination totalRecords={totalPeers} pageLimit={10} pageNeighbours={1}
+                                    onPageChanged={onPageChanged}/>
                     </div>
                 }
             </div>
@@ -61,4 +74,4 @@ function Peers() {
     )
 }
 
-export default Peers
+export default List
