@@ -1,12 +1,14 @@
-import Page from "../component/page";
+import Page from "../components/page";
 
 function About() {
-    return Page(
-        <div>
-            <h1>
-                About Page
-            </h1>
-        </div>
+    return (
+        <Page>
+            <div>
+                <h1>
+                    About Page
+                </h1>
+            </div>
+        </Page>
     )
 }
 

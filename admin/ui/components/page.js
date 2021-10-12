@@ -1,7 +1,8 @@
 import styles from "../styles/Home.module.css";
 import Head from "next/head";
+import Link from 'next/link';
 
-export default function Page(body) {
+export default function Page(props) {
     return (
         <div className={styles.container}>
             <Head>
@@ -9,11 +10,15 @@ export default function Page(body) {
                 <link rel="icon" href="/favicon.ico"/>
             </Head>
             <main className={styles.main}>
-                {body}
+                {props.children}
                 <p>
-                    <a href="/">Home</a>
+                    <Link href="/">
+                        <a>Home</a>
+                    </Link>
                     &middot;
-                    <a href="/about">About</a>
+                    <Link href="/about">
+                        <a>About</a>
+                    </Link>
                 </p>
             </main>
             <footer className={styles.footer}>
