@@ -1,0 +1,37 @@
+ul.pagination {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+ul.pagination li {
+    display: inline-block;
+    border-width: 1px 0 1px 1px;
+    border-style: solid;
+    border-color: #bbb;
+}
+
+ul.pagination li:first-of-type {
+    border-radius: 3px 0 0 3px;
+}
+
+ul.pagination li:last-of-type {
+    border-radius: 0 3px 3px 0;
+    border-width: 1px 1px 1px 1px;
+}
+
+ul.pagination li.pageItem a.pageLink,
+ul.pagination li.pageItem a.pageLinkActive {
+    display: block;
+    padding: 5px 20px;
+    text-align: center;
+    font-size: 1rem;
+}
+
+ul.pagination li.pageItem a.pageLinkActive {
+    font-weight: bold;
+    background-color: #ccc;
+}
+
+ul.pagination a.pageLink:hover {
+    background-color: #f4f4f4;
+}

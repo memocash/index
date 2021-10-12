@@ -1,10 +1,13 @@
 import Page from "../components/page";
 import {useEffect, useState} from "react";
+import Pagination from "../components/util/pagination";
 
 function Peers() {
     const [loading, setLoading] = useState(true)
+    const [allPeers, setAllPeers] = useState([])
     const [peers, setPeers] = useState([])
     const [errorMessage, setErrorMessage] = useState("")
+    const [totalPeers, setTotalPeers] = useState(0)
     useEffect(() => {
         fetch("/api/peers")
             .then(res => {
@@ -14,12 +17,8 @@ function Peers() {
                 return Promise.reject(res)
             })
             .then(data => {
-                var peerCount = data.Peers.length;
-                const MaxPeers = 10;
-                if (peerCount > MaxPeers) {
-                    peerCount = MaxPeers;
-                }
-                setPeers(data.Peers.splice(0, peerCount))
+                setAllPeers(data.Peers);
+                setTotalPeers(data.Peers.length);
                 setLoading(false)
             })
             .catch(res => {
@@ -28,6 +27,13 @@ function Peers() {
                 })
             })
     }, [])
+
+    const onPageChanged = (data) => {
+        const {currentPage, totalPages, pageLimit} = data;
+        const offset = (currentPage - 1) * pageLimit;
+        setPeers(allPeers.slice(offset, offset + pageLimit))
+    }
+
     return (
         <Page>
             <div>
@@ -42,9 +48,12 @@ function Peers() {
                     }</>
                     :
                     <div>
-                        {peers.map(peer => (
-                            <p>{peer.Ip}:{peer.Port}</p>
-                        ))}
+                        <div>
+                            {peers.map(peer => (
+                                <p>{peer.Ip}:{peer.Port}</p>
+                            ))}
+                        </div>
+                        <Pagination totalRecords={totalPeers} pageLimit={10} pageNeighbours={0} onPageChanged={onPageChanged}/>
                     </div>
                 }
             </div>
