@@ -17,7 +17,6 @@ type Server struct {
 
 var routes = admin.Routes([]admin.Route{
 	indexRoute,
-	getAddrsRoute,
 },
 	node2.GetRoutes(),
 )
@@ -32,7 +31,7 @@ func (s *Server) Run() error {
 				Request:   r,
 				NodeGroup: s.Nodes,
 			})
-			jlog.Logf("Processed request: %s\n", route.Pattern)
+			jlog.Logf("Processed admin request: %s\n", route.Pattern)
 		})
 	}
 	server := http.Server{

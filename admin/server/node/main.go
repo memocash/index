@@ -13,5 +13,6 @@ func GetRoutes() []admin.Route {
 		listConnectionsRoute,
 		historyRoute,
 		foundPeersRoute,
+		getAddrsRoute,
 	}
 }
