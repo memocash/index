@@ -53,7 +53,7 @@ function Peers() {
                                 <p>{peer.Ip}:{peer.Port}</p>
                             ))}
                         </div>
-                        <Pagination totalRecords={totalPeers} pageLimit={10} pageNeighbours={0} onPageChanged={onPageChanged}/>
+                        <Pagination totalRecords={totalPeers} pageLimit={10} pageNeighbours={1} onPageChanged={onPageChanged}/>
                     </div>
                 }
             </div>

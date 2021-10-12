@@ -67,6 +67,9 @@ class Pagination extends Component {
 
     handleMoveLeft = evt => {
         evt.preventDefault();
+        if (this.state.currentPage === 1) {
+            return;
+        }
         this.gotoPage(this.state.currentPage - (this.pageNeighbours * 2) - 1);
     }
 
