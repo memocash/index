@@ -23,7 +23,19 @@ type Server struct {
 func (s *Server) Run() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(admin.UrlIndex, func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Memo Admin 0.1")
+		jsonData, err := json.Marshal(struct {
+			Name    string
+			Version string
+		}{
+			Name:    "Memo Admin",
+			Version: "0.1",
+		})
+		if err != nil {
+			jerr.Get("error marshalling memo admin version", err).Print()
+			return
+		}
+		fmt.Fprint(w, string(jsonData))
+		jlog.Logf("Wrote index..\n")
 	})
 	mux.HandleFunc(admin.UrlNodeGetAddrs, func(w http.ResponseWriter, r *http.Request) {
 		jlog.Log("Node get addrs request")
@@ -203,6 +215,6 @@ func (s *Server) Run() error {
 func NewServer(group *node.Group) *Server {
 	return &Server{
 		Nodes: group,
-		Port: config.GetAdminPort(),
+		Port:  config.GetAdminPort(),
 	}
 }

@@ -20,8 +20,8 @@ export default function Page(props) {
                         <a>About</a>
                     </Link>
                     &middot;
-                    <Link href="/posts/first-post">
-                        <a>First Post</a>
+                    <Link href="/hello">
+                        <a>Hello</a>
                     </Link>
                 </p>
             </main>
