@@ -16,8 +16,8 @@ export default function Page(props) {
                         <a>Home</a>
                     </Link>
                     &middot;
-                    <Link href="/about">
-                        <a>About</a>
+                    <Link href="/peers">
+                        <a>Peers</a>
                     </Link>
                     &middot;
                     <Link href="/hello">

@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/json"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/admin/admin"
 	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/db/item"
@@ -12,9 +13,10 @@ import (
 var peersRoute = admin.Route{
 	Pattern: admin.UrlNodePeers,
 	Handler: func(r admin.Response) {
+		jlog.Logf("Beginning of processing node peers...\n")
 		var request = new(admin.NodePeersRequest)
 		if err := json.NewDecoder(r.Request.Body).Decode(request); err != nil {
-			jerr.Get("error unmarshalling found peers request", err).Print()
+			jerr.Get("error unmarshalling peers request", err).Print()
 			return
 		}
 		var foundPeers []*item.Peer
