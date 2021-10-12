@@ -8,6 +8,7 @@ import (
 	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/ref/config"
+	"net"
 )
 
 var peersRoute = admin.Route{
@@ -41,8 +42,16 @@ var peersRoute = admin.Route{
 				}
 			}
 		}
+		var responsePeers = make([]*admin.Peer, len(foundPeers))
+		for i := range foundPeers {
+			responsePeers[i] = &admin.Peer{
+				Ip:       net.IP(foundPeers[i].Ip).String(),
+				Port:     foundPeers[i].Port,
+				Services: foundPeers[i].Services,
+			}
+		}
 		var peersResponse = &admin.NodePeersResponse{
-			Peers: foundPeers,
+			Peers: responsePeers,
 		}
 		if err := json.NewEncoder(r.Writer).Encode(peersResponse); err != nil {
 			jerr.Get("error writing json peers response data", err).Print()

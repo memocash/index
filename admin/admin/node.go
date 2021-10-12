@@ -33,5 +33,11 @@ type NodePeersRequest struct {
 }
 
 type NodePeersResponse struct {
-	Peers []*item.Peer
+	Peers []*Peer
+}
+
+type Peer struct {
+	Ip       string
+	Port     uint16
+	Services uint64
 }

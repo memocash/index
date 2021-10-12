@@ -21,10 +21,9 @@ function Hello() {
                 setLoading(false)
             })
             .catch(res => {
-                res.json()
-                    .then(data => {
-                        setErrorMessage(<>Code: {res.status}<br/>Message: {data.message}</>)
-                    })
+                res.json().then(data => {
+                    setErrorMessage(<>Code: {res.status}<br/>Message: {data.message}</>)
+                })
             })
     }, [])
     return (
