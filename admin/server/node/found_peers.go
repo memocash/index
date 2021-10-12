@@ -3,25 +3,17 @@ package node
 import (
 	"encoding/json"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/admin/admin"
 	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/ref/config"
-	"io/ioutil"
 )
 
 var foundPeersRoute = admin.Route{
 	Pattern: admin.UrlNodeFoundPeers,
 	Handler: func(r admin.Response) {
-		jlog.Log("Node found peers request")
-		body, err := ioutil.ReadAll(r.Request.Body)
-		if err != nil {
-			jerr.Get("error reading node found peers request", err).Print()
-			return
-		}
 		var request = new(admin.NodeFoundPeersRequest)
-		if err := json.Unmarshal(body, request); err != nil {
+		if err := json.NewDecoder(r.Request.Body).Decode(request); err != nil {
 			jerr.Get("error unmarshalling found peers request", err).Print()
 			return
 		}
@@ -50,13 +42,8 @@ var foundPeersRoute = admin.Route{
 		var foundPeersResponse = &admin.NodeFoundPeersResponse{
 			FoundPeers: foundFoundPeers,
 		}
-		foundPeersResponseData, err := json.Marshal(foundPeersResponse)
-		if err != nil {
-			jerr.Get("error marshalling found peers response data", err).Print()
-			return
-		}
-		if _, err = r.Writer.Write(foundPeersResponseData); err != nil {
-			jerr.Get("error writing found peers response data", err).Print()
+		if err := json.NewEncoder(r.Writer).Encode(foundPeersResponse); err != nil {
+			jerr.Get("error marshalling and writing found peers response data", err).Print()
 			return
 		}
 	},

@@ -4,22 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/admin/admin"
-	"io/ioutil"
 )
 
 var connectRoute = admin.Route{
 	Pattern: admin.UrlNodeConnect,
 	Handler: func(r admin.Response) {
-		jlog.Log("Node connect")
-		body, err := ioutil.ReadAll(r.Request.Body)
-		if err != nil {
-			jerr.Get("error reading node connect body", err).Print()
-			return
-		}
 		var connectRequest = new(admin.NodeConnectRequest)
-		if err := json.Unmarshal(body, connectRequest); err != nil {
+		if err := json.NewDecoder(r.Request.Body).Decode(connectRequest); err != nil {
 			jerr.Get("error unmarshalling node connect request", err).Print()
 			return
 		}
@@ -30,7 +22,6 @@ var connectRoute = admin.Route{
 var connectDefaultRoute = admin.Route{
 	Pattern: admin.UrlNodeConnectDefault,
 	Handler: func(r admin.Response) {
-		jlog.Log("Node connect default")
 		r.NodeGroup.AddDefaultNode()
 	},
 }
@@ -38,7 +29,6 @@ var connectDefaultRoute = admin.Route{
 var connectNextRoute = admin.Route{
 	Pattern: admin.UrlNodeConnectNext,
 	Handler: func(r admin.Response) {
-		jlog.Log("Node connect next")
 		r.NodeGroup.AddNextNode()
 	},
 }
@@ -46,14 +36,8 @@ var connectNextRoute = admin.Route{
 var disconnectRoute = admin.Route{
 	Pattern: admin.UrlNodeDisconnect,
 	Handler: func(r admin.Response) {
-		jlog.Log("Node disconnect")
-		body, err := ioutil.ReadAll(r.Request.Body)
-		if err != nil {
-			jerr.Get("error reading node disconnect body", err).Print()
-			return
-		}
 		var disconnectRequest = new(admin.NodeDisconnectRequest)
-		if err := json.Unmarshal(body, disconnectRequest); err != nil {
+		if err := json.NewDecoder(r.Request.Body).Decode(disconnectRequest); err != nil {
 			jerr.Get("error unmarshalling node disconnect request", err).Print()
 			return
 		}
