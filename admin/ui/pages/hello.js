@@ -23,16 +23,7 @@ function Hello() {
             .catch(res => {
                 res.json()
                     .then(data => {
-                        setErrorMessage(
-                            <>
-                                <p>
-                                    Caught error: {res.status}
-                                </p>
-                                <p>
-                                    {data.message}
-                                </p>
-                            </>
-                        )
+                        setErrorMessage(<>Code: {res.status}<br/>Message: {data.message}</>)
                     })
             })
     }, [])
@@ -42,17 +33,15 @@ function Hello() {
                 <h1>
                     Hello Page
                 </h1>
-                {loading ?
-                    <>
-                        {!!errorMessage ?
-                            <p>Error: {errorMessage}</p>
-                            :
-                            <p>Loading...</p>
-                        }
-                    </>
+                <p>{loading ?
+                    <>{!!errorMessage ?
+                        <>Error: {errorMessage}</>
+                        :
+                        <>Loading...</>
+                    }</>
                     :
-                    <p>{hello} - {version}</p>
-                }
+                    <>{hello} - {version}</>
+                }</p>
             </div>
         </Page>
     )
