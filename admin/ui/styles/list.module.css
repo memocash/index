@@ -4,7 +4,8 @@ ul.list {
 ul.list li {
     padding: 0;
 }
-ul.list li a {
+ul.list li a,
+ul.list li span {
     display: block;
     padding: 5px 10px;
 }

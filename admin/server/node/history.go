@@ -47,8 +47,17 @@ var historyRoute = admin.Route{
 				}
 			}
 		}
+		var connections = make([]admin.Connection, len(foundPeerConnections))
+		for i := range foundPeerConnections {
+			connections[i] = admin.Connection{
+				Ip:     net.IP(foundPeerConnections[i].Ip).String(),
+				Port:   foundPeerConnections[i].Port,
+				Time:   foundPeerConnections[i].Time,
+				Status: foundPeerConnections[i].Status,
+			}
+		}
 		var historyResponse = &admin.NodeHistoryResponse{
-			Connections: foundPeerConnections,
+			Connections: connections,
 		}
 		if err := json.NewEncoder(r.Writer).Encode(historyResponse); err != nil {
 			jerr.Get("error marshalling and writing history response data", err).Print()

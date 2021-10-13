@@ -1,6 +1,9 @@
 package admin
 
-import "github.com/memocash/server/db/item"
+import (
+	"github.com/memocash/server/db/item"
+	"time"
+)
 
 type NodeDisconnectRequest struct {
 	NodeId string
@@ -17,8 +20,15 @@ type NodeHistoryRequest struct {
 	Port        uint32
 }
 
+type Connection struct {
+	Ip     string
+	Port   uint16
+	Time   time.Time
+	Status item.PeerConnectionStatus
+}
+
 type NodeHistoryResponse struct {
-	Connections []*item.PeerConnection
+	Connections []Connection
 }
 
 type NodeFoundPeersRequest struct {

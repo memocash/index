@@ -2,7 +2,7 @@ import Page from "../../components/page";
 import Pagination from "../../components/util/pagination";
 import {useEffect, useState} from "react";
 import Link from 'next/link';
-import styles from '../../styles/Peers.module.css';
+import styles from '../../styles/list.module.css';
 
 function List() {
     const [loading, setLoading] = useState(true)

@@ -72,7 +72,7 @@ var historyCmd = &cobra.Command{
 		jlog.Logf("history.Connections (%d):\n", len(history.Connections))
 		for i := 0; i < len(history.Connections) && i < 10; i++ {
 			conn := history.Connections[i]
-			fmt.Printf("Peer connection: %s:%d - %s - %d\n", net.IP(conn.Ip), conn.Port,
+			fmt.Printf("Peer connection: %s:%d - %s - %d\n", conn.Ip, conn.Port,
 				conn.Time.Format("2006-01-02 15:04:05"), conn.Status)
 		}
 	},
