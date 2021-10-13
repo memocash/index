@@ -52,4 +52,6 @@ type Peer struct {
 	Ip       string
 	Port     uint16
 	Services uint64
+	Time     time.Time
+	Status   item.PeerConnectionStatus
 }

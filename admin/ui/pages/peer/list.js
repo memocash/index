@@ -57,7 +57,7 @@ function List() {
                                             port: peer.Port
                                         }
                                     }}>
-                                        <a>{peer.Ip}:{peer.Port}</a>
+                                        <a>{peer.Ip}:{peer.Port} - {peer.Time} - {peer.Status}</a>
                                     </Link>
                                 </li>
                             ))}
