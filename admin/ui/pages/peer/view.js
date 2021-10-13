@@ -2,17 +2,20 @@ import Page from "../../components/page";
 import {useEffect, useState} from "react";
 import {useRouter} from "next/router";
 import styles from '../../styles/list.module.css';
-import Link from "next/link";
 
 function View() {
     const router = useRouter()
     const [connections, setConnections] = useState([])
     useEffect(() => {
+        if (!router || !router.query || !router.query.ip) {
+            // Wait until router loaded
+            return
+        }
         fetch("/api/peer", {
             method: "POST",
             body: JSON.stringify({
-                Ip: router.query.ip,
-                Port: router.query.port,
+                ip: router.query.ip,
+                port: router.query.port,
             })
         })
             .then(res => {
@@ -28,7 +31,7 @@ function View() {
             .catch(res => {
                 console.log(res)
             })
-    }, [])
+    }, [router])
     return (
         <Page>
             <div>
@@ -40,7 +43,7 @@ function View() {
                 <ul className={styles.list}>
                     {connections.map((connection, key) => (
                         <li key={key}>
-                            <a>{connection.Ip}:{connection.Port} - {connection.Time} - {connection.Status}</a>
+                            <a>{connection.Ip}:{connection.Port} - {connection.Time} - {connection.Status ? "Success" : "Fail"}</a>
                         </li>
                     ))}
                 </ul>

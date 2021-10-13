@@ -17,7 +17,7 @@ type NodeConnectRequest struct {
 type NodeHistoryRequest struct {
 	SuccessOnly bool
 	Ip          string
-	Port        uint32
+	Port        uint32 `json:",string"`
 }
 
 type Connection struct {
