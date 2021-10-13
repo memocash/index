@@ -17,20 +17,17 @@ function View() {
                 ip: router.query.ip,
                 port: router.query.port,
             })
+        }).then(res => {
+            if (res.ok) {
+                return res.json()
+            }
+            return Promise.reject(res)
+        }).then(data => {
+            console.log(data)
+            setConnections(data.Connections)
+        }).catch(res => {
+            console.log(res)
         })
-            .then(res => {
-                if (res.ok) {
-                    return res.json()
-                }
-                return Promise.reject(res)
-            })
-            .then(data => {
-                console.log(data)
-                setConnections(data.Connections)
-            })
-            .catch(res => {
-                console.log(res)
-            })
     }, [router])
     return (
         <Page>

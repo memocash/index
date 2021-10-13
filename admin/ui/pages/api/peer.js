@@ -7,14 +7,11 @@ export default function handler(req, res) {
                 Ip: ip,
                 Port: port,
             })
+        }).then(res => res.json()).then(data => {
+            res.status(200).json(data)
+            resolve()
+        }).catch(error => {
+            reject(error)
         })
-            .then(res => res.json())
-            .then(data => {
-                res.status(200).json(data)
-                resolve()
-            })
-            .catch(error => {
-                reject(error)
-            })
     })
 }

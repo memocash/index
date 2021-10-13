@@ -11,23 +11,20 @@ function List() {
     const [errorMessage, setErrorMessage] = useState("")
     const [totalPeers, setTotalPeers] = useState(0)
     useEffect(() => {
-        fetch("/api/peers")
-            .then(res => {
-                if (res.ok) {
-                    return res.json()
-                }
-                return Promise.reject(res)
+        fetch("/api/peers").then(res => {
+            if (res.ok) {
+                return res.json()
+            }
+            return Promise.reject(res)
+        }).then(data => {
+            setAllPeers(data.Peers);
+            setTotalPeers(data.Peers.length);
+            setLoading(false)
+        }).catch(res => {
+            res.text().then(msg => {
+                setErrorMessage(<>Code: {res.status}<br/>Message: {msg}</>)
             })
-            .then(data => {
-                setAllPeers(data.Peers);
-                setTotalPeers(data.Peers.length);
-                setLoading(false)
-            })
-            .catch(res => {
-                res.text().then(msg => {
-                    setErrorMessage(<>Code: {res.status}<br/>Message: {msg}</>)
-                })
-            })
+        })
     }, [])
 
     const onPageChanged = (data) => {

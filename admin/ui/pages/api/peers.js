@@ -5,14 +5,11 @@ export default function handler(req, res) {
             body: JSON.stringify({
                 Page: 0
             })
+        }).then(res => res.json()).then(data => {
+            res.status(200).json(data)
+            resolve()
+        }).catch(error => {
+            reject(error)
         })
-            .then(res => res.json())
-            .then(data => {
-                res.status(200).json(data)
-                resolve()
-            })
-            .catch(error => {
-                reject(error)
-            })
     })
 }
