@@ -84,7 +84,7 @@ func GetCountPeers() (uint64, error) {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		count, err := dbClient.GetTopicCount(TopicPeer, nil)
 		if err != nil {
-			return 0, jerr.Getf(err, "error getting topic count for shard: %d", shardConfig.Min)
+			return 0, jerr.Getf(err, "error getting peer topic count for shard: %d", shardConfig.Min)
 		}
 		totalCount += count
 	}

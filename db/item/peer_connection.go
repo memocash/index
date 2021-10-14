@@ -166,3 +166,16 @@ func GetPeerConnectionLasts(ipPorts []IpPort) ([]*PeerConnection, error) {
 	}
 	return peerConnections, nil
 }
+
+func GetCountPeerConnections() (uint64, error) {
+	var totalCount uint64
+	for _, shardConfig := range config.GetQueueShards() {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		count, err := dbClient.GetTopicCount(TopicPeerConnection, nil)
+		if err != nil {
+			return 0, jerr.Getf(err, "error getting peer connections topic count for shard: %d", shardConfig.Min)
+		}
+		totalCount += count
+	}
+	return totalCount, nil
+}
