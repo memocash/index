@@ -71,6 +71,7 @@ type PeerConnectionsRequest struct {
 	StartId []byte
 	Ip      []byte
 	Port    uint32
+	Max     uint32
 }
 
 func (r PeerConnectionsRequest) GetShard() uint32 {
@@ -83,10 +84,6 @@ func (r PeerConnectionsRequest) GetShard() uint32 {
 func GetPeerConnections(request PeerConnectionsRequest) ([]*PeerConnection, error) {
 	shardConfig := config.GetShardConfig(request.GetShard(), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	var startIdBytes []byte
-	if len(request.StartId) > 0 {
-		startIdBytes = request.StartId
-	}
 	var prefixes [][]byte
 	if len(request.Ip) > 0 {
 		prefixes = [][]byte{jutil.CombineBytes(
@@ -96,8 +93,9 @@ func GetPeerConnections(request PeerConnectionsRequest) ([]*PeerConnection, erro
 	}
 	err := dbClient.GetWOpts(client.Opts{
 		Topic:    TopicPeerConnection,
-		Start:    startIdBytes,
+		Start:    request.StartId,
 		Prefixes: prefixes,
+		Max:      request.Max,
 	})
 	if err != nil {
 		return nil, jerr.Get("error getting peer connections from queue client", err)
