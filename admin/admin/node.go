@@ -55,3 +55,11 @@ type Peer struct {
 	Time     time.Time
 	Status   item.PeerConnectionStatus
 }
+
+type NodePeerReportResponse struct {
+	TotalPeers     uint
+	PeersAttempted uint
+	TotalAttempts  uint
+	PeersConnected uint
+	PeersFailed    uint
+}

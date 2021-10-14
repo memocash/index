@@ -20,6 +20,10 @@ export default function Page(props) {
                         <a>Peer List</a>
                     </Link>
                     &middot;
+                    <Link href="/peer/report">
+                        <a>Peer Report</a>
+                    </Link>
+                    &middot;
                     <Link href="/hello">
                         <a>Hello</a>
                     </Link>

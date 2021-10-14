@@ -37,4 +37,5 @@ const (
 	UrlNodeLoopingDisable  = "/node/looping_disable"
 	UrlNodeFoundPeers      = "/node/found_peers"
 	UrlNodePeers           = "/node/peers"
+	UrlNodePeerReport      = "/node/peer_report"
 )

@@ -11,7 +11,7 @@ function List() {
     const [errorMessage, setErrorMessage] = useState("")
     const [totalPeers, setTotalPeers] = useState(0)
     useEffect(() => {
-        fetch("/api/peers").then(res => {
+        fetch("/api/peer/report").then(res => {
             if (res.ok) {
                 return res.json()
             }
