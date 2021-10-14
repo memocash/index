@@ -30,6 +30,7 @@ func (s *Server) Run() error {
 				Writer:    w,
 				Request:   r,
 				NodeGroup: s.Nodes,
+				Route:     route,
 			})
 			jlog.Logf("Processed admin request: %s\n", route.Pattern)
 		})

@@ -77,3 +77,16 @@ func GetNextPeer(shard uint32, startId []byte) (*Peer, error) {
 	peer.Deserialize(dbClient.Messages[0].Message)
 	return peer, nil
 }
+
+func GetCountPeers() (uint64, error) {
+	var totalCount uint64
+	for _, shardConfig := range config.GetQueueShards() {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		count, err := dbClient.GetTopicCount(TopicPeer, nil)
+		if err != nil {
+			return 0, jerr.Getf(err, "error getting topic count for shard: %d", shardConfig.Min)
+		}
+		totalCount += count
+	}
+	return totalCount, nil
+}

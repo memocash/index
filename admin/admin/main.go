@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/node"
 	"net/http"
 )
@@ -22,6 +23,11 @@ type Response struct {
 	Writer    http.ResponseWriter
 	Request   *http.Request
 	NodeGroup *node.Group
+	Route     Route
+}
+
+func (r Response) Error(err error) {
+	jerr.Getf(err, "error with request: %s", r.Route.Pattern).Print()
 }
 
 const (

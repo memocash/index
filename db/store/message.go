@@ -180,3 +180,27 @@ func GetPtrSlice(s []byte) []byte {
 	copy(d, s)
 	return d
 }
+
+func GetCount(topic string, prefix []byte, shard uint) (uint64, error) {
+	db, err := getDb(topic, shard)
+	if err != nil {
+		return 0, jerr.Get("error getting db", err)
+	}
+	snap, err := db.GetSnapshot()
+	if err != nil {
+		return 0, jerr.Get("error getting db snapshot", err)
+	}
+	defer snap.Release()
+	iterRange := util.BytesPrefix(prefix)
+	iter := snap.NewIterator(iterRange, nil)
+	var count uint64
+	for iter.Next() {
+		count++
+	}
+	iter.Release()
+	err = iter.Error()
+	if err != nil {
+		return 0, jerr.Get("error with releasing iterator", err)
+	}
+	return count, nil
+}

@@ -11,14 +11,14 @@ function List() {
     const [errorMessage, setErrorMessage] = useState("")
     const [totalPeers, setTotalPeers] = useState(0)
     useEffect(() => {
-        fetch("/api/peer/report").then(res => {
+        fetch("/api/peers").then(res => {
             if (res.ok) {
                 return res.json()
             }
             return Promise.reject(res)
         }).then(data => {
-            setAllPeers(data.Peers);
-            setTotalPeers(data.Peers.length);
+            setAllPeers(data.Peers)
+            setTotalPeers(data.Peers.length)
             setLoading(false)
         }).catch(res => {
             res.text().then(msg => {
@@ -28,8 +28,8 @@ function List() {
     }, [])
 
     const onPageChanged = (data) => {
-        const {currentPage, totalPages, pageLimit} = data;
-        const offset = (currentPage - 1) * pageLimit;
+        const {currentPage, totalPages, pageLimit} = data
+        const offset = (currentPage - 1) * pageLimit
         setPeers(allPeers.slice(offset, offset + pageLimit))
     }
 

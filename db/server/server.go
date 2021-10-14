@@ -148,6 +148,16 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 	}, nil
 }
 
+func (s *Server) GetMessageCount(ctx context.Context, request *queue_pb.CountRequest) (*queue_pb.TopicCount, error) {
+	count, err := store.GetCount(request.Topic, request.Prefix, s.Shard)
+	if err != nil {
+		return nil, jerr.Get("error getting db count for topic", err)
+	}
+	return &queue_pb.TopicCount{
+		Count: count,
+	}, nil
+}
+
 func (s *Server) Run() error {
 	lis, err := net.Listen("tcp", GetHost(s.Port))
 	if err != nil {

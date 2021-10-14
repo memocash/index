@@ -57,9 +57,9 @@ type Peer struct {
 }
 
 type NodePeerReportResponse struct {
-	TotalPeers     uint
-	PeersAttempted uint
-	TotalAttempts  uint
-	PeersConnected uint
-	PeersFailed    uint
+	TotalPeers     uint64
+	PeersAttempted uint64
+	TotalAttempts  uint64
+	PeersConnected uint64
+	PeersFailed    uint64
 }
