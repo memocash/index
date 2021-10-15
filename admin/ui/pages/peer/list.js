@@ -11,7 +11,8 @@ function List() {
     const [peers, setPeers] = useState([])
     const [errorMessage, setErrorMessage] = useState("")
     const [totalPeers, setTotalPeers] = useState(0)
-    const [selectValue, setSelectValue] = useState("attempted")
+    const [selectValue, setSelectValue] = useState("all")
+    const PageLimit = 10
 
     useEffect(() => {
         fetch("/api/peers", {
@@ -27,6 +28,7 @@ function List() {
         }).then(data => {
             setAllPeers(data.Peers)
             setTotalPeers(data.Peers.length)
+            setPagePeers(0, data.Peers)
             setLoading(false)
         }).catch(res => {
             res.text().then(msg => {
@@ -36,9 +38,12 @@ function List() {
     }, [selectValue])
 
     const onPageChanged = (data) => {
-        const {currentPage, totalPages, pageLimit} = data
-        const offset = (currentPage - 1) * pageLimit
-        setPeers(allPeers.slice(offset, offset + pageLimit))
+        const {currentPage} = data
+        setPagePeers((currentPage - 1) * PageLimit, allPeers)
+    }
+
+    const setPagePeers = (offset, tempAllPeers) => {
+        setPeers(tempAllPeers.slice(offset, offset + PageLimit))
     }
 
     return (
@@ -78,7 +83,7 @@ function List() {
                                 </li>
                             ))}
                         </ul>
-                        <Pagination totalRecords={totalPeers} pageLimit={10} pageNeighbours={1}
+                        <Pagination totalRecords={totalPeers} pageLimit={PageLimit} pageNeighbours={1}
                                     onPageChanged={onPageChanged}/>
                     </div>
                 }

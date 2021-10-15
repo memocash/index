@@ -41,7 +41,8 @@ type NodeFoundPeersResponse struct {
 }
 
 type NodePeersRequest struct {
-	Page uint
+	Page   uint
+	Filter string
 }
 
 type NodePeersResponse struct {
