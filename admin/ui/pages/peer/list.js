@@ -14,7 +14,12 @@ function List() {
     const [selectValue, setSelectValue] = useState("attempted")
 
     useEffect(() => {
-        fetch("/api/peers").then(res => {
+        fetch("/api/peers", {
+            method: "POST",
+            body: JSON.stringify({
+                filter: selectValue,
+            })
+        }).then(res => {
             if (res.ok) {
                 return res.json()
             }
@@ -28,17 +33,12 @@ function List() {
                 setErrorMessage(<>Code: {res.status}<br/>Message: {msg}</>)
             })
         })
-    }, [])
+    }, [selectValue])
 
     const onPageChanged = (data) => {
         const {currentPage, totalPages, pageLimit} = data
         const offset = (currentPage - 1) * pageLimit
         setPeers(allPeers.slice(offset, offset + pageLimit))
-    }
-
-    const selectOnChange = (event) => {
-        console.log(event.target.value)
-        setSelectValue(event.target.value)
     }
 
     return (
@@ -48,7 +48,8 @@ function List() {
                     Peers Page
                 </h1>
                 <div>
-                    <select className={dropdownStyles.select} onChange={selectOnChange} value={selectValue}>
+                    <select className={dropdownStyles.select} onChange={e => setSelectValue(e.target.value)}
+                            value={selectValue}>
                         <option value={"all"}>All</option>
                         <option value={"attempted"}>Attempted</option>
                         <option value={"successes"}>Successes</option>
