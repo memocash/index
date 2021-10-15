@@ -3,6 +3,7 @@ import Pagination from "../../components/util/pagination";
 import {useEffect, useState} from "react";
 import Link from 'next/link';
 import styles from '../../styles/list.module.css';
+import dropdownStyles from '../../styles/dropdown.module.css';
 
 function List() {
     const [loading, setLoading] = useState(true)
@@ -10,6 +11,8 @@ function List() {
     const [peers, setPeers] = useState([])
     const [errorMessage, setErrorMessage] = useState("")
     const [totalPeers, setTotalPeers] = useState(0)
+    const [selectValue, setSelectValue] = useState("attempted")
+
     useEffect(() => {
         fetch("/api/peers").then(res => {
             if (res.ok) {
@@ -33,12 +36,24 @@ function List() {
         setPeers(allPeers.slice(offset, offset + pageLimit))
     }
 
+    const selectOnChange = (event) => {
+        console.log(event.target.value)
+        setSelectValue(event.target.value)
+    }
+
     return (
         <Page>
             <div>
                 <h1>
                     Peers Page
                 </h1>
+                <div>
+                    <select className={dropdownStyles.select} onChange={selectOnChange} value={selectValue}>
+                        <option value={"all"}>All</option>
+                        <option value={"attempted"}>Attempted</option>
+                        <option value={"successes"}>Successes</option>
+                    </select>
+                </div>
                 {loading ?
                     <>{!!errorMessage ?
                         <>Error: {errorMessage}</>

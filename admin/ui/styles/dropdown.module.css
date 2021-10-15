@@ -1,0 +1,9 @@
+select.select {
+    padding: 5px 10px;
+    border-color: #bbb;
+    border-radius: 3px;
+}
+select.select:active,
+select.select:focus {
+    border-color: #aaa;
+}
