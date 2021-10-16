@@ -4,6 +4,7 @@ import {useEffect, useRef, useState} from "react";
 import Link from 'next/link';
 import styles from '../../styles/list.module.css';
 import dropdownStyles from '../../styles/dropdown.module.css';
+import {useRouter} from 'next/router';
 
 function List() {
     const [loading, setLoading] = useState(true)
@@ -14,6 +15,7 @@ function List() {
     const [filterValue, setFilterValue] = useState("all")
     const PageLimit = 10
     const inputPagination = useRef(null)
+    const router = useRouter()
 
     useEffect(() => {
         const urlSearchParams = new URLSearchParams(window.location.search)
@@ -53,7 +55,7 @@ function List() {
         const {currentPage} = data
         let searchParams = new URLSearchParams(window.location.search);
         searchParams.set("page", currentPage)
-        window.history.push({
+        router.push({
             pathname: window.location.pathname,
             search: searchParams.toString(),
         })
@@ -102,8 +104,7 @@ function List() {
                             ))}
                         </ul>
                         <Pagination ref={inputPagination} totalRecords={totalPeers} pageLimit={PageLimit}
-                                    pageNeighbours={1}
-                                    onPageChanged={onPageChanged}/>
+                                    pageNeighbours={1} onPageChanged={onPageChanged}/>
                     </div>
                 }
             </div>
