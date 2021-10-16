@@ -1,6 +1,6 @@
 import Page from "../../components/page";
 import Pagination from "../../components/util/pagination";
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import Link from 'next/link';
 import styles from '../../styles/list.module.css';
 import dropdownStyles from '../../styles/dropdown.module.css';
@@ -11,14 +11,26 @@ function List() {
     const [peers, setPeers] = useState([])
     const [errorMessage, setErrorMessage] = useState("")
     const [totalPeers, setTotalPeers] = useState(0)
-    const [selectValue, setSelectValue] = useState("all")
+    const [filterValue, setFilterValue] = useState("all")
     const PageLimit = 10
+    const inputPagination = useRef(null)
+
+    useEffect(() => {
+        const urlSearchParams = new URLSearchParams(window.location.search)
+        const params = Object.fromEntries(urlSearchParams.entries())
+        if (params.filter) {
+            setFilterValue(params.filter)
+        }
+        if (params.page) {
+            inputPagination.gotoPage(params.page)
+        }
+    }, [])
 
     useEffect(() => {
         fetch("/api/peers", {
             method: "POST",
             body: JSON.stringify({
-                filter: selectValue,
+                filter: filterValue,
             })
         }).then(res => {
             if (res.ok) {
@@ -35,10 +47,16 @@ function List() {
                 setErrorMessage(<>Code: {res.status}<br/>Message: {msg}</>)
             })
         })
-    }, [selectValue])
+    }, [filterValue])
 
     const onPageChanged = (data) => {
         const {currentPage} = data
+        let searchParams = new URLSearchParams(window.location.search);
+        searchParams.set("page", currentPage)
+        window.history.push({
+            pathname: window.location.pathname,
+            search: searchParams.toString(),
+        })
         setPagePeers((currentPage - 1) * PageLimit, allPeers)
     }
 
@@ -53,8 +71,8 @@ function List() {
                     Peers Page
                 </h1>
                 <div>
-                    <select className={dropdownStyles.select} onChange={e => setSelectValue(e.target.value)}
-                            value={selectValue}>
+                    <select className={dropdownStyles.select} onChange={e => setFilterValue(e.target.value)}
+                            value={filterValue}>
                         <option value={"all"}>All</option>
                         <option value={"attempted"}>Attempted</option>
                         <option value={"successes"}>Successes</option>
@@ -83,7 +101,8 @@ function List() {
                                 </li>
                             ))}
                         </ul>
-                        <Pagination totalRecords={totalPeers} pageLimit={PageLimit} pageNeighbours={1}
+                        <Pagination ref={inputPagination} totalRecords={totalPeers} pageLimit={PageLimit}
+                                    pageNeighbours={1}
                                     onPageChanged={onPageChanged}/>
                     </div>
                 }
