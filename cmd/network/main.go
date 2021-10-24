@@ -8,9 +8,6 @@ const (
 
 var networkCommand = &cobra.Command{
 	Use: "network",
-	Run: func(cmd *cobra.Command, args []string) {
-
-	},
 }
 
 func GetCommand() *cobra.Command {
