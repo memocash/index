@@ -11,11 +11,29 @@ import (
 )
 
 const (
-	TopicMessage        = "message"
-	TopicPeer           = "peer"
-	TopicPeerFound      = "peer_found"
-	TopicFoundPeer      = "found_peer"
-	TopicPeerConnection = "peer_connection"
+	TopicBlock             = "block"
+	TopicBlockHeight       = "block_height"
+	TopicBlockTx           = "block_tx"
+	TopicBlockTxRaw        = "block_tx_raw"
+	TopicDoubleSpendOutput = "double_spend_output"
+	TopicDoubleSpendInput  = "double_spend_input"
+	TopicFoundPeer         = "found_peer"
+	TopicHeightBlock       = "height_block"
+	TopicHeightDuplicate   = "height_duplicate"
+	TopicLockBalance       = "lock_balance"
+	TopicLockOutput        = "lock_output"
+	TopicLockUtxo          = "lock_utxo"
+	TopicMempoolTxRaw      = "mempool_tx_raw"
+	TopicMessage           = "message"
+	TopicOutputInput       = "output_input"
+	TopicPeer              = "peer"
+	TopicPeerConnection    = "peer_connection"
+	TopicPeerFound         = "peer_found"
+	TopicTx                = "tx"
+	TopicTxBlock           = "tx_block"
+	TopicTxOutput          = "tx_output"
+	TopicTxProcessed       = "tx_processed"
+	TopicTxSeen            = "tx_seen"
 )
 
 type Object interface {

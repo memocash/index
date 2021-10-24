@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	admin "github.com/memocash/server/admin/server"
 	"github.com/memocash/server/api"
+	"github.com/memocash/server/cmd/network"
 	"github.com/memocash/server/cmd/peer"
 	"github.com/memocash/server/cmd/test"
 	db "github.com/memocash/server/db/server"
@@ -16,11 +17,18 @@ import (
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Run Server",
+	CompletionOptions: cobra.CompletionOptions{
+		DisableDefaultCmd: true,
+	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if err := config.Init(cmd); err != nil {
 			jerr.Get("fatal error initializing config", err).Fatal()
 		}
 	},
+}
+
+var serveCmd = &cobra.Command{
+	Use: "serve",
 	Run: func(cmd *cobra.Command, args []string) {
 		var errorHandler = make(chan error)
 		nodeGroup := node.NewGroup()
@@ -56,6 +64,8 @@ func Execute() error {
 	serverCmd.AddCommand(
 		test.GetCommand(),
 		peer.GetCommand(),
+		network.GetCommand(),
+		serveCmd,
 	)
 	if err := serverCmd.Execute(); err != nil {
 		return jerr.Get("error executing server command", err)

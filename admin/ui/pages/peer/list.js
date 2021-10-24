@@ -24,7 +24,12 @@ function List() {
             setFilterValue(params.filter)
         }
         if (params.page) {
-            inputPagination.gotoPage(params.page)
+            if (inputPagination.current) {
+                console.log("gotoPage: " + params.page)
+                inputPagination.current.gotoPage(parseInt(params.page))
+            } else {
+                console.log(inputPagination)
+            }
         }
     }, [])
 
