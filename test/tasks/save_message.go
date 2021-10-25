@@ -10,7 +10,7 @@ import (
 const TestMessage = "Test!"
 
 var SaveMessage = suite.Test{
-	Name: "save_message",
+	Name: TestSaveMessage,
 	Test: func(request *suite.TestRequest) error {
 		var messages = []item.Object{&item.Message{
 			Id:      0,

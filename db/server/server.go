@@ -41,6 +41,13 @@ func (s *Server) SaveMessages(_ context.Context, messages *queue_pb.Messages) (*
 	}, nil
 }
 
+func (s *Server) DeleteMessages(ctx context.Context, request *queue_pb.MessageUids) (*queue_pb.ErrorReply, error) {
+	if err := store.DeleteMessages(request.GetTopic(), s.Shard, request.GetUids()); err != nil {
+		return nil, jerr.Get("error deleting messages for topic", err)
+	}
+	return &queue_pb.ErrorReply{}, nil
+}
+
 func (s *Server) StartMessageChan() {
 	s.MsgDoneChan = make(chan *MsgDone)
 	for {
