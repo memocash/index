@@ -5,6 +5,7 @@ replace github.com/gcash/bchd => ../../../pkg/github.com/gcash/bchd
 go 1.16
 
 require (
+	github.com/99designs/gqlgen v0.14.0
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/gcash/bchd v0.17.1
@@ -16,6 +17,7 @@ require (
 	github.com/spf13/viper v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tyler-smith/go-bip32 v1.0.0
+	github.com/vektah/gqlparser/v2 v2.2.0
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 )

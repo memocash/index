@@ -3,7 +3,6 @@ package get
 import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/db/item"

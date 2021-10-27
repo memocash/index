@@ -4,6 +4,8 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/admin/admin"
+	"github.com/memocash/server/admin/server/graphql"
+	"github.com/memocash/server/admin/server/network"
 	node2 "github.com/memocash/server/admin/server/node"
 	"github.com/memocash/server/node"
 	"github.com/memocash/server/ref/config"
@@ -18,7 +20,9 @@ type Server struct {
 var routes = admin.Routes([]admin.Route{
 	indexRoute,
 },
+	network.GetRoutes(),
 	node2.GetRoutes(),
+	//graphql.GetRoutes(),
 )
 
 func (s *Server) Run() error {
@@ -35,6 +39,11 @@ func (s *Server) Run() error {
 			jlog.Logf("Processed admin request: %s\n", route.Pattern)
 		})
 	}
+	graphqlHandler, err := graphql.GetHandler()
+	if err != nil {
+		return jerr.Get("error getting graphql handler", err)
+	}
+	mux.Handle(admin.UrlGraphql, graphqlHandler)
 	server := http.Server{
 		Addr:    config.GetHost(s.Port),
 		Handler: mux,
