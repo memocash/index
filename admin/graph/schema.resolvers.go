@@ -15,9 +15,13 @@ func (r *mutationResolver) Null(ctx context.Context) (*int, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Tx(ctx context.Context) (*model.Tx, error) {
+func (r *queryResolver) Tx(ctx context.Context, hash *string) (*model.Tx, error) {
+	var hashString = "123-single"
+	if hash != nil {
+		hashString += " - " + *hash
+	}
 	return &model.Tx{
-		Hash: "123-single",
+		Hash: hashString,
 		Raw:  "456",
 	}, nil
 }

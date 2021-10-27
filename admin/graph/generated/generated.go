@@ -48,7 +48,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Tx  func(childComplexity int) int
+		Tx  func(childComplexity int, hash *string) int
 		Txs func(childComplexity int) int
 	}
 
@@ -77,7 +77,7 @@ type MutationResolver interface {
 	Null(ctx context.Context) (*int, error)
 }
 type QueryResolver interface {
-	Tx(ctx context.Context) (*model.Tx, error)
+	Tx(ctx context.Context, hash *string) (*model.Tx, error)
 	Txs(ctx context.Context) ([]*model.Tx, error)
 }
 
@@ -108,7 +108,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Tx(childComplexity), true
+		args, err := ec.field_Query_tx_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Tx(childComplexity, args["hash"].(*string)), true
 
 	case "Query.txs":
 		if e.complexity.Query.Txs == nil {
@@ -283,7 +288,7 @@ type TxOutput {
 }
 
 type Query {
-    tx: Tx!
+    tx(hash: String): Tx!
     txs: [Tx!]!
 }
 
@@ -335,6 +340,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_tx_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["hash"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hash"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["hash"] = arg0
 	return args, nil
 }
 
@@ -424,9 +444,16 @@ func (ec *executionContext) _Query_tx(ctx context.Context, field graphql.Collect
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_tx_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Tx(rctx)
+		return ec.resolvers.Query().Tx(rctx, args["hash"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

@@ -2,11 +2,11 @@ export default function Loading(props) {
     return (
         <div>
             {props.loading ?
-                <p>{!!props.error ?
+                <div>{!!props.error ?
                     <>Error: {props.error}</>
                     :
                     <>Loading...</>
-                }</p>
+                }</div>
                 :
                 <div>
                     {props.children}

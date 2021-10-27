@@ -8,35 +8,22 @@ export default function Hash() {
     const [response, setResponse] = useState("")
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
-    const router = useRouter()
-    /*useEffect(() => {
-        fetch("/api/tx", {
-            method: "POST",
-            body: JSON.stringify({
-                hash: router.query.hash,
-            }),
-        }).then(res => {
-            if (res.ok) {
-                return res.json()
-            }
-            setErrorMessage("there was an error")
-            return Promise.reject(res)
-        }).then(data => {
-            setResponse(data.message)
-            setLoading(false)
-        }).catch(res => {
-            console.log("here")
-            console.log(res)
-            res.json().then(data => {
-                setErrorMessage(<>Code: {res.status}<br/>Message: {data.message}</>)
-            })
-        })
-    }, [])*/
+    const query = `
+    query ($hash: String!) {
+        tx(hash: $hash) {
+            hash
+            raw
+        }
+    }
+    `
     useEffect(() => {
         fetch("/api/graphql", {
             method: "POST",
             body: JSON.stringify({
-                query: "{ tx { hash } }",
+                query: query,
+                variables: {
+                    hash: "hash-variable",
+                }
             }),
         }).then(res => {
             if (res.ok) {
@@ -45,12 +32,27 @@ export default function Hash() {
             setErrorMessage("there was an error")
             return Promise.reject(res)
         }).then(data => {
-            console.log(data)
-            setResponse(data.message)
+            if (data.errors && data.errors.length > 0) {
+                let messages = [];
+                for (let i = 0; i < data.errors.length; i++) {
+                    messages.push(
+                        <p key={i}>
+                            Code: {data.errors[i].extensions.code}
+                            <br/>
+                            Message: {data.errors[i].message}
+                        </p>
+                    )
+                }
+                setErrorMessage(
+                    <div>
+                        {messages}
+                    </div>
+                )
+                return
+            }
+            setResponse(data.data.tx.hash)
             setLoading(false)
         }).catch(res => {
-            console.log("here")
-            console.log(res)
             res.json().then(data => {
                 setErrorMessage(<>Code: {res.status}<br/>Message: {data.message}</>)
             })
