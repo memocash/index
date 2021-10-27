@@ -23,7 +23,7 @@ type TxOutput {
 }
 
 type Query {
-    tx(hash: String): Tx!
+    tx(hash: String!): Tx!
     txs: [Tx!]!
 }
 

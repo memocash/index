@@ -28,7 +28,7 @@ export default function Page(props) {
                         <a>Hello</a>
                     </Link>
                     &middot;
-                    <Link href="/tx/test">
+                    <Link href="/tx/aa3c2117090349ae08fba883c2f70548b502957ffed8e18c0a5ca8e0b6761cf8">
                         <a>Transaction</a>
                     </Link>
                 </p>

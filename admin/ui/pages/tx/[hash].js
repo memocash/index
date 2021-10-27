@@ -5,7 +5,8 @@ import {useEffect, useState} from "react";
 import Loading from "../../components/util/loading";
 
 export default function Hash() {
-    const [response, setResponse] = useState("")
+    const router = useRouter()
+    const [tx, setTx] = useState("")
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const query = `
@@ -16,13 +17,19 @@ export default function Hash() {
         }
     }
     `
+    let lastHash = undefined
     useEffect(() => {
+        if (!router || !router.query || router.query.hash === lastHash) {
+            return
+        }
+        const {hash} = router.query
+        lastHash = hash
         fetch("/api/graphql", {
             method: "POST",
             body: JSON.stringify({
                 query: query,
                 variables: {
-                    hash: "hash-variable",
+                    hash: hash,
                 }
             }),
         }).then(res => {
@@ -37,7 +44,10 @@ export default function Hash() {
                 for (let i = 0; i < data.errors.length; i++) {
                     messages.push(
                         <p key={i}>
-                            Code: {data.errors[i].extensions.code}
+                            {data.errors[i].extensions ?
+                                <>Code: {data.errors[i].extensions.code}</>
+                                : ""
+                            }
                             <br/>
                             Message: {data.errors[i].message}
                         </p>
@@ -50,14 +60,21 @@ export default function Hash() {
                 )
                 return
             }
-            setResponse(data.data.tx.hash)
+            setTx(data.data.tx)
             setLoading(false)
         }).catch(res => {
             res.json().then(data => {
                 setErrorMessage(<>Code: {res.status}<br/>Message: {data.message}</>)
             })
         })
-    }, [])
+    }, [router])
+    const preStyle = {
+        wordWrap: "break-word",
+        overflowWrap: "anywhere",
+        whiteSpace: "pre-wrap",
+        padding: 0,
+        margin: 0,
+    }
     return (
         <Page>
             <div>
@@ -65,9 +82,12 @@ export default function Hash() {
                     Transaction
                 </h1>
                 <Loading loading={loading} error={errorMessage}>
-                    <p>
-                        Response: {response}
-                    </p>
+                    <div>
+                        Tx hash: {tx.hash}
+                    </div>
+                    <div>
+                        Tx raw: <pre style={preStyle}>{tx.raw}</pre>
+                    </div>
                 </Loading>
             </div>
         </Page>
