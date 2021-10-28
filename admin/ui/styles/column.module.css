@@ -13,3 +13,15 @@
 .width85 {
     width: 85%;
 }
+
+.noMarginBottom {
+    margin-bottom: 0;
+}
+
+.red {
+    color: red;
+}
+
+.bold {
+    font-weight: bold;
+}

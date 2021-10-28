@@ -140,9 +140,15 @@ export default function Hash() {
                                         <div className={column.width85}>
                                             Amount: {output.amount}
                                             <br/>
-                                            PkScript: <pre className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
+                                            PkScript: <pre
+                                            className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
                                             {output.spends ? <>
-                                                <h5>Spends ({output.spends.length})</h5>
+                                                {output.spends.length >= 2 ?
+                                                    <div className={[column.red, column.bold].join(" ")}>DOUBLE SPEND</div>
+                                                    : null
+                                                }
+                                                <h5 className={column.noMarginBottom}>Spends
+                                                    ({output.spends.length})</h5>
                                                 {output.spends.map((spend, index) => {
                                                     return (
                                                         <div key={index}>
