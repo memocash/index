@@ -60,13 +60,17 @@ type ComplexityRoot struct {
 	}
 
 	TxInput struct {
-		Index  func(childComplexity int) int
-		Output func(childComplexity int) int
-		Tx     func(childComplexity int) int
+		Hash      func(childComplexity int) int
+		Index     func(childComplexity int) int
+		Output    func(childComplexity int) int
+		PrevHash  func(childComplexity int) int
+		PrevIndex func(childComplexity int) int
+		Tx        func(childComplexity int) int
 	}
 
 	TxOutput struct {
 		Amount func(childComplexity int) int
+		Hash   func(childComplexity int) int
 		Index  func(childComplexity int) int
 		Script func(childComplexity int) int
 		Tx     func(childComplexity int) int
@@ -150,6 +154,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tx.Raw(childComplexity), true
 
+	case "TxInput.hash":
+		if e.complexity.TxInput.Hash == nil {
+			break
+		}
+
+		return e.complexity.TxInput.Hash(childComplexity), true
+
 	case "TxInput.index":
 		if e.complexity.TxInput.Index == nil {
 			break
@@ -164,6 +175,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TxInput.Output(childComplexity), true
 
+	case "TxInput.prev_hash":
+		if e.complexity.TxInput.PrevHash == nil {
+			break
+		}
+
+		return e.complexity.TxInput.PrevHash(childComplexity), true
+
+	case "TxInput.prev_index":
+		if e.complexity.TxInput.PrevIndex == nil {
+			break
+		}
+
+		return e.complexity.TxInput.PrevIndex(childComplexity), true
+
 	case "TxInput.tx":
 		if e.complexity.TxInput.Tx == nil {
 			break
@@ -177,6 +202,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TxOutput.Amount(childComplexity), true
+
+	case "TxOutput.hash":
+		if e.complexity.TxOutput.Hash == nil {
+			break
+		}
+
+		return e.complexity.TxOutput.Hash(childComplexity), true
 
 	case "TxOutput.index":
 		if e.complexity.TxOutput.Index == nil {
@@ -276,12 +308,16 @@ type Tx {
 
 type TxInput {
     tx: Tx!
+    hash: String!
     index: Int!
+    prev_hash: String!
+    prev_index: Int!
     output: TxOutput!
 }
 
 type TxOutput {
     tx: Tx!
+    hash: String!
     index: Int!
     amount: Int!
     script: String!
@@ -751,6 +787,41 @@ func (ec *executionContext) _TxInput_tx(ctx context.Context, field graphql.Colle
 	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _TxInput_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TxInput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _TxInput_index(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -770,6 +841,76 @@ func (ec *executionContext) _TxInput_index(ctx context.Context, field graphql.Co
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Index, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TxInput_prev_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TxInput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PrevHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TxInput_prev_index(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TxInput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PrevIndex, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -854,6 +995,41 @@ func (ec *executionContext) _TxOutput_tx(ctx context.Context, field graphql.Coll
 	res := resTmp.(*model.Tx)
 	fc.Result = res
 	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TxOutput_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TxOutput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxOutput_index(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
@@ -2235,8 +2411,23 @@ func (ec *executionContext) _TxInput(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "hash":
+			out.Values[i] = ec._TxInput_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "index":
 			out.Values[i] = ec._TxInput_index(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "prev_hash":
+			out.Values[i] = ec._TxInput_prev_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "prev_index":
+			out.Values[i] = ec._TxInput_prev_index(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2269,6 +2460,11 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 			out.Values[i] = graphql.MarshalString("TxOutput")
 		case "tx":
 			out.Values[i] = ec._TxOutput_tx(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "hash":
+			out.Values[i] = ec._TxOutput_hash(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

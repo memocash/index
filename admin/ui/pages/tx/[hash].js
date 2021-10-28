@@ -3,10 +3,13 @@ import Page from "../../components/page";
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
 import Loading from "../../components/util/loading";
+import Link from "next/link";
 
 export default function Hash() {
     const router = useRouter()
-    const [tx, setTx] = useState("")
+    const [tx, setTx] = useState({
+        inputs: []
+    })
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const query = `
@@ -14,6 +17,10 @@ export default function Hash() {
         tx(hash: $hash) {
             hash
             raw
+            inputs {
+                prev_hash
+                prev_index
+            }
         }
     }
     `
@@ -58,6 +65,7 @@ export default function Hash() {
                         {messages}
                     </div>
                 )
+                setLoading(true)
                 return
             }
             setTx(data.data.tx)
@@ -87,6 +95,17 @@ export default function Hash() {
                     </div>
                     <div>
                         Tx raw: <pre style={preStyle}>{tx.raw}</pre>
+                    </div>
+                    <div>
+                        {tx.inputs.map((input) => {
+                            return (
+                                <p key={input}>
+                                    <Link href={"/tx/"+input.prev_hash}>
+                                        <a>{input.prev_hash}:{input.prev_index}</a>
+                                    </Link>
+                                </p>
+                            )
+                        })}
                     </div>
                 </Loading>
             </div>

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/memocash/server/ref/bitcoin/memo"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
@@ -26,8 +27,9 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 		return nil, jerr.Get("error getting tx hash from hash", err)
 	}
 	txHash := chainHash.CloneBytes()
+	txHashString := chainHash.String()
 	preloads := GetPreloads(ctx)
-	var raw string
+	var raw []byte
 	if jutil.StringInSlice("raw", preloads) {
 		txBlocks, err := item.GetSingleTxBlocks(txHash)
 		if err != nil {
@@ -38,18 +40,34 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 			if err != nil {
 				return nil, jerr.Get("error getting mempool tx raw", err)
 			}
-			raw = hex.EncodeToString(mempoolTxRaw.Raw)
+			raw = mempoolTxRaw.Raw
 		} else {
 			txRaw, err := item.GetRawBlockTxByHash(txBlocks[0].BlockHash, txHash)
 			if err != nil {
 				return nil, jerr.Get("error getting block tx by hash", err)
 			}
-			raw = hex.EncodeToString(txRaw.Raw)
+			raw = txRaw.Raw
+		}
+	}
+	var inputs []*model.TxInput
+	if jutil.StringInSlice("inputs", preloads) {
+		msgTx, err := memo.GetMsgFromRaw(raw)
+		if err != nil {
+			return nil, jerr.Get("error getting tx msg from raw", err)
+		}
+		for i, txIn := range msgTx.TxIn {
+			inputs = append(inputs, &model.TxInput{
+				Hash:      txHashString,
+				Index:     i,
+				PrevHash:  txIn.PreviousOutPoint.Hash.String(),
+				PrevIndex: int(txIn.PreviousOutPoint.Index),
+			})
 		}
 	}
 	return &model.Tx{
-		Hash: chainHash.String(),
-		Raw:  raw,
+		Hash:   txHashString,
+		Raw:    hex.EncodeToString(raw),
+		Inputs: inputs,
 	}, nil
 }
 

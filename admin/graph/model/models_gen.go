@@ -10,13 +10,17 @@ type Tx struct {
 }
 
 type TxInput struct {
-	Tx     *Tx       `json:"tx"`
-	Index  int       `json:"index"`
-	Output *TxOutput `json:"output"`
+	Tx        *Tx       `json:"tx"`
+	Hash      string    `json:"hash"`
+	Index     int       `json:"index"`
+	PrevHash  string    `json:"prev_hash"`
+	PrevIndex int       `json:"prev_index"`
+	Output    *TxOutput `json:"output"`
 }
 
 type TxOutput struct {
 	Tx     *Tx    `json:"tx"`
+	Hash   string `json:"hash"`
 	Index  int    `json:"index"`
 	Amount int    `json:"amount"`
 	Script string `json:"script"`

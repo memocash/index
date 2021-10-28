@@ -11,12 +11,16 @@ type Tx {
 
 type TxInput {
     tx: Tx!
+    hash: String!
     index: Int!
+    prev_hash: String!
+    prev_index: Int!
     output: TxOutput!
 }
 
 type TxOutput {
     tx: Tx!
+    hash: String!
     index: Int!
     amount: Int!
     script: String!
