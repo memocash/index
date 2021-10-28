@@ -61,7 +61,7 @@ export default function Hash() {
                         <p key={i}>
                             {data.errors[i].extensions ?
                                 <>Code: {data.errors[i].extensions.code}</>
-                                : ""
+                                : null
                             }
                             <br/>
                             Message: {data.errors[i].message}
