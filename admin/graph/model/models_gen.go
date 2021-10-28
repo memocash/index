@@ -19,9 +19,10 @@ type TxInput struct {
 }
 
 type TxOutput struct {
-	Tx     *Tx    `json:"tx"`
-	Hash   string `json:"hash"`
-	Index  int    `json:"index"`
-	Amount int    `json:"amount"`
-	Script string `json:"script"`
+	Tx     *Tx        `json:"tx"`
+	Hash   string     `json:"hash"`
+	Index  int        `json:"index"`
+	Amount int        `json:"amount"`
+	Script string     `json:"script"`
+	Spends []*TxInput `json:"spends"`
 }

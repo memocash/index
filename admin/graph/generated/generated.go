@@ -73,6 +73,7 @@ type ComplexityRoot struct {
 		Hash   func(childComplexity int) int
 		Index  func(childComplexity int) int
 		Script func(childComplexity int) int
+		Spends func(childComplexity int) int
 		Tx     func(childComplexity int) int
 	}
 }
@@ -224,6 +225,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TxOutput.Script(childComplexity), true
 
+	case "TxOutput.spends":
+		if e.complexity.TxOutput.Spends == nil {
+			break
+		}
+
+		return e.complexity.TxOutput.Spends(childComplexity), true
+
 	case "TxOutput.tx":
 		if e.complexity.TxOutput.Tx == nil {
 			break
@@ -321,6 +329,7 @@ type TxOutput {
     index: Int!
     amount: Int!
     script: String!
+    spends: [TxInput]
 }
 
 type Query {
@@ -1135,6 +1144,38 @@ func (ec *executionContext) _TxOutput_script(ctx context.Context, field graphql.
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TxOutput_spends(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TxOutput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Spends, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.TxInput)
+	fc.Result = res
+	return ec.marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2483,6 +2524,8 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "spends":
+			out.Values[i] = ec._TxOutput_spends(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3273,6 +3316,54 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
+}
+
+func (ec *executionContext) marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInput(ctx context.Context, sel ast.SelectionSet, v []*model.TxInput) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOTxInput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInput(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOTxInput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInput(ctx context.Context, sel ast.SelectionSet, v *model.TxInput) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TxInput(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

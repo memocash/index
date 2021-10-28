@@ -12,7 +12,7 @@ require (
 	github.com/jchavannes/bchutil v0.0.0-20190601153950-94d7f52a5867
 	github.com/jchavannes/btcd v0.0.0-20210319161304-69acdff53c2e
 	github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65
-	github.com/jchavannes/jgo v0.0.0-20211028022643-9341c5dd2089 // indirect
+	github.com/jchavannes/jgo v0.0.0-20211028022643-9341c5dd2089
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
 	github.com/syndtr/goleveldb v1.0.0

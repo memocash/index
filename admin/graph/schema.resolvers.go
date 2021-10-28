@@ -7,15 +7,15 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/jchavannes/btcd/wire"
-	"github.com/memocash/server/ref/bitcoin/memo"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
+	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/server/admin/graph/generated"
 	"github.com/memocash/server/admin/graph/model"
 	"github.com/memocash/server/db/item"
+	"github.com/memocash/server/ref/bitcoin/memo"
 )
 
 func (r *mutationResolver) Null(ctx context.Context) (*int, error) {
@@ -77,6 +77,35 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 				Amount: int(txOut.Value),
 				Script: hex.EncodeToString(txOut.PkScript),
 			})
+		}
+		if jutil.StringInSlice("outputs.spends", preloads) {
+			var outs = make([]memo.Out, len(msgTx.TxOut))
+			for i := range msgTx.TxOut {
+				outs[i] = memo.Out{
+					TxHash: txHash,
+					Index:  uint32(i),
+				}
+			}
+			outputInputs, err := item.GetOutputInputs(outs)
+			if err != nil {
+				return nil, jerr.Get("error getting output inputs for tx", err)
+			}
+			for _, outputInput := range outputInputs {
+				var outputIndex = int(outputInput.PrevIndex)
+				if outputIndex >= len(outputs) {
+					return nil, jerr.Newf("error got output input out of range of outputs: %d %d", outputIndex, len(outputs))
+				}
+				outputInputHash, err := chainhash.NewHash(outputInput.Hash)
+				if err != nil {
+					return nil, jerr.Get("error getting output input hash", err)
+				}
+				outputs[outputIndex].Spends = append(outputs[outputIndex].Spends, &model.TxInput{
+					Hash:      outputInputHash.String(),
+					Index:     int(outputInput.Index),
+					PrevHash:  txHashString,
+					PrevIndex: outputIndex,
+				})
+			}
 		}
 	}
 	return &model.Tx{

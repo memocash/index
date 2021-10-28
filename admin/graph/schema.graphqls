@@ -24,6 +24,7 @@ type TxOutput {
     index: Int!
     amount: Int!
     script: String!
+    spends: [TxInput]
 }
 
 type Query {

@@ -8,7 +8,8 @@ import Link from "next/link";
 export default function Hash() {
     const router = useRouter()
     const [tx, setTx] = useState({
-        inputs: []
+        inputs: [],
+        outputs: [],
     })
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
@@ -24,6 +25,9 @@ export default function Hash() {
             outputs {
                 amount
                 script
+                spends {
+                    hash
+                }
             }
         }
     }
@@ -103,7 +107,7 @@ export default function Hash() {
                     <div>
                         {tx.inputs.map((input) => {
                             return (
-                                <p key={input}>
+                                <p key={input.prev_hash + input.prev_index}>
                                     <Link href={"/tx/" + input.prev_hash}>
                                         <a>{input.prev_hash}:{input.prev_index}</a>
                                     </Link>
@@ -112,13 +116,22 @@ export default function Hash() {
                         })}
                     </div>
                     <div>
-                        {tx.outputs.map((output) => {
+                        {tx.outputs.map((output, index) => {
                             return (
-                                <p key={output}>
+                                <div key={index}>
                                     Amount: {output.amount}
                                     <br/>
                                     PkScript: <pre>{output.script}</pre>
-                                </p>
+                                    {output.spends ? output.spends.map((spend, index) => {
+                                        return (
+                                            <p key={index}>
+                                                <Link href={"/tx/" + spend.hash}>
+                                                    <a>{spend.hash}:{spend.index}</a>
+                                                </Link>
+                                            </p>
+                                        )
+                                    }) : null}
+                                </div>
                             )
                         })}
                     </div>
