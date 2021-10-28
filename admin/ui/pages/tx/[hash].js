@@ -24,6 +24,12 @@ export default function Hash() {
                 index
                 prev_hash
                 prev_index
+                output {
+                    spends {
+                        hash
+                        index
+                    }
+                }
             }
             outputs {
                 index
@@ -144,7 +150,9 @@ export default function Hash() {
                                             className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
                                             {output.spends ? <>
                                                 {output.spends.length >= 2 ?
-                                                    <div className={[column.red, column.bold].join(" ")}>DOUBLE SPEND</div>
+                                                    <div className={[column.red, column.bold].join(" ")}>
+                                                        DOUBLE SPEND
+                                                    </div>
                                                     : null
                                                 }
                                                 <h5 className={column.noMarginBottom}>Spends

@@ -4,9 +4,11 @@ package graph
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
@@ -15,6 +17,7 @@ import (
 	"github.com/memocash/server/admin/graph/model"
 	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/ref/bitcoin/memo"
+	"github.com/memocash/server/ref/bitcoin/tx/hs"
 )
 
 func (r *mutationResolver) Null(ctx context.Context) (*int, error) {
@@ -58,12 +61,38 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 	}
 	var inputs []*model.TxInput
 	if jutil.StringInSlice("inputs", preloads) {
+		var txOutputs []*item.TxOutput
+		if jutil.StringInSlice("inputs.output", preloads) {
+			var outs = make([]memo.Out, len(msgTx.TxIn))
+			for i := range msgTx.TxIn {
+				outs[i] = memo.Out{
+					TxHash: msgTx.TxIn[i].PreviousOutPoint.Hash.CloneBytes(),
+					Index:  msgTx.TxIn[i].PreviousOutPoint.Index,
+				}
+			}
+			txOutputs, err = item.GetTxOutputs(outs)
+			if err != nil {
+				return nil, jerr.Get("error getting input tx outputs", err)
+			}
+		}
 		for i, txIn := range msgTx.TxIn {
+			var output *model.TxOutput
+			for _, txOutput := range txOutputs {
+				if bytes.Equal(txIn.PreviousOutPoint.Hash.CloneBytes(), txOutput.TxHash) &&
+					txIn.PreviousOutPoint.Index == txOutput.Index {
+					output = &model.TxOutput{
+						Hash:   hs.GetTxString(txOutput.TxHash),
+						Index:  txOutput.Index,
+						Amount: txOutput.Value,
+					}
+				}
+			}
 			inputs = append(inputs, &model.TxInput{
 				Hash:      txHashString,
-				Index:     i,
+				Index:     uint32(i),
 				PrevHash:  txIn.PreviousOutPoint.Hash.String(),
-				PrevIndex: int(txIn.PreviousOutPoint.Index),
+				PrevIndex: txIn.PreviousOutPoint.Index,
+				Output:    output,
 			})
 		}
 	}
@@ -72,8 +101,8 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 		for i, txOut := range msgTx.TxOut {
 			outputs = append(outputs, &model.TxOutput{
 				Hash:   txHashString,
-				Index:  i,
-				Amount: int(txOut.Value),
+				Index:  uint32(i),
+				Amount: txOut.Value,
 				Script: hex.EncodeToString(txOut.PkScript),
 			})
 		}
@@ -90,19 +119,18 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 				return nil, jerr.Get("error getting output inputs for tx", err)
 			}
 			for _, outputInput := range outputInputs {
-				var outputIndex = int(outputInput.PrevIndex)
-				if outputIndex >= len(outputs) {
-					return nil, jerr.Newf("error got output input out of range of outputs: %d %d", outputIndex, len(outputs))
+				if int(outputInput.PrevIndex) >= len(outputs) {
+					return nil, jerr.Newf("error got output input out of range of outputs: %d %d", outputInput.PrevIndex, len(outputs))
 				}
 				outputInputHash, err := chainhash.NewHash(outputInput.Hash)
 				if err != nil {
 					return nil, jerr.Get("error getting output input hash", err)
 				}
-				outputs[outputIndex].Spends = append(outputs[outputIndex].Spends, &model.TxInput{
+				outputs[outputInput.PrevIndex].Spends = append(outputs[outputInput.PrevIndex].Spends, &model.TxInput{
 					Hash:      outputInputHash.String(),
-					Index:     int(outputInput.Index),
+					Index:     outputInput.Index,
 					PrevHash:  txHashString,
-					PrevIndex: outputIndex,
+					PrevIndex: outputInput.PrevIndex,
 				})
 			}
 		}

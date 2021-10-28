@@ -43,6 +43,11 @@ autobind:
 # modelgen, the others will be allowed when binding to fields. Configure them to
 # your liking
 models:
+  Int64:
+    model: github.com/99designs/gqlgen/graphql.Int64
+  Uint32:
+    model: github.com/99designs/gqlgen/graphql.Uint32
+
   ID:
     model:
       - github.com/99designs/gqlgen/graphql.ID

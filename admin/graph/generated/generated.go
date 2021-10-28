@@ -307,6 +307,9 @@ var sources = []*ast.Source{
 #
 # https://gqlgen.com/getting-started/
 
+scalar Int64
+scalar Uint32
+
 type Tx {
     hash: String!
     raw: String!
@@ -317,17 +320,17 @@ type Tx {
 type TxInput {
     tx: Tx!
     hash: String!
-    index: Int!
+    index: Uint32!
     prev_hash: String!
-    prev_index: Int!
+    prev_index: Uint32!
     output: TxOutput!
 }
 
 type TxOutput {
     tx: Tx!
     hash: String!
-    index: Int!
-    amount: Int!
+    index: Uint32!
+    amount: Int64!
     script: String!
     spends: [TxInput]
 }
@@ -861,9 +864,9 @@ func (ec *executionContext) _TxInput_index(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(uint32)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNUint322uint32(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxInput_prev_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
@@ -931,9 +934,9 @@ func (ec *executionContext) _TxInput_prev_index(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(uint32)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNUint322uint32(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxInput_output(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
@@ -1071,9 +1074,9 @@ func (ec *executionContext) _TxOutput_index(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(uint32)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNUint322uint32(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxOutput_amount(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
@@ -1106,9 +1109,9 @@ func (ec *executionContext) _TxOutput_amount(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(int64)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxOutput_script(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
@@ -2802,13 +2805,13 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
-	res, err := graphql.UnmarshalInt(v)
+func (ec *executionContext) unmarshalNInt642int64(ctx context.Context, v interface{}) (int64, error) {
+	res, err := graphql.UnmarshalInt64(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
-	res := graphql.MarshalInt(v)
+func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.SelectionSet, v int64) graphql.Marshaler {
+	res := graphql.MarshalInt64(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -2996,6 +2999,21 @@ func (ec *executionContext) marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋserver
 		return graphql.Null
 	}
 	return ec._TxOutput(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNUint322uint32(ctx context.Context, v interface{}) (uint32, error) {
+	res, err := graphql.UnmarshalUint32(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUint322uint32(ctx context.Context, sel ast.SelectionSet, v uint32) graphql.Marshaler {
+	res := graphql.MarshalUint32(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

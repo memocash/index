@@ -2,6 +2,9 @@
 #
 # https://gqlgen.com/getting-started/
 
+scalar Int64
+scalar Uint32
+
 type Tx {
     hash: String!
     raw: String!
@@ -12,17 +15,17 @@ type Tx {
 type TxInput {
     tx: Tx!
     hash: String!
-    index: Int!
+    index: Uint32!
     prev_hash: String!
-    prev_index: Int!
+    prev_index: Uint32!
     output: TxOutput!
 }
 
 type TxOutput {
     tx: Tx!
     hash: String!
-    index: Int!
-    amount: Int!
+    index: Uint32!
+    amount: Int64!
     script: String!
     spends: [TxInput]
 }
