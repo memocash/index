@@ -21,6 +21,10 @@ export default function Hash() {
                 prev_hash
                 prev_index
             }
+            outputs {
+                amount
+                script
+            }
         }
     }
     `
@@ -100,9 +104,20 @@ export default function Hash() {
                         {tx.inputs.map((input) => {
                             return (
                                 <p key={input}>
-                                    <Link href={"/tx/"+input.prev_hash}>
+                                    <Link href={"/tx/" + input.prev_hash}>
                                         <a>{input.prev_hash}:{input.prev_index}</a>
                                     </Link>
+                                </p>
+                            )
+                        })}
+                    </div>
+                    <div>
+                        {tx.outputs.map((output) => {
+                            return (
+                                <p key={output}>
+                                    Amount: {output.amount}
+                                    <br/>
+                                    PkScript: <pre>{output.script}</pre>
                                 </p>
                             )
                         })}
