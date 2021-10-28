@@ -29,21 +29,20 @@ func (s *Server) Run() error {
 	mux := http.NewServeMux()
 	for _, tempRoute := range routes {
 		route := tempRoute
-		mux.HandleFunc(route.Pattern, func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc(route.Pattern, getHandler(func(w http.ResponseWriter, r *http.Request) {
 			route.Handler(admin.Response{
 				Writer:    w,
 				Request:   r,
 				NodeGroup: s.Nodes,
 				Route:     route,
 			})
-			jlog.Logf("Processed admin request: %s\n", route.Pattern)
-		})
+		}))
 	}
 	graphqlHandler, err := graphql.GetHandler()
 	if err != nil {
 		return jerr.Get("error getting graphql handler", err)
 	}
-	mux.Handle(admin.UrlGraphql, graphqlHandler)
+	mux.HandleFunc(admin.UrlGraphql, getHandler(graphqlHandler.ServeHTTP))
 	server := http.Server{
 		Addr:    config.GetHost(s.Port),
 		Handler: mux,
@@ -58,5 +57,12 @@ func NewServer(group *node.Group) *Server {
 	return &Server{
 		Nodes: group,
 		Port:  config.GetAdminPort(),
+	}
+}
+
+func getHandler(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		handler(w, r)
+		jlog.Logf("Processed admin request: %s\n", r.URL)
 	}
 }

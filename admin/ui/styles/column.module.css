@@ -1,0 +1,15 @@
+.container {
+    display: flex;
+}
+
+.width15 {
+    width: 15%;
+}
+
+.width50 {
+    width: 50%;
+}
+
+.width85 {
+    width: 85%;
+}

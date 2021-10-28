@@ -1,0 +1,11 @@
+pre.pre {
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    padding: 0;
+    margin: 0;
+}
+
+pre.inline {
+    display: inline-block;
+}

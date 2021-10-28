@@ -1,4 +1,6 @@
 import styles from '../../styles/Home.module.css'
+import pre from '../../styles/pre.module.css'
+import column from '../../styles/column.module.css'
 import Page from "../../components/page";
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
@@ -19,14 +21,17 @@ export default function Hash() {
             hash
             raw
             inputs {
+                index
                 prev_hash
                 prev_index
             }
             outputs {
+                index
                 amount
                 script
                 spends {
                     hash
+                    index
                 }
             }
         }
@@ -84,13 +89,15 @@ export default function Hash() {
             })
         })
     }, [router])
-    const preStyle = {
-        wordWrap: "break-word",
-        overflowWrap: "anywhere",
-        whiteSpace: "pre-wrap",
-        padding: 0,
-        margin: 0,
+
+    function preInline(children) {
+        return (
+            <pre className={[pre.pre, pre.inline].join(" ")}>
+                {children}
+            </pre>
+        )
     }
+
     return (
         <Page>
             <div>
@@ -98,42 +105,59 @@ export default function Hash() {
                     Transaction
                 </h1>
                 <Loading loading={loading} error={errorMessage}>
-                    <div>
-                        Tx hash: {tx.hash}
+                    <div className={column.container}>
+                        <div className={column.width15}>Tx hash</div>
+                        <div className={column.width85}>{tx.hash}</div>
                     </div>
-                    <div>
-                        Tx raw: <pre style={preStyle}>{tx.raw}</pre>
+                    <div className={column.container}>
+                        <div className={column.width15}>Tx raw</div>
+                        <div className={column.width85}>{preInline(<>{tx.raw}</>)}</div>
                     </div>
-                    <div>
-                        {tx.inputs.map((input) => {
-                            return (
-                                <p key={input.prev_hash + input.prev_index}>
-                                    <Link href={"/tx/" + input.prev_hash}>
-                                        <a>{input.prev_hash}:{input.prev_index}</a>
-                                    </Link>
-                                </p>
-                            )
-                        })}
-                    </div>
-                    <div>
-                        {tx.outputs.map((output, index) => {
-                            return (
-                                <div key={index}>
-                                    Amount: {output.amount}
-                                    <br/>
-                                    PkScript: <pre>{output.script}</pre>
-                                    {output.spends ? output.spends.map((spend, index) => {
-                                        return (
-                                            <p key={index}>
-                                                <Link href={"/tx/" + spend.hash}>
-                                                    <a>{spend.hash}:{spend.index}</a>
-                                                </Link>
-                                            </p>
-                                        )
-                                    }) : null}
-                                </div>
-                            )
-                        })}
+                    <div className={column.container}>
+                        <div className={column.width50}>
+                            <h3>Inputs ({tx.inputs.length})</h3>
+                            {tx.inputs.map((input) => {
+                                return (
+                                    <div key={input} className={column.container}>
+                                        <div className={column.width15}>{input.index}</div>
+                                        <div className={column.width85}>
+                                            <Link href={"/tx/" + input.prev_hash}>
+                                                <a>{preInline(<>{input.prev_hash}:{input.prev_index}</>)}</a>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        <div className={column.width50}>
+                            <h3>Outputs ({tx.outputs.length})</h3>
+                            {tx.outputs.map((output, index) => {
+                                return (
+                                    <div key={index} className={column.container}>
+                                        <div className={column.width15}>
+                                            {output.index}
+                                        </div>
+                                        <div className={column.width85}>
+                                            Amount: {output.amount}
+                                            <br/>
+                                            PkScript: <pre className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
+                                            {output.spends ? <>
+                                                <h5>Spends ({output.spends.length})</h5>
+                                                {output.spends.map((spend, index) => {
+                                                    return (
+                                                        <div key={index}>
+                                                            <Link href={"/tx/" + spend.hash}>
+                                                                <a>{preInline(<>{spend.hash}:{spend.index}</>)}</a>
+                                                            </Link>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </> : null}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
                     </div>
                 </Loading>
             </div>
