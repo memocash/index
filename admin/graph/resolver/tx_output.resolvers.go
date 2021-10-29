@@ -22,47 +22,48 @@ func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error) {
-	txOutputSpendLoader := dataloader.NewTxOutputSpendLoader(dataloader.TxOutputSpendLoaderConfig{
-		Wait:     2 * time.Millisecond,
-		MaxBatch: 100,
-		Fetch: func(keys []model.HashIndex) ([][]*model.TxInput, []error) {
-			var outs = make([]memo.Out, len(keys))
-			for i := range keys {
-				hash, err := chainhash.NewHashFromStr(obj.Hash)
-				if err != nil {
-					return nil, []error{jerr.Get("error parsing spend tx hash for output", err)}
-				}
-				outs[i] = memo.Out{
-					TxHash: hash.CloneBytes(),
-					Index:  keys[i].Index,
-				}
+var txOutputSpendLoaderConfig = dataloader.TxOutputSpendLoaderConfig{
+	Wait:     2 * time.Millisecond,
+	MaxBatch: 100,
+	Fetch: func(keys []model.HashIndex) ([][]*model.TxInput, []error) {
+		var outs = make([]memo.Out, len(keys))
+		for i := range keys {
+			hash, err := chainhash.NewHashFromStr(keys[i].Hash)
+			if err != nil {
+				return nil, []error{jerr.Get("error parsing spend tx hash for output", err)}
 			}
-			outputInputs, err := item.GetOutputInputs(outs)
-			if err != nil && !client.IsResourceUnavailableError(err) {
-				return nil, []error{jerr.Get("error getting output spends for tx", err)}
+			outs[i] = memo.Out{
+				TxHash: hash.CloneBytes(),
+				Index:  keys[i].Index,
 			}
-			var spends = make([][]*model.TxInput, len(outs))
-			for i := range outs {
-				for _, outputInput := range outputInputs {
-					if bytes.Equal(outs[i].TxHash, outputInput.PrevHash) && outs[i].Index == outputInput.PrevIndex {
-						outputInputHash, err := chainhash.NewHash(outputInput.Hash)
-						if err != nil {
-							return nil, []error{jerr.Get("error getting output spend hash", err)}
-						}
-						spends[i] = append(spends[i], &model.TxInput{
-							Hash:      outputInputHash.String(),
-							Index:     outputInput.Index,
-							PrevHash:  obj.Hash,
-							PrevIndex: outputInput.PrevIndex,
-						})
+		}
+		outputInputs, err := item.GetOutputInputs(outs)
+		if err != nil && !client.IsResourceUnavailableError(err) {
+			return nil, []error{jerr.Get("error getting output spends for tx", err)}
+		}
+		var spends = make([][]*model.TxInput, len(outs))
+		for i := range outs {
+			for _, outputInput := range outputInputs {
+				if bytes.Equal(outs[i].TxHash, outputInput.PrevHash) && outs[i].Index == outputInput.PrevIndex {
+					outputInputHash, err := chainhash.NewHash(outputInput.Hash)
+					if err != nil {
+						return nil, []error{jerr.Get("error getting output spend hash", err)}
 					}
+					spends[i] = append(spends[i], &model.TxInput{
+						Hash:      outputInputHash.String(),
+						Index:     outputInput.Index,
+						PrevHash:  keys[i].Hash,
+						PrevIndex: outputInput.PrevIndex,
+					})
 				}
 			}
-			return spends, nil
-		},
-	})
-	txInputs, err := txOutputSpendLoader.Load(model.HashIndex{
+		}
+		return spends, nil
+	},
+}
+
+func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error) {
+	txInputs, err := dataloader.NewTxOutputSpendLoader(txOutputSpendLoaderConfig).Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: obj.Index,
 	})
