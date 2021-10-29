@@ -23,15 +23,17 @@ const (
 )
 
 const (
-	MessageNotSetErrorMessage = "error message not set"
-	MultipleEntryErrorMessage = "error multiple entries found"
-	EntryNotFoundErrorMessage = "error entry not found"
+	MessageNotSetErrorMessage  = "error message not set"
+	MultipleEntryErrorMessage  = "error multiple entries found"
+	EntryNotFoundErrorMessage  = "error entry not found"
+	ResourceUnavailableMessage = "resource temporarily unavailable"
 )
 
 var (
-	MultipleEntryError = jerr.New(MultipleEntryErrorMessage)
-	EntryNotFoundError = jerr.New(EntryNotFoundErrorMessage)
-	MessageNotSetError = jerr.New(MessageNotSetErrorMessage)
+	MultipleEntryError       = jerr.New(MultipleEntryErrorMessage)
+	EntryNotFoundError       = jerr.New(EntryNotFoundErrorMessage)
+	MessageNotSetError       = jerr.New(MessageNotSetErrorMessage)
+	ResourceUnavailableError = jerr.New(ResourceUnavailableMessage)
 )
 
 type Topic struct {
@@ -93,4 +95,8 @@ func IsEntryNotFoundError(e error) bool {
 
 func IsMessageNotSetError(err error) bool {
 	return jerr.HasError(err, MessageNotSetErrorMessage)
+}
+
+func IsResourceUnavailableError(err error) bool {
+	return jerr.HasErrorPart(err, ResourceUnavailableMessage)
 }

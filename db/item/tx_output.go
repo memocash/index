@@ -105,3 +105,20 @@ func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
 	}
 	return txOutputs, nil
 }
+
+func GetTxOutput(hash []byte, index uint32) (*TxOutput, error) {
+	shard := GetShardByte32(hash)
+	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+	db := client.NewClient(shardConfig.GetHost())
+	uid := GetTxOutputUid(hash, index)
+	if err := db.GetSingle(TopicTxOutput, uid); err != nil {
+		return nil, jerr.Get("error getting db", err)
+	}
+	if len(db.Messages) != 1 {
+		return nil, nil
+	}
+	var txOutput = new(TxOutput)
+	txOutput.SetUid(db.Messages[0].Uid)
+	txOutput.Deserialize(db.Messages[0].Message)
+	return txOutput, nil
+}

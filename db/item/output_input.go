@@ -48,6 +48,23 @@ func (t OutputInput) Serialize() []byte {
 
 func (t *OutputInput) Deserialize([]byte) {}
 
+func GetOutputInput(out memo.Out) ([]*OutputInput, error) {
+	shard := GetShardByte32(out.TxHash)
+	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+	db := client.NewClient(shardConfig.GetHost())
+	prefix := jutil.CombineBytes(jutil.ByteReverse(out.TxHash), jutil.GetUint32Data(out.Index))
+	if err := db.GetByPrefix(TopicOutputInput, prefix); err != nil {
+		return nil, jerr.Get("error getting by prefix for output input", err)
+	}
+	var outputInputs = make([]*OutputInput, len(db.Messages))
+	for i := range db.Messages {
+		outputInputs[i] = new(OutputInput)
+		outputInputs[i].SetUid(db.Messages[i].Uid)
+		outputInputs[i].Deserialize(db.Messages[i].Message)
+	}
+	return outputInputs, nil
+}
+
 func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 	var shardOutGroups = make(map[uint32][]memo.Out)
 	for _, out := range outs {
@@ -65,9 +82,8 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 				jutil.GetUint32Data(outGroup[i].Index),
 			)
 		}
-		err := db.GetByPrefixes(TopicOutputInput, prefixes)
-		if err != nil {
-			return nil, jerr.Get("error getting client", err)
+		if err := db.GetByPrefixes(TopicOutputInput, prefixes); err != nil {
+			return nil, jerr.Get("error getting by prefixes for output inputs", err)
 		}
 		for i := range db.Messages {
 			var outputInput = new(OutputInput)

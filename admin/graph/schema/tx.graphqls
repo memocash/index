@@ -1,0 +1,6 @@
+type Tx {
+    hash: String!
+    raw: String!
+    inputs: [TxInput!]!
+    outputs: [TxOutput!]!
+}

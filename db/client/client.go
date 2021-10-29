@@ -71,7 +71,7 @@ func (s *Client) Save(messages []*Message, timestamp time.Time) error {
 			Timestamp: timestamp.Unix(),
 		}, messages[1:]
 	}
-	for ; len(queueMessages) > 0; {
+	for len(queueMessages) > 0 {
 		max := len(queueMessages)
 		if max > ExLargeLimit {
 			max = ExLargeLimit

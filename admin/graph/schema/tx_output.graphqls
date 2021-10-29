@@ -1,0 +1,8 @@
+type TxOutput {
+    tx: Tx!
+    hash: String!
+    index: Uint32!
+    amount: Int64!
+    script: String
+    spends: [TxInput]
+}
