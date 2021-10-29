@@ -27,6 +27,19 @@ export default function Page(props) {
                             </Link>
                         </li>
                         <li>
+                            <Link href="/tx/aa3c2117090349ae08fba883c2f70548b502957ffed8e18c0a5ca8e0b6761cf8">
+                                <a>Transaction</a>
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href="/tx/double-spends">
+                                <a>Double Spends</a>
+                            </Link>
+                        </li>
+                    </ul>
+                    <h3>Peer</h3>
+                    <ul>
+                        <li>
                             <Link href="/peer/list">
                                 <a>Peer List</a>
                             </Link>
@@ -34,11 +47,6 @@ export default function Page(props) {
                         <li>
                             <Link href="/peer/report">
                                 <a>Peer Report</a>
-                            </Link>
-                        </li>
-                        <li>
-                            <Link href="/tx/aa3c2117090349ae08fba883c2f70548b502957ffed8e18c0a5ca8e0b6761cf8">
-                                <a>Transaction</a>
                             </Link>
                         </li>
                     </ul>
