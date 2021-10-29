@@ -15,19 +15,6 @@ func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx
 }
 
 func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error) {
-	/*hash, err := chainhash.NewHashFromStr(obj.PrevHash)
-	if err != nil {
-		return nil, jerr.Get("error parsing input tx hash for output", err)
-	}
-	txOutput, err := item.GetTxOutput(hash.CloneBytes(), obj.PrevIndex)
-	if err != nil {
-		return nil, jerr.Get("error getting input tx outputs", err)
-	}
-	return &model.TxOutput{
-		Hash:   hs.GetTxString(txOutput.TxHash),
-		Index:  txOutput.Index,
-		Amount: txOutput.Value,
-	}, nil*/
 	return &model.TxOutput{
 		Hash:  obj.PrevHash,
 		Index: obj.PrevIndex,

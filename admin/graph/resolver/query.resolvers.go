@@ -23,8 +23,6 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 	txHashString := chainHash.String()
 	preloads := GetPreloads(ctx)
 	var raw []byte
-	//var msgTx *wire.MsgTx
-	//fmt.Printf("preloads: %#v\n", preloads)
 	if jutil.StringsInSlice([]string{"raw", "inputs", "outputs"}, preloads) {
 		txBlocks, err := item.GetSingleTxBlocks(txHash)
 		if err != nil {
@@ -43,94 +41,10 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 			}
 			raw = txRaw.Raw
 		}
-		/*if jutil.StringsInSlice([]string{"inputs", "outputs"}, preloads) {
-			msgTx, err = memo.GetMsgFromRaw(raw)
-			if err != nil {
-				return nil, jerr.Get("error getting tx msg from raw", err)
-			}
-		}*/
 	}
-	/*var inputs []*model.TxInput
-	if jutil.StringInSlice("inputs", preloads) {
-		var txOutputs []*item.TxOutput
-		if jutil.StringInSlice("inputs.output", preloads) {
-			var outs = make([]memo.Out, len(msgTx.TxIn))
-			for i := range msgTx.TxIn {
-				outs[i] = memo.Out{
-					TxHash: msgTx.TxIn[i].PreviousOutPoint.Hash.CloneBytes(),
-					Index:  msgTx.TxIn[i].PreviousOutPoint.Index,
-				}
-			}
-			txOutputs, err = item.GetTxOutputs(outs)
-			if err != nil {
-				return nil, jerr.Get("error getting input tx outputs", err)
-			}
-		}
-		for i, txIn := range msgTx.TxIn {
-			var output *model.TxOutput
-			for _, txOutput := range txOutputs {
-				if bytes.Equal(txIn.PreviousOutPoint.Hash.CloneBytes(), txOutput.TxHash) &&
-					txIn.PreviousOutPoint.Index == txOutput.Index {
-					output = &model.TxOutput{
-						Hash:   hs.GetTxString(txOutput.TxHash),
-						Index:  txOutput.Index,
-						Amount: txOutput.Value,
-					}
-				}
-			}
-			inputs = append(inputs, &model.TxInput{
-				Hash:      txHashString,
-				Index:     uint32(i),
-				PrevHash:  txIn.PreviousOutPoint.Hash.String(),
-				PrevIndex: txIn.PreviousOutPoint.Index,
-				Output:    output,
-			})
-		}
-	}
-	var outputs []*model.TxOutput
-	if jutil.StringInSlice("outputs", preloads) {
-		for i, txOut := range msgTx.TxOut {
-			outputs = append(outputs, &model.TxOutput{
-				Hash:   txHashString,
-				Index:  uint32(i),
-				Amount: txOut.Value,
-				Script: hex.EncodeToString(txOut.PkScript),
-			})
-		}
-		if jutil.StringInSlice("outputs.spends", preloads) {
-			var outs = make([]memo.Out, len(msgTx.TxOut))
-			for i := range msgTx.TxOut {
-				outs[i] = memo.Out{
-					TxHash: txHash,
-					Index:  uint32(i),
-				}
-			}
-			outputInputs, err := item.GetOutputInputs(outs)
-			if err != nil {
-				return nil, jerr.Get("error getting output inputs for tx", err)
-			}
-			for _, outputInput := range outputInputs {
-				if int(outputInput.PrevIndex) >= len(outputs) {
-					return nil, jerr.Newf("error got output input out of range of outputs: %d %d", outputInput.PrevIndex, len(outputs))
-				}
-				outputInputHash, err := chainhash.NewHash(outputInput.Hash)
-				if err != nil {
-					return nil, jerr.Get("error getting output input hash", err)
-				}
-				outputs[outputInput.PrevIndex].Spends = append(outputs[outputInput.PrevIndex].Spends, &model.TxInput{
-					Hash:      outputInputHash.String(),
-					Index:     outputInput.Index,
-					PrevHash:  txHashString,
-					PrevIndex: outputInput.PrevIndex,
-				})
-			}
-		}
-	}*/
 	return &model.Tx{
 		Hash: txHashString,
 		Raw:  hex.EncodeToString(raw),
-		//Inputs:  inputs,
-		//Outputs: outputs,
 	}, nil
 }
 
