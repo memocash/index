@@ -4,16 +4,18 @@ package resolver
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/server/admin/graph/dataloader"
+	"github.com/memocash/server/admin/graph/generated"
+	"github.com/memocash/server/admin/graph/model"
 	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/ref/bitcoin/memo"
-
-	"github.com/memocash/server/admin/graph/generated"
-	"github.com/memocash/server/admin/graph/model"
+	"time"
 )
 
 func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {
@@ -21,31 +23,53 @@ func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.
 }
 
 func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error) {
-	hash, err := chainhash.NewHashFromStr(obj.Hash)
-	if err != nil {
-		return nil, jerr.Get("error parsing spend tx hash for output", err)
-	}
-	outputInputs, err := item.GetOutputInput(memo.Out{
-		TxHash: hash.CloneBytes(),
-		Index:  obj.Index,
+	txOutputSpendLoader := dataloader.NewTxOutputSpendLoader(dataloader.TxOutputSpendLoaderConfig{
+		Wait:     2 * time.Millisecond,
+		MaxBatch: 100,
+		Fetch: func(keys []model.HashIndex) ([][]*model.TxInput, []error) {
+			var outs = make([]memo.Out, len(keys))
+			for i := range keys {
+				hash, err := chainhash.NewHashFromStr(obj.Hash)
+				if err != nil {
+					return nil, []error{jerr.Get("error parsing spend tx hash for output", err)}
+				}
+				outs[i] = memo.Out{
+					TxHash: hash.CloneBytes(),
+					Index:  keys[i].Index,
+				}
+			}
+			outputInputs, err := item.GetOutputInputs(outs)
+			if err != nil && !client.IsResourceUnavailableError(err) {
+				return nil, []error{jerr.Get("error getting output spends for tx", err)}
+			}
+			var spends = make([][]*model.TxInput, len(outs))
+			for i := range outs {
+				for _, outputInput := range outputInputs {
+					if bytes.Equal(outs[i].TxHash, outputInput.PrevHash) && outs[i].Index == outputInput.PrevIndex {
+						outputInputHash, err := chainhash.NewHash(outputInput.Hash)
+						if err != nil {
+							return nil, []error{jerr.Get("error getting output spend hash", err)}
+						}
+						spends[i] = append(spends[i], &model.TxInput{
+							Hash:      outputInputHash.String(),
+							Index:     outputInput.Index,
+							PrevHash:  obj.Hash,
+							PrevIndex: outputInput.PrevIndex,
+						})
+					}
+				}
+			}
+			return spends, nil
+		},
 	})
-	if err != nil && !client.IsResourceUnavailableError(err) {
-		return nil, jerr.Get("error getting output spends for tx", err)
+	txInputs, err := txOutputSpendLoader.Load(model.HashIndex{
+		Hash:  obj.Hash,
+		Index: obj.Index,
+	})
+	if err != nil {
+		return nil, jerr.Get("error getting tx inputs for spends from loader", err)
 	}
-	var spends []*model.TxInput
-	for _, outputInput := range outputInputs {
-		outputInputHash, err := chainhash.NewHash(outputInput.Hash)
-		if err != nil {
-			return nil, jerr.Get("error getting output spend hash", err)
-		}
-		spends = append(spends, &model.TxInput{
-			Hash:      outputInputHash.String(),
-			Index:     outputInput.Index,
-			PrevHash:  obj.Hash,
-			PrevIndex: outputInput.PrevIndex,
-		})
-	}
-	return spends, nil
+	return txInputs, nil
 }
 
 // TxOutput returns generated.TxOutputResolver implementation.

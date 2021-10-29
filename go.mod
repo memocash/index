@@ -17,6 +17,7 @@ require (
 	github.com/spf13/viper v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tyler-smith/go-bip32 v1.0.0
+	github.com/vektah/dataloaden v0.3.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.2.0
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
