@@ -127,6 +127,14 @@ export default function Hash() {
                                     <div key={input} className={column.container}>
                                         <div className={column.width15}>{input.index}</div>
                                         <div className={column.width85}>
+                                            Amount: {input.output.amount}
+                                            <br/>
+                                            {input.output.spends && input.output.spends.length >= 2 ?
+                                                <div className={[column.red, column.bold].join(" ")}>
+                                                    DOUBLE SPEND
+                                                </div>
+                                                : null
+                                            }
                                             <Link href={"/tx/" + input.prev_hash}>
                                                 <a>{preInline(<>{input.prev_hash}:{input.prev_index}</>)}</a>
                                             </Link>
