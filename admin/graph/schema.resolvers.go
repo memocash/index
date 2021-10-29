@@ -150,6 +150,22 @@ func (r *queryResolver) Txs(ctx context.Context) ([]*model.Tx, error) {
 	}}, nil
 }
 
+func (r *queryResolver) TxInputs(ctx context.Context, hashIndexes []*model.HashIndex) ([]*model.TxInput, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) TxOutputs(ctx context.Context, hashIndexes []*model.HashIndex) ([]*model.TxOutput, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) TxInput(ctx context.Context, hash string, index uint32) (*model.TxInput, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) TxOutput(ctx context.Context, hash string, index uint32) (*model.TxOutput, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 

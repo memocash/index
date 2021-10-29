@@ -47,6 +47,8 @@ models:
     model: github.com/99designs/gqlgen/graphql.Int64
   Uint32:
     model: github.com/99designs/gqlgen/graphql.Uint32
+  HashIndex:
+    model: github.com/memocash/server/admin/graph/model.HashIndex
 
   ID:
     model:

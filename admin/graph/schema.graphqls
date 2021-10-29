@@ -4,6 +4,7 @@
 
 scalar Int64
 scalar Uint32
+scalar HashIndex
 
 type Tx {
     hash: String!
@@ -31,8 +32,12 @@ type TxOutput {
 }
 
 type Query {
-    tx(hash: String!): Tx!
-    txs: [Tx!]!
+    tx(hash: String!): Tx
+    txs: [Tx!]
+    txInputs(hashIndexes: [HashIndex!]!): [TxInput!]
+    txOutputs(hashIndexes: [HashIndex!]!): [TxOutput!]
+    txInput(hash: String!, index: Uint32!): TxInput
+    txOutput(hash: String!, index: Uint32!): TxOutput
 }
 
 type Mutation {
