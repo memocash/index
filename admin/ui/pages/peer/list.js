@@ -3,6 +3,7 @@ import Pagination from "../../components/util/pagination";
 import {useEffect, useRef, useState} from "react";
 import Link from 'next/link';
 import styles from '../../styles/list.module.css';
+import homeStyles from "../../styles/Home.module.css";
 import dropdownStyles from '../../styles/dropdown.module.css';
 import {useRouter} from 'next/router';
 
@@ -74,9 +75,9 @@ function List() {
     return (
         <Page>
             <div>
-                <h1>
-                    Peers Page
-                </h1>
+                <h2 className={homeStyles.subTitle}>
+                    Peer List
+                </h2>
                 <div>
                     <select className={dropdownStyles.select} onChange={e => setFilterValue(e.target.value)}
                             value={filterValue}>

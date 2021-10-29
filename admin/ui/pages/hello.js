@@ -1,5 +1,6 @@
 import Page from "../components/page";
 import {useEffect, useState} from "react";
+import styles from "../styles/Home.module.css";
 
 function Hello() {
     const [hello, setHello] = useState("")
@@ -29,9 +30,9 @@ function Hello() {
     return (
         <Page>
             <div>
-                <h1>
+                <h2 className={styles.subTitle}>
                     Hello Page
-                </h1>
+                </h2>
                 <p>{loading ?
                     <>{!!errorMessage ?
                         <>Error: {errorMessage}</>

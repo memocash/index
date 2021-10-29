@@ -1,5 +1,6 @@
 import Page from "../../components/page";
 import {useEffect, useState} from "react";
+import styles from "../../styles/Home.module.css";
 
 function Report() {
     const [loading, setLoading] = useState(true)
@@ -32,9 +33,9 @@ function Report() {
     return (
         <Page>
             <div>
-                <h1>
+                <h2 className={styles.subTitle}>
                     Peer Report
-                </h1>
+                </h2>
                 {loading ?
                     <>{!!errorMessage ?
                         <>Error: {errorMessage}</>

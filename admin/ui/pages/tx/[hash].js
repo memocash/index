@@ -107,9 +107,9 @@ export default function Hash() {
     return (
         <Page>
             <div>
-                <h1 className={styles.title}>
+                <h2 className={styles.subTitle}>
                     Transaction
-                </h1>
+                </h2>
                 <Loading loading={loading} error={errorMessage}>
                     <div className={column.container}>
                         <div className={column.width15}>Tx hash</div>

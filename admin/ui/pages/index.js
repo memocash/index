@@ -6,7 +6,7 @@ export default function Home() {
         <Page>
             <div>
                 <h1 className={styles.title}>
-                    Memo Server Admin Home
+                    Home
                 </h1>
             </div>
         </Page>

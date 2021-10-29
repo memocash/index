@@ -2,6 +2,7 @@ import Page from "../../components/page";
 import {useEffect, useState} from "react";
 import {useRouter} from "next/router";
 import styles from '../../styles/list.module.css';
+import homeStyles from "../../styles/Home.module.css";
 
 function View() {
     const router = useRouter()
@@ -32,9 +33,9 @@ function View() {
     return (
         <Page>
             <div>
-                <h1>
-                    Peer Page
-                </h1>
+                <h2 className={homeStyles.subTitle}>
+                    Peer View
+                </h2>
                 <p>Ip: {router.query.ip}</p>
                 <p>Port: {router.query.port}</p>
                 <ul className={styles.list}>
