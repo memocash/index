@@ -5,4 +5,5 @@ type TxInput {
     prev_hash: String!
     prev_index: Uint32!
     output: TxOutput!
+    double_spend: DoubleSpend
 }

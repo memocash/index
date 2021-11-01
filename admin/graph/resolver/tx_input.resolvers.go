@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"fmt"
+
 	"github.com/memocash/server/admin/graph/generated"
 	"github.com/memocash/server/admin/graph/model"
 )
@@ -19,6 +20,10 @@ func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*mode
 		Hash:  obj.PrevHash,
 		Index: obj.PrevIndex,
 	}, nil
+}
+
+func (r *txInputResolver) DoubleSpend(ctx context.Context, obj *model.TxInput) (*model.DoubleSpend, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // TxInput returns generated.TxInputResolver implementation.

@@ -5,4 +5,5 @@ type TxOutput {
     amount: Int64!
     script: String
     spends: [TxInput]
+    double_spend: DoubleSpend
 }

@@ -1,0 +1,6 @@
+type DoubleSpend {
+    hash: String!
+    index: Uint32!
+    output: TxOutput!
+    inputs: [TxInput!]!
+}
