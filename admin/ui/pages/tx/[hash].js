@@ -62,37 +62,20 @@ export default function Hash() {
             if (res.ok) {
                 return res.json()
             }
-            setErrorMessage("there was an error")
             return Promise.reject(res)
         }).then(data => {
             if (data.errors && data.errors.length > 0) {
-                let messages = [];
-                for (let i = 0; i < data.errors.length; i++) {
-                    messages.push(
-                        <p key={i}>
-                            {data.errors[i].extensions ?
-                                <>Code: {data.errors[i].extensions.code}</>
-                                : null
-                            }
-                            <br/>
-                            Message: {data.errors[i].message}
-                        </p>
-                    )
-                }
-                setErrorMessage(
-                    <div>
-                        {messages}
-                    </div>
-                )
+                setErrorMessage("tx data has errors")
                 setLoading(true)
+                console.log(data.errors)
                 return
             }
-            setTx(data.data.tx)
             setLoading(false)
+            setTx(data.data.tx)
         }).catch(res => {
-            res.json().then(data => {
-                setErrorMessage(<>Code: {res.status}<br/>Message: {data.message}</>)
-            })
+            setErrorMessage("error loading tx")
+            setLoading(true)
+            console.log(res)
         })
     }, [router])
 

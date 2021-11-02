@@ -6,6 +6,8 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"github.com/memocash/server/db/client"
+	"github.com/memocash/server/ref/bitcoin/tx/hs"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
@@ -47,6 +49,21 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 		Hash: txHashString,
 		Raw:  hex.EncodeToString(raw),
 	}, nil
+}
+
+func (r *queryResolver) DoubleSpends(ctx context.Context) ([]*model.DoubleSpend, error) {
+	doubleSpends, err := item.GetDoubleSpendOutputs(nil, client.DefaultLimit)
+	if err != nil {
+		return nil, jerr.Get("error getting double spend outputs", err)
+	}
+	var modelDoubleSpends = make([]*model.DoubleSpend, len(doubleSpends))
+	for i := range doubleSpends {
+		modelDoubleSpends[i] = &model.DoubleSpend{
+			Hash:  hs.GetTxString(doubleSpends[i].TxHash),
+			Index: doubleSpends[i].Index,
+		}
+	}
+	return modelDoubleSpends, nil
 }
 
 // Query returns generated.QueryResolver implementation.

@@ -1,8 +1,4 @@
 type Query {
     tx(hash: String!): Tx
-#    txs: [Tx!]
-#    txInputs(hashIndexes: [HashIndex!]!): [TxInput!]
-#    txOutputs(hashIndexes: [HashIndex!]!): [TxOutput!]
-#    txInput(hash: String!, index: Uint32!): TxInput
-#    txOutput(hash: String!, index: Uint32!): TxOutput
+    double_spends: [DoubleSpend!]
 }

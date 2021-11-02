@@ -59,7 +59,8 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Tx func(childComplexity int, hash string) int
+		DoubleSpends func(childComplexity int) int
+		Tx           func(childComplexity int, hash string) int
 	}
 
 	Tx struct {
@@ -99,6 +100,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Tx(ctx context.Context, hash string) (*model.Tx, error)
+	DoubleSpends(ctx context.Context) ([]*model.DoubleSpend, error)
 }
 type TxResolver interface {
 	Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInput, error)
@@ -166,6 +168,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Null(childComplexity), true
+
+	case "Query.double_spends":
+		if e.complexity.Query.DoubleSpends == nil {
+			break
+		}
+
+		return e.complexity.Query.DoubleSpends(childComplexity), true
 
 	case "Query.tx":
 		if e.complexity.Query.Tx == nil {
@@ -382,11 +391,7 @@ var sources = []*ast.Source{
 `, BuiltIn: false},
 	{Name: "schema/query.graphqls", Input: `type Query {
     tx(hash: String!): Tx
-#    txs: [Tx!]
-#    txInputs(hashIndexes: [HashIndex!]!): [TxInput!]
-#    txOutputs(hashIndexes: [HashIndex!]!): [TxOutput!]
-#    txInput(hash: String!, index: Uint32!): TxInput
-#    txOutput(hash: String!, index: Uint32!): TxOutput
+    double_spends: [DoubleSpend!]
 }
 `, BuiltIn: false},
 	{Name: "schema/scalar.graphqls", Input: `scalar Int64
@@ -704,6 +709,38 @@ func (ec *executionContext) _Query_tx(ctx context.Context, field graphql.Collect
 	res := resTmp.(*model.Tx)
 	fc.Result = res
 	return ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_double_spends(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().DoubleSpends(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.DoubleSpend)
+	fc.Result = res
+	return ec.marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpendᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2639,6 +2676,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_tx(ctx, field)
 				return res
 			})
+		case "double_spends":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_double_spends(ctx, field)
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -3135,6 +3183,16 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNDoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx context.Context, sel ast.SelectionSet, v *model.DoubleSpend) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DoubleSpend(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNInt642int64(ctx context.Context, v interface{}) (int64, error) {
 	res, err := graphql.UnmarshalInt64(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3585,6 +3643,53 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
+}
+
+func (ec *executionContext) marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpendᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DoubleSpend) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx context.Context, sel ast.SelectionSet, v *model.DoubleSpend) graphql.Marshaler {
