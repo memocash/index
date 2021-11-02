@@ -7,8 +7,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/admin/graph/generated"
 	"github.com/memocash/server/admin/graph/model"
+	"github.com/memocash/server/db/item"
+	"github.com/memocash/server/ref/bitcoin/memo"
+	"github.com/memocash/server/ref/bitcoin/tx/hs"
 )
 
 func (r *doubleSpendResolver) Output(ctx context.Context, obj *model.DoubleSpend) (*model.TxOutput, error) {
@@ -16,7 +21,27 @@ func (r *doubleSpendResolver) Output(ctx context.Context, obj *model.DoubleSpend
 }
 
 func (r *doubleSpendResolver) Inputs(ctx context.Context, obj *model.DoubleSpend) ([]*model.TxInput, error) {
-	panic(fmt.Errorf("not implemented"))
+	hash, err := chainhash.NewHashFromStr(obj.Hash)
+	if err != nil {
+		return nil, jerr.Get("error parsing double spend hash", err)
+	}
+	outputInputs, err := item.GetOutputInput(memo.Out{
+		TxHash: hash.CloneBytes(),
+		Index:  obj.Index,
+	})
+	if err != nil {
+		return nil, jerr.Get("error getting output inputs for double spend", err)
+	}
+	var txInputs = make([]*model.TxInput, len(outputInputs))
+	for i := range outputInputs {
+		txInputs[i] = &model.TxInput{
+			Hash:      hs.GetTxString(outputInputs[i].Hash),
+			Index:     outputInputs[i].Index,
+			PrevHash:  hs.GetTxString(outputInputs[i].PrevHash),
+			PrevIndex: outputInputs[i].PrevIndex,
+		}
+	}
+	return txInputs, nil
 }
 
 // DoubleSpend returns generated.DoubleSpendResolver implementation.

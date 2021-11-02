@@ -6,15 +6,15 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"github.com/memocash/server/db/client"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/server/admin/graph/generated"
 	"github.com/memocash/server/admin/graph/model"
+	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/db/item"
+	"github.com/memocash/server/ref/bitcoin/tx/hs"
 )
 
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
