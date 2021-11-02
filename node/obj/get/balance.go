@@ -11,6 +11,12 @@ import (
 	"github.com/memocash/server/ref/bitcoin/wallet"
 )
 
+type Utxo struct {
+	Item item.LockUtxo
+
+	DoubleSpend *item.DoubleSpendInput
+}
+
 type Balance struct {
 	LockScript []byte
 	Balance    int64
@@ -20,7 +26,7 @@ type Balance struct {
 	SkipCache  bool
 	OutUtxos   bool
 
-	Utxos []*item.LockUtxo
+	Utxos []*Utxo
 }
 
 func (b *Balance) GetUtxos() error {
@@ -41,6 +47,9 @@ func (b *Balance) GetUtxos() error {
 	if err := b.attachUtxos(); err != nil {
 		return jerr.Get("error attaching utxos", err)
 	}
+	if err := b.attachDoubleSpends(); err != nil {
+		return jerr.Get("error attaching double spends", err)
+	}
 	if err := b.CalculateWithUtxos(); err != nil {
 		return jerr.Get("error calculating balance with utxos", err)
 	}
@@ -59,7 +68,7 @@ func (b *Balance) attachUtxos() error {
 			if bytes.Equal(lockUtxo.GetUid(), lastUid) {
 				continue
 			}
-			b.Utxos = append(b.Utxos, lockUtxo)
+			b.Utxos = append(b.Utxos, &Utxo{Item: *lockUtxo})
 		}
 		if len(lockUtxos) < client.DefaultLimit {
 			break
@@ -69,18 +78,42 @@ func (b *Balance) attachUtxos() error {
 	return nil
 }
 
+func (b *Balance) attachDoubleSpends() error {
+	var txHashes = make([][]byte, len(b.Utxos))
+	for i := range b.Utxos {
+		txHashes[i] = b.Utxos[i].Item.Hash
+	}
+	doubleSpends, err := item.GetDoubleSpendInputsByTxHashes(txHashes)
+	if err != nil {
+		return jerr.Get("error getting double spends for utxos", err)
+	}
+	for _, utxo := range b.Utxos {
+		for i, doubleSpend := range doubleSpends {
+			if bytes.Equal(doubleSpend.TxHash, utxo.Item.Hash) {
+				utxo.DoubleSpend = doubleSpend
+				doubleSpends = append(doubleSpends[:i], doubleSpends[i+1:]...)
+				break
+			}
+		}
+	}
+	return nil
+}
+
 func (b *Balance) CalculateWithUtxos() error {
 	var utxoValue int64
 	var utxoSpendableValue int64
 	var utxoSpendableCount int
 	for _, utxo := range b.Utxos {
-		utxoValue += utxo.Value
-		if !utxo.Special {
-			utxoSpendableValue += utxo.Value
+		if utxo.DoubleSpend != nil {
+			continue
+		}
+		utxoValue += utxo.Item.Value
+		if !utxo.Item.Special {
+			utxoSpendableValue += utxo.Item.Value
 			utxoSpendableCount++
 		}
 		if b.OutUtxos {
-			jlog.Logf("UTXO: %s:%d - %s\n", hs.GetTxString(utxo.Hash), utxo.Index, utxo.Value)
+			jlog.Logf("UTXO: %s:%d - %s\n", hs.GetTxString(utxo.Item.Hash), utxo.Item.Index, utxo.Item.Value)
 		}
 	}
 	b.Balance = utxoValue

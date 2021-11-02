@@ -85,8 +85,8 @@ var doubleSpendTest = suite.Test{
 		if err := newBalance.GetUtxos(); err != nil {
 			return jerr.Get("error getting address 1 balance from network", err)
 		} else if newBalance.Balance > FundingValue {
-			return jerr.Newf("error address 1 balance greater than funding amount: %s",
-				jfmt.AddCommas(newBalance.Balance))
+			return jerr.Newf("error address 1 balance greater than funding amount: %s %s",
+				jfmt.AddCommas(newBalance.Balance), jfmt.AddCommas(FundingValue))
 		}
 		//jlog.Logf("newBalance.Balance address1: %s\n", jfmt.AddCommas(newBalance.Balance))
 		newBalance2, err := get.NewBalanceFromAddress(test_tx.Address2String)
