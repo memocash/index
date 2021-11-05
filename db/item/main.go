@@ -36,6 +36,7 @@ const (
 	TopicTxOutput          = "tx_output"
 	TopicTxProcessed       = "tx_processed"
 	TopicTxSeen            = "tx_seen"
+	TopicTxSuspect         = "tx_suspect"
 )
 
 type Object interface {

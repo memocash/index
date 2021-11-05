@@ -13,3 +13,10 @@ type SlpOut struct {
 	Quantity uint64
 	PkHash   []byte
 }
+
+type InOut struct {
+	Hash      []byte
+	Index     uint32
+	PrevHash  []byte
+	PrevIndex uint32
+}
