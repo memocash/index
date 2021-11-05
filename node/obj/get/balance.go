@@ -14,7 +14,7 @@ import (
 type Utxo struct {
 	Item item.LockUtxo
 
-	DoubleSpend *item.DoubleSpendInput
+	TxInvalid *item.TxInvalid
 }
 
 type Balance struct {
@@ -47,8 +47,8 @@ func (b *Balance) GetUtxos() error {
 	if err := b.attachUtxos(); err != nil {
 		return jerr.Get("error attaching utxos", err)
 	}
-	if err := b.attachDoubleSpends(); err != nil {
-		return jerr.Get("error attaching double spends", err)
+	if err := b.attachTxInvalids(); err != nil {
+		return jerr.Get("error attaching tx invalids", err)
 	}
 	if err := b.CalculateWithUtxos(); err != nil {
 		return jerr.Get("error calculating balance with utxos", err)
@@ -78,20 +78,19 @@ func (b *Balance) attachUtxos() error {
 	return nil
 }
 
-func (b *Balance) attachDoubleSpends() error {
+func (b *Balance) attachTxInvalids() error {
 	var txHashes = make([][]byte, len(b.Utxos))
 	for i := range b.Utxos {
 		txHashes[i] = b.Utxos[i].Item.Hash
 	}
-	doubleSpends, err := item.GetDoubleSpendInputsByTxHashes(txHashes)
+	txInvalids, err := item.GetTxInvalids(txHashes)
 	if err != nil {
-		return jerr.Get("error getting double spends for utxos", err)
+		return jerr.Get("error getting tx invalids for utxos", err)
 	}
 	for _, utxo := range b.Utxos {
-		for i, doubleSpend := range doubleSpends {
-			if bytes.Equal(doubleSpend.TxHash, utxo.Item.Hash) {
-				utxo.DoubleSpend = doubleSpend
-				doubleSpends = append(doubleSpends[:i], doubleSpends[i+1:]...)
+		for _, txInvalid := range txInvalids {
+			if bytes.Equal(txInvalid.TxHash, utxo.Item.Hash) {
+				utxo.TxInvalid = txInvalid
 				break
 			}
 		}
@@ -104,7 +103,7 @@ func (b *Balance) CalculateWithUtxos() error {
 	var utxoSpendableValue int64
 	var utxoSpendableCount int
 	for _, utxo := range b.Utxos {
-		if utxo.DoubleSpend != nil {
+		if utxo.TxInvalid != nil {
 			continue
 		}
 		utxoValue += utxo.Item.Value

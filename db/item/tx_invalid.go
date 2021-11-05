@@ -36,6 +36,32 @@ func (s *TxInvalid) SetUid(uid []byte) {
 
 func (s *TxInvalid) Deserialize([]byte) {}
 
+func GetTxInvalids(txHashes [][]byte) ([]*TxInvalid, error) {
+	var shardTxHashGroups = make(map[uint32][][]byte)
+	for _, txHash := range txHashes {
+		shard := GetShardByte32(txHash)
+		shardTxHashGroups[shard] = append(shardTxHashGroups[shard], txHash)
+	}
+	var txInvalids []*TxInvalid
+	for shard, outGroup := range shardTxHashGroups {
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		db := client.NewClient(shardConfig.GetHost())
+		var prefixes = make([][]byte, len(outGroup))
+		for i := range outGroup {
+			prefixes[i] = jutil.ByteReverse(outGroup[i])
+		}
+		if err := db.GetByPrefixes(TopicTxInvalid, prefixes); err != nil {
+			return nil, jerr.Get("error getting by prefixes for tx invalids", err)
+		}
+		for i := range db.Messages {
+			var txInvalid = new(TxInvalid)
+			txInvalid.SetUid(db.Messages[i].Uid)
+			txInvalids = append(txInvalids, txInvalid)
+		}
+	}
+	return txInvalids, nil
+}
+
 func RemoveTxInvalids(txHashes [][]byte) error {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {

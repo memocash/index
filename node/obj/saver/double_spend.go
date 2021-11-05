@@ -115,7 +115,7 @@ SuspectLoop:
 	}
 	txHashes = jutil.RemoveDupesAndEmpties(txHashes)
 	var itemTxSuspects = make([]item.Object, len(txHashes))
-	for i := range txSuspects {
+	for i := range txHashes {
 		itemTxSuspects[i] = &item.TxSuspect{
 			TxHash: txHashes[i],
 		}
