@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 const (
@@ -17,6 +18,7 @@ const (
 )
 
 var conns = make(map[string]*leveldb.DB)
+var connsMutex = sync.RWMutex{}
 
 func getDb(topic string, shard uint) (*leveldb.DB, error) {
 	connId := fmt.Sprintf("%d:%s", shard, topic)
@@ -36,7 +38,9 @@ func getDb(topic string, shard uint) (*leveldb.DB, error) {
 		if err != nil {
 			return nil, jerr.Get("error opening level db", err)
 		}
+		connsMutex.Lock()
 		conns[connId] = db
+		connsMutex.Unlock()
 	}
 	return conns[connId], nil
 }
