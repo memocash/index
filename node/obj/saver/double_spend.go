@@ -126,6 +126,8 @@ SuspectLoop:
 	if err := AttachFirstSeenAndConfirmsToDoubleSpendCheckSpends(doubleSpendChecks); err != nil {
 		return jerr.Get("error attaching first seen and confirms to double spend check spends", err)
 	}
+	var invalidTxsToRemove [][]byte
+	var newTxInvalids []item.Object
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		for _, checkSpend := range doubleSpendCheck.Spends {
 			isWinner, err := doubleSpendCheck.IsWinnerSpend(checkSpend)
@@ -134,11 +136,21 @@ SuspectLoop:
 					hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex)
 			}
 			if isWinner {
-				// TODO: Remove any existing tx_invalids (recursively to children)
+				invalidTxsToRemove = append(invalidTxsToRemove, checkSpend.TxHash)
+				// TODO: Recursively remove existing tx_invalids for children
 			} else {
-				// TODO: Add tx invalids (recursively to children)
+				newTxInvalids = append(newTxInvalids, &item.TxInvalid{
+					TxHash: checkSpend.TxHash,
+				})
+				// TODO: Recursively add tx invalids for children
 			}
 		}
+	}
+	if err := item.RemoveTxInvalids(invalidTxsToRemove); err != nil {
+		return jerr.Get("error removing tx invalids for winner", err)
+	}
+	if err := item.Save(newTxInvalids); err != nil {
+		return jerr.Get("error saving new tx invalids", err)
 	}
 	return nil
 }
