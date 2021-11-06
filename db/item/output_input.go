@@ -94,3 +94,30 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 	}
 	return outputInputs, nil
 }
+
+func GetOutputInputsForTxHashes(txHashes [][]byte) ([]*OutputInput, error) {
+	var shardOutGroups = make(map[uint32][][]byte)
+	for _, txHash := range txHashes {
+		shard := GetShardByte32(txHash)
+		shardOutGroups[shard] = append(shardOutGroups[shard], txHash)
+	}
+	var outputInputs []*OutputInput
+	for shard, outGroup := range shardOutGroups {
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		db := client.NewClient(shardConfig.GetHost())
+		var prefixes = make([][]byte, len(outGroup))
+		for i := range outGroup {
+			prefixes[i] = jutil.ByteReverse(outGroup[i])
+		}
+		if err := db.GetByPrefixes(TopicOutputInput, prefixes); err != nil {
+			return nil, jerr.Get("error getting by prefixes for output inputs by tx hashes", err)
+		}
+		for i := range db.Messages {
+			var outputInput = new(OutputInput)
+			outputInput.SetUid(db.Messages[i].Uid)
+			outputInput.Deserialize(db.Messages[i].Message)
+			outputInputs = append(outputInputs, outputInput)
+		}
+	}
+	return outputInputs, nil
+}

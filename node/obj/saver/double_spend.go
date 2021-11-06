@@ -129,14 +129,23 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 				return jerr.Getf(err, "error checking if double spend check is winner (%s:%d)",
 					hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex)
 			}
+			// TODO: Uncomment after test created to verify fixes issue
+			/*descendantTxHashes, err := GetTxDescendants(checkSpend.TxHash)
+			if err != nil {
+				return jerr.Get("error getting descendant tx hashes for double spend", err)
+			}*/
 			if isWinner {
 				lostTxsToRemove = append(lostTxsToRemove, checkSpend.TxHash)
-				// TODO: Recursively remove existing tx_losts for children
+				//lostTxsToRemove = append(lostTxsToRemove, descendantTxHashes...)
 			} else {
 				newTxLosts = append(newTxLosts, &item.TxLost{
 					TxHash: checkSpend.TxHash,
 				})
-				// TODO: Recursively add tx losts for children
+				/*for _, descendantTxHash := range descendantTxHashes {
+					newTxLosts = append(newTxLosts, &item.TxLost{
+						TxHash: descendantTxHash,
+					})
+				}*/
 			}
 		}
 	}
@@ -150,6 +159,30 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 		return jerr.Get("error removing lock balances", err)
 	}
 	return nil
+}
+
+func GetTxDescendants(txHash []byte) ([][]byte, error) {
+	var allTxHashes [][]byte
+	var newTxHashes = [][]byte{txHash}
+	for len(newTxHashes) > 0 {
+		var txHashesToCheck = newTxHashes
+		newTxHashes = [][]byte{}
+		outputInputs, err := item.GetOutputInputsForTxHashes(txHashesToCheck)
+		if err != nil {
+			return nil, jerr.Get("error getting output inputs for tx hash descendants", err)
+		}
+	Loop:
+		for _, outputInput := range outputInputs {
+			for _, allTxHash := range allTxHashes {
+				if bytes.Equal(allTxHash, outputInput.Hash) {
+					continue Loop
+				}
+			}
+			allTxHashes = append(allTxHashes, outputInput.Hash)
+			newTxHashes = append(newTxHashes, outputInput.Hash)
+		}
+	}
+	return allTxHashes, nil
 }
 
 func NewDoubleSpend(verbose bool) *DoubleSpend {
