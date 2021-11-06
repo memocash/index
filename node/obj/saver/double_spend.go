@@ -28,11 +28,16 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 			})
 		}
 	}
+	var blockHashBytes []byte
+	if !block.Header.Timestamp.IsZero() {
+		blockHash := block.BlockHash()
+		blockHashBytes = blockHash.CloneBytes()
+	}
 	existingOutputInputs, err := item.GetOutputInputs(inputOuts)
 	if err != nil {
 		return jerr.Get("error getting output inputs", err)
 	}
-	var txSuspects []*memo.InOut
+	var doubleSpendChecks []*DoubleSpendCheck
 	var doubleSpendInputs []*item.DoubleSpendInput
 	var doubleSpendOutputs []*item.DoubleSpendOutput
 	for _, msgTx := range block.Transactions {
@@ -56,16 +61,17 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 						TxHash: prevOutHash,
 						Index:  prevOutIndex,
 					})
-					txSuspects = append(txSuspects, &memo.InOut{
-						Hash:      txHashBytes,
-						Index:     uint32(index),
-						PrevHash:  prevOutHash,
-						PrevIndex: prevOutIndex,
-					}, &memo.InOut{
-						Hash:      ex.Hash,
-						Index:     ex.Index,
-						PrevHash:  prevOutHash,
-						PrevIndex: prevOutIndex,
+					doubleSpendChecks = append(doubleSpendChecks, &DoubleSpendCheck{
+						ParentTxHash:  prevOutHash,
+						ParentTxIndex: prevOutIndex,
+						Spends: []*DoubleSpendCheckSpend{{
+							TxHash:    txHashBytes,
+							Index:     uint32(index),
+							BlockHash: blockHashBytes,
+						}, {
+							TxHash: ex.Hash,
+							Index:  ex.Index,
+						}},
 					})
 				}
 			}
@@ -84,34 +90,19 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 			return jerr.Get("error saving double spend objects", err)
 		}
 	}
-	if err := s.CheckLost(txSuspects); err != nil {
+	if err := s.CheckLost(doubleSpendChecks); err != nil {
 		return jerr.Get("error checking lost txs for double spend", err)
 	}
 	return nil
 }
 
-func (s *DoubleSpend) CheckLost(txSuspects []*memo.InOut) error {
+func (s *DoubleSpend) CheckLost(doubleSpendChecks []*DoubleSpendCheck) error {
 	var txHashes [][]byte
-	var doubleSpendChecks []*DoubleSpendCheck
-SuspectLoop:
-	for _, txSuspect := range txSuspects {
-		txHashes = append(txHashes, txSuspect.Hash, txSuspect.PrevHash)
-		var spend = &DoubleSpendCheckSpend{
-			TxHash: txSuspect.Hash,
-			Index:  txSuspect.Index,
+	for _, doubleSpendCheck := range doubleSpendChecks {
+		txHashes = append(txHashes, doubleSpendCheck.ParentTxHash)
+		for _, spend := range doubleSpendCheck.Spends {
+			txHashes = append(txHashes, spend.TxHash)
 		}
-		for _, doubleSpendCheck := range doubleSpendChecks {
-			if bytes.Equal(doubleSpendCheck.ParentTxHash, txSuspect.PrevHash) &&
-				doubleSpendCheck.ParentTxIndex == txSuspect.PrevIndex {
-				doubleSpendCheck.Spends = append(doubleSpendCheck.Spends, spend)
-				continue SuspectLoop
-			}
-		}
-		doubleSpendChecks = append(doubleSpendChecks, &DoubleSpendCheck{
-			ParentTxHash:  txSuspect.PrevHash,
-			ParentTxIndex: txSuspect.PrevIndex,
-			Spends:        []*DoubleSpendCheckSpend{spend},
-		})
 	}
 	txHashes = jutil.RemoveDupesAndEmpties(txHashes)
 	var itemTxSuspects = make([]item.Object, len(txHashes))
@@ -186,6 +177,7 @@ func AttachFirstSeenAndConfirmsToDoubleSpendCheckSpends(doubleSpendChecks []*Dou
 			}
 			for _, txBlock := range txBlocks {
 				if bytes.Equal(txBlock.TxHash, spend.TxHash) {
+					// TODO: Handle block hash already set, also include confirmation count
 					spend.BlockHash = txBlock.BlockHash
 					break
 				}
