@@ -14,7 +14,7 @@ import (
 type Utxo struct {
 	Item item.LockUtxo
 
-	TxInvalid *item.TxInvalid
+	TxLost *item.TxLost
 }
 
 type Balance struct {
@@ -47,8 +47,8 @@ func (b *Balance) GetUtxos() error {
 	if err := b.attachUtxos(); err != nil {
 		return jerr.Get("error attaching utxos", err)
 	}
-	if err := b.attachTxInvalids(); err != nil {
-		return jerr.Get("error attaching tx invalids", err)
+	if err := b.attachTxLosts(); err != nil {
+		return jerr.Get("error attaching tx losts", err)
 	}
 	if err := b.CalculateWithUtxos(); err != nil {
 		return jerr.Get("error calculating balance with utxos", err)
@@ -78,19 +78,19 @@ func (b *Balance) attachUtxos() error {
 	return nil
 }
 
-func (b *Balance) attachTxInvalids() error {
+func (b *Balance) attachTxLosts() error {
 	var txHashes = make([][]byte, len(b.Utxos))
 	for i := range b.Utxos {
 		txHashes[i] = b.Utxos[i].Item.Hash
 	}
-	txInvalids, err := item.GetTxInvalids(txHashes)
+	txLosts, err := item.GetTxLosts(txHashes)
 	if err != nil {
-		return jerr.Get("error getting tx invalids for utxos", err)
+		return jerr.Get("error getting tx losts for utxos", err)
 	}
 	for _, utxo := range b.Utxos {
-		for _, txInvalid := range txInvalids {
-			if bytes.Equal(txInvalid.TxHash, utxo.Item.Hash) {
-				utxo.TxInvalid = txInvalid
+		for _, txLost := range txLosts {
+			if bytes.Equal(txLost.TxHash, utxo.Item.Hash) {
+				utxo.TxLost = txLost
 				break
 			}
 		}
@@ -103,7 +103,7 @@ func (b *Balance) CalculateWithUtxos() error {
 	var utxoSpendableValue int64
 	var utxoSpendableCount int
 	for _, utxo := range b.Utxos {
-		if utxo.TxInvalid != nil {
+		if utxo.TxLost != nil {
 			continue
 		}
 		utxoValue += utxo.Item.Value

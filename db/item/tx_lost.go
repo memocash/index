@@ -7,42 +7,42 @@ import (
 	"github.com/memocash/server/ref/config"
 )
 
-type TxInvalid struct {
+type TxLost struct {
 	TxHash []byte
 }
 
-func (s TxInvalid) GetUid() []byte {
-	return jutil.ByteReverse(s.TxHash)
+func (l TxLost) GetUid() []byte {
+	return jutil.ByteReverse(l.TxHash)
 }
 
-func (s TxInvalid) GetShard() uint {
-	return client.GetByteShard(s.TxHash)
+func (l TxLost) GetShard() uint {
+	return client.GetByteShard(l.TxHash)
 }
 
-func (s TxInvalid) GetTopic() string {
-	return TopicTxInvalid
+func (l TxLost) GetTopic() string {
+	return TopicTxLost
 }
 
-func (s TxInvalid) Serialize() []byte {
+func (l TxLost) Serialize() []byte {
 	return nil
 }
 
-func (s *TxInvalid) SetUid(uid []byte) {
+func (l *TxLost) SetUid(uid []byte) {
 	if len(uid) != 32 {
 		return
 	}
-	s.TxHash = jutil.ByteReverse(uid)
+	l.TxHash = jutil.ByteReverse(uid)
 }
 
-func (s *TxInvalid) Deserialize([]byte) {}
+func (l *TxLost) Deserialize([]byte) {}
 
-func GetTxInvalids(txHashes [][]byte) ([]*TxInvalid, error) {
+func GetTxLosts(txHashes [][]byte) ([]*TxLost, error) {
 	var shardTxHashGroups = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
 		shard := GetShardByte32(txHash)
 		shardTxHashGroups[shard] = append(shardTxHashGroups[shard], txHash)
 	}
-	var txInvalids []*TxInvalid
+	var txLosts []*TxLost
 	for shard, outGroup := range shardTxHashGroups {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		db := client.NewClient(shardConfig.GetHost())
@@ -50,19 +50,19 @@ func GetTxInvalids(txHashes [][]byte) ([]*TxInvalid, error) {
 		for i := range outGroup {
 			uids[i] = jutil.ByteReverse(outGroup[i])
 		}
-		if err := db.GetSpecific(TopicTxInvalid, uids); err != nil {
-			return nil, jerr.Get("error getting by uids for tx invalids", err)
+		if err := db.GetSpecific(TopicTxLost, uids); err != nil {
+			return nil, jerr.Get("error getting by uids for tx losts", err)
 		}
 		for i := range db.Messages {
-			var txInvalid = new(TxInvalid)
-			txInvalid.SetUid(db.Messages[i].Uid)
-			txInvalids = append(txInvalids, txInvalid)
+			var txLost = new(TxLost)
+			txLost.SetUid(db.Messages[i].Uid)
+			txLosts = append(txLosts, txLost)
 		}
 	}
-	return txInvalids, nil
+	return txLosts, nil
 }
 
-func RemoveTxInvalids(txHashes [][]byte) error {
+func RemoveTxLosts(txHashes [][]byte) error {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
 		shard := uint32(GetShard(client.GetByteShard(txHash)))
@@ -71,8 +71,8 @@ func RemoveTxInvalids(txHashes [][]byte) error {
 	for shard, shardUids := range shardUidsMap {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		db := client.NewClient(shardConfig.GetHost())
-		if err := db.DeleteMessages(TopicTxInvalid, shardUids); err != nil {
-			return jerr.Get("error deleting topic tx invalids", err)
+		if err := db.DeleteMessages(TopicTxLost, shardUids); err != nil {
+			return jerr.Get("error deleting topic tx losts", err)
 		}
 	}
 	return nil

@@ -117,8 +117,8 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 	if err := double_spend.AttachAllToDoubleSpendChecks(doubleSpendChecks); err != nil {
 		return jerr.Get("error attaching all to double spend checks", err)
 	}
-	var invalidTxsToRemove [][]byte
-	var newTxInvalids []item.Object
+	var lostTxsToRemove [][]byte
+	var newTxLosts []item.Object
 	var lockHashes [][]byte
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		lockHashes = append(lockHashes, doubleSpendCheck.LockHash)
@@ -130,21 +130,21 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 					hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex)
 			}
 			if isWinner {
-				invalidTxsToRemove = append(invalidTxsToRemove, checkSpend.TxHash)
-				// TODO: Recursively remove existing tx_invalids for children
+				lostTxsToRemove = append(lostTxsToRemove, checkSpend.TxHash)
+				// TODO: Recursively remove existing tx_losts for children
 			} else {
-				newTxInvalids = append(newTxInvalids, &item.TxInvalid{
+				newTxLosts = append(newTxLosts, &item.TxLost{
 					TxHash: checkSpend.TxHash,
 				})
-				// TODO: Recursively add tx invalids for children
+				// TODO: Recursively add tx losts for children
 			}
 		}
 	}
-	if err := item.RemoveTxInvalids(invalidTxsToRemove); err != nil {
-		return jerr.Get("error removing tx invalids for winner", err)
+	if err := item.RemoveTxLosts(lostTxsToRemove); err != nil {
+		return jerr.Get("error removing tx losts for winner", err)
 	}
-	if err := item.Save(newTxInvalids); err != nil {
-		return jerr.Get("error saving new tx invalids", err)
+	if err := item.Save(newTxLosts); err != nil {
+		return jerr.Get("error saving new tx losts", err)
 	}
 	if err := item.RemoveLockBalances(lockHashes); err != nil {
 		return jerr.Get("error removing lock balances", err)
