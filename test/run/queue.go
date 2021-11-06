@@ -24,7 +24,9 @@ func (q *Queue) Start() error {
 }
 
 func (q *Queue) End() {
-	q.Server.Stop()
+	if q.Server != nil {
+		q.Server.Stop()
+	}
 }
 
 func NewQueue(port uint, shard uint) *Queue {

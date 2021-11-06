@@ -46,12 +46,12 @@ func GetTxInvalids(txHashes [][]byte) ([]*TxInvalid, error) {
 	for shard, outGroup := range shardTxHashGroups {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		db := client.NewClient(shardConfig.GetHost())
-		var prefixes = make([][]byte, len(outGroup))
+		var uids = make([][]byte, len(outGroup))
 		for i := range outGroup {
-			prefixes[i] = jutil.ByteReverse(outGroup[i])
+			uids[i] = jutil.ByteReverse(outGroup[i])
 		}
-		if err := db.GetByPrefixes(TopicTxInvalid, prefixes); err != nil {
-			return nil, jerr.Get("error getting by prefixes for tx invalids", err)
+		if err := db.GetSpecific(TopicTxInvalid, uids); err != nil {
+			return nil, jerr.Get("error getting by uids for tx invalids", err)
 		}
 		for i := range db.Messages {
 			var txInvalid = new(TxInvalid)

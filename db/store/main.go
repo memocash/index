@@ -53,12 +53,16 @@ func GetDbPrefix() string {
 	return prefix
 }
 
-func GetDbDir(shard uint) string {
+func GetDataDir() string {
 	dataDir := config.GetDataDir()
 	if dataDir == "" {
 		dataDir = "data"
 	}
-	return dataDir + "/" + GetDbPrefix() + config.GetShardConfig(uint32(shard), config.GetQueueShards()).String()
+	return dataDir
+}
+
+func GetDbDir(shard uint) string {
+	return GetDataDir() + "/" + GetDbPrefix() + config.GetShardConfig(uint32(shard), config.GetQueueShards()).String()
 }
 
 func GetDbFile(topic string, shard uint) string {
