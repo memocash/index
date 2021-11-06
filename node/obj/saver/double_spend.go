@@ -123,6 +123,7 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		lockHashes = append(lockHashes, doubleSpendCheck.LockHash)
 		for _, checkSpend := range doubleSpendCheck.Spends {
+			lockHashes = append(lockHashes, checkSpend.LockHashes...)
 			isWinner, err := doubleSpendCheck.IsWinnerSpend(checkSpend)
 			if err != nil {
 				return jerr.Getf(err, "error checking if double spend check is winner (%s:%d)",

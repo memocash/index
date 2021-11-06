@@ -34,10 +34,11 @@ func (c DoubleSpendCheck) IsWinnerSpend(spendCheck *DoubleSpendCheckSpend) (bool
 }
 
 type DoubleSpendCheckSpend struct {
-	TxHash    []byte
-	Index     uint32
-	FirstSeen time.Time
-	BlockHash []byte
+	TxHash     []byte
+	Index      uint32
+	LockHashes [][]byte
+	FirstSeen  time.Time
+	BlockHash  []byte
 }
 
 func AttachAllToDoubleSpendChecks(doubleSpendChecks []*DoubleSpendCheck) error {
@@ -110,6 +111,9 @@ func AttachLockHashesToSpendChecks(doubleSpendChecks []*DoubleSpendCheck) error 
 	var txHashes [][]byte
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		txHashes = append(txHashes, doubleSpendCheck.ParentTxHash)
+		for _, spend := range doubleSpendCheck.Spends {
+			txHashes = append(txHashes, spend.TxHash)
+		}
 	}
 	txBlocks, err := item.GetTxBlocks(txHashes)
 	if err != nil {
@@ -129,16 +133,58 @@ Loop:
 	if err != nil {
 		return jerr.Get("error getting tx blocks for double spend check spends", err)
 	}
+	mempoolTxRaws, err := item.GetMempoolTxRawByHashes(mempoolTxHashes)
+	if err != nil {
+		return jerr.Get("error getting tx blocks for double spend check spends", err)
+	}
 	for _, doubleSpendCheck := range doubleSpendChecks {
+		var doubleSpendCheckTxRaw []byte
 		for _, txBlockRaw := range txBlockRaws {
 			if bytes.Equal(txBlockRaw.TxHash, doubleSpendCheck.ParentTxHash) {
-				msgTx, err := memo.GetMsgFromRaw(txBlockRaw.Raw)
-				if err != nil {
-					return jerr.Getf(err, "error parsing raw msg for tx: %s",
-						hs.GetTxString(doubleSpendCheck.ParentTxHash))
-				}
-				doubleSpendCheck.LockHash = script.GetLockHash(msgTx.TxOut[doubleSpendCheck.ParentTxIndex].PkScript)
+				doubleSpendCheckTxRaw = txBlockRaw.Raw
 				break
+			}
+		}
+		if len(doubleSpendCheckTxRaw) == 0 {
+			for _, mempoolTxRaw := range mempoolTxRaws {
+				if bytes.Equal(mempoolTxRaw.TxHash, doubleSpendCheck.ParentTxHash) {
+					doubleSpendCheckTxRaw = mempoolTxRaw.Raw
+					break
+				}
+			}
+		}
+		if len(doubleSpendCheckTxRaw) != 0 {
+			msgTx, err := memo.GetMsgFromRaw(doubleSpendCheckTxRaw)
+			if err != nil {
+				return jerr.Getf(err, "error parsing raw msg for double spend check: %s",
+					hs.GetTxString(doubleSpendCheck.ParentTxHash))
+			}
+			doubleSpendCheck.LockHash = script.GetLockHash(msgTx.TxOut[doubleSpendCheck.ParentTxIndex].PkScript)
+		}
+		for _, spend := range doubleSpendCheck.Spends {
+			var spendTxRaw []byte
+			for _, txBlockRaw := range txBlockRaws {
+				if bytes.Equal(txBlockRaw.TxHash, spend.TxHash) {
+					spendTxRaw = txBlockRaw.Raw
+					break
+				}
+			}
+			if len(spendTxRaw) == 0 {
+				for _, mempoolTxRaw := range mempoolTxRaws {
+					if bytes.Equal(mempoolTxRaw.TxHash, spend.TxHash) {
+						spendTxRaw = mempoolTxRaw.Raw
+						break
+					}
+				}
+			}
+			if len(spendTxRaw) != 0 {
+				msgTx, err := memo.GetMsgFromRaw(spendTxRaw)
+				if err != nil {
+					return jerr.Getf(err, "error parsing raw msg for double spend check spend tx: %s", hs.GetTxString(spend.TxHash))
+				}
+				for _, out := range msgTx.TxOut {
+					spend.LockHashes = append(spend.LockHashes, script.GetLockHash(out.PkScript))
+				}
 			}
 		}
 	}
