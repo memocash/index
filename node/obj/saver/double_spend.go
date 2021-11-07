@@ -93,6 +93,9 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 	if err := s.CheckLost(doubleSpendChecks); err != nil {
 		return jerr.Get("error checking lost txs for double spend", err)
 	}
+	if err := s.AddLostAndSuspectByParents(block.Transactions); err != nil {
+		return jerr.Get("error adding lost and suspect by parents double spends", err)
+	}
 	return nil
 }
 
@@ -129,23 +132,22 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 				return jerr.Getf(err, "error checking if double spend check is winner (%s:%d)",
 					hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex)
 			}
-			// TODO: Uncomment after test created to verify fixes issue
-			/*descendantTxHashes, err := GetTxDescendants(checkSpend.TxHash)
+			descendantTxHashes, err := GetTxDescendants(checkSpend.TxHash)
 			if err != nil {
 				return jerr.Get("error getting descendant tx hashes for double spend", err)
-			}*/
+			}
 			if isWinner {
 				lostTxsToRemove = append(lostTxsToRemove, checkSpend.TxHash)
-				//lostTxsToRemove = append(lostTxsToRemove, descendantTxHashes...)
+				lostTxsToRemove = append(lostTxsToRemove, descendantTxHashes...)
 			} else {
 				newTxLosts = append(newTxLosts, &item.TxLost{
 					TxHash: checkSpend.TxHash,
 				})
-				/*for _, descendantTxHash := range descendantTxHashes {
+				for _, descendantTxHash := range descendantTxHashes {
 					newTxLosts = append(newTxLosts, &item.TxLost{
 						TxHash: descendantTxHash,
 					})
-				}*/
+				}
 			}
 		}
 	}
@@ -157,6 +159,69 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 	}
 	if err := item.RemoveLockBalances(lockHashes); err != nil {
 		return jerr.Get("error removing lock balances", err)
+	}
+	return nil
+}
+
+func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
+	var txHashes [][]byte
+	for _, tx := range txs {
+		for _, in := range tx.TxIn {
+			txHashes = append(txHashes, in.PreviousOutPoint.Hash.CloneBytes())
+		}
+	}
+	txLosts, err := item.GetTxLosts(txHashes)
+	if err != nil {
+		return jerr.Get("error getting tx losts for double spend check txs", err)
+	}
+	var newItemObjects []item.Object
+	for _, txLost := range txLosts {
+		for _, tx := range txs {
+			for _, in := range tx.TxIn {
+				if bytes.Equal(in.PreviousOutPoint.Hash.CloneBytes(), txLost.TxHash) {
+					txHash := tx.TxHash()
+					newItemObjects = append(newItemObjects, &item.TxLost{
+						TxHash: txHash.CloneBytes(),
+					})
+				}
+			}
+		}
+	}
+	txSuspects, err := item.GetTxSuspects(txHashes)
+	if err != nil {
+		return jerr.Get("error getting tx suspects for double spend check txs", err)
+	}
+	var txSuspectHashes = make([][]byte, len(txSuspects))
+	for i := range txSuspects {
+		txSuspectHashes[i] = txSuspects[i].TxHash
+	}
+	txBlocks, err := item.GetTxBlocks(txSuspectHashes)
+	if err != nil {
+		return jerr.Get("error getting tx blocks for suspect tx hashes", err)
+	}
+	for i := 0; i < len(txSuspects); i++ {
+		for _, txBlock := range txBlocks {
+			if bytes.Equal(txBlock.TxHash, txSuspects[i].TxHash) {
+				txSuspects = append(txSuspects[:i], txSuspects[i+1:]...)
+				i--
+				break
+			}
+		}
+	}
+	for _, txSuspect := range txSuspects {
+		for _, tx := range txs {
+			for _, in := range tx.TxIn {
+				if bytes.Equal(in.PreviousOutPoint.Hash.CloneBytes(), txSuspect.TxHash) {
+					txHash := tx.TxHash()
+					newItemObjects = append(newItemObjects, &item.TxSuspect{
+						TxHash: txHash.CloneBytes(),
+					})
+				}
+			}
+		}
+	}
+	if err := item.Save(newItemObjects); err != nil {
+		return jerr.Get("error saving new tx losts", err)
 	}
 	return nil
 }
