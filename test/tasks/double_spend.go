@@ -2,8 +2,8 @@ package tasks
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
+	"github.com/memocash/server/ref/bitcoin/memo"
 	"github.com/memocash/server/ref/bitcoin/tx/gen"
 	"github.com/memocash/server/ref/bitcoin/tx/hs"
 	"github.com/memocash/server/ref/bitcoin/tx/script"
@@ -35,44 +35,35 @@ var doubleSpendTest = suite.Test{
 		}
 		jlog.Logf("tx3: %s\n", hs.GetTxString(tx3.GetHash()))
 		address3Wallet.Getter.AddChangeUTXO(script.GetOutputUTXOs(tx3)[0])
-		balanceAddress1, err := doubleSpend.GetAddressBalance(test_tx.Address1String)
+		tx4, err := doubleSpend.Create(gen.GetAddressOutput(test_tx.Address4, grp.SendAmount2), address2Wallet)
 		if err != nil {
-			return jerr.Get("error getting balance for address 1", err)
+			return jerr.Get("error saving tx4 to address 4", err)
 		}
-		if balanceAddress1 > grp.FundingValue {
-			return jerr.Newf("error address 1 balance greater than funding amount: %s %s",
-				jfmt.AddCommas(balanceAddress1), jfmt.AddCommas(grp.FundingValue))
-		}
-		balanceAddress2, err := doubleSpend.GetAddressBalance(test_tx.Address2String)
+		jlog.Logf("tx4: %s\n", hs.GetTxString(tx4.GetHash()))
+		tx5, err := doubleSpend.Create(gen.GetAddressOutput(test_tx.Address5, grp.SendAmount2), address3Wallet)
 		if err != nil {
-			return jerr.Get("error getting balance for address 2", err)
+			return jerr.Get("error saving tx5 to address 5", err)
 		}
-		if balanceAddress2 != grp.SendAmount {
-			return jerr.Newf("error address 2 balance not equal send amount: %s", jfmt.AddCommas(balanceAddress2))
+		jlog.Logf("tx5: %s\n", hs.GetTxString(tx5.GetHash()))
+		var address1Expected = grp.FundingValue - grp.SendAmount - memo.FeeP2pkh1In2OutTx
+		var address2expected = grp.SendAmount - grp.SendAmount2 - memo.FeeP2pkh1In2OutTx
+		if err := doubleSpend.CheckAddressBalance(test_tx.Address1String, address1Expected); err != nil {
+			return jerr.Get("error address 1 balance does not match expected", err)
 		}
-		balanceAddress3, err := doubleSpend.GetAddressBalance(test_tx.Address3String)
-		if err != nil {
-			return jerr.Get("error getting balance for address 3", err)
+		if err := doubleSpend.CheckAddressBalance(test_tx.Address2String, address2expected); err != nil {
+			return jerr.Get("error address 2 balance does not match expected", err)
 		}
-		if balanceAddress3 != 0 {
-			return jerr.Newf("error address 3 balance not equal 0: %s", jfmt.AddCommas(balanceAddress3))
+		if err := doubleSpend.CheckAddressBalance(test_tx.Address3String, 0); err != nil {
+			return jerr.Get("error address 3 balance does not match expected", err)
 		}
 		if err := doubleSpend.SaveBlock(tx3); err != nil {
 			return jerr.Get("error saving address 3 tx block", err)
 		}
-		balanceAddress2, err = doubleSpend.GetAddressBalance(test_tx.Address2String)
-		if err != nil {
-			return jerr.Get("error getting balance for address 2", err)
+		if err := doubleSpend.CheckAddressBalance(test_tx.Address2String, 0); err != nil {
+			return jerr.Get("error address 2 balance does not match expected after block", err)
 		}
-		if balanceAddress2 != 0 {
-			return jerr.Newf("error address 2 balance not equal 0: %s", jfmt.AddCommas(balanceAddress2))
-		}
-		balanceAddress3, err = doubleSpend.GetAddressBalance(test_tx.Address3String)
-		if err != nil {
-			return jerr.Get("error getting balance for address 3", err)
-		}
-		if balanceAddress3 != grp.SendAmount {
-			return jerr.Newf("error address 3 balance not equal send amount: %s", jfmt.AddCommas(balanceAddress3))
+		if err := doubleSpend.CheckAddressBalance(test_tx.Address3String, address2expected); err != nil {
+			return jerr.Get("error address 3 balance does not match expected after block", err)
 		}
 		return nil
 	},

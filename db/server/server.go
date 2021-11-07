@@ -166,6 +166,7 @@ func (s *Server) GetMessageCount(ctx context.Context, request *queue_pb.CountReq
 }
 
 func (s *Server) Run() error {
+	s.Stopped = false
 	lis, err := net.Listen("tcp", GetHost(s.Port))
 	if err != nil {
 		return jerr.Get("failed to listen", err)
@@ -181,9 +182,9 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) Stop() {
-	if s.Grpc != nil {
-		s.Grpc.Stop()
+	if s.Grpc != nil && !s.Stopped {
 		s.Stopped = true
+		s.Grpc.Stop()
 	}
 }
 

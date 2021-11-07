@@ -17,8 +17,9 @@ func (q *Queue) Start() error {
 	q.Server = server.NewServer(q.Port, q.Shard)
 	jlog.Logf("Starting queue server on port: %d\n", q.Port)
 	go func() {
-		err := q.Server.Run()
-		q.Error = jerr.Get("error queue server ended", err)
+		if err := q.Server.Run(); !q.Server.Stopped {
+			q.Error = jerr.Get("error queue server ended", err)
+		}
 	}()
 	return nil
 }

@@ -3,6 +3,7 @@ package grp
 import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jfmt"
 	"github.com/memocash/server/node/obj/get"
 	"github.com/memocash/server/node/obj/saver"
 	"github.com/memocash/server/ref/bitcoin/memo"
@@ -16,6 +17,7 @@ import (
 const (
 	FundingValue = 1e8
 	SendAmount   = 1e5
+	SendAmount2  = 1e4
 )
 
 type DoubleSpend struct {
@@ -71,4 +73,16 @@ func (s *DoubleSpend) GetAddressBalance(address string) (int64, error) {
 		return 0, jerr.Get("error getting address 2 balance from network", err)
 	}
 	return newBalance2.Balance, nil
+}
+
+func (s *DoubleSpend) CheckAddressBalance(address string, expectedBalance int64) error {
+	balance, err := s.GetAddressBalance(address)
+	if err != nil {
+		return jerr.Get("error getting balance for address", err)
+	}
+	if balance != expectedBalance {
+		return jerr.Newf("error double spend balance does not equal expected: %s %s",
+			jfmt.AddCommas(balance), jfmt.AddCommas(expectedBalance))
+	}
+	return nil
 }
