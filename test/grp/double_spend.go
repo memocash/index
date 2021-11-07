@@ -20,39 +20,29 @@ const (
 
 type DoubleSpend struct {
 	TxSaver         dbi.TxSave
-	Address1Wallet  build.Wallet
 	FundingTx       *memo.Tx
 	FundingPkScript []byte
 }
 
-func (s *DoubleSpend) Init() error {
+func (s *DoubleSpend) Init(wallet *build.Wallet) error {
 	s.TxSaver = saver.CombinedTxSaver(false)
-	s.Address1Wallet = test_tx.GetKeyWallet(&test_tx.Address1key, nil)
 	var err error
-	if s.FundingTx, err = test_tx.GetFundingTx(test_tx.Address1, FundingValue); err != nil {
+	if s.FundingTx, err = test_tx.GetFundingTx(wallet.Address, FundingValue); err != nil {
 		return jerr.Get("error getting funding tx for address", err)
 	}
 	if s.FundingPkScript, err = s.FundingTx.Outputs[0].Script.Get(); err != nil {
 		return jerr.Get("error getting output script", err)
 	}
-	s.Address1Wallet.Getter.AddChangeUTXO(script.GetOutputUTXOs(s.FundingTx)[0])
+	wallet.Getter.AddChangeUTXO(script.GetOutputUTXOs(s.FundingTx)[0])
 	return nil
 }
 
-func (s *DoubleSpend) Create(output *memo.Output) (*memo.Tx, error) {
+func (s *DoubleSpend) Create(output *memo.Output, wallet build.Wallet) (*memo.Tx, error) {
 	var txRequest = gen.TxRequest{
 		Outputs: []*memo.Output{output},
-		InputsToUse: []memo.UTXO{{
-			Input: memo.TxInput{
-				PkScript:     s.FundingPkScript,
-				PkHash:       test_tx.Address1pkHash,
-				Value:        FundingValue,
-				PrevOutHash:  s.FundingTx.GetHash(),
-				PrevOutIndex: 0,
-			},
-		}},
-		Change:  s.Address1Wallet.GetChange(),
-		KeyRing: s.Address1Wallet.KeyRing,
+		Getter:  wallet.Getter,
+		Change:  wallet.GetChange(),
+		KeyRing: wallet.KeyRing,
 	}
 	tx, err := gen.Tx(txRequest)
 	if err != nil {

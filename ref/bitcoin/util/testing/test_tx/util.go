@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/ref/bitcoin/memo"
 	"github.com/memocash/server/ref/bitcoin/tx/build"
 	"github.com/memocash/server/ref/bitcoin/tx/gen"
@@ -47,6 +48,30 @@ func GetKeyWallet(key *wallet.PrivateKey, utxos []memo.UTXO) build.Wallet {
 		KeyRing: wallet.KeyRing{
 			Keys: []wallet.PrivateKey{*key},
 		},
+		Address: key.GetAddress(),
+	}
+}
+
+func CopyTestWallet(wallet build.Wallet) build.Wallet {
+	if len(wallet.KeyRing.Keys) == 0 {
+		return build.Wallet{}
+	}
+	var key = wallet.KeyRing.Keys[0]
+	var utxos []memo.UTXO
+	if igw, ok := wallet.Getter.(*gen.InputGetterWrapper); ok {
+		jlog.Log("Is *gen.InputGetterWrapper")
+		utxos = igw.UTXOs
+		if tg, ok := igw.Old.(*TestGetter); ok {
+			jlog.Log("Is *TestGetter")
+			utxos = append(utxos, tg.UTXOs...)
+		}
+	}
+	jlog.Logf("%d utxos\n", len(utxos))
+	return build.Wallet{
+		Getter: gen.GetWrapper(&TestGetter{
+			UTXOs: utxos,
+		}, key.GetPkHash()),
+		KeyRing: wallet.KeyRing,
 		Address: key.GetAddress(),
 	}
 }
