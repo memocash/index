@@ -56,6 +56,12 @@ var doubleSpendTest = suite.Test{
 		if err := doubleSpend.CheckAddressBalance(test_tx.Address3String, 0); err != nil {
 			return jerr.Get("error address 3 balance does not match expected", err)
 		}
+		if err := doubleSpend.CheckAddressBalance(test_tx.Address4String, grp.SendAmount2); err != nil {
+			return jerr.Get("error address 4 balance does not match expected", err)
+		}
+		if err := doubleSpend.CheckAddressBalance(test_tx.Address5String, 0); err != nil {
+			return jerr.Get("error address 5 balance does not match expected", err)
+		}
 		if err := doubleSpend.SaveBlock(tx3); err != nil {
 			return jerr.Get("error saving address 3 tx block", err)
 		}
@@ -64,6 +70,12 @@ var doubleSpendTest = suite.Test{
 		}
 		if err := doubleSpend.CheckAddressBalance(test_tx.Address3String, address2expected); err != nil {
 			return jerr.Get("error address 3 balance does not match expected after block", err)
+		}
+		if err := doubleSpend.CheckAddressBalance(test_tx.Address4String, 0); err != nil {
+			return jerr.Get("error address 4 balance does not match expected after block", err)
+		}
+		if err := doubleSpend.CheckAddressBalance(test_tx.Address5String, grp.SendAmount2); err != nil {
+			return jerr.Get("error address 5 balance does not match expected after block", err)
 		}
 		return nil
 	},
