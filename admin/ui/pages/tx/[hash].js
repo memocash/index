@@ -109,6 +109,20 @@ export default function Hash() {
                         <div className={column.width85}>{preInline(<>{tx.raw}</>)}</div>
                     </div>
                     <div className={column.container}>
+                        <div className={column.width15}>Lost/suspect</div>
+                        <div className={column.width85}>
+                            {tx.lost ?
+                                <div className={[column.red, column.bold].join(" ")}>
+                                    LOST
+                                </div>
+                                : (tx.suspect ?
+                                    <div className={[column.orange, column.bold].join(" ")}>
+                                        SUSPECT
+                                    </div>
+                                    : "OK!")}
+                        </div>
+                    </div>
+                    <div className={column.container}>
                         <div className={column.width50}>
                             <h3>Inputs ({tx.inputs.length})</h3>
                             {tx.inputs.map((input) => {
