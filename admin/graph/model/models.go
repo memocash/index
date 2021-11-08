@@ -23,3 +23,11 @@ type DoubleSpend struct {
 	Hash  string `json:"hash"`
 	Index uint32 `json:"index"`
 }
+
+type TxLost struct {
+	Hash string `json:"hash"`
+}
+
+type TxSuspect struct {
+	Hash string `json:"hash"`
+}

@@ -20,6 +20,12 @@ export default function Hash() {
         tx(hash: $hash) {
             hash
             raw
+            suspect {
+                hash
+            }
+            lost {
+                hash
+            }
             inputs {
                 index
                 prev_hash

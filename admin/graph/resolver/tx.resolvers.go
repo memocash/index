@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"github.com/memocash/server/admin/graph/dataloader"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/admin/graph/generated"
@@ -53,6 +54,22 @@ func (r *txResolver) Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOut
 		}
 	}
 	return outputs, nil
+}
+
+func (r *txResolver) Suspect(ctx context.Context, obj *model.Tx) (*model.TxSuspect, error) {
+	txSuspect, err := dataloader.NewTxSuspectLoader(txSuspectLoaderConfig).Load(obj.Hash)
+	if err != nil {
+		return nil, jerr.Get("error getting tx suspect for tx from loader", err)
+	}
+	return txSuspect, nil
+}
+
+func (r *txResolver) Lost(ctx context.Context, obj *model.Tx) (*model.TxLost, error) {
+	txLost, err := dataloader.NewTxLostLoader(txLostLoaderConfig).Load(obj.Hash)
+	if err != nil {
+		return nil, jerr.Get("error getting tx lost for tx from loader", err)
+	}
+	return txLost, nil
 }
 
 // Tx returns generated.TxResolver implementation.

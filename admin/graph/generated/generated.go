@@ -40,7 +40,9 @@ type ResolverRoot interface {
 	Query() QueryResolver
 	Tx() TxResolver
 	TxInput() TxInputResolver
+	TxLost() TxLostResolver
 	TxOutput() TxOutputResolver
+	TxSuspect() TxSuspectResolver
 }
 
 type DirectiveRoot struct {
@@ -66,8 +68,10 @@ type ComplexityRoot struct {
 	Tx struct {
 		Hash    func(childComplexity int) int
 		Inputs  func(childComplexity int) int
+		Lost    func(childComplexity int) int
 		Outputs func(childComplexity int) int
 		Raw     func(childComplexity int) int
+		Suspect func(childComplexity int) int
 	}
 
 	TxInput struct {
@@ -80,6 +84,11 @@ type ComplexityRoot struct {
 		Tx          func(childComplexity int) int
 	}
 
+	TxLost struct {
+		Hash func(childComplexity int) int
+		Tx   func(childComplexity int) int
+	}
+
 	TxOutput struct {
 		Amount      func(childComplexity int) int
 		DoubleSpend func(childComplexity int) int
@@ -88,6 +97,11 @@ type ComplexityRoot struct {
 		Script      func(childComplexity int) int
 		Spends      func(childComplexity int) int
 		Tx          func(childComplexity int) int
+	}
+
+	TxSuspect struct {
+		Hash func(childComplexity int) int
+		Tx   func(childComplexity int) int
 	}
 }
 
@@ -105,6 +119,8 @@ type QueryResolver interface {
 type TxResolver interface {
 	Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInput, error)
 	Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOutput, error)
+	Suspect(ctx context.Context, obj *model.Tx) (*model.TxSuspect, error)
+	Lost(ctx context.Context, obj *model.Tx) (*model.TxLost, error)
 }
 type TxInputResolver interface {
 	Tx(ctx context.Context, obj *model.TxInput) (*model.Tx, error)
@@ -112,11 +128,17 @@ type TxInputResolver interface {
 	Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error)
 	DoubleSpend(ctx context.Context, obj *model.TxInput) (*model.DoubleSpend, error)
 }
+type TxLostResolver interface {
+	Tx(ctx context.Context, obj *model.TxLost) (*model.Tx, error)
+}
 type TxOutputResolver interface {
 	Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error)
 
 	Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error)
 	DoubleSpend(ctx context.Context, obj *model.TxOutput) (*model.DoubleSpend, error)
+}
+type TxSuspectResolver interface {
+	Tx(ctx context.Context, obj *model.TxSuspect) (*model.Tx, error)
 }
 
 type executableSchema struct {
@@ -202,6 +224,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tx.Inputs(childComplexity), true
 
+	case "Tx.lost":
+		if e.complexity.Tx.Lost == nil {
+			break
+		}
+
+		return e.complexity.Tx.Lost(childComplexity), true
+
 	case "Tx.outputs":
 		if e.complexity.Tx.Outputs == nil {
 			break
@@ -215,6 +244,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Tx.Raw(childComplexity), true
+
+	case "Tx.suspect":
+		if e.complexity.Tx.Suspect == nil {
+			break
+		}
+
+		return e.complexity.Tx.Suspect(childComplexity), true
 
 	case "TxInput.double_spend":
 		if e.complexity.TxInput.DoubleSpend == nil {
@@ -265,6 +301,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TxInput.Tx(childComplexity), true
 
+	case "TxLost.hash":
+		if e.complexity.TxLost.Hash == nil {
+			break
+		}
+
+		return e.complexity.TxLost.Hash(childComplexity), true
+
+	case "TxLost.tx":
+		if e.complexity.TxLost.Tx == nil {
+			break
+		}
+
+		return e.complexity.TxLost.Tx(childComplexity), true
+
 	case "TxOutput.amount":
 		if e.complexity.TxOutput.Amount == nil {
 			break
@@ -313,6 +363,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TxOutput.Tx(childComplexity), true
+
+	case "TxSuspect.hash":
+		if e.complexity.TxSuspect.Hash == nil {
+			break
+		}
+
+		return e.complexity.TxSuspect.Hash(childComplexity), true
+
+	case "TxSuspect.tx":
+		if e.complexity.TxSuspect.Tx == nil {
+			break
+		}
+
+		return e.complexity.TxSuspect.Tx(childComplexity), true
 
 	}
 	return 0, false
@@ -403,6 +467,8 @@ scalar HashIndex
     raw: String!
     inputs: [TxInput!]!
     outputs: [TxOutput!]!
+    suspect: TxSuspect
+    lost: TxLost
 }
 `, BuiltIn: false},
 	{Name: "schema/tx_input.graphqls", Input: `type TxInput {
@@ -415,6 +481,11 @@ scalar HashIndex
     double_spend: DoubleSpend
 }
 `, BuiltIn: false},
+	{Name: "schema/tx_lost.graphqls", Input: `type TxLost {
+    tx: Tx!
+    hash: String!
+}
+`, BuiltIn: false},
 	{Name: "schema/tx_output.graphqls", Input: `type TxOutput {
     tx: Tx!
     hash: String!
@@ -423,6 +494,11 @@ scalar HashIndex
     script: String
     spends: [TxInput]
     double_spend: DoubleSpend
+}
+`, BuiltIn: false},
+	{Name: "schema/tx_suspect.graphqls", Input: `type TxSuspect {
+    tx: Tx!
+    hash: String!
 }
 `, BuiltIn: false},
 }
@@ -954,6 +1030,70 @@ func (ec *executionContext) _Tx_outputs(ctx context.Context, field graphql.Colle
 	return ec.marshalNTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Tx_suspect(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Tx",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Tx().Suspect(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TxSuspect)
+	fc.Result = res
+	return ec.marshalOTxSuspect2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxSuspect(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Tx_lost(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Tx",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Tx().Lost(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TxLost)
+	fc.Result = res
+	return ec.marshalOTxLost2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxLost(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _TxInput_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1196,6 +1336,76 @@ func (ec *executionContext) _TxInput_double_spend(ctx context.Context, field gra
 	return ec.marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _TxLost_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxLost) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TxLost",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.TxLost().Tx(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tx)
+	fc.Result = res
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TxLost_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxLost) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TxLost",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _TxOutput_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1430,6 +1640,76 @@ func (ec *executionContext) _TxOutput_double_spend(ctx context.Context, field gr
 	res := resTmp.(*model.DoubleSpend)
 	fc.Result = res
 	return ec.marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TxSuspect_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxSuspect) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TxSuspect",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.TxSuspect().Tx(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tx)
+	fc.Result = res
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TxSuspect_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxSuspect) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TxSuspect",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2751,6 +3031,28 @@ func (ec *executionContext) _Tx(ctx context.Context, sel ast.SelectionSet, obj *
 				}
 				return res
 			})
+		case "suspect":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tx_suspect(ctx, field, obj)
+				return res
+			})
+		case "lost":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tx_lost(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2843,6 +3145,47 @@ func (ec *executionContext) _TxInput(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
+var txLostImplementors = []string{"TxLost"}
+
+func (ec *executionContext) _TxLost(ctx context.Context, sel ast.SelectionSet, obj *model.TxLost) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, txLostImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TxLost")
+		case "tx":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._TxLost_tx(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "hash":
+			out.Values[i] = ec._TxLost_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var txOutputImplementors = []string{"TxOutput"}
 
 func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet, obj *model.TxOutput) graphql.Marshaler {
@@ -2907,6 +3250,47 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 				res = ec._TxOutput_double_spend(ctx, field, obj)
 				return res
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var txSuspectImplementors = []string{"TxSuspect"}
+
+func (ec *executionContext) _TxSuspect(ctx context.Context, sel ast.SelectionSet, obj *model.TxSuspect) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, txSuspectImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TxSuspect")
+		case "tx":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._TxSuspect_tx(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "hash":
+			out.Values[i] = ec._TxSuspect_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3791,6 +4175,20 @@ func (ec *executionContext) marshalOTxInput2ᚖgithubᚗcomᚋmemocashᚋserver�
 		return graphql.Null
 	}
 	return ec._TxInput(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOTxLost2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxLost(ctx context.Context, sel ast.SelectionSet, v *model.TxLost) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TxLost(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOTxSuspect2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxSuspect(ctx context.Context, sel ast.SelectionSet, v *model.TxSuspect) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TxSuspect(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

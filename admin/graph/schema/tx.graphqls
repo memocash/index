@@ -3,4 +3,6 @@ type Tx {
     raw: String!
     inputs: [TxInput!]!
     outputs: [TxOutput!]!
+    suspect: TxSuspect
+    lost: TxLost
 }

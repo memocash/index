@@ -1,0 +1,4 @@
+type TxSuspect {
+    tx: Tx!
+    hash: String!
+}
