@@ -102,7 +102,6 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendCheck) error {
 	var txHashes [][]byte
 	for _, doubleSpendCheck := range doubleSpendChecks {
-		txHashes = append(txHashes, doubleSpendCheck.ParentTxHash)
 		for _, spend := range doubleSpendCheck.Spends {
 			txHashes = append(txHashes, spend.TxHash)
 		}
