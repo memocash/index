@@ -36,6 +36,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	DoubleSpend() DoubleSpendResolver
+	Lock() LockResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Tx() TxResolver
@@ -56,11 +57,19 @@ type ComplexityRoot struct {
 		Output func(childComplexity int) int
 	}
 
+	Lock struct {
+		Address func(childComplexity int) int
+		Balance func(childComplexity int) int
+		Hash    func(childComplexity int) int
+		Utxos   func(childComplexity int) int
+	}
+
 	Mutation struct {
 		Null func(childComplexity int) int
 	}
 
 	Query struct {
+		Address      func(childComplexity int, address string) int
 		DoubleSpends func(childComplexity int) int
 		Tx           func(childComplexity int, hash string) int
 	}
@@ -109,11 +118,15 @@ type DoubleSpendResolver interface {
 	Output(ctx context.Context, obj *model.DoubleSpend) (*model.TxOutput, error)
 	Inputs(ctx context.Context, obj *model.DoubleSpend) ([]*model.TxInput, error)
 }
+type LockResolver interface {
+	Utxos(ctx context.Context, obj *model.Lock) ([]*model.Tx, error)
+}
 type MutationResolver interface {
 	Null(ctx context.Context) (*int, error)
 }
 type QueryResolver interface {
 	Tx(ctx context.Context, hash string) (*model.Tx, error)
+	Address(ctx context.Context, address string) (*model.Lock, error)
 	DoubleSpends(ctx context.Context) ([]*model.DoubleSpend, error)
 }
 type TxResolver interface {
@@ -184,12 +197,52 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.DoubleSpend.Output(childComplexity), true
 
+	case "Lock.address":
+		if e.complexity.Lock.Address == nil {
+			break
+		}
+
+		return e.complexity.Lock.Address(childComplexity), true
+
+	case "Lock.balance":
+		if e.complexity.Lock.Balance == nil {
+			break
+		}
+
+		return e.complexity.Lock.Balance(childComplexity), true
+
+	case "Lock.hash":
+		if e.complexity.Lock.Hash == nil {
+			break
+		}
+
+		return e.complexity.Lock.Hash(childComplexity), true
+
+	case "Lock.utxos":
+		if e.complexity.Lock.Utxos == nil {
+			break
+		}
+
+		return e.complexity.Lock.Utxos(childComplexity), true
+
 	case "Mutation.null":
 		if e.complexity.Mutation.Null == nil {
 			break
 		}
 
 		return e.complexity.Mutation.Null(childComplexity), true
+
+	case "Query.address":
+		if e.complexity.Query.Address == nil {
+			break
+		}
+
+		args, err := ec.field_Query_address_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Address(childComplexity, args["address"].(string)), true
 
 	case "Query.double_spends":
 		if e.complexity.Query.DoubleSpends == nil {
@@ -449,12 +502,20 @@ var sources = []*ast.Source{
     inputs: [TxInput!]!
 }
 `, BuiltIn: false},
+	{Name: "schema/lock.graphqls", Input: `type Lock {
+    hash: String!
+    address: String
+    balance: Int64!
+    utxos: [Tx!]
+}
+`, BuiltIn: false},
 	{Name: "schema/mutation.graphqls", Input: `type Mutation {
     null: Int
 }
 `, BuiltIn: false},
 	{Name: "schema/query.graphqls", Input: `type Query {
     tx(hash: String!): Tx
+    address(address: String!): Lock
     double_spends: [DoubleSpend!]
 }
 `, BuiltIn: false},
@@ -520,6 +581,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_address_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["address"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["address"] = arg0
 	return args, nil
 }
 
@@ -716,6 +792,140 @@ func (ec *executionContext) _DoubleSpend_inputs(ctx context.Context, field graph
 	return ec.marshalNTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInputᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Lock_hash(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Lock",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Lock_address(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Lock",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Address, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Lock_balance(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Lock",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Balance, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Lock_utxos(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Lock",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Lock().Utxos(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Tx)
+	fc.Result = res
+	return ec.marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_null(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -785,6 +995,45 @@ func (ec *executionContext) _Query_tx(ctx context.Context, field graphql.Collect
 	res := resTmp.(*model.Tx)
 	fc.Result = res
 	return ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_address(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_address_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Address(rctx, args["address"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_double_spends(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2902,6 +3151,51 @@ func (ec *executionContext) _DoubleSpend(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var lockImplementors = []string{"Lock"}
+
+func (ec *executionContext) _Lock(ctx context.Context, sel ast.SelectionSet, obj *model.Lock) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, lockImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Lock")
+		case "hash":
+			out.Values[i] = ec._Lock_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "address":
+			out.Values[i] = ec._Lock_address(ctx, field, obj)
+		case "balance":
+			out.Values[i] = ec._Lock_balance(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "utxos":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Lock_utxos(ctx, field, obj)
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -2954,6 +3248,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_tx(ctx, field)
+				return res
+			})
+		case "address":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_address(ctx, field)
 				return res
 			})
 		case "double_spends":
@@ -4098,6 +4403,13 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return graphql.MarshalInt(*v)
 }
 
+func (ec *executionContext) marshalOLock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v *model.Lock) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Lock(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4120,6 +4432,53 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
+}
+
+func (ec *executionContext) marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tx) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalOTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx context.Context, sel ast.SelectionSet, v *model.Tx) graphql.Marshaler {

@@ -6,9 +6,9 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"github.com/memocash/server/admin/graph/dataloader"
 
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/server/admin/graph/dataloader"
 	"github.com/memocash/server/admin/graph/generated"
 	"github.com/memocash/server/admin/graph/model"
 	"github.com/memocash/server/ref/bitcoin/memo"

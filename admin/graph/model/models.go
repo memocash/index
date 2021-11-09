@@ -31,3 +31,9 @@ type TxLost struct {
 type TxSuspect struct {
 	Hash string `json:"hash"`
 }
+
+type Lock struct {
+	Hash    string `json:"hash"`
+	Address string `json:"address"`
+	Balance int64  `json:"balance"`
+}

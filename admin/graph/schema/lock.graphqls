@@ -1,0 +1,6 @@
+type Lock {
+    hash: String!
+    address: String
+    balance: Int64!
+    utxos: [Tx!]
+}

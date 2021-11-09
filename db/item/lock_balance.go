@@ -44,19 +44,13 @@ func (b *LockBalance) SetUid(uid []byte) {
 }
 
 func (b *LockBalance) Deserialize(data []byte) {
-	if len(data) < 20 {
+	if len(data) < 24 {
 		return
 	}
 	b.Balance = jutil.GetInt64(data[:8])
 	b.Spendable = jutil.GetInt64(data[8:16])
 	b.UtxoCount = jutil.GetInt(data[16:20])
-	if len(data) == 24 {
-		b.Spends = jutil.GetInt(data[20:24])
-	}
-}
-
-func (b LockBalance) NeedsSpends() bool {
-	return b.Spendable > 0 && b.Spends == 0
+	b.Spends = jutil.GetInt(data[20:24])
 }
 
 func GetLockBalance(lockHash []byte) (*LockBalance, error) {

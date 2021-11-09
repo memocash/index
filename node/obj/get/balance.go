@@ -19,6 +19,7 @@ type Utxo struct {
 
 type Balance struct {
 	LockScript []byte
+	Address    string
 	Balance    int64
 	Spendable  int64
 	UtxoCount  int
@@ -36,7 +37,7 @@ func (b *Balance) GetUtxos() error {
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return jerr.Get("error getting lock balance", err)
 		}
-		if balance != nil && !balance.NeedsSpends() {
+		if balance != nil {
 			b.Balance = balance.Balance
 			b.UtxoCount = balance.UtxoCount
 			b.Spendable = balance.Spendable
@@ -138,7 +139,6 @@ func (b *Balance) CalculateWithUtxos() error {
 
 func NewBalanceFromAddress(address string) (*Balance, error) {
 	addr := wallet.GetAddressFromString(address)
-	//jlog.Logf("address: %s\n", addr.GetEncoded())
 	var lockScript []byte
 	var err error
 	if !addr.IsSet() {
@@ -158,7 +158,10 @@ func NewBalanceFromAddress(address string) (*Balance, error) {
 	} else {
 		return nil, jerr.Newf("error unknown address type")
 	}
-	return NewBalance(lockScript), nil
+	return &Balance{
+		LockScript: lockScript,
+		Address:    addr.GetEncoded(),
+	}, nil
 }
 
 func NewBalance(lockScript []byte) *Balance {

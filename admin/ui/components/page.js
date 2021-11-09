@@ -32,6 +32,11 @@ export default function Page(props) {
                             </Link>
                         </li>
                         <li>
+                            <Link href="/address/1Pzdrdoj2NC25GMWknYn18eHYuvLoZ6dpv">
+                                <a>Address</a>
+                            </Link>
+                        </li>
+                        <li>
                             <Link href="/tx/double-spends">
                                 <a>Double Spends</a>
                             </Link>

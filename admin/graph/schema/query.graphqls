@@ -1,4 +1,5 @@
 type Query {
     tx(hash: String!): Tx
+    address(address: String!): Lock
     double_spends: [DoubleSpend!]
 }

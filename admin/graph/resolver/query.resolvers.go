@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -13,6 +14,7 @@ import (
 	"github.com/memocash/server/admin/graph/model"
 	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/db/item"
+	"github.com/memocash/server/node/obj/get"
 	"github.com/memocash/server/ref/bitcoin/tx/hs"
 )
 
@@ -47,6 +49,21 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 	return &model.Tx{
 		Hash: txHashString,
 		Raw:  hex.EncodeToString(raw),
+	}, nil
+}
+
+func (r *queryResolver) Address(ctx context.Context, address string) (*model.Lock, error) {
+	balance, err := get.NewBalanceFromAddress(address)
+	if err != nil {
+		return nil, jerr.Get("error getting address from string for balance", err)
+	}
+	if err := balance.GetUtxos(); err != nil {
+		return nil, jerr.Get("error getting address balance from network", err)
+	}
+	return &model.Lock{
+		Hash:    hex.EncodeToString(balance.LockScript),
+		Address: balance.Address,
+		Balance: balance.Balance,
 	}, nil
 }
 
