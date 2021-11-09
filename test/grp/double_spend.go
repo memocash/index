@@ -32,8 +32,8 @@ func (s *DoubleSpend) Init(wallet *build.Wallet) error {
 	if s.FundingTx, err = test_tx.GetFundingTx(wallet.Address, FundingValue); err != nil {
 		return jerr.Get("error getting funding tx for address", err)
 	}
-	if s.FundingPkScript, err = s.FundingTx.Outputs[0].Script.Get(); err != nil {
-		return jerr.Get("error getting output script", err)
+	if err := s.TxSaver.SaveTxs(memo.GetBlockFromTxs([]*wire.MsgTx{s.FundingTx.MsgTx}, nil)); err != nil {
+		return jerr.Get("error saving funding tx", err)
 	}
 	wallet.Getter.AddChangeUTXO(script.GetOutputUTXOs(s.FundingTx)[0])
 	return nil

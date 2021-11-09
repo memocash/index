@@ -147,7 +147,8 @@ func (s *Client) GetSingle(topic string, uid []byte) error {
 		return jerr.Get("error getting single message rpc", err)
 	}
 	if len(message.Uid) == 0 {
-		return jerr.Getf(MessageNotSetError, "uid empty: %s %d", message.Topic, len(message.Message))
+		return jerr.Getf(MessageNotSetError, "empty message returned, uid empty: %d (%s)",
+			len(message.Message), message.Topic)
 	}
 	s.Messages = []Message{{
 		Topic:   message.Topic,

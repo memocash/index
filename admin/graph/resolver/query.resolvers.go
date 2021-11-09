@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"

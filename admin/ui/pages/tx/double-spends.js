@@ -1,7 +1,7 @@
 import Page from "../../components/page";
 import styles from "../../styles/Home.module.css";
 import {useEffect, useState} from "react";
-import Loading from "../../components/util/loading";
+import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
 
 const query = `
@@ -34,9 +34,8 @@ function DoubleSpends() {
             return Promise.reject(res)
         }).then(data => {
             if (data.errors && data.errors.length > 0) {
-                setErrorMessage("Double spends graphql errors (see console)")
+                setErrorMessage(GetErrorMessage(data.errors))
                 setLoading(true)
-                console.log(data.errors)
                 return
             }
             setLoading(false)
@@ -62,17 +61,17 @@ function DoubleSpends() {
                                 <Link href={"/tx/" + doubleSpend.hash}>
                                     <a>{doubleSpend.hash}:{doubleSpend.index}</a>
                                 </Link>
-                                <div>
+                                <ul>
                                     {doubleSpend.inputs.map((input) => {
                                         return (
-                                            <p>-
+                                            <li>
                                                 <Link href={"/tx/" + input.hash}>
                                                     <a>{input.hash}:{input.index}</a>
                                                 </Link>
-                                            </p>
+                                            </li>
                                         )
                                     })}
-                                </div>
+                                </ul>
                             </div>
                         )
                     })}

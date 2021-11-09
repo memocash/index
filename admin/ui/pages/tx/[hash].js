@@ -4,7 +4,7 @@ import column from '../../styles/column.module.css'
 import Page from "../../components/page";
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
-import Loading from "../../components/util/loading";
+import {Loading, GetErrorMessage} from "../../components/util/loading";
 import Link from "next/link";
 
 export default function Hash() {
@@ -71,9 +71,8 @@ export default function Hash() {
             return Promise.reject(res)
         }).then(data => {
             if (data.errors && data.errors.length > 0) {
-                setErrorMessage("tx data has errors")
+                setErrorMessage(GetErrorMessage(data.errors))
                 setLoading(true)
-                console.log(data.errors)
                 return
             }
             setLoading(false)
