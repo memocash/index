@@ -19,19 +19,32 @@ type DoubleSpendCheck struct {
 }
 
 func (c DoubleSpendCheck) IsWinnerSpend(spendCheck *DoubleSpendCheckSpend) (bool, error) {
+	winnerSpend, err := c.GetWinnerSpend()
+	if err != nil {
+		return false, jerr.Get("error getting winner spend", err)
+	}
+	return bytes.Equal(winnerSpend.TxHash, spendCheck.TxHash), nil
+}
+
+func (c DoubleSpendCheck) GetWinnerSpend() (*DoubleSpendCheckSpend, error) {
+	var winnerSpend *DoubleSpendCheckSpend
 	for _, spend := range c.Spends {
-		if bytes.Equal(spend.TxHash, spendCheck.TxHash) {
+		if winnerSpend == nil {
+			winnerSpend = spend
 			continue
 		}
-		if len(spend.BlockHash) > 0 && len(spendCheck.BlockHash) == 0 {
-			return false, nil
+		if len(spend.BlockHash) > 0 && len(winnerSpend.BlockHash) == 0 {
+			winnerSpend = spend
+			continue
 		}
-		if len(spend.BlockHash) == 0 && len(spendCheck.BlockHash) > 0 {
-			return true, nil
+		if len(spend.BlockHash) == 0 && len(winnerSpend.BlockHash) > 0 {
+			continue
 		}
-		return spendCheck.FirstSeen.Before(spend.FirstSeen), nil
+		if !spend.FirstSeen.IsZero() && spend.FirstSeen.Before(winnerSpend.FirstSeen) {
+			winnerSpend = spend
+		}
 	}
-	return false, jerr.Newf("error no spend found to compare against")
+	return winnerSpend, nil
 }
 
 type DoubleSpendCheckSpend struct {

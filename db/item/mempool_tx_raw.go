@@ -65,6 +65,7 @@ func GetMempoolTxRawByHashes(txHashes [][]byte) ([]*MempoolTxRaw, error) {
 	}
 	var shardMempoolTxRaw = make(map[uint32][]*MempoolTxRaw)
 	var wg sync.WaitGroup
+	var lock sync.RWMutex
 	wg.Add(len(shardUids))
 	var errs []error
 	for shardT, uidsT := range shardUids {
@@ -81,7 +82,9 @@ func GetMempoolTxRawByHashes(txHashes [][]byte) ([]*MempoolTxRaw, error) {
 				var mempoolTxRaw = new(MempoolTxRaw)
 				mempoolTxRaw.SetUid(msg.Uid)
 				mempoolTxRaw.Deserialize(msg.Message)
+				lock.Lock()
 				shardMempoolTxRaw[shard] = append(shardMempoolTxRaw[shard], mempoolTxRaw)
+				lock.Unlock()
 			}
 		}(shardT, uidsT)
 	}
