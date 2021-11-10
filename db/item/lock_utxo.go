@@ -16,7 +16,7 @@ type LockUtxo struct {
 }
 
 func (o LockUtxo) GetUid() []byte {
-	return jutil.CombineBytes(o.LockHash, jutil.ByteReverse(o.Hash), jutil.GetUint32Data(o.Index))
+	return GetLockOutputUid(o.LockHash, o.Hash, o.Index)
 }
 
 func (o LockUtxo) GetShard() uint {

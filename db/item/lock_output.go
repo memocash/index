@@ -16,7 +16,7 @@ type LockOutput struct {
 }
 
 func (o LockOutput) GetUid() []byte {
-	return jutil.CombineBytes(o.LockHash, jutil.ByteReverse(o.Hash), jutil.GetUint32Data(o.Index))
+	return GetLockOutputUid(o.LockHash, o.Hash, o.Index)
 }
 
 func (o LockOutput) GetShard() uint {
@@ -41,6 +41,10 @@ func (o *LockOutput) SetUid(uid []byte) {
 }
 
 func (o *LockOutput) Deserialize([]byte) {}
+
+func GetLockOutputUid(lockHash, hash []byte, index uint32) []byte {
+	return jutil.CombineBytes(lockHash, jutil.ByteReverse(hash), jutil.GetUint32Data(index))
+}
 
 func GetLockOutputs(lockHash, start []byte) ([]*LockOutput, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())

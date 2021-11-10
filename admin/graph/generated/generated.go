@@ -61,7 +61,8 @@ type ComplexityRoot struct {
 		Address func(childComplexity int) int
 		Balance func(childComplexity int) int
 		Hash    func(childComplexity int) int
-		Utxos   func(childComplexity int) int
+		Outputs func(childComplexity int, start *model.HashIndex) int
+		Utxos   func(childComplexity int, start *model.HashIndex) int
 	}
 
 	Mutation struct {
@@ -119,7 +120,8 @@ type DoubleSpendResolver interface {
 	Inputs(ctx context.Context, obj *model.DoubleSpend) ([]*model.TxInput, error)
 }
 type LockResolver interface {
-	Utxos(ctx context.Context, obj *model.Lock) ([]*model.TxOutput, error)
+	Utxos(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error)
+	Outputs(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error)
 }
 type MutationResolver interface {
 	Null(ctx context.Context) (*int, error)
@@ -218,12 +220,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Lock.Hash(childComplexity), true
 
+	case "Lock.outputs":
+		if e.complexity.Lock.Outputs == nil {
+			break
+		}
+
+		args, err := ec.field_Lock_outputs_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Lock.Outputs(childComplexity, args["start"].(*model.HashIndex)), true
+
 	case "Lock.utxos":
 		if e.complexity.Lock.Utxos == nil {
 			break
 		}
 
-		return e.complexity.Lock.Utxos(childComplexity), true
+		args, err := ec.field_Lock_utxos_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Lock.Utxos(childComplexity, args["start"].(*model.HashIndex)), true
 
 	case "Mutation.null":
 		if e.complexity.Mutation.Null == nil {
@@ -506,7 +525,8 @@ var sources = []*ast.Source{
     hash: String!
     address: String
     balance: Int64!
-    utxos: [TxOutput!]
+    utxos(start: HashIndex): [TxOutput!]
+    outputs(start: HashIndex): [TxOutput!]
 }
 `, BuiltIn: false},
 	{Name: "schema/mutation.graphqls", Input: `type Mutation {
@@ -568,6 +588,36 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Lock_outputs_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.HashIndex
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg0, err = ec.unmarshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐHashIndex(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Lock_utxos_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.HashIndex
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg0, err = ec.unmarshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐHashIndex(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -910,9 +960,55 @@ func (ec *executionContext) _Lock_utxos(ctx context.Context, field graphql.Colle
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Lock_utxos_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Lock().Utxos(rctx, obj)
+		return ec.resolvers.Lock().Utxos(rctx, obj, args["start"].(*model.HashIndex))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.TxOutput)
+	fc.Result = res
+	return ec.marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Lock_outputs(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Lock",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Lock_outputs_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Lock().Outputs(rctx, obj, args["start"].(*model.HashIndex))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3185,6 +3281,17 @@ func (ec *executionContext) _Lock(ctx context.Context, sel ast.SelectionSet, obj
 				res = ec._Lock_utxos(ctx, field, obj)
 				return res
 			})
+		case "outputs":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Lock_outputs(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4386,6 +4493,21 @@ func (ec *executionContext) marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋser
 		return graphql.Null
 	}
 	return ec._DoubleSpend(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐHashIndex(ctx context.Context, v interface{}) (*model.HashIndex, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := model.UnmarshalHashIndex(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐHashIndex(ctx context.Context, sel ast.SelectionSet, v *model.HashIndex) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return model.MarshalHashIndex(*v)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
