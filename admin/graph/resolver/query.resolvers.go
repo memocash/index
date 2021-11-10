@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"github.com/memocash/server/ref/bitcoin/tx/script"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
@@ -61,7 +62,7 @@ func (r *queryResolver) Address(ctx context.Context, address string) (*model.Loc
 		return nil, jerr.Get("error getting address balance from network", err)
 	}
 	return &model.Lock{
-		Hash:    hex.EncodeToString(balance.LockScript),
+		Hash:    hex.EncodeToString(script.GetLockHash(balance.LockScript)),
 		Address: balance.Address,
 		Balance: balance.Balance,
 	}, nil

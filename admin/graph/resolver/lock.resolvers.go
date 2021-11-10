@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"github.com/memocash/server/ref/bitcoin/tx/hs"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/admin/graph/generated"
@@ -33,7 +34,7 @@ func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock, start *model.
 	var txOutputs = make([]*model.TxOutput, len(lockUtxos))
 	for i := range lockUtxos {
 		txOutputs[i] = &model.TxOutput{
-			Hash:   hex.EncodeToString(lockUtxos[i].Hash),
+			Hash:   hs.GetTxString(lockUtxos[i].Hash),
 			Index:  lockUtxos[i].Index,
 			Amount: lockUtxos[i].Value,
 		}
@@ -61,7 +62,7 @@ func (r *lockResolver) Outputs(ctx context.Context, obj *model.Lock, start *mode
 	var txOutputs = make([]*model.TxOutput, len(lockOutputs))
 	for i := range lockOutputs {
 		txOutputs[i] = &model.TxOutput{
-			Hash:  hex.EncodeToString(lockOutputs[i].Hash),
+			Hash:  hs.GetTxString(lockOutputs[i].Hash),
 			Index: lockOutputs[i].Index,
 		}
 	}
