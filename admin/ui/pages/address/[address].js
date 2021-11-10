@@ -13,6 +13,7 @@ export default function LockHash() {
         address: "",
         balance: 0,
         utxos: [],
+        outputs: [],
     })
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
@@ -26,6 +27,10 @@ export default function LockHash() {
                 hash
                 index
                 amount
+            }
+            outputs {
+                hash
+                index
             }
         }
     }
@@ -86,13 +91,26 @@ export default function LockHash() {
                             {address.utxos.map((output) => {
                                 return (
                                     <div key={output} className={column.container}>
-                                        <div className={column.width15}>{output.index}</div>
+                                        <div className={column.width15}>Amount: {output.amount}</div>
                                         <div className={column.width85}>
-                                            Amount: {output.amount}
                                             <Link href={"/tx/" + output.hash}>
                                                 <a><PreInline>{output.hash}:{output.index}</PreInline></a>
                                             </Link>
                                         </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width50}>
+                            <h3>Outputs ({address.outputs.length})</h3>
+                            {address.outputs.map((output) => {
+                                return (
+                                    <div key={output} className={column.container}>
+                                        <Link href={"/tx/" + output.hash}>
+                                            <a><PreInline>{output.hash}:{output.index}</PreInline></a>
+                                        </Link>
                                     </div>
                                 )
                             })}
