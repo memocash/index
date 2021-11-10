@@ -24,27 +24,31 @@ type Balance struct {
 	Spendable  int64
 	UtxoCount  int
 	Spends     int
-	SkipCache  bool
 	OutUtxos   bool
 
 	Utxos []*Utxo
 }
 
-func (b *Balance) GetUtxos() error {
+func (b *Balance) GetBalance() error {
 	lockHash := script.GetLockHash(b.LockScript)
-	if !b.SkipCache {
-		balance, err := item.GetLockBalance(lockHash)
-		if err != nil && !client.IsEntryNotFoundError(err) {
-			return jerr.Get("error getting lock balance", err)
-		}
-		if balance != nil {
-			b.Balance = balance.Balance
-			b.UtxoCount = balance.UtxoCount
-			b.Spendable = balance.Spendable
-			b.Spends = balance.Spends
-			return nil
-		}
+	balance, err := item.GetLockBalance(lockHash)
+	if err != nil && !client.IsEntryNotFoundError(err) {
+		return jerr.Get("error getting lock balance", err)
 	}
+	if balance != nil {
+		b.Balance = balance.Balance
+		b.UtxoCount = balance.UtxoCount
+		b.Spendable = balance.Spendable
+		b.Spends = balance.Spends
+		return nil
+	}
+	if err := b.GetBalanceByUtxos(); err != nil {
+		return jerr.Get("error getting utxos for balance", err)
+	}
+	return nil
+}
+
+func (b *Balance) GetBalanceByUtxos() error {
 	if err := b.attachUtxos(); err != nil {
 		return jerr.Get("error attaching utxos", err)
 	}

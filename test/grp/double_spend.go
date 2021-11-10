@@ -65,14 +65,14 @@ func (s *DoubleSpend) SaveBlock(tx *memo.Tx) error {
 }
 
 func (s *DoubleSpend) GetAddressBalance(address string) (int64, error) {
-	newBalance2, err := get.NewBalanceFromAddress(address)
+	balance, err := get.NewBalanceFromAddress(address)
 	if err != nil {
 		return 0, jerr.Get("error getting address 2 from string for balance", err)
 	}
-	if err := newBalance2.GetUtxos(); err != nil {
+	if err := balance.GetBalance(); err != nil {
 		return 0, jerr.Get("error getting address 2 balance from network", err)
 	}
-	return newBalance2.Balance, nil
+	return balance.Balance, nil
 }
 
 func (s *DoubleSpend) CheckAddressBalance(address string, expectedBalance int64) error {

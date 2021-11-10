@@ -5,14 +5,32 @@ package resolver
 
 import (
 	"context"
-	"fmt"
+	"encoding/hex"
 
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/admin/graph/generated"
 	"github.com/memocash/server/admin/graph/model"
+	"github.com/memocash/server/db/item"
 )
 
-func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock) ([]*model.Tx, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock) ([]*model.TxOutput, error) {
+	hash, err := hex.DecodeString(obj.Hash)
+	if err != nil {
+		return nil, jerr.Get("error decoding lock hash for utxo resolver", err)
+	}
+	lockUtxos, err := item.GetLockUtxos(hash, nil)
+	if err != nil {
+		return nil, jerr.Get("error getting lock utxos for lock utxo resolver", err)
+	}
+	var txOutputs = make([]*model.TxOutput, len(lockUtxos))
+	for i := range lockUtxos {
+		txOutputs[i] = &model.TxOutput{
+			Hash:   hex.EncodeToString(lockUtxos[i].Hash),
+			Index:  lockUtxos[i].Index,
+			Amount: lockUtxos[i].Value,
+		}
+	}
+	return txOutputs, nil
 }
 
 // Lock returns generated.LockResolver implementation.

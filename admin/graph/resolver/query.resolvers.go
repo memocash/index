@@ -57,7 +57,7 @@ func (r *queryResolver) Address(ctx context.Context, address string) (*model.Loc
 	if err != nil {
 		return nil, jerr.Get("error getting address from string for balance", err)
 	}
-	if err := balance.GetUtxos(); err != nil {
+	if err := balance.GetBalanceByUtxos(); err != nil {
 		return nil, jerr.Get("error getting address balance from network", err)
 	}
 	return &model.Lock{

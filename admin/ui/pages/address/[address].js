@@ -4,12 +4,15 @@ import Page from "../../components/page";
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
 import {Loading, GetErrorMessage} from "../../components/util/loading";
+import Link from "next/link";
+import {PreInline} from "../../components/util/pre";
 
 export default function LockHash() {
     const router = useRouter()
     const [address, setAddress] = useState({
         address: "",
         balance: 0,
+        utxos: [],
     })
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
@@ -19,6 +22,11 @@ export default function LockHash() {
             hash
             address
             balance
+            utxos {
+                hash
+                index
+                amount
+            }
         }
     }
     `
@@ -71,6 +79,24 @@ export default function LockHash() {
                     <div className={column.container}>
                         <div className={column.width15}>Balance</div>
                         <div className={column.width85}>{address.balance.toLocaleString()}</div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width50}>
+                            <h3>Utxos ({address.utxos.length})</h3>
+                            {address.utxos.map((output) => {
+                                return (
+                                    <div key={output} className={column.container}>
+                                        <div className={column.width15}>{output.index}</div>
+                                        <div className={column.width85}>
+                                            Amount: {output.amount}
+                                            <Link href={"/tx/" + output.hash}>
+                                                <a><PreInline>{output.hash}:{output.index}</PreInline></a>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
                     </div>
                 </Loading>
             </div>

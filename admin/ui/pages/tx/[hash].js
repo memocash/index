@@ -6,6 +6,7 @@ import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
 import {Loading, GetErrorMessage} from "../../components/util/loading";
 import Link from "next/link";
+import {PreInline} from "../../components/util/pre";
 
 export default function Hash() {
     const router = useRouter()
@@ -84,14 +85,6 @@ export default function Hash() {
         })
     }, [router])
 
-    function preInline(children) {
-        return (
-            <pre className={[pre.pre, pre.inline].join(" ")}>
-                {children}
-            </pre>
-        )
-    }
-
     return (
         <Page>
             <div>
@@ -105,7 +98,7 @@ export default function Hash() {
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>Tx raw</div>
-                        <div className={column.width85}>{preInline(<>{tx.raw}</>)}</div>
+                        <div className={column.width85}><PreInline>{tx.raw}</PreInline></div>
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>Lost/suspect</div>
@@ -138,7 +131,7 @@ export default function Hash() {
                                                 : null
                                             }
                                             <Link href={"/tx/" + input.prev_hash}>
-                                                <a>{preInline(<>{input.prev_hash}:{input.prev_index}</>)}</a>
+                                                <a><PreInline>{input.prev_hash}:{input.prev_index}</PreInline></a>
                                             </Link>
                                         </div>
                                     </div>
@@ -171,7 +164,9 @@ export default function Hash() {
                                                     return (
                                                         <div key={index}>
                                                             <Link href={"/tx/" + spend.hash}>
-                                                                <a>{preInline(<>{spend.hash}:{spend.index}</>)}</a>
+                                                                <a>
+                                                                    <PreInline>{spend.hash}:{spend.index}</PreInline>
+                                                                </a>
                                                             </Link>
                                                         </div>
                                                     )
