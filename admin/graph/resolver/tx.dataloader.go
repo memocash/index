@@ -124,11 +124,11 @@ var blockLoaderConfig = dataloader.BlockLoaderConfig{
 					if !bytes.Equal(block.Hash, txBlock.BlockHash) {
 						continue
 					}
-					rawBlock, err := memo.GetBlockFromRaw(block.Raw)
+					blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
 					if err != nil {
 						return nil, []error{jerr.Get("error getting block from raw for tx resolver", err)}
 					}
-					modelBlock.Timestamp = model.Date(rawBlock.Header.Timestamp)
+					modelBlock.Timestamp = model.Date(blockHeader.Timestamp)
 					for _, blockHeight := range blockHeights {
 						if bytes.Equal(blockHeight.BlockHash, block.Hash) {
 							height := int(blockHeight.Height)
