@@ -62,7 +62,6 @@ func (r *txResolver) Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block,
 		return nil, jerr.Get("error getting blocks for tx from loader", err)
 	}
 	return blocks, nil
-
 }
 
 func (r *txResolver) Suspect(ctx context.Context, obj *model.Tx) (*model.TxSuspect, error) {

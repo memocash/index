@@ -11,6 +11,10 @@ import (
 	"github.com/memocash/server/admin/graph/model"
 )
 
+func (r *blockResolver) Timestamp(ctx context.Context, obj *model.Block) (*model.Date, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *blockResolver) Txs(ctx context.Context, obj *model.Block) ([]*model.Tx, error) {
 	panic(fmt.Errorf("not implemented"))
 }

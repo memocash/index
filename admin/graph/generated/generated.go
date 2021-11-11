@@ -125,6 +125,8 @@ type ComplexityRoot struct {
 }
 
 type BlockResolver interface {
+	Timestamp(ctx context.Context, obj *model.Block) (*model.Date, error)
+
 	Txs(ctx context.Context, obj *model.Block) ([]*model.Tx, error)
 }
 type DoubleSpendResolver interface {
@@ -805,14 +807,14 @@ func (ec *executionContext) _Block_timestamp(ctx context.Context, field graphql.
 		Object:     "Block",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Timestamp, nil
+		return ec.resolvers.Block().Timestamp(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -824,9 +826,9 @@ func (ec *executionContext) _Block_timestamp(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(model.Date)
+	res := resTmp.(*model.Date)
 	fc.Result = res
-	return ec.marshalNDate2githubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
+	return ec.marshalNDate2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Block_height(ctx context.Context, field graphql.CollectedField, obj *model.Block) (ret graphql.Marshaler) {
@@ -3427,10 +3429,19 @@ func (ec *executionContext) _Block(ctx context.Context, sel ast.SelectionSet, ob
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "timestamp":
-			out.Values[i] = ec._Block_timestamp(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Block_timestamp(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "height":
 			out.Values[i] = ec._Block_height(ctx, field, obj)
 		case "txs":
@@ -4265,6 +4276,27 @@ func (ec *executionContext) unmarshalNDate2githubᚗcomᚋmemocashᚋserverᚋad
 
 func (ec *executionContext) marshalNDate2githubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v model.Date) graphql.Marshaler {
 	res := model.MarshalDate(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNDate2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, v interface{}) (*model.Date, error) {
+	res, err := model.UnmarshalDate(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDate2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v *model.Date) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := model.MarshalDate(*v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
