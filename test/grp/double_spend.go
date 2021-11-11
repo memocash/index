@@ -22,12 +22,14 @@ const (
 
 type DoubleSpend struct {
 	TxSaver         dbi.TxSave
+	BlockSaver      dbi.BlockSave
 	FundingTx       *memo.Tx
 	FundingPkScript []byte
 }
 
 func (s *DoubleSpend) Init(wallet *build.Wallet) error {
 	s.TxSaver = saver.CombinedTxSaver(false)
+	s.BlockSaver = saver.NewBlock(false)
 	var err error
 	if s.FundingTx, err = test_tx.GetFundingTx(wallet.Address, FundingValue); err != nil {
 		return jerr.Get("error getting funding tx for address", err)
@@ -60,6 +62,9 @@ func (s *DoubleSpend) SaveBlock(tx *memo.Tx) error {
 	txBlock := memo.GetBlockFromTxs([]*wire.MsgTx{s.FundingTx.MsgTx, tx.MsgTx}, &test_tx.Block1Header)
 	if err := s.TxSaver.SaveTxs(txBlock); err != nil {
 		return jerr.Get("error adding tx1 tx3 block1 to network", err)
+	}
+	if err := s.BlockSaver.SaveBlock(test_tx.Block1Header); err != nil {
+		return jerr.Get("error saving block header 1 for double spend grp", err)
 	}
 	return nil
 }

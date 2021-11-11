@@ -117,6 +117,9 @@ var blockLoaderConfig = dataloader.BlockLoaderConfig{
 				if !bytes.Equal(txBlock.TxHash, txHashes[i]) {
 					continue
 				}
+				var modelBlock = &model.Block{
+					Hash: hs.GetTxString(txBlock.BlockHash),
+				}
 				for _, block := range blocks {
 					if !bytes.Equal(block.Hash, txBlock.BlockHash) {
 						continue
@@ -125,18 +128,15 @@ var blockLoaderConfig = dataloader.BlockLoaderConfig{
 					if err != nil {
 						return nil, []error{jerr.Get("error getting block from raw for tx resolver", err)}
 					}
-					var modelBlock = &model.Block{
-						Hash:      hs.GetTxString(blocks[i].Hash),
-						Timestamp: model.Date(rawBlock.Header.Timestamp),
-					}
+					modelBlock.Timestamp = model.Date(rawBlock.Header.Timestamp)
 					for _, blockHeight := range blockHeights {
 						if bytes.Equal(blockHeight.BlockHash, block.Hash) {
 							height := int(blockHeight.Height)
 							modelBlock.Height = &height
 						}
 					}
-					modelBlocks[i] = append(modelBlocks[i], modelBlock)
 				}
+				modelBlocks[i] = append(modelBlocks[i], modelBlock)
 			}
 		}
 		return modelBlocks, nil

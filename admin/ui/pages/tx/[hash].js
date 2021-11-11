@@ -13,6 +13,7 @@ export default function Hash() {
     const [tx, setTx] = useState({
         inputs: [],
         outputs: [],
+        blocks: [],
     })
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
@@ -46,6 +47,10 @@ export default function Hash() {
                     hash
                     index
                 }
+            }
+            blocks {
+                hash
+                timestamp
             }
         }
     }
@@ -112,6 +117,20 @@ export default function Hash() {
                                         SUSPECT
                                     </div>
                                     : "OK!")}
+                        </div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width15}>Block</div>
+                        <div className={column.width85}>
+                            {tx.blocks ? tx.blocks.map((block) => {
+                                return (
+                                    <div key={block}>
+                                        <p>Hash: {block.hash}</p>
+                                        <p>Height: {block.height ? block.height : "Not set"}</p>
+                                        <p>Timestamp: {block.timestamp.length ? block.timestamp.toString() : "Not set"}</p>
+                                    </div>
+                                )
+                            }) : null}
                         </div>
                     </div>
                     <div className={column.container}>
