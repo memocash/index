@@ -1,0 +1,6 @@
+type Block {
+    hash: String!
+    timestamp: Date!
+    height: Int
+    txs: [Tx!]
+}

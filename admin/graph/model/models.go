@@ -37,3 +37,9 @@ type Lock struct {
 	Address string `json:"address"`
 	Balance int64  `json:"balance"`
 }
+
+type Block struct {
+	Hash      string `json:"hash"`
+	Timestamp Date   `json:"timestamp"`
+	Height    *int   `json:"height"`
+}

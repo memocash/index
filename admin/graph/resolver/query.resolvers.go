@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"github.com/memocash/server/ref/bitcoin/tx/script"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
@@ -17,6 +16,7 @@ import (
 	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/node/obj/get"
 	"github.com/memocash/server/ref/bitcoin/tx/hs"
+	"github.com/memocash/server/ref/bitcoin/tx/script"
 )
 
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {

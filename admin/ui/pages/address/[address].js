@@ -91,8 +91,8 @@ export default function LockHash() {
                             {address.utxos.map((output) => {
                                 return (
                                     <div key={output} className={column.container}>
-                                        <div className={column.width15}>Amount: {output.amount.toLocaleString()}</div>
-                                        <div className={column.width85}>
+                                        <div className={column.width25}>{output.amount.toLocaleString()}</div>
+                                        <div className={column.width75}>
                                             <Link href={"/tx/" + output.hash}>
                                                 <a><PreInline>{output.hash}:{output.index}</PreInline></a>
                                             </Link>

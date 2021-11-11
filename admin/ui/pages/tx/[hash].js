@@ -158,7 +158,7 @@ export default function Hash() {
                                                     </div>
                                                     : null
                                                 }
-                                                <h5 className={column.noMarginBottom}>Spends
+                                                <h5 className={column.noMargin}>Spends
                                                     ({output.spends.length})</h5>
                                                 {output.spends.map((spend, index) => {
                                                     return (

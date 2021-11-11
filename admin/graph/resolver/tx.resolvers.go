@@ -4,14 +4,18 @@ package resolver
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/admin/graph/dataloader"
 	"github.com/memocash/server/admin/graph/generated"
 	"github.com/memocash/server/admin/graph/model"
+	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/ref/bitcoin/memo"
+	"github.com/memocash/server/ref/bitcoin/tx/hs"
 )
 
 func (r *txResolver) Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInput, error) {
@@ -54,6 +58,47 @@ func (r *txResolver) Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOut
 		}
 	}
 	return outputs, nil
+}
+
+func (r *txResolver) Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block, error) {
+	hash, err := chainhash.NewHashFromStr(obj.Hash)
+	if err != nil {
+		return nil, jerr.Get("error getting tx hash from string for block resolver", err)
+	}
+	txBlocks, err := item.GetSingleTxBlocks(hash.CloneBytes())
+	if err != nil {
+		return nil, jerr.Get("error getting blocks for tx for resolver", err)
+	}
+	var blockHashes = make([][]byte, len(txBlocks))
+	for i := range txBlocks {
+		blockHashes[i] = txBlocks[i].BlockHash
+	}
+	blocks, err := item.GetBlocks(blockHashes)
+	if err != nil {
+		return nil, jerr.Get("error getting blocks for tx resolver", err)
+	}
+	blockHeights, err := item.GetBlockHeights(blockHashes)
+	if err != nil {
+		return nil, jerr.Get("error getting block heights for tx resolver", err)
+	}
+	var modelBlocks = make([]*model.Block, len(blocks))
+	for i := range blocks {
+		rawBlock, err := memo.GetBlockFromRaw(blocks[i].Raw)
+		if err != nil {
+			return nil, jerr.Get("error getting block from raw for tx resolver", err)
+		}
+		modelBlocks[i] = &model.Block{
+			Hash:      hs.GetTxString(blocks[i].Hash),
+			Timestamp: model.Date(rawBlock.Header.Timestamp),
+		}
+		for _, blockHeight := range blockHeights {
+			if bytes.Equal(blockHeight.BlockHash, blocks[i].Hash) {
+				height := int(blockHeight.Height)
+				modelBlocks[i].Height = &height
+			}
+		}
+	}
+	return modelBlocks, nil
 }
 
 func (r *txResolver) Suspect(ctx context.Context, obj *model.Tx) (*model.TxSuspect, error) {

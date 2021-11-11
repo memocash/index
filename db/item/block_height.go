@@ -61,3 +61,27 @@ func GetBlockHeight(blockHash []byte) (*BlockHeight, error) {
 	blockHeight.Deserialize(dbClient.Messages[0].Message)
 	return blockHeight, nil
 }
+
+func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
+	for _, blockHash := range blockHashes {
+		shard := GetShardByte32(blockHash)
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(blockHash))
+	}
+	var blockHeights []*BlockHeight
+	for shard, prefixes := range shardPrefixes {
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		db := client.NewClient(shardConfig.GetHost())
+		err := db.GetByPrefixes(TopicBlockHeight, prefixes)
+		if err != nil {
+			return nil, jerr.Get("error getting client message block heights", err)
+		}
+		for _, msg := range db.Messages {
+			var blockHeight = new(BlockHeight)
+			blockHeight.SetUid(msg.Uid)
+			blockHeight.Deserialize(msg.Message)
+			blockHeights = append(blockHeights, blockHeight)
+		}
+	}
+	return blockHeights, nil
+}

@@ -3,6 +3,7 @@ type Tx {
     raw: String!
     inputs: [TxInput!]!
     outputs: [TxOutput!]!
+    blocks: [Block]
     suspect: TxSuspect
     lost: TxLost
 }
