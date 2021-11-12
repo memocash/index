@@ -11,7 +11,7 @@ import (
 type Date time.Time
 
 func MarshalDate(date Date) graphql.Marshaler {
-	data, _ := json.Marshal(date)
+	data, _ := json.Marshal(time.Time(date))
 	return graphql.WriterFunc(func(w io.Writer) {
 		io.WriteString(w, string(data))
 	})
