@@ -34,13 +34,13 @@ func (s *TxSeen) SetUid(uid []byte) {
 		return
 	}
 	s.TxHash = jutil.ByteReverse(uid[:32])
-	s.Timestamp = jutil.GetByteTime(uid[32:40])
+	s.Timestamp = jutil.GetByteTimeNano(uid[32:40])
 }
 
 func (s *TxSeen) Deserialize([]byte) {}
 
 func GetTxSeenUid(txHash []byte, timestamp time.Time) []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetTimeByte(timestamp))
+	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetTimeByteNano(timestamp))
 }
 
 func GetTxSeens(txHashes [][]byte) ([]*TxSeen, error) {

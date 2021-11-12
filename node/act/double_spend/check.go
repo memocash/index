@@ -3,7 +3,6 @@ package double_spend
 import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/node/act/tx_raw"
 	"github.com/memocash/server/ref/bitcoin/memo"
@@ -29,9 +28,7 @@ func (c DoubleSpendCheck) IsWinnerSpend(spendCheck *DoubleSpendCheckSpend) (bool
 
 func (c DoubleSpendCheck) GetWinnerSpend() (*DoubleSpendCheckSpend, error) {
 	var winnerSpend *DoubleSpendCheckSpend
-	jlog.Log("Checking...")
 	for _, spend := range c.Spends {
-		jlog.Logf("spend: %s, first seen: %s\n", hs.GetTxString(spend.TxHash), spend.FirstSeen)
 		if winnerSpend == nil {
 			winnerSpend = spend
 			continue

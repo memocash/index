@@ -37,7 +37,7 @@ func (p PeerConnection) GetUid() []byte {
 	return jutil.CombineBytes(
 		jutil.BytePadPrefix(p.Ip, IpBytePadSize),
 		jutil.GetUintData(uint(p.Port)),
-		jutil.GetTimeByte(p.Time),
+		jutil.GetTimeByteNano(p.Time),
 	)
 }
 
@@ -59,7 +59,7 @@ func (p *PeerConnection) SetUid(uid []byte) {
 	}
 	p.Ip = jutil.ByteUnPad(uid[:IpBytePadSize])
 	p.Port = uint16(jutil.GetUint(uid[IpBytePadSize : IpBytePadSize+4]))
-	p.Time = jutil.GetByteTime(uid[IpBytePadSize+4:])
+	p.Time = jutil.GetByteTimeNano(uid[IpBytePadSize+4:])
 }
 
 func (p *PeerConnection) Deserialize(data []byte) {

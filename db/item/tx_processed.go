@@ -35,13 +35,13 @@ func (s *TxProcessed) SetUid(uid []byte) {
 		return
 	}
 	s.TxHash = jutil.ByteReverse(uid[:32])
-	s.Timestamp = jutil.GetByteTime(uid[32:40])
+	s.Timestamp = jutil.GetByteTimeNano(uid[32:40])
 }
 
 func (s *TxProcessed) Deserialize([]byte) {}
 
 func GetTxProcessedUid(txHash []byte, timestamp time.Time) []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetTimeByte(timestamp))
+	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetTimeByteNano(timestamp))
 }
 
 func WaitForTxProcessed(ctx context.Context, txHash []byte) (*TxProcessed, error) {

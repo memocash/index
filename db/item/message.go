@@ -27,7 +27,7 @@ func (t Message) GetTopic() string {
 }
 
 func (t Message) Serialize() []byte {
-	return jutil.CombineBytes(jutil.GetTimeByte(t.Created), []byte(t.Message))
+	return jutil.CombineBytes(jutil.GetTimeByteNano(t.Created), []byte(t.Message))
 }
 
 func (t *Message) SetUid(uid []byte) {
@@ -38,7 +38,7 @@ func (t *Message) Deserialize(data []byte) {
 	if len(data) < 8 {
 		return
 	}
-	t.Created = jutil.GetByteTime(data[:8])
+	t.Created = jutil.GetByteTimeNano(data[:8])
 	t.Message = string(data[8:])
 }
 
