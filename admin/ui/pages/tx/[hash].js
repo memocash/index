@@ -135,9 +135,11 @@ export default function Hash() {
                             {tx.blocks ? tx.blocks.map((block) => {
                                 return (
                                     <div key={block}>
-                                        <p>Hash: {block.hash}</p>
-                                        <p>Timestamp: {block.timestamp.length ? block.timestamp : "Not set"}</p>
-                                        <p>Height: {block.height}</p>
+                                        Hash: {block.hash}
+                                        <br/>
+                                        Timestamp: {block.timestamp.length ? block.timestamp : "Not set"}
+                                        <br/>
+                                        Height: {block.height}
                                     </div>
                                 )
                             }) : null}

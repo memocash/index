@@ -6,6 +6,8 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/server/admin/graph/dataloader"
 
 	"github.com/memocash/server/admin/graph/generated"
 	"github.com/memocash/server/admin/graph/model"
@@ -16,10 +18,14 @@ func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx
 }
 
 func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error) {
-	return &model.TxOutput{
+	txOutputs, err := dataloader.NewTxOutputLoader(txInputOutputLoaderConfig).Load(model.HashIndex{
 		Hash:  obj.PrevHash,
 		Index: obj.PrevIndex,
-	}, nil
+	})
+	if err != nil {
+		return nil, jerr.Get("error getting tx outputs for spends from loader", err)
+	}
+	return txOutputs, nil
 }
 
 func (r *txInputResolver) DoubleSpend(ctx context.Context, obj *model.TxInput) (*model.DoubleSpend, error) {

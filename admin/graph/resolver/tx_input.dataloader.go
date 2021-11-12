@@ -12,10 +12,10 @@ import (
 	"time"
 )
 
-var txOutputSpendLoaderConfig = dataloader.TxOutputSpendLoaderConfig{
+var txInputOutputLoaderConfig = dataloader.TxOutputLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,
-	Fetch: func(keys []model.HashIndex) ([][]*model.TxInput, []error) {
+	Fetch: func(keys []model.HashIndex) ([]*model.TxOutput, []error) {
 		var outs = make([]memo.Out, len(keys))
 		for i := range keys {
 			hash, err := chainhash.NewHashFromStr(keys[i].Hash)
@@ -27,27 +27,27 @@ var txOutputSpendLoaderConfig = dataloader.TxOutputSpendLoaderConfig{
 				Index:  keys[i].Index,
 			}
 		}
-		outputInputs, err := item.GetOutputInputs(outs)
+		txOutputs, err := item.GetTxOutputs(outs)
 		if err != nil && !client.IsResourceUnavailableError(err) {
-			return nil, []error{jerr.Get("error getting output spends for tx", err)}
+			return nil, []error{jerr.Get("error getting outputs for tx inputs", err)}
 		}
-		var spends = make([][]*model.TxInput, len(outs))
+		var outputs = make([]*model.TxOutput, len(outs))
 		for i := range outs {
-			for _, outputInput := range outputInputs {
-				if bytes.Equal(outs[i].TxHash, outputInput.PrevHash) && outs[i].Index == outputInput.PrevIndex {
-					outputInputHash, err := chainhash.NewHash(outputInput.Hash)
+			for _, txOutput := range txOutputs {
+				if bytes.Equal(txOutput.TxHash, outs[i].TxHash) && txOutput.Index == outs[i].Index {
+					outputHash, err := chainhash.NewHash(txOutput.TxHash)
 					if err != nil {
-						return nil, []error{jerr.Get("error getting output spend hash", err)}
+						return nil, []error{jerr.Get("error getting input output hash", err)}
 					}
-					spends[i] = append(spends[i], &model.TxInput{
-						Hash:      outputInputHash.String(),
-						Index:     outputInput.Index,
-						PrevHash:  keys[i].Hash,
-						PrevIndex: outputInput.PrevIndex,
-					})
+					outputs[i] = &model.TxOutput{
+						Hash:   outputHash.String(),
+						Index:  txOutput.Index,
+						Amount: txOutput.Value,
+					}
+					break
 				}
 			}
 		}
-		return spends, nil
+		return outputs, nil
 	},
 }
