@@ -51,6 +51,14 @@ export default function Hash() {
                 spends {
                     hash
                     index
+                    tx {
+                        suspect {
+                            hash
+                        }
+                        lost {
+                            hash
+                        }
+                    }
                 }
                 lock {
                     address
@@ -153,7 +161,7 @@ export default function Hash() {
                             <h3>Inputs ({tx.inputs.length})</h3>
                             {tx.inputs.map((input) => {
                                 return (
-                                    <div key={input} className={column.container}>
+                                    <div key={input} className={[column.container, column.marginBottom].join(" ")}>
                                         <div className={column.width15}>{input.index}</div>
                                         <div className={column.width85}>
                                             Address: {input.output.lock ?
@@ -182,7 +190,7 @@ export default function Hash() {
                             <h3>Outputs ({tx.outputs.length})</h3>
                             {tx.outputs.map((output, index) => {
                                 return (
-                                    <div key={index} className={column.container}>
+                                    <div key={index} className={[column.container, column.marginBottom].join(" ")}>
                                         <div className={column.width15}>
                                             {output.index}
                                         </div>
@@ -211,6 +219,15 @@ export default function Hash() {
                                                                     <PreInline>{spend.hash}:{spend.index}</PreInline>
                                                                 </a>
                                                             </Link>
+                                                            {spend.tx.lost ?
+                                                                <div className={[column.red, column.bold].join(" ")}>
+                                                                    LOST
+                                                                </div>
+                                                                : (spend.tx.suspect ?
+                                                                    <div className={[column.orange, column.bold].join(" ")}>
+                                                                        SUSPECT
+                                                                    </div>
+                                                                    : "OK!")}
                                                         </div>
                                                     )
                                                 })}

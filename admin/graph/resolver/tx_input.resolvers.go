@@ -14,7 +14,9 @@ import (
 )
 
 func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx, error) {
-	panic(fmt.Errorf("not implemented"))
+	return &model.Tx{
+		Hash: obj.Hash,
+	}, nil
 }
 
 func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error) {

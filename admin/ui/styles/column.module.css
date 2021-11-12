@@ -22,6 +22,10 @@
     width: 85%;
 }
 
+.marginBottom {
+    margin-bottom: 12px;
+}
+
 .noMarginBottom {
     margin-bottom: 0;
 }
