@@ -27,6 +27,14 @@ export default function LockHash() {
                 hash
                 index
                 amount
+                tx {
+                    lost {
+                        hash
+                    }
+                    suspect {
+                        hash
+                    }
+                }
             }
             outputs {
                 hash
@@ -96,6 +104,15 @@ export default function LockHash() {
                                             <Link href={"/tx/" + output.hash}>
                                                 <a><PreInline>{output.hash}:{output.index}</PreInline></a>
                                             </Link>
+                                            {output.tx.lost ?
+                                                <div className={[column.red, column.bold].join(" ")}>
+                                                    LOST
+                                                </div>
+                                                : (output.tx.suspect ?
+                                                    <div className={[column.orange, column.bold].join(" ")}>
+                                                        SUSPECT
+                                                    </div>
+                                                    : "OK!")}
                                         </div>
                                     </div>
                                 )
