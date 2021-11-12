@@ -37,6 +37,9 @@ func (r *txOutputResolver) DoubleSpend(ctx context.Context, obj *model.TxOutput)
 }
 
 func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*model.Lock, error) {
+	if len(obj.Script) == 0 {
+		return nil, nil
+	}
 	lockScript, err := hex.DecodeString(obj.Script)
 	if err != nil {
 		return nil, jerr.Get("error parsing lock script for tx output lock resolver", err)

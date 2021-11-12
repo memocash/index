@@ -6,9 +6,9 @@ package resolver
 import (
 	"context"
 	"fmt"
+
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/admin/graph/dataloader"
-
 	"github.com/memocash/server/admin/graph/generated"
 	"github.com/memocash/server/admin/graph/model"
 )

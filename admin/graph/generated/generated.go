@@ -648,10 +648,10 @@ scalar Date
     hash: String!
     index: Uint32!
     amount: Int64!
-    script: String
+    script: String!
     spends: [TxInput]
     double_spend: DoubleSpend
-    lock: Lock!
+    lock: Lock
 }
 `, BuiltIn: false},
 	{Name: "schema/tx_suspect.graphqls", Input: `type TxSuspect {
@@ -2194,11 +2194,14 @@ func (ec *executionContext) _TxOutput_script(ctx context.Context, field graphql.
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxOutput_spends(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
@@ -2290,14 +2293,11 @@ func (ec *executionContext) _TxOutput_lock(ctx context.Context, field graphql.Co
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Lock)
 	fc.Result = res
-	return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxSuspect_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxSuspect) (ret graphql.Marshaler) {
@@ -4023,6 +4023,9 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "script":
 			out.Values[i] = ec._TxOutput_script(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "spends":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -4054,9 +4057,6 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 					}
 				}()
 				res = ec._TxOutput_lock(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		default:
@@ -4435,20 +4435,6 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) marshalNLock2githubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v model.Lock) graphql.Marshaler {
-	return ec._Lock(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNLock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v *model.Lock) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Lock(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

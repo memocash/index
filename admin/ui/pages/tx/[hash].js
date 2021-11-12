@@ -39,6 +39,9 @@ export default function Hash() {
                         hash
                         index
                     }
+                    lock {
+                        address
+                    }
                 }
             }
             outputs {
@@ -153,6 +156,12 @@ export default function Hash() {
                                     <div key={input} className={column.container}>
                                         <div className={column.width15}>{input.index}</div>
                                         <div className={column.width85}>
+                                            Address: {input.output.lock ?
+                                            <Link href={"/address/" + input.output.lock.address}>
+                                                <a>{input.output.lock.address}</a>
+                                            </Link>
+                                            : <>Not found</>}
+                                            <br/>
                                             Amount: {input.output.amount}
                                             <br/>
                                             {input.output.spends && input.output.spends.length >= 2 ?
@@ -178,10 +187,8 @@ export default function Hash() {
                                             {output.index}
                                         </div>
                                         <div className={column.width85}>
-                                            Address:
-                                            <Link href={"/address/" + output.lock.address}>
-                                                <a>{output.lock.address}</a>
-                                            </Link>
+                                            Address: <Link href={"/address/" + output.lock.address}>
+                                            <a>{output.lock.address}</a></Link>
                                             <br/>
                                             Amount: {output.amount}
                                             <br/>

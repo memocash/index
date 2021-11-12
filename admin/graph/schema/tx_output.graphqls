@@ -3,8 +3,8 @@ type TxOutput {
     hash: String!
     index: Uint32!
     amount: Int64!
-    script: String
+    script: String!
     spends: [TxInput]
     double_spend: DoubleSpend
-    lock: Lock!
+    lock: Lock
 }
