@@ -90,6 +90,7 @@ type ComplexityRoot struct {
 		Lost    func(childComplexity int) int
 		Outputs func(childComplexity int) int
 		Raw     func(childComplexity int) int
+		Seen    func(childComplexity int) int
 		Suspect func(childComplexity int) int
 	}
 
@@ -149,6 +150,7 @@ type TxResolver interface {
 	Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block, error)
 	Suspect(ctx context.Context, obj *model.Tx) (*model.TxSuspect, error)
 	Lost(ctx context.Context, obj *model.Tx) (*model.TxLost, error)
+	Seen(ctx context.Context, obj *model.Tx) (*model.Date, error)
 }
 type TxInputResolver interface {
 	Tx(ctx context.Context, obj *model.TxInput) (*model.Tx, error)
@@ -364,6 +366,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Tx.Raw(childComplexity), true
+
+	case "Tx.seen":
+		if e.complexity.Tx.Seen == nil {
+			break
+		}
+
+		return e.complexity.Tx.Seen(childComplexity), true
 
 	case "Tx.suspect":
 		if e.complexity.Tx.Suspect == nil {
@@ -607,6 +616,7 @@ scalar Date
     blocks: [Block]
     suspect: TxSuspect
     lost: TxLost
+    seen: Date!
 }
 `, BuiltIn: false},
 	{Name: "schema/tx_input.graphqls", Input: `type TxInput {
@@ -1660,6 +1670,41 @@ func (ec *executionContext) _Tx_lost(ctx context.Context, field graphql.Collecte
 	res := resTmp.(*model.TxLost)
 	fc.Result = res
 	return ec.marshalOTxLost2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxLost(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Tx_seen(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Tx",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Tx().Seen(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Date)
+	fc.Result = res
+	return ec.marshalNDate2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxInput_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
@@ -3744,6 +3789,20 @@ func (ec *executionContext) _Tx(ctx context.Context, sel ast.SelectionSet, obj *
 				res = ec._Tx_lost(ctx, field, obj)
 				return res
 			})
+		case "seen":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tx_seen(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4265,6 +4324,27 @@ func (ec *executionContext) unmarshalNDate2githubᚗcomᚋmemocashᚋserverᚋad
 
 func (ec *executionContext) marshalNDate2githubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v model.Date) graphql.Marshaler {
 	res := model.MarshalDate(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNDate2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, v interface{}) (*model.Date, error) {
+	res, err := model.UnmarshalDate(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDate2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v *model.Date) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := model.MarshalDate(*v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")

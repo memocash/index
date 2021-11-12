@@ -83,6 +83,36 @@ var txSuspectLoaderConfig = dataloader.TxSuspectLoaderConfig{
 	},
 }
 
+var txSeenLoaderConfig = dataloader.TxSeenLoaderConfig{
+	Wait:     2 * time.Millisecond,
+	MaxBatch: 100,
+	Fetch: func(keys []string) ([]*model.Date, []error) {
+		var txHashes = make([][]byte, len(keys))
+		for i := range keys {
+			hash, err := chainhash.NewHashFromStr(keys[i])
+			if err != nil {
+				return nil, []error{jerr.Get("error parsing spend tx hash for output", err)}
+			}
+			txHashes[i] = hash.CloneBytes()
+		}
+		txSeens, err := item.GetTxSeens(txHashes)
+		if err != nil && !client.IsResourceUnavailableError(err) {
+			return nil, []error{jerr.Get("error getting tx seens", err)}
+		}
+		var modelTxSeens = make([]*model.Date, len(txHashes))
+		for i := range txHashes {
+			for _, txSeen := range txSeens {
+				if bytes.Equal(txSeen.TxHash, txHashes[i]) {
+					var modelDate = model.Date(txSeen.Timestamp)
+					modelTxSeens[i] = &modelDate
+					break
+				}
+			}
+		}
+		return modelTxSeens, nil
+	},
+}
+
 var blockLoaderConfig = dataloader.BlockLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,

@@ -22,6 +22,7 @@ export default function Hash() {
         tx(hash: $hash) {
             hash
             raw
+            seen
             suspect {
                 hash
             }
@@ -105,6 +106,10 @@ export default function Hash() {
                     <div className={column.container}>
                         <div className={column.width15}>Tx raw</div>
                         <div className={column.width85}><PreInline>{tx.raw}</PreInline></div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width15}>First Seen</div>
+                        <div className={column.width85}>{tx.seen}</div>
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>Lost/suspect</div>
