@@ -50,6 +50,7 @@ export default function Hash() {
             }
             blocks {
                 hash
+                height
                 timestamp
             }
         }
@@ -126,8 +127,8 @@ export default function Hash() {
                                 return (
                                     <div key={block}>
                                         <p>Hash: {block.hash}</p>
-                                        <p>Height: {block.height ? block.height : "Not set"}</p>
-                                        <p>Timestamp: {block.timestamp.length ? block.timestamp.toString() : "Not set"}</p>
+                                        <p>Timestamp: {block.timestamp.length ? block.timestamp : "Not set"}</p>
+                                        <p>Height: {block.height}</p>
                                     </div>
                                 )
                             }) : null}
