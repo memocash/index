@@ -114,6 +114,7 @@ type ComplexityRoot struct {
 		DoubleSpend func(childComplexity int) int
 		Hash        func(childComplexity int) int
 		Index       func(childComplexity int) int
+		Lock        func(childComplexity int) int
 		Script      func(childComplexity int) int
 		Spends      func(childComplexity int) int
 		Tx          func(childComplexity int) int
@@ -166,6 +167,7 @@ type TxOutputResolver interface {
 
 	Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error)
 	DoubleSpend(ctx context.Context, obj *model.TxOutput) (*model.DoubleSpend, error)
+	Lock(ctx context.Context, obj *model.TxOutput) (*model.Lock, error)
 }
 type TxSuspectResolver interface {
 	Tx(ctx context.Context, obj *model.TxSuspect) (*model.Tx, error)
@@ -472,6 +474,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TxOutput.Index(childComplexity), true
 
+	case "TxOutput.lock":
+		if e.complexity.TxOutput.Lock == nil {
+			break
+		}
+
+		return e.complexity.TxOutput.Lock(childComplexity), true
+
 	case "TxOutput.script":
 		if e.complexity.TxOutput.Script == nil {
 			break
@@ -642,6 +651,7 @@ scalar Date
     script: String
     spends: [TxInput]
     double_spend: DoubleSpend
+    lock: Lock!
 }
 `, BuiltIn: false},
 	{Name: "schema/tx_suspect.graphqls", Input: `type TxSuspect {
@@ -2253,6 +2263,41 @@ func (ec *executionContext) _TxOutput_double_spend(ctx context.Context, field gr
 	res := resTmp.(*model.DoubleSpend)
 	fc.Result = res
 	return ec.marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TxOutput_lock(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TxOutput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.TxOutput().Lock(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxSuspect_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxSuspect) (ret graphql.Marshaler) {
@@ -4000,6 +4045,20 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 				res = ec._TxOutput_double_spend(ctx, field, obj)
 				return res
 			})
+		case "lock":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._TxOutput_lock(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4376,6 +4435,20 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNLock2githubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v model.Lock) graphql.Marshaler {
+	return ec._Lock(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v *model.Lock) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Lock(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

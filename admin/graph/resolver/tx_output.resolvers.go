@@ -5,12 +5,16 @@ package resolver
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/server/admin/graph/dataloader"
 	"github.com/memocash/server/admin/graph/generated"
 	"github.com/memocash/server/admin/graph/model"
+	"github.com/memocash/server/node/obj/get"
+	"github.com/memocash/server/ref/bitcoin/tx/script"
+	"github.com/memocash/server/ref/bitcoin/wallet"
 )
 
 func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {
@@ -30,6 +34,26 @@ func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*
 
 func (r *txOutputResolver) DoubleSpend(ctx context.Context, obj *model.TxOutput) (*model.DoubleSpend, error) {
 	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*model.Lock, error) {
+	lockScript, err := hex.DecodeString(obj.Script)
+	if err != nil {
+		return nil, jerr.Get("error parsing lock script for tx output lock resolver", err)
+	}
+	address, err := wallet.GetAddressFromPkScript(lockScript)
+	if err != nil {
+		return nil, jerr.Get("error getting address from lock script", err)
+	}
+	balance := get.NewBalance(lockScript)
+	if err := balance.GetBalance(); err != nil {
+		return nil, jerr.Get("error getting lock balance for tx output resolver", err)
+	}
+	return &model.Lock{
+		Hash:    hex.EncodeToString(script.GetLockHash(lockScript)),
+		Address: address.GetEncoded(),
+		Balance: balance.Balance,
+	}, nil
 }
 
 // TxOutput returns generated.TxOutputResolver implementation.

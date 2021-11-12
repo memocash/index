@@ -34,6 +34,7 @@ export default function Hash() {
                 prev_hash
                 prev_index
                 output {
+                    amount
                     spends {
                         hash
                         index
@@ -47,6 +48,9 @@ export default function Hash() {
                 spends {
                     hash
                     index
+                }
+                lock {
+                    address
                 }
             }
             blocks {
@@ -172,6 +176,11 @@ export default function Hash() {
                                             {output.index}
                                         </div>
                                         <div className={column.width85}>
+                                            Address:
+                                            <Link href={"/address/" + output.lock.address}>
+                                                <a>{output.lock.address}</a>
+                                            </Link>
+                                            <br/>
                                             Amount: {output.amount}
                                             <br/>
                                             PkScript: <pre
