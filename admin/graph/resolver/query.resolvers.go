@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -66,6 +65,39 @@ func (r *queryResolver) Address(ctx context.Context, address string) (*model.Loc
 		Address: balance.Address,
 		Balance: balance.Balance,
 	}, nil
+}
+
+func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, error) {
+	blockHash, err := chainhash.NewHashFromStr(hash)
+	if err != nil {
+		return nil, jerr.Get("error parsing block hash for block query resolver", err)
+	}
+	blockHeight, err := item.GetBlockHeight(blockHash.CloneBytes())
+	if err != nil {
+		return nil, jerr.Get("error getting block height for query resolver", err)
+	}
+	height := int(blockHeight.Height)
+	return &model.Block{
+		Hash:      hs.GetTxString(blockHeight.BlockHash),
+		Timestamp: model.Date{},
+		Height:    &height,
+	}, nil
+}
+
+func (r *queryResolver) Blocks(ctx context.Context, newest *bool) ([]*model.Block, error) {
+	heightBlocks, err := item.GetHeightBlocksAll(0, false)
+	if err != nil {
+		return nil, jerr.Get("error getting height blocks for query", err)
+	}
+	var modelBlocks = make([]*model.Block, len(heightBlocks))
+	for i := range heightBlocks {
+		var height = int(heightBlocks[i].Height)
+		modelBlocks[i] = &model.Block{
+			Hash:   hs.GetTxString(heightBlocks[i].BlockHash),
+			Height: &height,
+		}
+	}
+	return modelBlocks, nil
 }
 
 func (r *queryResolver) DoubleSpends(ctx context.Context) ([]*model.DoubleSpend, error) {

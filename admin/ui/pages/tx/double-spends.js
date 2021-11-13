@@ -64,7 +64,7 @@ function DoubleSpends() {
                                 <ul>
                                     {doubleSpend.inputs.map((input) => {
                                         return (
-                                            <li>
+                                            <li key={input}>
                                                 <Link href={"/tx/" + input.hash}>
                                                     <a>{input.hash}:{input.index}</a>
                                                 </Link>

@@ -1,5 +1,7 @@
 type Query {
     tx(hash: String!): Tx
     address(address: String!): Lock
+    block(hash: String!): Block
+    blocks(newest: Boolean): [Block!]
     double_spends: [DoubleSpend!]
 }

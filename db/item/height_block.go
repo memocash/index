@@ -139,7 +139,7 @@ func GetHeightBlocksAll(startHeight int64, waitSingle bool) ([]*HeightBlock, err
 		}
 		err := dbClient.GetWOpts(client.Opts{
 			Topic:   TopicHeightBlock,
-			Start:   client.IncrementBytes(jutil.GetInt64DataBig(startHeight)),
+			Start:   jutil.GetInt64DataBig(startHeight),
 			Wait:    waitSingle,
 			Max:     client.LargeLimit,
 			Timeout: timeout,

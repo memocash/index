@@ -41,6 +41,11 @@ export default function Page(props) {
                                 <a>Double Spends</a>
                             </Link>
                         </li>
+                        <li>
+                            <Link href="/block/list">
+                                <a>Blocks</a>
+                            </Link>
+                        </li>
                     </ul>
                     <h3>Peer</h3>
                     <ul>
