@@ -21,6 +21,7 @@ type Block struct {
 }
 
 func (t *Block) SaveBlock(header wire.BlockHeader) error {
+	t.Verbose = true
 	t.BlockHash = header.BlockHash()
 	t.BlockHashBytes = t.BlockHash.CloneBytes()
 	err := t.saveBlockObjects(header)

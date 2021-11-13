@@ -10,6 +10,7 @@ import (
 	"github.com/memocash/server/ref/bitcoin/tx/build"
 	"github.com/memocash/server/ref/bitcoin/tx/gen"
 	"github.com/memocash/server/ref/bitcoin/tx/script"
+	"github.com/memocash/server/ref/bitcoin/util/testing/test_block"
 	"github.com/memocash/server/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/server/ref/dbi"
 )
@@ -23,21 +24,20 @@ const (
 type DoubleSpend struct {
 	TxSaver         dbi.TxSave
 	BlockSaver      dbi.BlockSave
-	FundingTx       *memo.Tx
 	FundingPkScript []byte
 }
 
 func (s *DoubleSpend) Init(wallet *build.Wallet) error {
 	s.TxSaver = saver.CombinedTxSaver(false)
 	s.BlockSaver = saver.NewBlock(false)
-	var err error
-	if s.FundingTx, err = test_tx.GetFundingTx(wallet.Address, FundingValue); err != nil {
+	fundingTx, err := test_tx.GetFundingTx(wallet.Address, FundingValue)
+	if err != nil {
 		return jerr.Get("error getting funding tx for address", err)
 	}
-	if err := s.TxSaver.SaveTxs(memo.GetBlockFromTxs([]*wire.MsgTx{s.FundingTx.MsgTx}, nil)); err != nil {
+	if err := s.SaveBlock([]*memo.Tx{fundingTx}); err != nil {
 		return jerr.Get("error saving funding tx", err)
 	}
-	wallet.Getter.AddChangeUTXO(script.GetOutputUTXOs(s.FundingTx)[0])
+	wallet.Getter.AddChangeUTXO(script.GetOutputUTXOs(fundingTx)[0])
 	return nil
 }
 
@@ -58,13 +58,17 @@ func (s *DoubleSpend) Create(output *memo.Output, wallet build.Wallet) (*memo.Tx
 	return tx, nil
 }
 
-func (s *DoubleSpend) SaveBlock(tx *memo.Tx) error {
-	txBlock := memo.GetBlockFromTxs([]*wire.MsgTx{s.FundingTx.MsgTx, tx.MsgTx}, &test_tx.Block1Header)
-	if err := s.TxSaver.SaveTxs(txBlock); err != nil {
-		return jerr.Get("error adding tx1 tx3 block1 to network", err)
+func (s *DoubleSpend) SaveBlock(txs []*memo.Tx) error {
+	var wireTxs = make([]*wire.MsgTx, len(txs))
+	for i := range txs {
+		wireTxs[i] = txs[i].MsgTx
 	}
-	if err := s.BlockSaver.SaveBlock(test_tx.Block1Header); err != nil {
-		return jerr.Get("error saving block header 1 for double spend grp", err)
+	block := test_block.GetNextBlock(wireTxs)
+	if err := s.TxSaver.SaveTxs(block); err != nil {
+		return jerr.Get("error adding txs block to network", err)
+	}
+	if err := s.BlockSaver.SaveBlock(block.Header); err != nil {
+		return jerr.Get("error saving block header for double spend grp", err)
 	}
 	return nil
 }

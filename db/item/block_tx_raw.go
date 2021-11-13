@@ -104,7 +104,7 @@ func GetRawBlockTxsByHashes(blockTxs []*BlockTx) ([]*BlockTxRaw, error) {
 	var shardTxs = make(map[uint32][]*BlockTxRaw)
 	var wg sync.WaitGroup
 	wg.Add(len(shardUids))
-
+	var lock = sync.RWMutex{}
 	var errs []error
 	for shardT, uidsT := range shardUids {
 		go func(shard uint32, uids [][]byte) {
@@ -120,7 +120,9 @@ func GetRawBlockTxsByHashes(blockTxs []*BlockTx) ([]*BlockTxRaw, error) {
 				var tx = new(BlockTxRaw)
 				tx.SetUid(msg.Uid)
 				tx.Deserialize(msg.Message)
+				lock.Lock()
 				shardTxs[shard] = append(shardTxs[shard], tx)
+				lock.Unlock()
 			}
 		}(shardT, uidsT)
 	}

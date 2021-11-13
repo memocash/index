@@ -140,106 +140,128 @@ export default function Hash() {
                                     : "OK!")}
                         </div>
                     </div>
+                    <BlockInfo tx={tx}/>
                     <div className={column.container}>
-                        <div className={column.width15}>Block</div>
-                        <div className={column.width85}>
-                            {tx.blocks ? tx.blocks.map((block) => {
-                                return (
-                                    <div key={block}>
-                                        Hash: {block.hash}
-                                        <br/>
-                                        Timestamp: {block.timestamp.length ? block.timestamp : "Not set"}
-                                        <br/>
-                                        Height: {block.height}
-                                    </div>
-                                )
-                            }) : null}
-                        </div>
-                    </div>
-                    <div className={column.container}>
-                        <div className={column.width50}>
-                            <h3>Inputs ({tx.inputs.length})</h3>
-                            {tx.inputs.map((input) => {
-                                return (
-                                    <div key={input} className={[column.container, column.marginBottom].join(" ")}>
-                                        <div className={column.width15}>{input.index}</div>
-                                        <div className={column.width85}>
-                                            Address: {input.output.lock ?
-                                            <Link href={"/address/" + input.output.lock.address}>
-                                                <a>{input.output.lock.address}</a>
-                                            </Link>
-                                            : <>Not found</>}
-                                            <br/>
-                                            Amount: {input.output.amount}
-                                            <br/>
-                                            {input.output.spends && input.output.spends.length >= 2 ?
-                                                <div className={[column.red, column.bold].join(" ")}>
-                                                    DOUBLE SPEND
-                                                </div>
-                                                : null
-                                            }
-                                            <Link href={"/tx/" + input.prev_hash}>
-                                                <a><PreInline>{input.prev_hash}:{input.prev_index}</PreInline></a>
-                                            </Link>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                        <div className={column.width50}>
-                            <h3>Outputs ({tx.outputs.length})</h3>
-                            {tx.outputs.map((output, index) => {
-                                return (
-                                    <div key={index} className={[column.container, column.marginBottom].join(" ")}>
-                                        <div className={column.width15}>
-                                            {output.index}
-                                        </div>
-                                        <div className={column.width85}>
-                                            Address: <Link href={"/address/" + output.lock.address}>
-                                            <a>{output.lock.address}</a></Link>
-                                            <br/>
-                                            Amount: {output.amount}
-                                            <br/>
-                                            PkScript: <pre
-                                            className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
-                                            {output.spends ? <>
-                                                {output.spends.length >= 2 ?
-                                                    <div className={[column.red, column.bold].join(" ")}>
-                                                        DOUBLE SPEND
-                                                    </div>
-                                                    : null
-                                                }
-                                                <h5 className={column.noMargin}>Spends
-                                                    ({output.spends.length})</h5>
-                                                {output.spends.map((spend, index) => {
-                                                    return (
-                                                        <div key={index}>
-                                                            <Link href={"/tx/" + spend.hash}>
-                                                                <a>
-                                                                    <PreInline>{spend.hash}:{spend.index}</PreInline>
-                                                                </a>
-                                                            </Link>
-                                                            {spend.tx.lost ?
-                                                                <div className={[column.red, column.bold].join(" ")}>
-                                                                    LOST
-                                                                </div>
-                                                                : (spend.tx.suspect ?
-                                                                    <div className={[column.orange, column.bold].join(" ")}>
-                                                                        SUSPECT
-                                                                    </div>
-                                                                    : "OK!")}
-                                                        </div>
-                                                    )
-                                                })}
-                                            </> : null}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
+                        <Inputs tx={tx}/>
+                        <Outputs tx={tx}/>
                     </div>
                 </Loading>
             </div>
         </Page>
+    )
+}
+
+function BlockInfo(props) {
+    const tx = props.tx
+    return (
+        <div className={column.container}>
+            <div className={column.width15}>Block</div>
+            <div className={column.width85}>
+                {tx.blocks ? tx.blocks.map((block) => {
+                    return (
+                        <div key={block}>
+                            Hash: <Link href={"/block/" + block.hash}>
+                            <a>{block.hash}</a></Link>
+                            <br/>
+                            Timestamp: {block.timestamp.length ? block.timestamp : "Not set"}
+                            <br/>
+                            Height: {block.height}
+                        </div>
+                    )
+                }) : null}
+            </div>
+        </div>
+    )
+}
+
+function Inputs(props) {
+    const tx = props.tx
+    return (
+        <div className={column.width50}>
+            <h3>Inputs ({tx.inputs.length})</h3>
+            {tx.inputs.map((input) => {
+                return (
+                    <div key={input} className={[column.container, column.marginBottom].join(" ")}>
+                        <div className={column.width15}>{input.index}</div>
+                        <div className={column.width85}>
+                            Address: {input.output.lock ?
+                            <Link href={"/address/" + input.output.lock.address}>
+                                <a>{input.output.lock.address}</a>
+                            </Link>
+                            : <>Not found</>}
+                            <br/>
+                            Amount: {input.output.amount}
+                            <br/>
+                            {input.output.spends && input.output.spends.length >= 2 ?
+                                <div className={[column.red, column.bold].join(" ")}>
+                                    DOUBLE SPEND
+                                </div>
+                                : null
+                            }
+                            <Link href={"/tx/" + input.prev_hash}>
+                                <a><PreInline>{input.prev_hash}:{input.prev_index}</PreInline></a>
+                            </Link>
+                        </div>
+                    </div>
+                )
+            })}
+        </div>
+    )
+}
+
+function Outputs(props) {
+    const tx = props.tx
+    return (
+        <div className={column.width50}>
+            <h3>Outputs ({tx.outputs.length})</h3>
+            {tx.outputs.map((output, index) => {
+                return (
+                    <div key={index} className={[column.container, column.marginBottom].join(" ")}>
+                        <div className={column.width15}>
+                            {output.index}
+                        </div>
+                        <div className={column.width85}>
+                            Address: <Link href={"/address/" + output.lock.address}>
+                            <a>{output.lock.address}</a></Link>
+                            <br/>
+                            Amount: {output.amount}
+                            <br/>
+                            PkScript: <pre
+                            className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
+                            {output.spends ? <>
+                                {output.spends.length >= 2 ?
+                                    <div className={[column.red, column.bold].join(" ")}>
+                                        DOUBLE SPEND
+                                    </div>
+                                    : null
+                                }
+                                <h5 className={column.noMargin}>Spends
+                                    ({output.spends.length})</h5>
+                                {output.spends.map((spend, index) => {
+                                    return (
+                                        <div key={index}>
+                                            <Link href={"/tx/" + spend.hash}>
+                                                <a>
+                                                    <PreInline>{spend.hash}:{spend.index}</PreInline>
+                                                </a>
+                                            </Link>
+                                            {spend.tx.lost ?
+                                                <div className={[column.red, column.bold].join(" ")}>
+                                                    LOST
+                                                </div>
+                                                : (spend.tx.suspect ?
+                                                    <div className={[column.orange, column.bold].join(" ")}>
+                                                        SUSPECT
+                                                    </div>
+                                                    : "OK!")}
+                                        </div>
+                                    )
+                                })}
+                            </> : null}
+                        </div>
+                    </div>
+                )
+            })}
+        </div>
     )
 }
