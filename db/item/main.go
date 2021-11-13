@@ -33,6 +33,7 @@ const (
 	TopicProcessStatus     = "process_status"
 	TopicTx                = "tx"
 	TopicTxBlock           = "tx_block"
+	TopicTxInput           = "tx_input"
 	TopicTxLost            = "tx_lost"
 	TopicTxOutput          = "tx_output"
 	TopicTxProcessed       = "tx_processed"

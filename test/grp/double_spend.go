@@ -72,10 +72,10 @@ func (s *DoubleSpend) SaveBlock(tx *memo.Tx) error {
 func (s *DoubleSpend) GetAddressBalance(address string) (int64, error) {
 	balance, err := get.NewBalanceFromAddress(address)
 	if err != nil {
-		return 0, jerr.Get("error getting address 2 from string for balance", err)
+		return 0, jerr.Get("error getting address from string for double spend balance", err)
 	}
 	if err := balance.GetBalance(); err != nil {
-		return 0, jerr.Get("error getting address 2 balance from network", err)
+		return 0, jerr.Get("error getting address balance by utxos from network", err)
 	}
 	return balance.Balance, nil
 }

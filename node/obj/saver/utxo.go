@@ -22,6 +22,7 @@ func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
 	}
 	var lockUtxos []*item.LockUtxo
 	var txOutputs []*item.TxOutput
+	var txInputs []*item.TxInput
 	var ins []memo.Out
 	var lockHashes [][]byte
 	for _, msgTx := range block.Transactions {
@@ -36,6 +37,12 @@ func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
 			ins = append(ins, memo.Out{
 				TxHash: msgTx.TxIn[g].PreviousOutPoint.Hash.CloneBytes(),
 				Index:  msgTx.TxIn[g].PreviousOutPoint.Index,
+			})
+			txInputs = append(txInputs, &item.TxInput{
+				TxHash:    txHashBytes,
+				Index:     uint32(g),
+				PrevHash:  msgTx.TxIn[g].PreviousOutPoint.Hash.CloneBytes(),
+				PrevIndex: msgTx.TxIn[g].PreviousOutPoint.Index,
 			})
 		}
 		for g, txOut := range msgTx.TxOut {
@@ -92,12 +99,16 @@ LockUtxoLoop:
 		}
 	}
 	var numLockUtxos = len(lockUtxos)
-	var objects = make([]item.Object, numLockUtxos+len(txOutputs))
+	var numLockUtxosAndTxOutputs = numLockUtxos + len(txOutputs)
+	var objects = make([]item.Object, numLockUtxosAndTxOutputs+len(txInputs))
 	for i := range lockUtxos {
 		objects[i] = lockUtxos[i]
 	}
 	for i := range txOutputs {
 		objects[numLockUtxos+i] = txOutputs[i]
+	}
+	for i := range txInputs {
+		objects[numLockUtxosAndTxOutputs+i] = txInputs[i]
 	}
 	if err = item.Save(objects); err != nil {
 		return jerr.Get("error saving new lock utxos", err)

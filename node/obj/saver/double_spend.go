@@ -148,6 +148,11 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 					})
 				}
 			}
+			descendantLockHashes, err := GetTxLockHashes(descendantTxHashes)
+			if err != nil {
+				return jerr.Get("error getting tx lock hashes for descendant tx hashes double spend", err)
+			}
+			lockHashes = append(lockHashes, descendantLockHashes...)
 		}
 	}
 	if err := item.RemoveTxLosts(lostTxsToRemove); err != nil {
@@ -247,6 +252,37 @@ func GetTxDescendants(txHash []byte) ([][]byte, error) {
 		}
 	}
 	return allTxHashes, nil
+}
+
+func GetTxLockHashes(txHashes [][]byte) ([][]byte, error) {
+	txInputs, err := item.GetTxInputsByHashes(txHashes)
+	if err != nil {
+		return nil, jerr.Get("error getting tx inputs for lock hashes", err)
+	}
+	var outs = make([]memo.Out, len(txInputs))
+	for i := range txInputs {
+		outs[i] = memo.Out{
+			TxHash: txInputs[i].PrevHash,
+			Index:  txInputs[i].PrevIndex,
+		}
+	}
+	txOutputs, err := item.GetTxOutputsByHashes(txHashes)
+	if err != nil {
+		return nil, jerr.Get("error getting tx outputs for lock hashes txs", err)
+	}
+	txOutputsFromInputs, err := item.GetTxOutputs(outs)
+	if err != nil {
+		return nil, jerr.Get("error getting tx outputs for lock hashes inputs", err)
+	}
+	var lenTxOutputs = len(txOutputs)
+	var lockHashes = make([][]byte, lenTxOutputs+len(txOutputsFromInputs))
+	for i := range txOutputs {
+		lockHashes[i] = txOutputs[i].LockHash
+	}
+	for i := range txOutputsFromInputs {
+		lockHashes[lenTxOutputs+i] = txOutputsFromInputs[i].LockHash
+	}
+	return lockHashes, nil
 }
 
 func NewDoubleSpend(verbose bool) *DoubleSpend {
