@@ -3,6 +3,7 @@ package test_block
 import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
+	"github.com/memocash/server/ref/config"
 	"math/rand"
 	"time"
 )
@@ -29,6 +30,8 @@ type BlockGenerator struct {
 func (g *BlockGenerator) GetNextBlock(txs []*wire.MsgTx) *wire.MsgBlock {
 	if g.Time.IsZero() {
 		g.Time = time.Date(2009, 1, 3, 18, 15, 5, 0, time.UTC)
+		chainHash, _ := chainhash.NewHashFromStr(config.GetInitBlockParent())
+		g.PrevBlock = *chainHash
 	} else {
 		g.Time = g.Time.Add(GetRandom10Minute())
 	}
@@ -52,7 +55,7 @@ func (g *BlockGenerator) GetNextBlock(txs []*wire.MsgTx) *wire.MsgBlock {
 }
 
 func GetRandom10Minute() time.Duration {
-	const maxDuration = 10 * time.Minute
+	const maxDuration = 20 * time.Minute
 	const rolls = 4
 	var duration time.Duration
 	for i := 0; i < rolls; i++ {
