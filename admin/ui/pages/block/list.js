@@ -60,7 +60,7 @@ export default function Block() {
                     {blocks.map((block) => {
                         return (
                             <div key={block} className={column.container}>
-                                <div className={column.width15}>Hash</div>
+                                <div className={column.width15}>{block.height}</div>
                                 <div className={column.width85}>
                                     <Link href={"/block/" + block.hash}>
                                         <a>

@@ -4,6 +4,7 @@ package resolver
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -14,6 +15,7 @@ import (
 	"github.com/memocash/server/db/client"
 	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/node/obj/get"
+	"github.com/memocash/server/ref/bitcoin/memo"
 	"github.com/memocash/server/ref/bitcoin/tx/hs"
 	"github.com/memocash/server/ref/bitcoin/tx/script"
 )
@@ -76,10 +78,18 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 	if err != nil {
 		return nil, jerr.Get("error getting block height for query resolver", err)
 	}
+	block, err := item.GetBlock(blockHash.CloneBytes())
+	if err != nil {
+		return nil, jerr.Get("error getting raw block", err)
+	}
+	blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
+	if err != nil {
+		return nil, jerr.Get("error getting block header from raw", err)
+	}
 	height := int(blockHeight.Height)
 	return &model.Block{
 		Hash:      hs.GetTxString(blockHeight.BlockHash),
-		Timestamp: model.Date{},
+		Timestamp: model.Date(blockHeader.Timestamp),
 		Height:    &height,
 	}, nil
 }
@@ -89,12 +99,29 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool) ([]*model.Bloc
 	if err != nil {
 		return nil, jerr.Get("error getting height blocks for query", err)
 	}
+	var blockHashes = make([][]byte, len(heightBlocks))
+	for i := range heightBlocks {
+		blockHashes[i] = heightBlocks[i].BlockHash
+	}
+	blocks, err := item.GetBlocks(blockHashes)
+	if err != nil {
+		return nil, jerr.Get("error getting raw blocks", err)
+	}
 	var modelBlocks = make([]*model.Block, len(heightBlocks))
 	for i := range heightBlocks {
 		var height = int(heightBlocks[i].Height)
 		modelBlocks[i] = &model.Block{
 			Hash:   hs.GetTxString(heightBlocks[i].BlockHash),
 			Height: &height,
+		}
+		for _, block := range blocks {
+			if bytes.Equal(block.Hash, heightBlocks[i].BlockHash) {
+				blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
+				if err != nil {
+					return nil, jerr.Get("error getting block header from raw", err)
+				}
+				modelBlocks[i].Timestamp = model.Date(blockHeader.Timestamp)
+			}
 		}
 	}
 	return modelBlocks, nil

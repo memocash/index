@@ -77,6 +77,11 @@ var doubleSpendTest = suite.Test{
 		if err := doubleSpend.CheckAddressBalance(test_tx.Address5String, grp.SendAmount2); err != nil {
 			return jerr.Get("error address 5 balance does not match expected after block", err)
 		}
+		for i := 0; i < 5; i++ {
+			if err := doubleSpend.SaveBlock(nil); err != nil {
+				return jerr.Getf(err, "error saving address empty block %d", i)
+			}
+		}
 		return nil
 	},
 }

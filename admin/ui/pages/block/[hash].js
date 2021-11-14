@@ -77,6 +77,10 @@ export default function LockHash() {
                         <div className={column.width85}>{block.hash}</div>
                     </div>
                     <div className={column.container}>
+                        <div className={column.width15}>Timestamp</div>
+                        <div className={column.width85}>{block.timestamp}</div>
+                    </div>
+                    <div className={column.container}>
                         <div className={column.width15}>Height</div>
                         <div className={column.width85}>{block.height.toLocaleString()}</div>
                     </div>
