@@ -109,7 +109,7 @@ func (t *Block) saveBlockObjects(header wire.BlockHeader) error {
 }
 
 func (t *Block) GetBlock(heightBack int64) ([]byte, error) {
-	heightBlock, err := item.GetRecentHeightBlock(false)
+	heightBlock, err := item.GetRecentHeightBlock()
 	if err != nil {
 		return nil, jerr.Get("error getting recent height block from queue", err)
 	}

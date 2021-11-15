@@ -82,6 +82,20 @@ var doubleSpendTest = suite.Test{
 				return jerr.Getf(err, "error saving address empty block %d", i)
 			}
 		}
+		address4Wallet := test_tx.GetKeyWallet(&test_tx.Address4key, nil)
+		address4Wallet.Getter.AddChangeUTXO(script.GetOutputUTXOs(tx4)[0])
+		address5Wallet := test_tx.GetKeyWallet(&test_tx.Address5key, nil)
+		address5Wallet.Getter.AddChangeUTXO(script.GetOutputUTXOs(tx5)[0])
+		tx6, err := doubleSpend.Create(gen.GetAddressOutput(test_tx.Address2, grp.SendAmount3), address4Wallet)
+		if err != nil {
+			return jerr.Get("error saving tx6 to address 2", err)
+		}
+		jlog.Logf("tx6: %s\n", hs.GetTxString(tx6.GetHash()))
+		tx7, err := doubleSpend.Create(gen.GetAddressOutput(test_tx.Address3, grp.SendAmount3), address5Wallet)
+		if err != nil {
+			return jerr.Get("error saving tx7 to address 3", err)
+		}
+		jlog.Logf("tx7: %s\n", hs.GetTxString(tx7.GetHash()))
 		return nil
 	},
 }

@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	FundingValue = 1e8
-	SendAmount   = 1e5
-	SendAmount2  = 1e4
+	FundingValue = 100000
+	SendAmount   = 99000
+	SendAmount2  = 98000
+	SendAmount3  = 97000
 )
 
 type DoubleSpend struct {

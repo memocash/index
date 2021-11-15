@@ -100,9 +100,11 @@ var (
 
 	Address4       = GetAddress(Address4String)
 	Address4pkHash = GetAddressPkHash(Address4String)
+	Address4key    = GetPrivateKey(Key4String)
 
 	Address5       = GetAddress(Address5String)
 	Address5pkHash = GetAddressPkHash(Address5String)
+	Address5key    = GetPrivateKey(Key5String)
 
 	Address6       = GetAddress(Address6String)
 	Address6pkHash = GetAddressPkHash(Address6String)

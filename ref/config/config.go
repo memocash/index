@@ -21,6 +21,7 @@ const (
 	DefaultInitBlock       = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
 	DefaultInitBlockParent = "000000000000000000925634d697d3dcd7a8f5aef312f043f4cb278fd9152baa"
 	DefaultInitBlockHeight = 0
+	DefaultBlocksToConfirm = 5
 
 	DefaultDataDir = "db/data"
 )
@@ -31,6 +32,8 @@ type Config struct {
 	InitBlock       string `mapstructure:"INIT_BLOCK"`
 	InitBlockHeight uint   `mapstructure:"INIT_BLOCK_HEIGHT"`
 	InitBlockParent string `mapstructure:"INIT_BLOCK_PARENT"`
+
+	BlocksToConfirm uint `mapstructure:"BLOCKS_TO_CONFIRM"`
 
 	ServerHost string `mapstructure:"SERVER_HOST"`
 	ServerPort int    `mapstructure:"SERVER_PORT"`
@@ -59,6 +62,7 @@ var DefaultConfig = Config{
 	InitBlock:       DefaultInitBlock,
 	InitBlockHeight: DefaultInitBlockHeight,
 	InitBlockParent: DefaultInitBlockParent,
+	BlocksToConfirm: DefaultBlocksToConfirm,
 	ServerHost:      Localhost,
 	ServerPort:      DefaultServerPort,
 	ApiPort:         DefaultApiPort,
@@ -123,6 +127,10 @@ func GetInitBlockHeight() uint {
 
 func GetInitBlockParent() string {
 	return _config.InitBlockParent
+}
+
+func GetBlocksToConfirm() uint {
+	return _config.BlocksToConfirm
 }
 
 func GetQueueShards() []Shard {

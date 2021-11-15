@@ -42,7 +42,7 @@ func (b *HeightBlock) SetUid(uid []byte) {
 
 func (b *HeightBlock) Deserialize([]byte) {}
 
-func GetRecentHeightBlock(temp bool) (*HeightBlock, error) {
+func GetRecentHeightBlock() (*HeightBlock, error) {
 	var heightBlocks []*HeightBlock
 	for i, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())

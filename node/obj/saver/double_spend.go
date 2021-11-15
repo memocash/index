@@ -9,6 +9,7 @@ import (
 	"github.com/memocash/server/node/act/double_spend"
 	"github.com/memocash/server/ref/bitcoin/memo"
 	"github.com/memocash/server/ref/bitcoin/tx/hs"
+	"github.com/memocash/server/ref/config"
 )
 
 type DoubleSpend struct {
@@ -168,18 +169,18 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 }
 
 func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
-	var txHashes [][]byte
+	var parentTxHashes [][]byte
 	for _, tx := range txs {
 		for _, in := range tx.TxIn {
-			txHashes = append(txHashes, in.PreviousOutPoint.Hash.CloneBytes())
+			parentTxHashes = append(parentTxHashes, in.PreviousOutPoint.Hash.CloneBytes())
 		}
 	}
-	txLosts, err := item.GetTxLosts(txHashes)
+	parentTxLosts, err := item.GetTxLosts(parentTxHashes)
 	if err != nil {
 		return jerr.Get("error getting tx losts for double spend check txs", err)
 	}
 	var newItemObjects []item.Object
-	for _, txLost := range txLosts {
+	for _, txLost := range parentTxLosts {
 		for _, tx := range txs {
 			for _, in := range tx.TxIn {
 				if bytes.Equal(in.PreviousOutPoint.Hash.CloneBytes(), txLost.TxHash) {
@@ -191,36 +192,75 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 			}
 		}
 	}
-	txSuspects, err := item.GetTxSuspects(txHashes)
+	parentTxSuspects, err := item.GetTxSuspects(parentTxHashes)
 	if err != nil {
 		return jerr.Get("error getting tx suspects for double spend check txs", err)
 	}
-	var txSuspectHashes = make([][]byte, len(txSuspects))
-	for i := range txSuspects {
-		txSuspectHashes[i] = txSuspects[i].TxHash
+	var parentTxSuspectHashes = make([][]byte, len(parentTxSuspects))
+	for i := range parentTxSuspects {
+		parentTxSuspectHashes[i] = parentTxSuspects[i].TxHash
 	}
-	txBlocks, err := item.GetTxBlocks(txSuspectHashes)
+	parentTxSuspectBlocks, err := item.GetTxBlocks(parentTxSuspectHashes)
 	if err != nil {
 		return jerr.Get("error getting tx blocks for suspect tx hashes", err)
 	}
-	for i := 0; i < len(txSuspects); i++ {
-		for _, txBlock := range txBlocks {
-			if bytes.Equal(txBlock.TxHash, txSuspects[i].TxHash) {
-				txSuspects = append(txSuspects[:i], txSuspects[i+1:]...)
-				i--
+	var parentBlockHeightsToGet [][]byte
+	for i := 0; i < len(parentTxSuspects); i++ {
+		for _, parentTxSuspectBlock := range parentTxSuspectBlocks {
+			if bytes.Equal(parentTxSuspectBlock.TxHash, parentTxSuspects[i].TxHash) {
+				parentBlockHeightsToGet = append(parentBlockHeightsToGet, parentTxSuspectBlock.BlockHash)
 				break
 			}
 		}
 	}
-	for _, txSuspect := range txSuspects {
+	if len(parentBlockHeightsToGet) > 0 {
+		recentHeightBlock, err := item.GetRecentHeightBlock()
+		if err != nil {
+			return jerr.Get("error getting recent height block", err)
+		}
+		maxHeight := recentHeightBlock.Height
+		parentBlockHeights, err := item.GetBlockHeights(parentBlockHeightsToGet)
+		if err != nil {
+			return jerr.Get("error getting block heights for double spends", err)
+		}
+		blocksToConfirm := config.GetBlocksToConfirm()
+	TxLoop:
 		for _, tx := range txs {
+		InputLoop:
 			for _, in := range tx.TxIn {
-				if bytes.Equal(in.PreviousOutPoint.Hash.CloneBytes(), txSuspect.TxHash) {
-					txHash := tx.TxHash()
-					newItemObjects = append(newItemObjects, &item.TxSuspect{
-						TxHash: txHash.CloneBytes(),
-					})
+				var parentTxSuspectFound *item.TxSuspect
+				for _, parentTxSuspect := range parentTxSuspects {
+					if bytes.Equal(parentTxSuspect.TxHash, in.PreviousOutPoint.Hash.CloneBytes()) {
+						parentTxSuspectFound = parentTxSuspect
+						break
+					}
 				}
+				if parentTxSuspectFound == nil {
+					continue
+				}
+				var parentTxSuspectBlockFound *item.TxBlock
+				for _, parentTxSuspectBlock := range parentTxSuspectBlocks {
+					if bytes.Equal(parentTxSuspectBlock.TxHash, parentTxSuspectFound.TxHash) {
+						parentTxSuspectBlockFound = parentTxSuspectBlock
+						break
+					}
+				}
+				if parentTxSuspectBlockFound != nil {
+					for _, parentBlockHeight := range parentBlockHeights {
+						if bytes.Equal(parentBlockHeight.BlockHash, parentTxSuspectBlockFound.BlockHash) {
+							if maxHeight-parentBlockHeight.Height >= int64(blocksToConfirm) {
+								// Don't add suspect if parent old
+								continue InputLoop
+							}
+							break
+						}
+					}
+				}
+				txHash := tx.TxHash()
+				newItemObjects = append(newItemObjects, &item.TxSuspect{
+					TxHash: txHash.CloneBytes(),
+				})
+				continue TxLoop
 			}
 		}
 	}
