@@ -8,6 +8,7 @@ import (
 	"github.com/memocash/server/ref/bitcoin/tx/hs"
 	"github.com/memocash/server/ref/bitcoin/tx/script"
 	"github.com/memocash/server/ref/bitcoin/util/testing/test_tx"
+	"github.com/memocash/server/ref/config"
 	"github.com/memocash/server/test/grp"
 	"github.com/memocash/server/test/suite"
 )
@@ -77,25 +78,24 @@ var doubleSpendTest = suite.Test{
 		if err := doubleSpend.CheckAddressBalance(test_tx.Address5String, grp.SendAmount2); err != nil {
 			return jerr.Get("error address 5 balance does not match expected after block", err)
 		}
-		for i := 0; i < 5; i++ {
-			if err := doubleSpend.SaveBlock(nil); err != nil {
-				return jerr.Getf(err, "error saving address empty block %d", i)
+		defaultBlocksToConfirm := int(config.GetBlocksToConfirm())
+		for i := 0; i <= defaultBlocksToConfirm; i++ {
+			txA, err := doubleSpend.Create(gen.GetAddressOutput(test_tx.Address4, grp.SendAmount2), address2Wallet)
+			if err != nil {
+				return jerr.Get("error saving txA to address 4", err)
+			}
+			jlog.Logf("txA-%d: %s\n", i, hs.GetTxString(txA.GetHash()))
+			txB, err := doubleSpend.Create(gen.GetAddressOutput(test_tx.Address5, grp.SendAmount2), address3Wallet)
+			if err != nil {
+				return jerr.Get("error saving txB to address 5", err)
+			}
+			jlog.Logf("txB-%d: %s\n", i, hs.GetTxString(txB.GetHash()))
+			if err := doubleSpend.SaveBlock([]*memo.Tx{txB}); err != nil {
+				return jerr.Getf(err, "error saving txB block %d", i)
 			}
 		}
-		address4Wallet := test_tx.GetKeyWallet(&test_tx.Address4key, nil)
-		address4Wallet.Getter.AddChangeUTXO(script.GetOutputUTXOs(tx4)[0])
-		address5Wallet := test_tx.GetKeyWallet(&test_tx.Address5key, nil)
-		address5Wallet.Getter.AddChangeUTXO(script.GetOutputUTXOs(tx5)[0])
-		tx6, err := doubleSpend.Create(gen.GetAddressOutput(test_tx.Address2, grp.SendAmount3), address4Wallet)
-		if err != nil {
-			return jerr.Get("error saving tx6 to address 2", err)
-		}
-		jlog.Logf("tx6: %s\n", hs.GetTxString(tx6.GetHash()))
-		tx7, err := doubleSpend.Create(gen.GetAddressOutput(test_tx.Address3, grp.SendAmount3), address5Wallet)
-		if err != nil {
-			return jerr.Get("error saving tx7 to address 3", err)
-		}
-		jlog.Logf("tx7: %s\n", hs.GetTxString(tx7.GetHash()))
+		// TODO: Check txAs ARE marked lost
+		// TODO: Check txBs ARE NOT marked suspect
 		return nil
 	},
 }

@@ -18,8 +18,7 @@ import (
 const (
 	FundingValue = 100000
 	SendAmount   = 99000
-	SendAmount2  = 98000
-	SendAmount3  = 97000
+	SendAmount2  = 1000
 )
 
 type DoubleSpend struct {
