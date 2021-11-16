@@ -15,7 +15,7 @@ type BlockTx struct {
 }
 
 func (b BlockTx) GetUid() []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(b.BlockHash), jutil.ByteReverse(b.TxHash))
+	return GetBlockTxUid(b.BlockHash, b.TxHash)
 }
 
 func (b BlockTx) GetShard() uint {
@@ -40,11 +40,15 @@ func (b *BlockTx) SetUid(uid []byte) {
 
 func (b *BlockTx) Deserialize([]byte) {}
 
+func GetBlockTxUid(blockHash, txHash []byte) []byte {
+	return jutil.CombineBytes(jutil.ByteReverse(blockHash), jutil.ByteReverse(txHash))
+}
+
 func GetBlockTx(blockHash, txHash []byte) (*BlockTx, error) {
 	shard := client.GetByteShard32(blockHash)
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	err := dbClient.GetSingle(TopicBlockTx, jutil.CombineBytes(jutil.ByteReverse(blockHash), jutil.ByteReverse(txHash)))
+	err := dbClient.GetSingle(TopicBlockTx, GetBlockTxUid(blockHash, txHash))
 	if err != nil {
 		return nil, jerr.Get("error getting client message block tx single", err)
 	}
