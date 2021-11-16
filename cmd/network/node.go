@@ -13,7 +13,7 @@ var nodeCmd = &cobra.Command{
 	Short: "Run Network Block Node",
 	RunE: func(c *cobra.Command, args []string) error {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
-		blockSaver := saver.NewBlock(verbose)
+		blockSaver := saver.CombinedBlockSaver(verbose)
 		connection := peer.NewConnection(blockSaver, saver.CombinedTxSaver(verbose))
 		err := connection.Connect()
 		if err != nil {

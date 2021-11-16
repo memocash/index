@@ -61,3 +61,19 @@ func GetTxSuspects(txHashes [][]byte) ([]*TxSuspect, error) {
 	}
 	return txSuspects, nil
 }
+
+func RemoveTxSuspects(txHashes [][]byte) error {
+	var shardUidsMap = make(map[uint32][][]byte)
+	for _, txHash := range txHashes {
+		shard := uint32(GetShard(client.GetByteShard(txHash)))
+		shardUidsMap[shard] = append(shardUidsMap[shard], jutil.ByteReverse(txHash))
+	}
+	for shard, shardUids := range shardUidsMap {
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		db := client.NewClient(shardConfig.GetHost())
+		if err := db.DeleteMessages(TopicTxSuspect, shardUids); err != nil {
+			return jerr.Get("error deleting topic tx suspects", err)
+		}
+	}
+	return nil
+}
