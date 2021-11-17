@@ -4,14 +4,17 @@ import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jfmt"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/node/obj/get"
 	"github.com/memocash/server/node/obj/saver"
 	"github.com/memocash/server/ref/bitcoin/memo"
 	"github.com/memocash/server/ref/bitcoin/tx/build"
 	"github.com/memocash/server/ref/bitcoin/tx/gen"
+	"github.com/memocash/server/ref/bitcoin/tx/hs"
 	"github.com/memocash/server/ref/bitcoin/tx/script"
 	"github.com/memocash/server/ref/bitcoin/util/testing/test_block"
 	"github.com/memocash/server/ref/bitcoin/util/testing/test_tx"
+	"github.com/memocash/server/ref/bitcoin/wallet"
 	"github.com/memocash/server/ref/dbi"
 )
 
@@ -59,6 +62,28 @@ func (s *DoubleSpend) Create(output *memo.Output, wallet build.Wallet) (*memo.Tx
 	return tx, nil
 }
 
+type CreateTx struct {
+	Address  wallet.Address
+	Quantity int64
+	Wallet   build.Wallet
+	Receive  *build.Wallet
+	MemoTx   *memo.Tx
+}
+
+func (s *DoubleSpend) CreateTxs(txs []*CreateTx) error {
+	var err error
+	for i, tx := range txs {
+		if tx.MemoTx, err = s.Create(gen.GetAddressOutput(tx.Address, tx.Quantity), tx.Wallet); err != nil {
+			return jerr.Getf(err, "error saving to address: %s %d", tx.Address, tx.Quantity)
+		}
+		if tx.Receive != nil {
+			tx.Receive.Getter.AddChangeUTXO(script.GetOutputUTXOs(tx.MemoTx)[0])
+		}
+		jlog.Logf("tx %d: %s %d %s\n", i, tx.Address.GetEncoded(), tx.Quantity, hs.GetTxString(tx.MemoTx.GetHash()))
+	}
+	return nil
+}
+
 func (s *DoubleSpend) SaveBlock(txs []*memo.Tx) error {
 	var wireTxs = make([]*wire.MsgTx, len(txs))
 	for i := range txs {
@@ -93,6 +118,21 @@ func (s *DoubleSpend) CheckAddressBalance(address string, expectedBalance int64)
 	if balance != expectedBalance {
 		return jerr.Newf("error double spend balance does not equal expected: %s %s",
 			jfmt.AddCommas(balance), jfmt.AddCommas(expectedBalance))
+	}
+	return nil
+}
+
+type AddressBalance struct {
+	Address  string
+	Expected int64
+}
+
+func (s *DoubleSpend) CheckAddressBalances(addressBalances []AddressBalance) error {
+	for _, addressBalance := range addressBalances {
+		if err := s.CheckAddressBalance(addressBalance.Address, addressBalance.Expected); err != nil {
+			return jerr.Getf(err, "error address balance does not match expected: %s %d",
+				addressBalance.Address, addressBalance.Expected)
+		}
 	}
 	return nil
 }
