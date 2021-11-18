@@ -79,8 +79,6 @@ var doubleSpendTest = suite.Test{
 		}); err != nil {
 			return jerr.Get("error checking tx suspects for double spend test after block", err)
 		}
-		// TODO: Check txAs ARE marked lost
-		// TODO: Check txBs ARE NOT marked suspect
 		return nil
 	},
 }
