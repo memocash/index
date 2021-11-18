@@ -1,10 +1,12 @@
 package grp
 
 import (
+	"bytes"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
+	"github.com/memocash/server/db/item"
 	"github.com/memocash/server/node/obj/get"
 	"github.com/memocash/server/node/obj/saver"
 	"github.com/memocash/server/ref/bitcoin/memo"
@@ -132,6 +134,36 @@ func (s *DoubleSpend) CheckAddressBalances(addressBalances []AddressBalance) err
 		if err := s.CheckAddressBalance(addressBalance.Address, addressBalance.Expected); err != nil {
 			return jerr.Getf(err, "error address balance does not match expected: %s %d",
 				addressBalance.Address, addressBalance.Expected)
+		}
+	}
+	return nil
+}
+
+type TxSuspect struct {
+	Tx       []byte
+	Expected bool
+}
+
+func (s *DoubleSpend) CheckSuspects(checkSuspects []TxSuspect) error {
+	var txHashes = make([][]byte, len(checkSuspects))
+	for i := range checkSuspects {
+		txHashes[i] = checkSuspects[i].Tx
+	}
+	txSuspects, err := item.GetTxSuspects(txHashes)
+	if err != nil {
+		return jerr.Get("error getting tx suspects for double spend check", err)
+	}
+	for _, checkSuspect := range checkSuspects {
+		var txSuspectFound bool
+		for _, txSuspect := range txSuspects {
+			if bytes.Equal(txSuspect.TxHash, checkSuspect.Tx) {
+				txSuspectFound = true
+				break
+			}
+		}
+		if checkSuspect.Expected != txSuspectFound {
+			return jerr.Newf("error check suspect expected does not match actual: %s %t %t",
+				hs.GetTxString(checkSuspect.Tx), checkSuspect.Expected, txSuspectFound)
 		}
 	}
 	return nil

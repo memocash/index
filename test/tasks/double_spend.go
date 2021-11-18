@@ -52,16 +52,32 @@ var doubleSpendTest = suite.Test{
 		}); err != nil {
 			return jerr.Get("error checking address balances for double spend test after block", err)
 		}
+		if err := doubleSpend.CheckSuspects([]grp.TxSuspect{
+			{Tx: tx0.MemoTx.GetHash(), Expected: true},
+			{Tx: tx1.MemoTx.GetHash(), Expected: true},
+			{Tx: tx2.MemoTx.GetHash(), Expected: true},
+			{Tx: tx3.MemoTx.GetHash(), Expected: true},
+		}); err != nil {
+			return jerr.Get("error checking tx suspects for double spend test", err)
+		}
 		defaultBlocksToConfirm := int(config.GetBlocksToConfirm())
 		for i := 0; i <= defaultBlocksToConfirm; i++ {
 			var txA = &grp.CreateTx{Address: test_tx.Address4, Quantity: grp.SendAmount2, Wallet: address2Wallet}
 			var txB = &grp.CreateTx{Address: test_tx.Address5, Quantity: grp.SendAmount2, Wallet: address3Wallet}
 			if err := doubleSpend.CreateTxs([]*grp.CreateTx{txA, txB}); err != nil {
-				return jerr.Get("error creating double spend txA/txB txs", err)
+				return jerr.Getf(err, "error creating double spend txA/txB txs: %d", i)
 			}
 			if err := doubleSpend.SaveBlock([]*memo.Tx{txB.MemoTx}); err != nil {
 				return jerr.Getf(err, "error saving txB block %d", i)
 			}
+		}
+		if err := doubleSpend.CheckSuspects([]grp.TxSuspect{
+			{Tx: tx0.MemoTx.GetHash(), Expected: true},
+			{Tx: tx1.MemoTx.GetHash(), Expected: false},
+			{Tx: tx2.MemoTx.GetHash(), Expected: true},
+			{Tx: tx3.MemoTx.GetHash(), Expected: false},
+		}); err != nil {
+			return jerr.Get("error checking tx suspects for double spend test after block", err)
 		}
 		// TODO: Check txAs ARE marked lost
 		// TODO: Check txBs ARE NOT marked suspect
