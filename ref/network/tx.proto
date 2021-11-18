@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package network_pb;
+
+import "block_tx.proto";
+
+option go_package = "github.com/memocash/server/ref/network/gen/network_pb";
+
+message TxRequest {
+  bytes hash = 1;
+}
+
+message TxReply {
+  Tx tx = 1;
+}
+
+message Txs {
+  repeated Tx txs = 1;
+}
+
+message Tx {
+  bytes raw = 1;
+  bytes block = 2;
+}
+
+message SaveTxsReply {
+  string error = 1;
+}
+
+message ListenTxReply {
+  int64 timestamp = 1;
+}
+
+message TxBlockRequest {
+  repeated bytes txs = 1;
+}
+
+message TxBlockReply {
+  repeated BlockTx txs = 1;
+}

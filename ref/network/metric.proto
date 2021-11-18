@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package network_pb;
+
+option go_package = "github.com/memocash/server/ref/network/gen/network_pb";
+
+message MetricRequest {
+    bytes id = 1;
+    repeated bytes parents = 2;
+}
+
+message MetricResponse {
+    repeated MetricInfo infos = 1;
+}
+
+message MetricInfo {
+    bytes id = 1;
+    bytes parent = 2;
+    string action = 3;
+    int32 order = 4;
+    int32 count = 5;
+    int64 start = 6;
+    int64 duration = 7;
+}
+
+message MetricTimeRequest {
+    int64 start = 1;
+}
+
+message MetricTimeResponse {
+    repeated MetricTime metrics = 1;
+}
+
+message MetricTime {
+    bytes id = 1;
+    int64 time = 2;
+}

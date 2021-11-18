@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package network_pb;
+
+option go_package = "github.com/memocash/server/ref/network/gen/network_pb";
+
+message UtxosRequest {
+  repeated bytes pkHashes = 1;
+}
+
+message UtxosResponse {
+  repeated Output outputs = 1;
+}
+
+message Output {
+  bytes tx = 1;
+  uint32 index = 2;
+  int64 value = 3;
+  bytes pkHash = 4;
+}
+
+message Input {
+  bytes tx = 1;
+  uint32 index = 2;
+  bytes script = 3;
+  bytes prev_tx_hash = 4;
+  uint32 prev_tx_index = 5;
+}
+
+message TxHashIndex {
+  bytes tx = 1;
+  uint32 index = 2;
+}
+
+message OutputInputsRequest {
+  repeated TxHashIndex outputs = 1;
+}
+
+message OutputInputsResponse {
+  repeated Input inputs = 1;
+}

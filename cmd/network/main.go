@@ -18,6 +18,7 @@ func GetCommand() *cobra.Command {
 		process.GetCommand(),
 		nodeCmd,
 		mempoolCmd,
+		serverCmd,
 	)
 	return networkCommand
 }

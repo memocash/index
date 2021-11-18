@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package network_pb;
+
+option go_package = "github.com/memocash/server/ref/network/gen/network_pb";
+
+message DoubleSpendRequest {
+  bytes start = 1;
+}
+
+message DoubleSpendResponse {
+  repeated DoubleSpend txs = 1;
+}
+
+message DoubleSpend {
+  bytes tx = 1;
+}

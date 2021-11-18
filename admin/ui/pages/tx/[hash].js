@@ -253,7 +253,7 @@ function Outputs(props) {
                                                     <div className={[column.orange, column.bold].join(" ")}>
                                                         SUSPECT
                                                     </div>
-                                                    : "OK!")}
+                                                    : null)}
                                         </div>
                                     )
                                 })}

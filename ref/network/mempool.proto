@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package network_pb;
+
+option go_package = "github.com/memocash/server/ref/network/gen/network_pb";
+
+message MempoolTxRequest {
+  bytes start = 1;
+}
+
+message MempoolTxResponse {
+  repeated MempoolTx txs = 1;
+}
+
+message MempoolTx {
+  bytes tx = 1;
+}

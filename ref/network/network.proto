@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package network_pb;
+
+import "block.proto";
+import "block_tx.proto";
+import "mempool.proto";
+import "metric.proto";
+import "output.proto";
+import "double_spend.proto";
+import "tx.proto";
+
+option go_package = "github.com/memocash/server/ref/network/gen/network_pb";
+
+service Network {
+    rpc SaveTxs (Txs) returns (SaveTxsReply);
+    rpc GetTx (TxRequest) returns (TxReply);
+    rpc SaveTxBlock (TxBlock) returns (ErrorReply);
+    rpc GetTxBlock(TxBlockRequest) returns (TxBlockReply);
+    rpc GetBalance (Address) returns (BalanceReply);
+    rpc GetBlockInfos (BlockRequest) returns (BlockInfoReply);
+    rpc GetBlockByHash (BlockHashRequest) returns (BlockInfo);
+    rpc GetBlockByHeight (BlockRequest) returns (BlockInfo);
+    rpc GetMetrics (MetricRequest) returns (MetricResponse);
+    rpc GetMetricList (MetricTimeRequest) returns (MetricTimeResponse);
+    rpc GetHeightBlocks (BlockHeightRequest) returns (BlockHeightResponse);
+    rpc GetBlockTxs (BlockTxRequest) returns (BlockTxResponse);
+    rpc GetMempoolTxs (MempoolTxRequest) returns (MempoolTxResponse);
+    rpc GetDoubleSpends (DoubleSpendRequest) returns (DoubleSpendResponse);
+    rpc GetUtxos (UtxosRequest) returns (UtxosResponse);
+    rpc GetOutputInputs (OutputInputsRequest) returns (OutputInputsResponse);
+    rpc ListenTx (TxRequest) returns (ListenTxReply);
+}
+
+message Address {
+    string address = 1;
+}
+
+message BalanceReply {
+    string address = 1;
+    int64 balance = 2;
+    int64 spendable = 3;
+    int32 utxos = 4;
+    int32 txs = 5;
+    int32 outputs = 6;
+    int32 spends = 7;
+}
+
+message ErrorReply {
+    string error = 1;
+}
+
+message BlockHashRequest {
+    bytes hash = 1;
+}

@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package network_pb;
+
+import "tx.proto";
+
+option go_package = "github.com/memocash/server/ref/network/gen/network_pb";
+
+message BlockHeightRequest {
+  int64 start = 1;
+  bool wait = 2;
+}
+
+message BlockHeightResponse {
+  repeated BlockHeight blocks = 1;
+}
+
+message BlockHeight {
+  int64 height = 1;
+  bytes hash = 2;
+}
+
+message BlockRequest {
+  int64 height = 1;
+  bool newest = 2;
+}
+
+message BlockInfo {
+  bytes hash = 1;
+  int64 height = 2;
+  int64 txs = 3;
+  bytes header = 4;
+}
+
+message BlockInfoReply {
+  repeated BlockInfo blocks = 1;
+}
+
+message Block {
+  bytes header = 1;
+}
+
+message TxBlock {
+  Block block = 1;
+  repeated Tx txs = 2;
+}

@@ -112,7 +112,7 @@ export default function LockHash() {
                                                     <div className={[column.orange, column.bold].join(" ")}>
                                                         SUSPECT
                                                     </div>
-                                                    : "OK!")}
+                                                    : null)}
                                         </div>
                                     </div>
                                 )
