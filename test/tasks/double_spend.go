@@ -2,10 +2,7 @@ package tasks
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/tx/gen"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
 	"github.com/memocash/server/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/server/ref/config"
 	"github.com/memocash/server/test/grp"
@@ -57,17 +54,12 @@ var doubleSpendTest = suite.Test{
 		}
 		defaultBlocksToConfirm := int(config.GetBlocksToConfirm())
 		for i := 0; i <= defaultBlocksToConfirm; i++ {
-			txA, err := doubleSpend.Create(gen.GetAddressOutput(test_tx.Address4, grp.SendAmount2), address2Wallet)
-			if err != nil {
-				return jerr.Get("error saving txA to address 4", err)
+			var txA = &grp.CreateTx{Address: test_tx.Address4, Quantity: grp.SendAmount2, Wallet: address2Wallet}
+			var txB = &grp.CreateTx{Address: test_tx.Address5, Quantity: grp.SendAmount2, Wallet: address3Wallet}
+			if err := doubleSpend.CreateTxs([]*grp.CreateTx{txA, txB}); err != nil {
+				return jerr.Get("error creating double spend txA/txB txs", err)
 			}
-			jlog.Logf("txA-%d: %s\n", i, hs.GetTxString(txA.GetHash()))
-			txB, err := doubleSpend.Create(gen.GetAddressOutput(test_tx.Address5, grp.SendAmount2), address3Wallet)
-			if err != nil {
-				return jerr.Get("error saving txB to address 5", err)
-			}
-			jlog.Logf("txB-%d: %s\n", i, hs.GetTxString(txB.GetHash()))
-			if err := doubleSpend.SaveBlock([]*memo.Tx{txB}); err != nil {
+			if err := doubleSpend.SaveBlock([]*memo.Tx{txB.MemoTx}); err != nil {
 				return jerr.Getf(err, "error saving txB block %d", i)
 			}
 		}
