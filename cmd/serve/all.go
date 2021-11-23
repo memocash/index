@@ -8,18 +8,20 @@ import (
 	db "github.com/memocash/server/db/server"
 	"github.com/memocash/server/node"
 	"github.com/memocash/server/ref/config"
+	"github.com/memocash/server/ref/network/network_server"
 	"github.com/spf13/cobra"
 )
 
 var allCmd = &cobra.Command{
 	Use: "all",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(c *cobra.Command, args []string) {
 		var errorHandler = make(chan error)
 		nodeGroup := node.NewGroup()
 		apiServer := api.NewServer()
 		adminServer := admin.NewServer(nodeGroup)
 		queueServer0 := db.NewServer(config.DefaultShard0Port, 0)
 		queueServer1 := db.NewServer(config.DefaultShard1Port, 1)
+		networkServer := network_server.NewServer(false, config.GetServerPort())
 		go func() {
 			err := apiServer.Run()
 			errorHandler <- jerr.Get("error running api server", err)
@@ -36,10 +38,15 @@ var allCmd = &cobra.Command{
 			err := queueServer1.Run()
 			errorHandler <- jerr.Get("error running db queue server shard 1", err)
 		}()
+		go func() {
+			err := networkServer.Serve()
+			errorHandler <- jerr.Get("error running network server", err)
+		}()
 		jlog.Logf("API (unused REST) server started on port: %d...\n", apiServer.Port)
 		jlog.Logf("Admin server (including graphql) started on port: %d...\n", adminServer.Port)
 		jlog.Logf("Queue server 0 started on port: %d...\n", queueServer0.Port)
 		jlog.Logf("Queue server 1 started on port: %d...\n", queueServer1.Port)
+		jlog.Logf("Starting network server on port: %d\n", networkServer.Port)
 		jerr.Get("fatal memo server error encountered", <-errorHandler).Fatal()
 	},
 }
