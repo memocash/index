@@ -19,8 +19,10 @@ var allCmd = &cobra.Command{
 		nodeGroup := node.NewGroup()
 		apiServer := api.NewServer()
 		adminServer := admin.NewServer(nodeGroup)
-		queueServer0 := db.NewServer(config.DefaultShard0Port, 0)
-		queueServer1 := db.NewServer(config.DefaultShard1Port, 1)
+		var queueServers []*db.Server
+		for i, queueShard := range config.GetQueueShards() {
+			queueServers = append(queueServers, db.NewServer(uint(queueShard.Port), uint(i)))
+		}
 		networkServer := network_server.NewServer(false, config.GetServerPort())
 		go func() {
 			err := apiServer.Run()
@@ -30,22 +32,22 @@ var allCmd = &cobra.Command{
 			err := adminServer.Run()
 			errorHandler <- jerr.Get("error running admin server", err)
 		}()
-		go func() {
-			err := queueServer0.Run()
-			errorHandler <- jerr.Get("error running db queue server shard 0", err)
-		}()
-		go func() {
-			err := queueServer1.Run()
-			errorHandler <- jerr.Get("error running db queue server shard 1", err)
-		}()
+		for i := range queueServers {
+			queueServer := queueServers[i]
+			go func() {
+				err := queueServer.Run()
+				errorHandler <- jerr.Getf(err, "error running db queue server shard %d", queueServer.Shard)
+			}()
+		}
 		go func() {
 			err := networkServer.Serve()
 			errorHandler <- jerr.Get("error running network server", err)
 		}()
 		jlog.Logf("API (unused REST) server started on port: %d...\n", apiServer.Port)
 		jlog.Logf("Admin server (including graphql) started on port: %d...\n", adminServer.Port)
-		jlog.Logf("Queue server 0 started on port: %d...\n", queueServer0.Port)
-		jlog.Logf("Queue server 1 started on port: %d...\n", queueServer1.Port)
+		for i, queueServer := range queueServers {
+			jlog.Logf("Queue server %d started on port: %d...\n", i, queueServer.Port)
+		}
 		jlog.Logf("Starting network server on port: %d\n", networkServer.Port)
 		jerr.Get("fatal memo server error encountered", <-errorHandler).Fatal()
 	},
