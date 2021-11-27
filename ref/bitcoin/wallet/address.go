@@ -124,13 +124,31 @@ func GetAddressesForPkHashes(pkHashes [][]byte) ([]Address, error) {
 	return addresses, nil
 }
 
+const (
+	TooManyAddressesErrorMsg = "error too many addresses in pk script"
+	NoAddressesErrorMsg      = "error unable to find any addresses"
+)
+
+var tooManyAddressesError = jerr.New(TooManyAddressesErrorMsg)
+var noAddressesError = jerr.New(NoAddressesErrorMsg)
+
+func IsTooManyAddressesError(err error) bool {
+	return jerr.HasError(err, TooManyAddressesErrorMsg)
+}
+
+func IsNoAddressesError(err error) bool {
+	return jerr.HasError(err, NoAddressesErrorMsg)
+}
+
 func GetAddressFromPkScript(pkScript []byte) (*Address, error) {
 	_, addresses, _, err := txscript.ExtractPkScriptAddrs(pkScript, GetMainNetParamsOld())
 	if err != nil {
 		return nil, jerr.Get("error extracting addresses from pk script", err)
 	}
-	if len(addresses) != 1 {
-		return nil, jerr.Newf("unexpected number of addresses (%d)", len(addresses))
+	if len(addresses) > 1 {
+		return nil, jerr.Getf(tooManyAddressesError, "unexpected number of addresses (%d)", len(addresses))
+	} else if len(addresses) == 0 {
+		return nil, jerr.Getf(noAddressesError, "error no addresses found")
 	}
 	return &Address{
 		address: addresses[0],
