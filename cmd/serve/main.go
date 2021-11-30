@@ -9,6 +9,7 @@ var serveCmd = &cobra.Command{
 func GetCommand() *cobra.Command {
 	serveCmd.AddCommand(
 		allCmd,
+		dbCmd,
 	)
 	return serveCmd
 }
