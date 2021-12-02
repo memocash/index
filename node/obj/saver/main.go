@@ -56,15 +56,17 @@ func (c *CombinedBlock) GetBlock(height int64) ([]byte, error) {
 	return block, nil
 }
 
-func NewCombinedBlock(savers []dbi.BlockSave) *CombinedBlock {
+func NewCombinedBlock(main dbi.BlockSave, savers []dbi.BlockSave) *CombinedBlock {
 	return &CombinedBlock{
+		Main:   main,
 		Savers: savers,
 	}
 }
 
 func CombinedBlockSaver(verbose bool) dbi.BlockSave {
-	return NewCombinedBlock([]dbi.BlockSave{
-		NewBlock(verbose),
+	blockSaver := NewBlock(verbose)
+	return NewCombinedBlock(blockSaver, []dbi.BlockSave{
+		blockSaver,
 		NewClearSuspect(verbose),
 	})
 }
