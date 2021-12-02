@@ -24,6 +24,7 @@ var serverCmd = &cobra.Command{
 }
 
 func Execute() error {
+	serverCmd.PersistentFlags().String(config.FlagConfig, "", "config file name")
 	serverCmd.AddCommand(
 		test.GetCommand(),
 		peer.GetCommand(),
