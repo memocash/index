@@ -10,6 +10,7 @@ func GetCommand() *cobra.Command {
 	serveCmd.AddCommand(
 		allCmd,
 		dbCmd,
+		adminCmd,
 	)
 	return serveCmd
 }
