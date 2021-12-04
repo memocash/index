@@ -1,7 +1,9 @@
+import {Host} from "../../../components/config"
+
 export default function handler(req, res) {
     return new Promise((resolve, reject) => {
         const {ip, port} = JSON.parse(req.body)
-        fetch("http://127.0.0.1:26770/node/history", {
+        fetch(Host + "/node/history", {
             method: "POST",
             body: JSON.stringify({
                 Ip: ip,
