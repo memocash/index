@@ -6,7 +6,7 @@ export default function Page(props) {
     return (
         <div className={styles.container}>
             <Head>
-                <title>Memo Server Admin</title>
+                <title>Memo Index Admin</title>
                 <link rel="icon" href="/favicon.ico"/>
             </Head>
             <main className={styles.main}>

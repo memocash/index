@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/act/balance"
@@ -88,7 +87,6 @@ func (s *Server) GetTxBlock(_ context.Context, req *network_pb.TxBlockRequest) (
 	if err := getTxBlock.Get(req.Txs); err != nil {
 		return nil, jerr.Get("error getting tx blocks by hashes", err)
 	}
-	jlog.Logf("len(getTxBlock.Txs): %d\n", len(getTxBlock.Txs))
 	var txs = make([]*network_pb.BlockTx, len(getTxBlock.Txs))
 	for i := range getTxBlock.Txs {
 		txs[i] = &network_pb.BlockTx{
