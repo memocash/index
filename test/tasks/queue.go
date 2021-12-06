@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/db/client"
-	"github.com/memocash/server/test/run/queue"
-	"github.com/memocash/server/test/suite"
+	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/test/run/queue"
+	"github.com/memocash/index/test/suite"
 )
 
 const (

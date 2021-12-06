@@ -3,7 +3,7 @@ package serve
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	admin "github.com/memocash/server/admin/server"
+	admin "github.com/memocash/index/admin/server"
 	"github.com/spf13/cobra"
 )
 

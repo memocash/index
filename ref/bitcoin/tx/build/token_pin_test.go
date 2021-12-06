@@ -1,11 +1,11 @@
 package build_test
 
 import (
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/tx/build"
-	"github.com/memocash/server/ref/bitcoin/tx/gen"
-	"github.com/memocash/server/ref/bitcoin/util/testing/test_tx"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/build"
+	"github.com/memocash/index/ref/bitcoin/tx/gen"
+	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 	"testing"
 )
 

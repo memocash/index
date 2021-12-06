@@ -4,7 +4,7 @@ package network_pb;
 
 import "block_tx.proto";
 
-option go_package = "github.com/memocash/server/ref/network/gen/network_pb";
+option go_package = "github.com/memocash/index/ref/network/gen/network_pb";
 
 message TxRequest {
   bytes hash = 1;

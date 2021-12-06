@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/cmd"
+	"github.com/memocash/index/cmd"
 )
 
 func main() {

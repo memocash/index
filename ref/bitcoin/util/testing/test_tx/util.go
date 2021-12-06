@@ -4,10 +4,10 @@ import (
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/tx/build"
-	"github.com/memocash/server/ref/bitcoin/tx/gen"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/build"
+	"github.com/memocash/index/ref/bitcoin/tx/gen"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 func GetHexBytes(hash string) []byte {

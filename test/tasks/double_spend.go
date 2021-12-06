@@ -2,11 +2,11 @@ package tasks
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/util/testing/test_tx"
-	"github.com/memocash/server/ref/config"
-	"github.com/memocash/server/test/grp"
-	"github.com/memocash/server/test/suite"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
+	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/test/grp"
+	"github.com/memocash/index/test/suite"
 )
 
 var doubleSpendTest = suite.Test{

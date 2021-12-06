@@ -2,7 +2,7 @@ package node
 
 import (
 	"fmt"
-	"github.com/memocash/server/admin/admin"
+	"github.com/memocash/index/admin/admin"
 	"net"
 )
 

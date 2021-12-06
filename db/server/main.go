@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/memocash/server/db/client"
+	"github.com/memocash/index/db/client"
 )
 
 func GetHost(port uint) string {

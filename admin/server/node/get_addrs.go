@@ -1,7 +1,7 @@
 package node
 
 import (
-	"github.com/memocash/server/admin/admin"
+	"github.com/memocash/index/admin/admin"
 )
 
 var getAddrsRoute = admin.Route{

@@ -2,7 +2,7 @@ package memo
 
 import (
 	"github.com/jchavannes/btcd/txscript"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 type Script interface {

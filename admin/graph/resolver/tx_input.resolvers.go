@@ -8,9 +8,9 @@ import (
 	"fmt"
 
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/admin/graph/dataloader"
-	"github.com/memocash/server/admin/graph/generated"
-	"github.com/memocash/server/admin/graph/model"
+	"github.com/memocash/index/admin/graph/dataloader"
+	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/model"
 )
 
 func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx, error) {

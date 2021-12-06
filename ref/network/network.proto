@@ -10,7 +10,7 @@ import "output.proto";
 import "double_spend.proto";
 import "tx.proto";
 
-option go_package = "github.com/memocash/server/ref/network/gen/network_pb";
+option go_package = "github.com/memocash/index/ref/network/gen/network_pb";
 
 service Network {
     rpc SaveTxs (Txs) returns (SaveTxsReply);

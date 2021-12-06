@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/memocash/server/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/generated"
 )
 
 func (r *mutationResolver) Null(ctx context.Context) (*int, error) {

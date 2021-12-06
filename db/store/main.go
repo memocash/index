@@ -3,7 +3,7 @@ package store
 import (
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/config"
+	"github.com/memocash/index/ref/config"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"

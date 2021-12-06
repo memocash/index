@@ -2,9 +2,9 @@ package balance
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/node/obj/get"
-	"github.com/memocash/server/ref/bitcoin/tx/script"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/node/obj/get"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 type Balance struct {

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/admin/graph/dataloader"
-	"github.com/memocash/server/admin/graph/model"
-	"github.com/memocash/server/db/client"
-	"github.com/memocash/server/db/item"
-	"github.com/memocash/server/ref/bitcoin/memo"
+	"github.com/memocash/index/admin/graph/dataloader"
+	"github.com/memocash/index/admin/graph/model"
+	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"time"
 )
 

@@ -3,7 +3,7 @@ package memo
 import (
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
 type TxInput struct {

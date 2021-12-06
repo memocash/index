@@ -3,9 +3,9 @@ package item
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/db/client"
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/config"
+	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/config"
 )
 
 type DoubleSpendOutput struct {

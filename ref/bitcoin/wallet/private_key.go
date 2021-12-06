@@ -7,7 +7,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/bitcoin/util"
+	"github.com/memocash/index/ref/bitcoin/util"
 	"math/rand"
 )
 

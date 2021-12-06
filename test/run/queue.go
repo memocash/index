@@ -3,7 +3,7 @@ package run
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/server/db/server"
+	"github.com/memocash/index/db/server"
 )
 
 type Queue struct {

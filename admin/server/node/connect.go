@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/admin/admin"
+	"github.com/memocash/index/admin/admin"
 )
 
 var connectRoute = admin.Route{

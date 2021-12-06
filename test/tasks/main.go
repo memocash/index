@@ -1,6 +1,6 @@
 package tasks
 
-import "github.com/memocash/server/test/suite"
+import "github.com/memocash/index/test/suite"
 
 const (
 	TestDoubleSpend = "double_spend"

@@ -10,14 +10,14 @@ import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/admin/graph/generated"
-	"github.com/memocash/server/admin/graph/model"
-	"github.com/memocash/server/db/client"
-	"github.com/memocash/server/db/item"
-	"github.com/memocash/server/node/obj/get"
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
-	"github.com/memocash/server/ref/bitcoin/tx/script"
+	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/model"
+	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/node/obj/get"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
 
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {

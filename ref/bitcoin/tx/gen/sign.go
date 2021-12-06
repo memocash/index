@@ -4,8 +4,8 @@ import (
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 func Sign(msg *wire.MsgTx, inputs []memo.TxInput, keyRing wallet.KeyRing) error {

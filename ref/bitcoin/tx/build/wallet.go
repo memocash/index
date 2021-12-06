@@ -1,8 +1,8 @@
 package build
 
 import (
-	"github.com/memocash/server/ref/bitcoin/tx/gen"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/tx/gen"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 type Wallet struct {

@@ -6,7 +6,7 @@ import (
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/jchavannes/go-mnemonic/bip39"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/bitcoin/util"
+	"github.com/memocash/index/ref/bitcoin/util"
 	"github.com/tyler-smith/go-bip32"
 	"strconv"
 	"strings"

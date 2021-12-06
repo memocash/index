@@ -2,17 +2,17 @@ package cmd
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/cmd/network"
-	"github.com/memocash/server/cmd/peer"
-	"github.com/memocash/server/cmd/serve"
-	"github.com/memocash/server/cmd/test"
-	"github.com/memocash/server/ref/config"
+	"github.com/memocash/index/cmd/network"
+	"github.com/memocash/index/cmd/peer"
+	"github.com/memocash/index/cmd/serve"
+	"github.com/memocash/index/cmd/test"
+	"github.com/memocash/index/ref/config"
 	"github.com/spf13/cobra"
 )
 
-var serverCmd = &cobra.Command{
-	Use:   "server",
-	Short: "Run Server",
+var indexCmd = &cobra.Command{
+	Use:   "index",
+	Short: "Run Index Server",
 	CompletionOptions: cobra.CompletionOptions{
 		DisableDefaultCmd: true,
 	},
@@ -24,14 +24,14 @@ var serverCmd = &cobra.Command{
 }
 
 func Execute() error {
-	serverCmd.PersistentFlags().String(config.FlagConfig, "", "config file name")
-	serverCmd.AddCommand(
+	indexCmd.PersistentFlags().String(config.FlagConfig, "", "config file name")
+	indexCmd.AddCommand(
 		test.GetCommand(),
 		peer.GetCommand(),
 		network.GetCommand(),
 		serve.GetCommand(),
 	)
-	if err := serverCmd.Execute(); err != nil {
+	if err := indexCmd.Execute(); err != nil {
 		return jerr.Get("error executing server command", err)
 	}
 	return nil

@@ -3,7 +3,7 @@ package gen
 import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 func (c *Create) Sign(msg *wire.MsgTx, keyRing wallet.KeyRing) error {

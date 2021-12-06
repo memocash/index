@@ -1,7 +1,7 @@
 package network
 
 import (
-	"github.com/memocash/server/cmd/network/process"
+	"github.com/memocash/index/cmd/network/process"
 	"github.com/spf13/cobra"
 )
 

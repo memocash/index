@@ -1,4 +1,4 @@
-module github.com/memocash/server
+module github.com/memocash/index
 
 replace github.com/gcash/bchd => ../../../pkg/github.com/gcash/bchd
 

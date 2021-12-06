@@ -3,12 +3,12 @@ package serve
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	admin "github.com/memocash/server/admin/server"
-	"github.com/memocash/server/api"
-	db "github.com/memocash/server/db/server"
-	"github.com/memocash/server/node"
-	"github.com/memocash/server/ref/config"
-	"github.com/memocash/server/ref/network/network_server"
+	admin "github.com/memocash/index/admin/server"
+	"github.com/memocash/index/api"
+	db "github.com/memocash/index/db/server"
+	"github.com/memocash/index/node"
+	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/network/network_server"
 	"github.com/spf13/cobra"
 )
 

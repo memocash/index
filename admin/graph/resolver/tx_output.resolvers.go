@@ -9,12 +9,12 @@ import (
 	"fmt"
 
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/admin/graph/dataloader"
-	"github.com/memocash/server/admin/graph/generated"
-	"github.com/memocash/server/admin/graph/model"
-	"github.com/memocash/server/node/obj/get"
-	"github.com/memocash/server/ref/bitcoin/tx/script"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/admin/graph/dataloader"
+	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/model"
+	"github.com/memocash/index/node/obj/get"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {

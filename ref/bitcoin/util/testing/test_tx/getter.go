@@ -3,7 +3,7 @@ package test_tx
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
 type TestGetter struct {

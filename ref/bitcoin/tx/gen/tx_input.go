@@ -1,6 +1,6 @@
 package gen
 
-import "github.com/memocash/server/ref/bitcoin/memo"
+import "github.com/memocash/index/ref/bitcoin/memo"
 
 func GetNonPointerTxInputs(pointerTxInputs []*memo.TxInput) []memo.TxInput {
 	var inputs = make([]memo.TxInput, len(pointerTxInputs))

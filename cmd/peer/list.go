@@ -4,8 +4,8 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/admin/client/peer"
-	"github.com/memocash/server/db/item"
+	"github.com/memocash/index/admin/client/peer"
+	"github.com/memocash/index/db/item"
 	"github.com/spf13/cobra"
 	"net"
 )

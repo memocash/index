@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 func GetTxString(txHash []byte) string {

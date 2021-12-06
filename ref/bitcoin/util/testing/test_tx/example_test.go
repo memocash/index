@@ -3,11 +3,11 @@ package test_tx_test
 import (
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/tx/gen"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
-	"github.com/memocash/server/ref/bitcoin/util/testing/test_tx"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/gen"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 func printTx(value int64) {

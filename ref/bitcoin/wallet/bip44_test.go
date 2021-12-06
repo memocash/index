@@ -3,8 +3,8 @@ package wallet_test
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/server/ref/bitcoin/util/testing/test_wallet"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/util/testing/test_wallet"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 	"testing"
 )
 

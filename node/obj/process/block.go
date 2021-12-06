@@ -7,12 +7,12 @@ import (
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/db/client"
-	"github.com/memocash/server/db/item"
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
-	"github.com/memocash/server/ref/config"
-	"github.com/memocash/server/ref/dbi"
+	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/dbi"
 )
 
 const (

@@ -3,8 +3,8 @@ package network_client
 import (
 	"context"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/config"
-	"github.com/memocash/server/ref/network/gen/network_pb"
+	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
 	"time"
 )

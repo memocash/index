@@ -10,7 +10,7 @@ import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/server/db/item"
+	"github.com/memocash/index/db/item"
 	"net"
 	"time"
 )

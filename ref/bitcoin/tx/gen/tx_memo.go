@@ -2,7 +2,7 @@ package gen
 
 import (
 	"github.com/jchavannes/btcd/wire"
-	"github.com/memocash/server/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
 func getMemoTx(tx *wire.MsgTx, utxos []memo.UTXO, outputs []*memo.Output) *memo.Tx {

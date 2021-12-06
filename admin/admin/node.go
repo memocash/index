@@ -1,7 +1,7 @@
 package admin
 
 import (
-	"github.com/memocash/server/db/item"
+	"github.com/memocash/index/db/item"
 	"time"
 )
 

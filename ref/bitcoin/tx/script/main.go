@@ -3,8 +3,8 @@ package script
 import (
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 func len64(b []byte) int64 {

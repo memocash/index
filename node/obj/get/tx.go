@@ -2,8 +2,8 @@ package get
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/db/item"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
 type Tx struct {

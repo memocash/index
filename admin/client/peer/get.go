@@ -2,8 +2,8 @@ package peer
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/admin/admin"
-	"github.com/memocash/server/ref/config"
+	"github.com/memocash/index/admin/admin"
+	"github.com/memocash/index/ref/config"
 	"io/ioutil"
 	"net/http"
 )

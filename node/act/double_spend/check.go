@@ -3,11 +3,11 @@ package double_spend
 import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/db/item"
-	"github.com/memocash/server/node/act/tx_raw"
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
-	"github.com/memocash/server/ref/bitcoin/tx/script"
+	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/node/act/tx_raw"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"time"
 )
 

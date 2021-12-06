@@ -3,7 +3,7 @@ package wallet_test
 import (
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 	"testing"
 )
 

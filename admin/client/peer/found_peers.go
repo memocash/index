@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/admin/admin"
-	"github.com/memocash/server/db/item"
-	"github.com/memocash/server/ref/config"
+	"github.com/memocash/index/admin/admin"
+	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/ref/config"
 	"io/ioutil"
 	"net/http"
 )

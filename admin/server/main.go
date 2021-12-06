@@ -3,12 +3,12 @@ package server
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/server/admin/admin"
-	"github.com/memocash/server/admin/server/graphql"
-	"github.com/memocash/server/admin/server/network"
-	node2 "github.com/memocash/server/admin/server/node"
-	"github.com/memocash/server/node"
-	"github.com/memocash/server/ref/config"
+	"github.com/memocash/index/admin/admin"
+	"github.com/memocash/index/admin/server/graphql"
+	"github.com/memocash/index/admin/server/network"
+	node2 "github.com/memocash/index/admin/server/node"
+	"github.com/memocash/index/node"
+	"github.com/memocash/index/ref/config"
 	"net/http"
 )
 

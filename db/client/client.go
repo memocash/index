@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/db/proto/queue_pb"
+	"github.com/memocash/index/db/proto/queue_pb"
 	"google.golang.org/grpc"
 	"time"
 )

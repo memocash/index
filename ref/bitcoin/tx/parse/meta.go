@@ -3,7 +3,7 @@ package parse
 import (
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/memocash/server/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
 type Meta struct {

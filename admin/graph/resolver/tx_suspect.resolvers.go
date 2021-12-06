@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/memocash/server/admin/graph/generated"
-	"github.com/memocash/server/admin/graph/model"
+	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/model"
 )
 
 func (r *txSuspectResolver) Tx(ctx context.Context, obj *model.TxSuspect) (*model.Tx, error) {

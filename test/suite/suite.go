@@ -2,9 +2,9 @@ package suite
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/db/store"
-	"github.com/memocash/server/ref/config"
-	"github.com/memocash/server/test/run"
+	"github.com/memocash/index/db/store"
+	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/test/run"
 	"os"
 )
 

@@ -2,7 +2,7 @@ package memo
 
 import (
 	"bytes"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
 type UTXO struct {

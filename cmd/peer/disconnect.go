@@ -3,7 +3,7 @@ package peer
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/server/admin/client/peer"
+	"github.com/memocash/index/admin/client/peer"
 	"github.com/spf13/cobra"
 )
 

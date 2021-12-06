@@ -2,8 +2,8 @@ package tasks
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/db/item"
-	"github.com/memocash/server/test/suite"
+	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/test/suite"
 	"time"
 )
 

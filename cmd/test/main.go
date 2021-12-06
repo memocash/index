@@ -3,8 +3,8 @@ package test
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/server/test/suite"
-	"github.com/memocash/server/test/tasks"
+	"github.com/memocash/index/test/suite"
+	"github.com/memocash/index/test/tasks"
 	"github.com/spf13/cobra"
 )
 

@@ -3,8 +3,8 @@ package network
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/server/ref/config"
-	"github.com/memocash/server/ref/network/network_server"
+	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/network/network_server"
 	"github.com/spf13/cobra"
 )
 

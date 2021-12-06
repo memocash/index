@@ -2,7 +2,7 @@ package network_client
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/network/gen/network_pb"
+	"github.com/memocash/index/ref/network/gen/network_pb"
 )
 
 type BlockHeight struct {

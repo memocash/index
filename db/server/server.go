@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/db/client"
-	"github.com/memocash/server/db/proto/queue_pb"
-	"github.com/memocash/server/db/store"
+	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/proto/queue_pb"
+	"github.com/memocash/index/db/store"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"net"

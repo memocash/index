@@ -4,10 +4,10 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/node/obj/process"
-	"github.com/memocash/server/node/obj/saver"
-	"github.com/memocash/server/node/obj/status"
-	"github.com/memocash/server/ref/dbi"
+	"github.com/memocash/index/node/obj/process"
+	"github.com/memocash/index/node/obj/saver"
+	"github.com/memocash/index/node/obj/status"
+	"github.com/memocash/index/ref/dbi"
 	"github.com/spf13/cobra"
 )
 

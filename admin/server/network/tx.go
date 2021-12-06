@@ -1,7 +1,7 @@
 package network
 
 import (
-	"github.com/memocash/server/admin/admin"
+	"github.com/memocash/index/admin/admin"
 )
 
 var txRoute = admin.Route{

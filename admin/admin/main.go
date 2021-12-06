@@ -2,7 +2,7 @@ package admin
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/node"
+	"github.com/memocash/index/node"
 	"net/http"
 )
 

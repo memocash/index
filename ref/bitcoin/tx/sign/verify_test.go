@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"github.com/gcash/bchd/wire"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/bitcoin/memo"
-	"github.com/memocash/server/ref/bitcoin/tx/sign"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/sign"
 	"testing"
 )
 

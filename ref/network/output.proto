@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package network_pb;
 
-option go_package = "github.com/memocash/server/ref/network/gen/network_pb";
+option go_package = "github.com/memocash/index/ref/network/gen/network_pb";
 
 message UtxosRequest {
   repeated bytes pkHashes = 1;

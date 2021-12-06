@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/memocash/server/admin/graph/model"
+	"github.com/memocash/index/admin/graph/model"
 )
 
 // TxSuspectLoaderConfig captures the config to create a new TxSuspectLoader

@@ -2,7 +2,7 @@ package get
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/db/item"
+	"github.com/memocash/index/db/item"
 )
 
 type BlockTx struct {

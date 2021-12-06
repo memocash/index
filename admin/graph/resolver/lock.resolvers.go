@@ -8,10 +8,10 @@ import (
 	"encoding/hex"
 
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/admin/graph/generated"
-	"github.com/memocash/server/admin/graph/model"
-	"github.com/memocash/server/db/item"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/model"
+	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
 func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error) {

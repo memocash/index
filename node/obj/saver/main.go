@@ -3,7 +3,7 @@ package saver
 import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/dbi"
+	"github.com/memocash/index/ref/dbi"
 )
 
 type CombinedTx struct {

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/server/db/client"
-	"github.com/memocash/server/db/item"
-	"github.com/memocash/server/ref/bitcoin/tx/hs"
-	"github.com/memocash/server/ref/bitcoin/tx/script"
-	"github.com/memocash/server/ref/bitcoin/wallet"
+	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 type Utxo struct {

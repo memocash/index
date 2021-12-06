@@ -4,8 +4,8 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
-	db "github.com/memocash/server/db/server"
-	"github.com/memocash/server/ref/config"
+	db "github.com/memocash/index/db/server"
+	"github.com/memocash/index/ref/config"
 	"github.com/spf13/cobra"
 )
 

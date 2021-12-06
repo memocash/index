@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/ref/config"
+	"github.com/memocash/index/ref/config"
 	"io/ioutil"
 	"net/http"
 )

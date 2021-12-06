@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package queue_pb;
 
-option go_package = "github.com/memocash/server/db/proto/queue_pb";
+option go_package = "github.com/memocash/index/db/proto/queue_pb";
 
 service Queue {
   rpc SaveMessages (Messages) returns (ErrorReply) {

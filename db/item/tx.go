@@ -2,7 +2,7 @@ package item
 
 import (
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/server/db/client"
+	"github.com/memocash/index/db/client"
 )
 
 type Tx struct {

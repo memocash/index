@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/json"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/server/admin/admin"
+	"github.com/memocash/index/admin/admin"
 )
 
 var indexRoute = admin.Route{
