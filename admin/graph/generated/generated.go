@@ -80,7 +80,7 @@ type ComplexityRoot struct {
 	Query struct {
 		Address      func(childComplexity int, address string) int
 		Block        func(childComplexity int, hash string) int
-		Blocks       func(childComplexity int, newest *bool) int
+		Blocks       func(childComplexity int, newest *bool, start *uint32) int
 		DoubleSpends func(childComplexity int) int
 		Tx           func(childComplexity int, hash string) int
 	}
@@ -146,7 +146,7 @@ type QueryResolver interface {
 	Tx(ctx context.Context, hash string) (*model.Tx, error)
 	Address(ctx context.Context, address string) (*model.Lock, error)
 	Block(ctx context.Context, hash string) (*model.Block, error)
-	Blocks(ctx context.Context, newest *bool) ([]*model.Block, error)
+	Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error)
 	DoubleSpends(ctx context.Context) ([]*model.DoubleSpend, error)
 }
 type TxResolver interface {
@@ -334,7 +334,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Blocks(childComplexity, args["newest"].(*bool)), true
+		return e.complexity.Query.Blocks(childComplexity, args["newest"].(*bool), args["start"].(*uint32)), true
 
 	case "Query.double_spends":
 		if e.complexity.Query.DoubleSpends == nil {
@@ -638,7 +638,7 @@ var sources = []*ast.Source{
     tx(hash: String!): Tx
     address(address: String!): Lock
     block(hash: String!): Block
-    blocks(newest: Boolean): [Block!]
+    blocks(newest: Boolean, start: Uint32): [Block!]
     double_spends: [DoubleSpend!]
 }
 `, BuiltIn: false},
@@ -702,7 +702,7 @@ func (ec *executionContext) field_Lock_outputs_args(ctx context.Context, rawArgs
 	var arg0 *model.HashIndex
 	if tmp, ok := rawArgs["start"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-		arg0, err = ec.unmarshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐHashIndex(ctx, tmp)
+		arg0, err = ec.unmarshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHashIndex(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -717,7 +717,7 @@ func (ec *executionContext) field_Lock_utxos_args(ctx context.Context, rawArgs m
 	var arg0 *model.HashIndex
 	if tmp, ok := rawArgs["start"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-		arg0, err = ec.unmarshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐHashIndex(ctx, tmp)
+		arg0, err = ec.unmarshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHashIndex(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -783,6 +783,15 @@ func (ec *executionContext) field_Query_blocks_args(ctx context.Context, rawArgs
 		}
 	}
 	args["newest"] = arg0
+	var arg1 *uint32
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg1, err = ec.unmarshalOUint322ᚖuint32(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg1
 	return args, nil
 }
 
@@ -906,7 +915,7 @@ func (ec *executionContext) _Block_timestamp(ctx context.Context, field graphql.
 	}
 	res := resTmp.(model.Date)
 	fc.Result = res
-	return ec.marshalNDate2githubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
+	return ec.marshalNDate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Block_height(ctx context.Context, field graphql.CollectedField, obj *model.Block) (ret graphql.Marshaler) {
@@ -970,7 +979,7 @@ func (ec *executionContext) _Block_txs(ctx context.Context, field graphql.Collec
 	}
 	res := resTmp.([]*model.Tx)
 	fc.Result = res
-	return ec.marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxᚄ(ctx, field.Selections, res)
+	return ec.marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DoubleSpend_hash(ctx context.Context, field graphql.CollectedField, obj *model.DoubleSpend) (ret graphql.Marshaler) {
@@ -1075,7 +1084,7 @@ func (ec *executionContext) _DoubleSpend_output(ctx context.Context, field graph
 	}
 	res := resTmp.(*model.TxOutput)
 	fc.Result = res
-	return ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, field.Selections, res)
+	return ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DoubleSpend_inputs(ctx context.Context, field graphql.CollectedField, obj *model.DoubleSpend) (ret graphql.Marshaler) {
@@ -1110,7 +1119,7 @@ func (ec *executionContext) _DoubleSpend_inputs(ctx context.Context, field graph
 	}
 	res := resTmp.([]*model.TxInput)
 	fc.Result = res
-	return ec.marshalNTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInputᚄ(ctx, field.Selections, res)
+	return ec.marshalNTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInputᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Lock_hash(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
@@ -1251,7 +1260,7 @@ func (ec *executionContext) _Lock_utxos(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.([]*model.TxOutput)
 	fc.Result = res
-	return ec.marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx, field.Selections, res)
+	return ec.marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Lock_outputs(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
@@ -1290,7 +1299,7 @@ func (ec *executionContext) _Lock_outputs(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.([]*model.TxOutput)
 	fc.Result = res
-	return ec.marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx, field.Selections, res)
+	return ec.marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_null(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1361,7 +1370,7 @@ func (ec *executionContext) _Query_tx(ctx context.Context, field graphql.Collect
 	}
 	res := resTmp.(*model.Tx)
 	fc.Result = res
-	return ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+	return ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_address(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1400,7 +1409,7 @@ func (ec *executionContext) _Query_address(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Lock)
 	fc.Result = res
-	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_block(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1439,7 +1448,7 @@ func (ec *executionContext) _Query_block(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.(*model.Block)
 	fc.Result = res
-	return ec.marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res)
+	return ec.marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_blocks(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1467,7 +1476,7 @@ func (ec *executionContext) _Query_blocks(ctx context.Context, field graphql.Col
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Blocks(rctx, args["newest"].(*bool))
+		return ec.resolvers.Query().Blocks(rctx, args["newest"].(*bool), args["start"].(*uint32))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1478,7 +1487,7 @@ func (ec *executionContext) _Query_blocks(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.([]*model.Block)
 	fc.Result = res
-	return ec.marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐBlockᚄ(ctx, field.Selections, res)
+	return ec.marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlockᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_double_spends(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1510,7 +1519,7 @@ func (ec *executionContext) _Query_double_spends(ctx context.Context, field grap
 	}
 	res := resTmp.([]*model.DoubleSpend)
 	fc.Result = res
-	return ec.marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpendᚄ(ctx, field.Selections, res)
+	return ec.marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpendᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1686,7 +1695,7 @@ func (ec *executionContext) _Tx_inputs(ctx context.Context, field graphql.Collec
 	}
 	res := resTmp.([]*model.TxInput)
 	fc.Result = res
-	return ec.marshalNTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInputᚄ(ctx, field.Selections, res)
+	return ec.marshalNTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInputᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tx_outputs(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
@@ -1721,7 +1730,7 @@ func (ec *executionContext) _Tx_outputs(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.([]*model.TxOutput)
 	fc.Result = res
-	return ec.marshalNTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx, field.Selections, res)
+	return ec.marshalNTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tx_blocks(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
@@ -1753,7 +1762,7 @@ func (ec *executionContext) _Tx_blocks(ctx context.Context, field graphql.Collec
 	}
 	res := resTmp.([]*model.Block)
 	fc.Result = res
-	return ec.marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res)
+	return ec.marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tx_suspect(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
@@ -1785,7 +1794,7 @@ func (ec *executionContext) _Tx_suspect(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.TxSuspect)
 	fc.Result = res
-	return ec.marshalOTxSuspect2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxSuspect(ctx, field.Selections, res)
+	return ec.marshalOTxSuspect2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxSuspect(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tx_lost(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
@@ -1817,7 +1826,7 @@ func (ec *executionContext) _Tx_lost(ctx context.Context, field graphql.Collecte
 	}
 	res := resTmp.(*model.TxLost)
 	fc.Result = res
-	return ec.marshalOTxLost2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxLost(ctx, field.Selections, res)
+	return ec.marshalOTxLost2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxLost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tx_seen(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
@@ -1852,7 +1861,7 @@ func (ec *executionContext) _Tx_seen(ctx context.Context, field graphql.Collecte
 	}
 	res := resTmp.(*model.Date)
 	fc.Result = res
-	return ec.marshalNDate2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
+	return ec.marshalNDate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxInput_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
@@ -1887,7 +1896,7 @@ func (ec *executionContext) _TxInput_tx(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.Tx)
 	fc.Result = res
-	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxInput_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
@@ -2062,7 +2071,7 @@ func (ec *executionContext) _TxInput_output(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.TxOutput)
 	fc.Result = res
-	return ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, field.Selections, res)
+	return ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxInput_double_spend(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
@@ -2094,7 +2103,7 @@ func (ec *executionContext) _TxInput_double_spend(ctx context.Context, field gra
 	}
 	res := resTmp.(*model.DoubleSpend)
 	fc.Result = res
-	return ec.marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, field.Selections, res)
+	return ec.marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxLost_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxLost) (ret graphql.Marshaler) {
@@ -2129,7 +2138,7 @@ func (ec *executionContext) _TxLost_tx(ctx context.Context, field graphql.Collec
 	}
 	res := resTmp.(*model.Tx)
 	fc.Result = res
-	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxLost_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxLost) (ret graphql.Marshaler) {
@@ -2199,7 +2208,7 @@ func (ec *executionContext) _TxOutput_tx(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.(*model.Tx)
 	fc.Result = res
-	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxOutput_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
@@ -2371,7 +2380,7 @@ func (ec *executionContext) _TxOutput_spends(ctx context.Context, field graphql.
 	}
 	res := resTmp.([]*model.TxInput)
 	fc.Result = res
-	return ec.marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInput(ctx, field.Selections, res)
+	return ec.marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxOutput_double_spend(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
@@ -2403,7 +2412,7 @@ func (ec *executionContext) _TxOutput_double_spend(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.DoubleSpend)
 	fc.Result = res
-	return ec.marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, field.Selections, res)
+	return ec.marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxOutput_lock(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
@@ -2435,7 +2444,7 @@ func (ec *executionContext) _TxOutput_lock(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Lock)
 	fc.Result = res
-	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxSuspect_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxSuspect) (ret graphql.Marshaler) {
@@ -2470,7 +2479,7 @@ func (ec *executionContext) _TxSuspect_tx(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(*model.Tx)
 	fc.Result = res
-	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxSuspect_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxSuspect) (ret graphql.Marshaler) {
@@ -4521,7 +4530,7 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNBlock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐBlock(ctx context.Context, sel ast.SelectionSet, v *model.Block) graphql.Marshaler {
+func (ec *executionContext) marshalNBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx context.Context, sel ast.SelectionSet, v *model.Block) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4546,12 +4555,12 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNDate2githubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, v interface{}) (model.Date, error) {
+func (ec *executionContext) unmarshalNDate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, v interface{}) (model.Date, error) {
 	res, err := model.UnmarshalDate(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNDate2githubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v model.Date) graphql.Marshaler {
+func (ec *executionContext) marshalNDate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v model.Date) graphql.Marshaler {
 	res := model.MarshalDate(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -4561,12 +4570,12 @@ func (ec *executionContext) marshalNDate2githubᚗcomᚋmemocashᚋserverᚋadmi
 	return res
 }
 
-func (ec *executionContext) unmarshalNDate2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, v interface{}) (*model.Date, error) {
+func (ec *executionContext) unmarshalNDate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, v interface{}) (*model.Date, error) {
 	res, err := model.UnmarshalDate(v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNDate2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v *model.Date) graphql.Marshaler {
+func (ec *executionContext) marshalNDate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v *model.Date) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4582,7 +4591,7 @@ func (ec *executionContext) marshalNDate2ᚖgithubᚗcomᚋmemocashᚋserverᚋa
 	return res
 }
 
-func (ec *executionContext) marshalNDoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx context.Context, sel ast.SelectionSet, v *model.DoubleSpend) graphql.Marshaler {
+func (ec *executionContext) marshalNDoubleSpend2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx context.Context, sel ast.SelectionSet, v *model.DoubleSpend) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4622,11 +4631,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNTx2githubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx context.Context, sel ast.SelectionSet, v model.Tx) graphql.Marshaler {
+func (ec *executionContext) marshalNTx2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx context.Context, sel ast.SelectionSet, v model.Tx) graphql.Marshaler {
 	return ec._Tx(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx context.Context, sel ast.SelectionSet, v *model.Tx) graphql.Marshaler {
+func (ec *executionContext) marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx context.Context, sel ast.SelectionSet, v *model.Tx) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4636,7 +4645,7 @@ func (ec *executionContext) marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadm
 	return ec._Tx(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInputᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TxInput) graphql.Marshaler {
+func (ec *executionContext) marshalNTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInputᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TxInput) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4660,7 +4669,7 @@ func (ec *executionContext) marshalNTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserv
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTxInput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInput(ctx, sel, v[i])
+			ret[i] = ec.marshalNTxInput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInput(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4680,7 +4689,7 @@ func (ec *executionContext) marshalNTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserv
 	return ret
 }
 
-func (ec *executionContext) marshalNTxInput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInput(ctx context.Context, sel ast.SelectionSet, v *model.TxInput) graphql.Marshaler {
+func (ec *executionContext) marshalNTxInput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInput(ctx context.Context, sel ast.SelectionSet, v *model.TxInput) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4690,11 +4699,11 @@ func (ec *executionContext) marshalNTxInput2ᚖgithubᚗcomᚋmemocashᚋserver�
 	return ec._TxInput(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNTxOutput2githubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutput(ctx context.Context, sel ast.SelectionSet, v model.TxOutput) graphql.Marshaler {
+func (ec *executionContext) marshalNTxOutput2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx context.Context, sel ast.SelectionSet, v model.TxOutput) graphql.Marshaler {
 	return ec._TxOutput(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TxOutput) graphql.Marshaler {
+func (ec *executionContext) marshalNTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TxOutput) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4718,7 +4727,7 @@ func (ec *executionContext) marshalNTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋser
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, sel, v[i])
+			ret[i] = ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4738,7 +4747,7 @@ func (ec *executionContext) marshalNTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋser
 	return ret
 }
 
-func (ec *executionContext) marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutput(ctx context.Context, sel ast.SelectionSet, v *model.TxOutput) graphql.Marshaler {
+func (ec *executionContext) marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx context.Context, sel ast.SelectionSet, v *model.TxOutput) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -5020,7 +5029,7 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐBlock(ctx context.Context, sel ast.SelectionSet, v []*model.Block) graphql.Marshaler {
+func (ec *executionContext) marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx context.Context, sel ast.SelectionSet, v []*model.Block) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5047,7 +5056,7 @@ func (ec *executionContext) marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋserver
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐBlock(ctx, sel, v[i])
+			ret[i] = ec.marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5061,7 +5070,7 @@ func (ec *executionContext) marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋserver
 	return ret
 }
 
-func (ec *executionContext) marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐBlockᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Block) graphql.Marshaler {
+func (ec *executionContext) marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlockᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Block) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5088,7 +5097,7 @@ func (ec *executionContext) marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋserver
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNBlock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐBlock(ctx, sel, v[i])
+			ret[i] = ec.marshalNBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5108,7 +5117,7 @@ func (ec *executionContext) marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋserver
 	return ret
 }
 
-func (ec *executionContext) marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐBlock(ctx context.Context, sel ast.SelectionSet, v *model.Block) graphql.Marshaler {
+func (ec *executionContext) marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx context.Context, sel ast.SelectionSet, v *model.Block) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5139,7 +5148,7 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
-func (ec *executionContext) marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpendᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DoubleSpend) graphql.Marshaler {
+func (ec *executionContext) marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpendᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DoubleSpend) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5166,7 +5175,7 @@ func (ec *executionContext) marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNDoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, sel, v[i])
+			ret[i] = ec.marshalNDoubleSpend2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5186,14 +5195,14 @@ func (ec *executionContext) marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx context.Context, sel ast.SelectionSet, v *model.DoubleSpend) graphql.Marshaler {
+func (ec *executionContext) marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx context.Context, sel ast.SelectionSet, v *model.DoubleSpend) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._DoubleSpend(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐHashIndex(ctx context.Context, v interface{}) (*model.HashIndex, error) {
+func (ec *executionContext) unmarshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHashIndex(ctx context.Context, v interface{}) (*model.HashIndex, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -5201,7 +5210,7 @@ func (ec *executionContext) unmarshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋser
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐHashIndex(ctx context.Context, sel ast.SelectionSet, v *model.HashIndex) graphql.Marshaler {
+func (ec *executionContext) marshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHashIndex(ctx context.Context, sel ast.SelectionSet, v *model.HashIndex) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5223,7 +5232,7 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return graphql.MarshalInt(*v)
 }
 
-func (ec *executionContext) marshalOLock2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v *model.Lock) graphql.Marshaler {
+func (ec *executionContext) marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v *model.Lock) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5254,7 +5263,7 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return graphql.MarshalString(*v)
 }
 
-func (ec *executionContext) marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tx) graphql.Marshaler {
+func (ec *executionContext) marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tx) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5281,7 +5290,7 @@ func (ec *executionContext) marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx, sel, v[i])
+			ret[i] = ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5301,14 +5310,14 @@ func (ec *executionContext) marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalOTx2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTx(ctx context.Context, sel ast.SelectionSet, v *model.Tx) graphql.Marshaler {
+func (ec *executionContext) marshalOTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx context.Context, sel ast.SelectionSet, v *model.Tx) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Tx(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInput(ctx context.Context, sel ast.SelectionSet, v []*model.TxInput) graphql.Marshaler {
+func (ec *executionContext) marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInput(ctx context.Context, sel ast.SelectionSet, v []*model.TxInput) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5335,7 +5344,7 @@ func (ec *executionContext) marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserv
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOTxInput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInput(ctx, sel, v[i])
+			ret[i] = ec.marshalOTxInput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInput(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5349,21 +5358,21 @@ func (ec *executionContext) marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋserv
 	return ret
 }
 
-func (ec *executionContext) marshalOTxInput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxInput(ctx context.Context, sel ast.SelectionSet, v *model.TxInput) graphql.Marshaler {
+func (ec *executionContext) marshalOTxInput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInput(ctx context.Context, sel ast.SelectionSet, v *model.TxInput) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._TxInput(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOTxLost2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxLost(ctx context.Context, sel ast.SelectionSet, v *model.TxLost) graphql.Marshaler {
+func (ec *executionContext) marshalOTxLost2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxLost(ctx context.Context, sel ast.SelectionSet, v *model.TxLost) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._TxLost(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TxOutput) graphql.Marshaler {
+func (ec *executionContext) marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TxOutput) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5390,7 +5399,7 @@ func (ec *executionContext) marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋser
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, sel, v[i])
+			ret[i] = ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5410,11 +5419,26 @@ func (ec *executionContext) marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋser
 	return ret
 }
 
-func (ec *executionContext) marshalOTxSuspect2ᚖgithubᚗcomᚋmemocashᚋserverᚋadminᚋgraphᚋmodelᚐTxSuspect(ctx context.Context, sel ast.SelectionSet, v *model.TxSuspect) graphql.Marshaler {
+func (ec *executionContext) marshalOTxSuspect2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxSuspect(ctx context.Context, sel ast.SelectionSet, v *model.TxSuspect) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._TxSuspect(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOUint322ᚖuint32(ctx context.Context, v interface{}) (*uint32, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalUint32(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOUint322ᚖuint32(ctx context.Context, sel ast.SelectionSet, v *uint32) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalUint32(*v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

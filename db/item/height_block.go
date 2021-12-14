@@ -134,9 +134,19 @@ func GetHeightBlocksAll(startHeight int64, waitSingle bool) ([]*HeightBlock, err
 	return heightBlocks, nil
 }
 
+func GetHeightBlocksAllDefault(startHeight int64, waitSingle bool) ([]*HeightBlock, error) {
+	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, client.DefaultLimit)
+	if err != nil {
+		return nil, jerr.Get("error getting height blocks all default limit", err)
+	}
+	return heightBlocks, nil
+}
+
 func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32) ([]*HeightBlock, error) {
 	var heightBlocks []*HeightBlock
-	for _, shardConfig := range config.GetQueueShards() {
+	shardConfigs := config.GetQueueShards()
+	shardLimit := limit / uint32(len(shardConfigs))
+	for _, shardConfig := range shardConfigs {
 		if waitSingle && GetShard32(uint(startHeight+1)) != shardConfig.Min {
 			continue
 		}
@@ -149,7 +159,7 @@ func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32) (
 			Topic:   TopicHeightBlock,
 			Start:   jutil.GetInt64DataBig(startHeight),
 			Wait:    waitSingle,
-			Max:     limit,
+			Max:     shardLimit,
 			Timeout: timeout,
 		})
 		if err != nil {

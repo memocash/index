@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -94,8 +95,12 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 	}, nil
 }
 
-func (r *queryResolver) Blocks(ctx context.Context, newest *bool) ([]*model.Block, error) {
-	heightBlocks, err := item.GetHeightBlocksAllLimit(0, false, client.DefaultLimit)
+func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error) {
+	var startInt int64
+	if start != nil {
+		startInt = int64(*start)
+	}
+	heightBlocks, err := item.GetHeightBlocksAllDefault(startInt, false)
 	if err != nil {
 		return nil, jerr.Get("error getting height blocks for query", err)
 	}
