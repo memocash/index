@@ -140,6 +140,10 @@ func IsNoAddressesError(err error) bool {
 	return jerr.HasError(err, NoAddressesErrorMsg)
 }
 
+func IsAddressQuantityError(err error) bool {
+	return IsTooManyAddressesError(err) || IsNoAddressesError(err)
+}
+
 func GetAddressFromPkScript(pkScript []byte) (*Address, error) {
 	_, addresses, _, err := txscript.ExtractPkScriptAddrs(pkScript, GetMainNetParamsOld())
 	if err != nil {

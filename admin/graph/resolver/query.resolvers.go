@@ -95,7 +95,7 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 }
 
 func (r *queryResolver) Blocks(ctx context.Context, newest *bool) ([]*model.Block, error) {
-	heightBlocks, err := item.GetHeightBlocksAll(0, false)
+	heightBlocks, err := item.GetHeightBlocksAllLimit(0, false, client.DefaultLimit)
 	if err != nil {
 		return nil, jerr.Get("error getting height blocks for query", err)
 	}
