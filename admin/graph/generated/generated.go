@@ -655,7 +655,7 @@ scalar Date
     blocks: [Block]
     suspect: TxSuspect
     lost: TxLost
-    seen: Date!
+    seen: Date
 }
 `, BuiltIn: false},
 	{Name: "schema/tx_input.graphqls", Input: `type TxInput {
@@ -1854,14 +1854,11 @@ func (ec *executionContext) _Tx_seen(ctx context.Context, field graphql.Collecte
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Date)
 	fc.Result = res
-	return ec.marshalNDate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
+	return ec.marshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TxInput_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
@@ -4012,9 +4009,6 @@ func (ec *executionContext) _Tx(ctx context.Context, sel ast.SelectionSet, obj *
 					}
 				}()
 				res = ec._Tx_seen(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		default:
@@ -4562,27 +4556,6 @@ func (ec *executionContext) unmarshalNDate2githubᚗcomᚋmemocashᚋindexᚋadm
 
 func (ec *executionContext) marshalNDate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v model.Date) graphql.Marshaler {
 	res := model.MarshalDate(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) unmarshalNDate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, v interface{}) (*model.Date, error) {
-	res, err := model.UnmarshalDate(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNDate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v *model.Date) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := model.MarshalDate(*v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -5146,6 +5119,21 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
+}
+
+func (ec *executionContext) unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, v interface{}) (*model.Date, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := model.UnmarshalDate(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v *model.Date) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return model.MarshalDate(*v)
 }
 
 func (ec *executionContext) marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpendᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DoubleSpend) graphql.Marshaler {

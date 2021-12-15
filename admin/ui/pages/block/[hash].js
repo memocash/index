@@ -35,7 +35,6 @@ export default function LockHash() {
             return
         }
         const {hash} = router.query
-        console.log("hash: " + hash)
         lastBlockHash = hash
         fetch("/api/graphql", {
             method: "POST",
@@ -85,15 +84,14 @@ export default function LockHash() {
                         <div className={column.width85}>{block.height.toLocaleString()}</div>
                     </div>
                     <div className={column.container}>
-                        <div className={column.width50}>
+                        <div>
                             <h3>Txs ({block.txs.length})</h3>
                             {block.txs.map((tx) => {
                                 return (
-                                    <div key={tx} className={column.container}>
-                                        <div className={column.width25}>Hash</div>
-                                        <div className={column.width75}>
+                                    <div key={tx.hash} className={column.container}>
+                                        <div>
                                             <Link href={"/tx/" + tx.hash}>
-                                                <a><PreInline>{tx.hash}</PreInline></a>
+                                                <a>{tx.hash}</a>
                                             </Link>
                                         </div>
                                     </div>

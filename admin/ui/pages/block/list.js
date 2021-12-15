@@ -27,7 +27,7 @@ export default function Block() {
     }
     `
 
-    let lastStart = undefined
+    let lastStart = null
     useEffect(() => {
         if (!router || !router.query || router.query.start === lastStart) {
             return

@@ -6,5 +6,5 @@ type Tx {
     blocks: [Block]
     suspect: TxSuspect
     lost: TxLost
-    seen: Date!
+    seen: Date
 }

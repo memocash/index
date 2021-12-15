@@ -57,14 +57,14 @@ function DoubleSpends() {
                 <Loading loading={loading} error={errorMessage}>
                     {doubleSpends.map((doubleSpend) => {
                         return (
-                            <div key={doubleSpend}>
+                            <div key={doubleSpend.hash + doubleSpend.index}>
                                 <Link href={"/tx/" + doubleSpend.hash}>
                                     <a>{doubleSpend.hash}:{doubleSpend.index}</a>
                                 </Link>
                                 <ul>
                                     {doubleSpend.inputs.map((input) => {
                                         return (
-                                            <li key={input}>
+                                            <li key={input.hash + input.index}>
                                                 <Link href={"/tx/" + input.hash}>
                                                     <a>{input.hash}:{input.index}</a>
                                                 </Link>

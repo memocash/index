@@ -124,7 +124,7 @@ export default function Hash() {
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>First Seen</div>
-                        <div className={column.width85}>{tx.seen}</div>
+                        <div className={column.width85}>{tx.seen ? tx.seen : "-"}</div>
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>Lost/suspect</div>
@@ -159,7 +159,7 @@ function BlockInfo(props) {
             <div className={column.width85}>
                 {tx.blocks ? tx.blocks.map((block) => {
                     return (
-                        <div key={block}>
+                        <div key={block.hash}>
                             Hash: <Link href={"/block/" + block.hash}>
                             <a>{block.hash}</a></Link>
                             <br/>
@@ -181,7 +181,7 @@ function Inputs(props) {
             <h3>Inputs ({tx.inputs.length})</h3>
             {tx.inputs.map((input) => {
                 return (
-                    <div key={input} className={[column.container, column.marginBottom].join(" ")}>
+                    <div key={input.index} className={[column.container, column.marginBottom].join(" ")}>
                         <div className={column.width15}>{input.index}</div>
                         <div className={column.width85}>
                             Address: {input.output.lock ?
