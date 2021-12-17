@@ -3,6 +3,7 @@ import Head from "next/head";
 import Link from 'next/link';
 import {useEffect, useState} from "react";
 import * as config from "./config";
+import {GetErrorMessage} from "./util/loading";
 
 const LocalStorageKey = "server-select"
 const SelectValDev = "dev"
@@ -13,14 +14,26 @@ export default function Page(props) {
 
     const setSelect = (val) => {
         setSelectValue(val)
+        let host = ""
         switch (val) {
             case SelectValDev:
-                config.SetHost(config.DevHost)
+                host = config.DevHost
                 break;
             case SelectValLive:
-                config.SetHost(config.LiveHost)
+                host = config.LiveHost
                 break;
+            default:
+                throw "select host value not recognized: " + val
         }
+        fetch("/api/host", {
+            method: "POST",
+            body: JSON.stringify({
+                host: host,
+            }),
+        }).catch(res => {
+            console.log("error setting host config via api")
+            console.log(res)
+        })
     }
 
     const selectChange = (e) => {

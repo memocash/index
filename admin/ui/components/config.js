@@ -7,9 +7,13 @@ const SetHost = (host) => {
     Host = host
 };
 
+const GetHost = () => {
+    return Host
+};
+
 export {
     SetHost,
+    GetHost,
     DevHost,
     LiveHost,
-    Host,
 }

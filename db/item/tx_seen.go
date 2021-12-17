@@ -53,8 +53,7 @@ func GetTxSeens(txHashes [][]byte) ([]*TxSeen, error) {
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		db := client.NewClient(shardConfig.GetHost())
-		err := db.GetByPrefixes(TopicTxSeen, prefixes)
-		if err != nil {
+		if err := db.GetByPrefixes(TopicTxSeen, prefixes); err != nil {
 			return nil, jerr.Get("error getting client message tx seens", err)
 		}
 		for _, msg := range db.Messages {

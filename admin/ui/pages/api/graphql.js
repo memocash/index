@@ -1,9 +1,9 @@
-import {Host} from "../../components/config"
+import {GetHost} from "../../components/config"
 
 export default function handler(req, res) {
     return new Promise((resolve, reject) => {
         const {query, variables} = JSON.parse(req.body)
-        fetch(Host + "/graphql", {
+        fetch(GetHost() + "/graphql", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

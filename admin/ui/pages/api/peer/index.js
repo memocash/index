@@ -1,9 +1,9 @@
-import {Host} from "../../../components/config"
+import {GetHost} from "../../../components/config"
 
 export default function handler(req, res) {
     return new Promise((resolve, reject) => {
         const {ip, port} = JSON.parse(req.body)
-        fetch(Host + "/node/history", {
+        fetch(GetHost() + "/node/history", {
             method: "POST",
             body: JSON.stringify({
                 Ip: ip,
