@@ -1,9 +1,12 @@
 package item
 
 import (
+	"bytes"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
 	"time"
 )
@@ -34,7 +37,11 @@ func (s *TxSeen) SetUid(uid []byte) {
 		return
 	}
 	s.TxHash = jutil.ByteReverse(uid[:32])
-	s.Timestamp = jutil.GetByteTimeNano(uid[32:40])
+	if bytes.Equal(uid[36:40], []byte{0x0, 0x0, 0x0, 0x0}) {
+		s.Timestamp = jutil.GetByteTime(uid[32:40])
+	} else {
+		s.Timestamp = jutil.GetByteTimeNano(uid[32:40])
+	}
 }
 
 func (s *TxSeen) Deserialize([]byte) {}
