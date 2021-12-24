@@ -18,8 +18,8 @@ type TokenSendRequest struct {
 }
 
 func TokenSend(request TokenSendRequest) (*memo.Tx, error) {
-	outputs := []*memo.Output{{
-		Script: &script.TokenSend{
+	outputs := []*memo.Output{
+		{Script: &script.TokenSend{
 			TokenHash:  request.TokenHash,
 			SlpType:    request.TokenType,
 			Quantities: []uint64{request.Quantity},

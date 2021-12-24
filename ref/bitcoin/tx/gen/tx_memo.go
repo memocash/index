@@ -5,7 +5,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
-func getMemoTx(tx *wire.MsgTx, utxos []memo.UTXO, outputs []*memo.Output) *memo.Tx {
+func GetMemoTx(tx *wire.MsgTx, utxos []memo.UTXO, outputs []*memo.Output) *memo.Tx {
 	var memoInputs []*memo.TxInput
 	var maxAncestors uint
 	for i, utxo := range utxos {

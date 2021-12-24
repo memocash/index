@@ -127,7 +127,7 @@ func (c Create) getNotEnoughValueError() error {
 
 func (c Create) GetQuickMemoTx() *memo.Tx {
 	wireTx, _ := c.getWireTx()
-	return getMemoTx(wireTx, c.InputsToUse, c.Outputs)
+	return GetMemoTx(wireTx, c.InputsToUse, c.Outputs)
 }
 
 func (c Create) getNotEnoughTokenValueError() error {

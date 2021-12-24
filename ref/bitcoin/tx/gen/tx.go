@@ -20,7 +20,7 @@ func Tx(request TxRequest) (*memo.Tx, error) {
 	if err != nil {
 		return nil, jerr.Get("error signing tx", err)
 	}
-	memoTx := getMemoTx(msgTx, create.InputsToUse, create.Outputs)
+	memoTx := GetMemoTx(msgTx, create.InputsToUse, create.Outputs)
 	err = create.markSpentAndChangeForGetter(memoTx)
 	if err != nil {
 		return nil, jerr.Get("error marking spent and change for getter", err)

@@ -15,6 +15,6 @@ func TxUnsigned(request TxRequest) (*memo.Tx, error) {
 	if err != nil {
 		return nil, jerr.Get("error building tx", err)
 	}
-	memoTx := getMemoTx(msgTx, create.InputsToUse, create.Outputs)
+	memoTx := GetMemoTx(msgTx, create.InputsToUse, create.Outputs)
 	return memoTx, nil
 }
