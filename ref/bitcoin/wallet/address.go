@@ -159,6 +159,19 @@ func GetAddressFromPkScript(pkScript []byte) (*Address, error) {
 	}, nil
 }
 
+func GetAddressStringFromPkScript(pkScript []byte) string {
+	scriptClass, addresses, _, err := txscript.ExtractPkScriptAddrs(pkScript, GetMainNetParamsOld())
+	if err != nil {
+		return "error: " + scriptClass.String()
+	}
+	if len(addresses) > 1 {
+		return "multiple: " + scriptClass.String()
+	} else if len(addresses) == 0 {
+		return "unknown: " + scriptClass.String()
+	}
+	return addresses[0].String()
+}
+
 func GetAddressFromRedeemScript(redeemScript []byte) (*Address, error) {
 	address, err := btcutil.NewAddressScriptHash(redeemScript, GetMainNetParamsOld())
 	if err != nil {

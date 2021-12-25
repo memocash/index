@@ -221,8 +221,10 @@ function Outputs(props) {
                             {output.index}
                         </div>
                         <div className={column.width85}>
-                            Address: <Link href={"/address/" + output.lock.address}>
-                            <a>{output.lock.address}</a></Link>
+                            Address: {output.lock.address.includes(": ") ? output.lock.address :
+                            <Link href={"/address/" + output.lock.address}>
+                                <a>{output.lock.address}</a>
+                            </Link>}
                             <br/>
                             Amount: {output.amount}
                             <br/>

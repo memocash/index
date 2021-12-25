@@ -46,17 +46,13 @@ func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*mode
 	if err != nil {
 		return nil, jerr.Get("error parsing lock script for tx output lock resolver", err)
 	}
-	address, err := wallet.GetAddressFromPkScript(lockScript)
-	if err != nil {
-		return nil, jerr.Get("error getting address from lock script", err)
-	}
 	balance := get.NewBalance(lockScript)
 	if err := balance.GetBalance(); err != nil {
 		return nil, jerr.Get("error getting lock balance for tx output resolver", err)
 	}
 	return &model.Lock{
 		Hash:    hex.EncodeToString(script.GetLockHash(lockScript)),
-		Address: address.GetEncoded(),
+		Address: wallet.GetAddressStringFromPkScript(lockScript),
 		Balance: balance.Balance,
 	}, nil
 }
