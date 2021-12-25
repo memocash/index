@@ -3,7 +3,6 @@ import Head from "next/head";
 import Link from 'next/link';
 import {useEffect, useState} from "react";
 import * as config from "./config";
-import {GetErrorMessage} from "./util/loading";
 
 const LocalStorageKey = "server-select"
 const SelectValDev = "dev"
@@ -11,8 +10,8 @@ const SelectValLive = "live"
 
 export default function Page(props) {
     const [selectValue, setSelectValue] = useState("")
-
-    const setSelect = (val) => {
+    const [lastHost, setLastHost] = useState("")
+    const setSelect = async (val) => {
         setSelectValue(val)
         let host = ""
         switch (val) {
@@ -25,15 +24,21 @@ export default function Page(props) {
             default:
                 throw "select host value not recognized: " + val
         }
-        fetch("/api/host", {
-            method: "POST",
-            body: JSON.stringify({
-                host: host,
-            }),
-        }).catch(res => {
-            console.log("error setting host config via api")
-            console.log(res)
-        })
+        if (lastHost === "" || host !== lastHost) {
+            await fetch("/api/host", {
+                method: "POST",
+                body: JSON.stringify({
+                    host: host,
+                }),
+            }).catch(res => {
+                console.log("error setting host config via api")
+                console.log(res)
+            })
+        }
+        if (lastHost !== "" && host !== lastHost) {
+            window.location.reload()
+        }
+        setLastHost(host)
     }
 
     const selectChange = (e) => {
@@ -46,7 +51,7 @@ export default function Page(props) {
         if (prevSelect && prevSelect.length) {
             setSelect(prevSelect)
         }
-    })
+    }, [])
 
     return (
         <div className={styles.container}>
