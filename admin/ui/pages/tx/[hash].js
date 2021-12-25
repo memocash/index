@@ -106,7 +106,15 @@ export default function Hash() {
             console.log(res)
         })
     }, [router])
-
+    let fee = 0
+    for (let i = 0; i < tx.inputs.length; i++) {
+        fee += tx.inputs[i].output.amount
+    }
+    for (let i = 0; i < tx.outputs.length; i++) {
+        fee -= tx.outputs[i].amount
+    }
+    const size = tx.raw ? tx.raw.length / 2 : 0
+    const feeRate = Math.round(fee / size * 1e6) / 1e6
     return (
         <Page>
             <div>
@@ -121,6 +129,14 @@ export default function Hash() {
                     <div className={column.container}>
                         <div className={column.width15}>Tx raw</div>
                         <div className={column.width85}><PreInline>{tx.raw}</PreInline></div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width15}>Size</div>
+                        <div className={column.width85}>{size} Bytes</div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width15}>Fee</div>
+                        <div className={column.width85}>{fee} Satoshis ({feeRate} sats/B)</div>
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>First Seen</div>
