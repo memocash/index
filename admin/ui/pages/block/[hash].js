@@ -5,8 +5,7 @@ import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
 import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
-import {PreInline} from "../../components/util/pre";
-import getUrl from "../../components/fetch";
+import {graphQL} from "../../components/fetch";
 
 export default function LockHash() {
     const router = useRouter()
@@ -37,14 +36,8 @@ export default function LockHash() {
         }
         const {hash} = router.query
         lastBlockHash = hash
-        getUrl("/api/graphql", {
-            method: "POST",
-            body: JSON.stringify({
-                query: query,
-                variables: {
-                    hash: hash,
-                }
-            }),
+        graphQL(query, {
+            hash: hash,
         }).then(res => {
             if (res.ok) {
                 return res.json()

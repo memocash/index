@@ -6,7 +6,7 @@ import {useEffect, useState} from "react";
 import {Loading, GetErrorMessage} from "../../components/util/loading";
 import Link from "next/link";
 import {PreInline} from "../../components/util/pre";
-import getUrl from "../../components/fetch";
+import {graphQL} from "../../components/fetch";
 
 export default function LockHash() {
     const router = useRouter()
@@ -51,14 +51,8 @@ export default function LockHash() {
         }
         const {address} = router.query
         lastAddress = address
-        getUrl("/api/graphql", {
-            method: "POST",
-            body: JSON.stringify({
-                query: query,
-                variables: {
-                    address: address,
-                }
-            }),
+        graphQL(query, {
+            address: address,
         }).then(res => {
             if (res.ok) {
                 return res.json()

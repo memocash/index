@@ -4,10 +4,10 @@ import column from '../../styles/column.module.css'
 import Page from "../../components/page";
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
-import {Loading, GetErrorMessage} from "../../components/util/loading";
+import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
 import {PreInline} from "../../components/util/pre";
-import getUrl from "../../components/fetch";
+import {graphQL} from "../../components/fetch";
 
 export default function Hash() {
     const router = useRouter()
@@ -80,14 +80,8 @@ export default function Hash() {
         }
         const {hash} = router.query
         lastHash = hash
-        getUrl("/api/graphql", {
-            method: "POST",
-            body: JSON.stringify({
-                query: query,
-                variables: {
-                    hash: hash,
-                }
-            }),
+        graphQL(query, {
+            hash: hash,
         }).then(res => {
             if (res.ok) {
                 return res.json()

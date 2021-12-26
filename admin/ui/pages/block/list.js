@@ -6,7 +6,7 @@ import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
 import {PreInline} from "../../components/util/pre";
 import {useRouter} from "next/router";
-import getUrl from "../../components/fetch";
+import {graphQL} from "../../components/fetch";
 
 export default function Block() {
     const [blocks, setBlocks] = useState([])
@@ -27,7 +27,6 @@ export default function Block() {
         }
     }
     `
-
     let lastStart = null
     useEffect(() => {
         if (!router || !router.query || router.query.start === lastStart) {
@@ -35,14 +34,8 @@ export default function Block() {
         }
         const {start} = router.query
         lastStart = start
-        getUrl("/api/graphql", {
-            method: "POST",
-            body: JSON.stringify({
-                query: query,
-                variables: {
-                    start: start,
-                },
-            }),
+        graphQL(query, {
+            start: start,
         }).then(res => {
             if (res.ok) {
                 return res.json()
@@ -70,7 +63,6 @@ export default function Block() {
             console.log(res)
         })
     }, [router])
-
     return (
         <Page>
             <div>
