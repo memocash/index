@@ -129,3 +129,7 @@
         flex-direction: column;
     }
 }
+
+.underline {
+    text-decoration: underline;
+}

@@ -14,6 +14,8 @@ export default function Block() {
     const [errorMessage, setErrorMessage] = useState("")
     const [next, setNext] = useState(4)
     const [prev, setPrev] = useState(0)
+    const [lastStart, setLastStart] = useState(0)
+    const [lastNewest, setLastNewest] = useState(false)
     const router = useRouter()
     const query = `
     query ($newest: Boolean, $start: Uint32) {
@@ -27,15 +29,21 @@ export default function Block() {
         }
     }
     `
-    let lastStart = null
     useEffect(() => {
-        if (!router || !router.query || router.query.start === lastStart) {
+        if (!router || !router.query ||
+            (router.query.start === lastStart.toString() && router.query.newest === lastNewest.toString())) {
             return
         }
-        const {start} = router.query
-        lastStart = start
+        let {start, newest} = router.query
+        if (!start) {
+            start = 0
+        }
+        newest = newest === "true"
+        setLastStart(start)
+        setLastNewest(newest)
         graphQL(query, {
             start: start,
+            newest: newest,
         }).then(res => {
             if (res.ok) {
                 return res.json()
@@ -50,12 +58,21 @@ export default function Block() {
             setLoading(false)
             setBlocks(data.data.blocks)
             if (data.data.blocks.length > 0) {
-                setNext(data.data.blocks[data.data.blocks.length - 1].height + 1)
-                let previous = data.data.blocks[0].height - data.data.blocks.length;
-                if (previous < 0) {
-                    previous = 0
+                if (newest) {
+                    setNext(data.data.blocks[data.data.blocks.length - 1].height)
+                    let previous = data.data.blocks[0].height + data.data.blocks.length + 1;
+                    if (previous < 0) {
+                        previous = 0
+                    }
+                    setPrev(previous)
+                } else {
+                    setNext(data.data.blocks[data.data.blocks.length - 1].height + 1)
+                    let previous = data.data.blocks[0].height - data.data.blocks.length;
+                    if (previous < 0) {
+                        previous = 0
+                    }
+                    setPrev(previous)
                 }
-                setPrev(previous)
             }
         }).catch(res => {
             setErrorMessage("error loading address")
@@ -69,6 +86,25 @@ export default function Block() {
                 <h2 className={styles.subTitle}>
                     Blocks ({blocks.length})
                 </h2>
+                <p>
+                    <Link href={{
+                        pathname: "/block/list",
+                        query: {
+                            newest: true,
+                        }
+                    }}>
+                        <a><span className={lastNewest ? styles.underline : null}>Newest</span></a>
+                    </Link>
+                    &nbsp;&middot;&nbsp;
+                    <Link href={{
+                        pathname: "/block/list",
+                        query: {
+                            newest: false,
+                        }
+                    }}>
+                        <a><span className={lastNewest ? null : styles.underline}>Oldest</span></a>
+                    </Link>
+                </p>
                 <Loading loading={loading} error={errorMessage}>
                     <h3>Blocks </h3>
                     {blocks.map((block) => {
@@ -89,17 +125,20 @@ export default function Block() {
                         <Link href={{
                             pathname: "/block/list",
                             query: {
+                                newest: lastNewest,
                                 start: prev,
                             }
-                        }} onClick={() => paginateClick(prev)}>
+                        }}>
                             <a>Prev</a>
                         </Link>
+                        &nbsp;&middot;&nbsp;
                         <Link href={{
                             pathname: "/block/list",
                             query: {
+                                newest: lastNewest,
                                 start: next,
                             }
-                        }} onClick={() => paginateClick(next)}>
+                        }}>
                             <a>Next</a>
                         </Link>
                     </div>

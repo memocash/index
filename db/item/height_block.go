@@ -127,22 +127,22 @@ func GetHeightBlocks(shard uint32, startHeight int64, newest bool) ([]*HeightBlo
 }
 
 func GetHeightBlocksAll(startHeight int64, waitSingle bool) ([]*HeightBlock, error) {
-	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, client.LargeLimit)
+	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, client.LargeLimit, false)
 	if err != nil {
 		return nil, jerr.Get("error getting height blocks all large limit", err)
 	}
 	return heightBlocks, nil
 }
 
-func GetHeightBlocksAllDefault(startHeight int64, waitSingle bool) ([]*HeightBlock, error) {
-	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, client.DefaultLimit)
+func GetHeightBlocksAllDefault(startHeight int64, waitSingle bool, newest bool) ([]*HeightBlock, error) {
+	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, 3, newest)
 	if err != nil {
 		return nil, jerr.Get("error getting height blocks all default limit", err)
 	}
 	return heightBlocks, nil
 }
 
-func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32) ([]*HeightBlock, error) {
+func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32, newest bool) ([]*HeightBlock, error) {
 	var heightBlocks []*HeightBlock
 	shardConfigs := config.GetQueueShards()
 	shardLimit := limit / uint32(len(shardConfigs))
@@ -155,11 +155,16 @@ func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32) (
 		if waitSingle {
 			timeout = time.Hour
 		}
+		var start []byte
+		if startHeight != 0 {
+			start = jutil.GetInt64DataBig(startHeight)
+		}
 		err := dbClient.GetWOpts(client.Opts{
 			Topic:   TopicHeightBlock,
-			Start:   jutil.GetInt64DataBig(startHeight),
+			Start:   start,
 			Wait:    waitSingle,
 			Max:     shardLimit,
+			Newest:  newest,
 			Timeout: timeout,
 		})
 		if err != nil {
@@ -173,7 +178,11 @@ func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32) (
 		}
 	}
 	sort.Slice(heightBlocks, func(i, j int) bool {
-		return heightBlocks[i].Height < heightBlocks[j].Height
+		if newest {
+			return heightBlocks[i].Height > heightBlocks[j].Height
+		} else {
+			return heightBlocks[i].Height < heightBlocks[j].Height
+		}
 	})
 	return heightBlocks, nil
 }

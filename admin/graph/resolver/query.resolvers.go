@@ -100,7 +100,11 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	if start != nil {
 		startInt = int64(*start)
 	}
-	heightBlocks, err := item.GetHeightBlocksAllDefault(startInt, false)
+	var newestBool bool
+	if newest != nil {
+		newestBool = *newest
+	}
+	heightBlocks, err := item.GetHeightBlocksAllDefault(startInt, false, newestBool)
 	if err != nil {
 		return nil, jerr.Get("error getting height blocks for query", err)
 	}
