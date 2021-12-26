@@ -6,6 +6,7 @@ import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
 import {PreInline} from "../../components/util/pre";
 import {useRouter} from "next/router";
+import getUrl from "../../components/fetch";
 
 export default function Block() {
     const [blocks, setBlocks] = useState([])
@@ -34,7 +35,7 @@ export default function Block() {
         }
         const {start} = router.query
         lastStart = start
-        fetch("/api/graphql", {
+        getUrl("/api/graphql", {
             method: "POST",
             body: JSON.stringify({
                 query: query,

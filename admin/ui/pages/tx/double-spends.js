@@ -3,6 +3,7 @@ import styles from "../../styles/Home.module.css";
 import {useEffect, useState} from "react";
 import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
+import getUrl from "../../components/fetch";
 
 const query = `
     query {
@@ -22,7 +23,7 @@ function DoubleSpends() {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     useEffect(() => {
-        fetch("/api/graphql", {
+        getUrl("/api/graphql", {
             method: "POST",
             body: JSON.stringify({
                 query: query,

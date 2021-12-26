@@ -3,7 +3,11 @@ import {GetHost} from "../../components/config"
 export default function handler(req, res) {
     return new Promise((resolve, reject) => {
         const {query, variables} = JSON.parse(req.body)
-        fetch(GetHost() + "/graphql", {
+        let {server} = req.headers
+        if (!server || !server.length) {
+            server = GetHost()
+        }
+        fetch(server + "/graphql", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

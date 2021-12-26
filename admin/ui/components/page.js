@@ -3,6 +3,7 @@ import Head from "next/head";
 import Link from 'next/link';
 import {useEffect, useState} from "react";
 import * as config from "./config";
+import {setHost} from "./fetch";
 
 const LocalStorageKey = "server-select"
 const SelectValDev = "dev"
@@ -25,15 +26,7 @@ export default function Page(props) {
                 throw "select host value not recognized: " + val
         }
         if (lastHost === "" || host !== lastHost) {
-            await fetch("/api/host", {
-                method: "POST",
-                body: JSON.stringify({
-                    host: host,
-                }),
-            }).catch(res => {
-                console.log("error setting host config via api")
-                console.log(res)
-            })
+            setHost(host)
         }
         if (lastHost !== "" && host !== lastHost) {
             window.location.reload()
@@ -41,15 +34,15 @@ export default function Page(props) {
         setLastHost(host)
     }
 
-    const selectChange = (e) => {
-        setSelect(e.target.value)
+    const selectChange = async (e) => {
+        await setSelect(e.target.value)
         localStorage.setItem(LocalStorageKey, e.target.value)
     }
 
-    useEffect(() => {
+    useEffect(async () => {
         const prevSelect = localStorage.getItem(LocalStorageKey)
         if (prevSelect && prevSelect.length) {
-            setSelect(prevSelect)
+            await setSelect(prevSelect)
         }
     }, [])
 
