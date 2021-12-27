@@ -15,7 +15,7 @@ export default function Block() {
     const [next, setNext] = useState(4)
     const [prev, setPrev] = useState(0)
     const [lastStart, setLastStart] = useState(0)
-    const [lastNewest, setLastNewest] = useState(false)
+    const [lastNewest, setLastNewest] = useState(true)
     const router = useRouter()
     const query = `
     query ($newest: Boolean, $start: Uint32) {
@@ -38,7 +38,7 @@ export default function Block() {
         if (!start) {
             start = 0
         }
-        newest = newest === "true"
+        newest = newest !== "false"
         setLastStart(start)
         setLastNewest(newest)
         graphQL(query, {

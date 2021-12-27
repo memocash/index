@@ -135,7 +135,7 @@ func GetHeightBlocksAll(startHeight int64, waitSingle bool) ([]*HeightBlock, err
 }
 
 func GetHeightBlocksAllDefault(startHeight int64, waitSingle bool, newest bool) ([]*HeightBlock, error) {
-	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, 3, newest)
+	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, client.DefaultLimit, newest)
 	if err != nil {
 		return nil, jerr.Get("error getting height blocks all default limit", err)
 	}
