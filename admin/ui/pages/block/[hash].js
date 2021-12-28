@@ -15,15 +15,17 @@ export default function LockHash() {
         timestamp: "",
         txs: [],
     })
+    const [lastStart, setLastStart] = useState(undefined)
+    const [lastTx, setLastTx] = useState("")
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const query = `
-    query ($hash: String!) {
+    query ($hash: String!, $start: String) {
         block(hash: $hash) {
             hash
             height
             timestamp
-            txs {
+            txs(start: $start) {
                 hash
             }
         }
@@ -31,13 +33,15 @@ export default function LockHash() {
     `
     let lastBlockHash = undefined
     useEffect(() => {
-        if (!router || !router.query || router.query.hash === lastBlockHash) {
+        if (!router || !router.query || (router.query.hash === lastBlockHash && router.query.start === lastStart)) {
             return
         }
-        const {hash} = router.query
+        const {hash, start} = router.query
         lastBlockHash = hash
+        setLastStart(start)
         graphQL(query, {
             hash: hash,
+            start: start,
         }).then(res => {
             if (res.ok) {
                 return res.json()
@@ -51,13 +55,15 @@ export default function LockHash() {
             }
             setLoading(false)
             setBlock(data.data.block)
+            if (data.data.block.txs.length > 0) {
+                setLastTx(data.data.block.txs[data.data.block.txs.length - 1].hash)
+            }
         }).catch(res => {
             setErrorMessage("error loading block")
             setLoading(true)
             console.log(res)
         })
     }, [router])
-
     return (
         <Page>
             <div>
@@ -92,6 +98,20 @@ export default function LockHash() {
                                 )
                             })}
                         </div>
+                    </div>
+                    <div>
+                        <Link href={{pathname: "/block/" + block.hash}}>
+                            <a>First</a>
+                        </Link>
+                        &nbsp;&middot;&nbsp;
+                        <Link href={{
+                            pathname: "/block/" + block.hash,
+                            query: {
+                                start: lastTx,
+                            }
+                        }}>
+                            <a>Next</a>
+                        </Link>
                     </div>
                 </Loading>
             </div>

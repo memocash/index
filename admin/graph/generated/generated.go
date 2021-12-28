@@ -55,7 +55,7 @@ type ComplexityRoot struct {
 		Hash      func(childComplexity int) int
 		Height    func(childComplexity int) int
 		Timestamp func(childComplexity int) int
-		Txs       func(childComplexity int) int
+		Txs       func(childComplexity int, start *string) int
 	}
 
 	DoubleSpend struct {
@@ -129,7 +129,7 @@ type ComplexityRoot struct {
 }
 
 type BlockResolver interface {
-	Txs(ctx context.Context, obj *model.Block) ([]*model.Tx, error)
+	Txs(ctx context.Context, obj *model.Block, start *string) ([]*model.Tx, error)
 }
 type DoubleSpendResolver interface {
 	Output(ctx context.Context, obj *model.DoubleSpend) (*model.TxOutput, error)
@@ -218,7 +218,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Block.Txs(childComplexity), true
+		args, err := ec.field_Block_txs_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Block.Txs(childComplexity, args["start"].(*string)), true
 
 	case "DoubleSpend.hash":
 		if e.complexity.DoubleSpend.Hash == nil {
@@ -612,7 +617,7 @@ var sources = []*ast.Source{
     hash: String!
     timestamp: Date!
     height: Int
-    txs: [Tx!]
+    txs(start: String): [Tx!]
 }
 `, BuiltIn: false},
 	{Name: "schema/double_spend.graphqls", Input: `type DoubleSpend {
@@ -695,6 +700,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Block_txs_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Lock_outputs_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -966,9 +986,16 @@ func (ec *executionContext) _Block_txs(ctx context.Context, field graphql.Collec
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Block_txs_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Block().Txs(rctx, obj)
+		return ec.resolvers.Block().Txs(rctx, obj, args["start"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

@@ -5,22 +5,33 @@ package resolver
 
 import (
 	"context"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
+	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
-func (r *blockResolver) Txs(ctx context.Context, obj *model.Block) ([]*model.Tx, error) {
+func (r *blockResolver) Txs(ctx context.Context, obj *model.Block, start *string) ([]*model.Tx, error) {
 	blockHash, err := chainhash.NewHashFromStr(obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error parsing block hash for block txs resolver", err)
 	}
+	blockHashByte := blockHash.CloneBytes()
+	var startUid []byte
+	if start != nil {
+		startTx, err := chainhash.NewHashFromStr(*start)
+		if err != nil {
+			return nil, jerr.Get("error decoding start tx hash for block", err)
+		}
+		startUid = item.GetBlockTxUid(blockHashByte, startTx.CloneBytes())
+	}
 	blockTxs, err := item.GetBlockTxes(item.BlockTxesRequest{
-		BlockHash: blockHash.CloneBytes(),
+		BlockHash: blockHashByte,
+		StartUid:  startUid,
+		Limit:     client.DefaultLimit,
 	})
 	if err != nil {
 		return nil, jerr.Get("error getting block transactions for hash", err)
