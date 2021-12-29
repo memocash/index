@@ -3,6 +3,7 @@ package gen
 import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
 
 func GetMemoTx(tx *wire.MsgTx, utxos []memo.UTXO, outputs []*memo.Output) *memo.Tx {
@@ -16,7 +17,7 @@ func GetMemoTx(tx *wire.MsgTx, utxos []memo.UTXO, outputs []*memo.Output) *memo.
 	}
 	var spendOutput *memo.Output
 	for _, output := range outputs {
-		if output.GetType() != memo.OutputTypeP2PKH {
+		if _, ok := output.Script.(*script.P2pkh); !ok {
 			spendOutput = output
 		}
 	}

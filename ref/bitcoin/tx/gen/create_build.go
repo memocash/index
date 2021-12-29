@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
 
 func (c *Create) Build() (*wire.MsgTx, error) {
@@ -42,14 +43,14 @@ func (c *Create) Build() (*wire.MsgTx, error) {
 			return nil, jerr.Get("error getting more utxos", err)
 		}
 		if len(moreUTXOs) == 0 {
-			if ! c.isEnoughSlpValue() {
+			if !c.isEnoughSlpValue() {
 				return nil, jerr.Get("error no more utxos and not enough slp value", c.getNotEnoughTokenValueError())
 			}
 			enoughValue, err := c.isEnoughInputValue()
 			if err != nil {
 				return nil, jerr.Get("error determining if enough value", err)
 			}
-			if ! enoughValue {
+			if !enoughValue {
 				return nil, jerr.Get("error no more utxos and not enough value", c.getNotEnoughValueError())
 			}
 			return nil, jerr.New("error no more utxos, tx incomplete, unknown error")
@@ -65,7 +66,8 @@ func (c *Create) Build() (*wire.MsgTx, error) {
 
 func (c Create) CheckOutputs() error {
 	for _, output := range c.Outputs {
-		if output.GetType() != memo.OutputTypeP2PKH && output.GetType() != memo.OutputTypeP2SH {
+		switch output.Script.(type) {
+		case *script.P2pkh, *script.P2sh:
 			continue
 		}
 		if output.Amount < memo.DustMinimumOutput {

@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
 
 func (c *Create) getMoreUTXOs() ([]memo.UTXO, error) {
@@ -46,8 +47,8 @@ func (c Create) getMinInput() (int64, error) {
 	var fee = memo.BaseTxFee + int64(len(c.InputsToUse))*memo.InputFeeP2PKH
 	var outputValues int64
 	for _, output := range c.Outputs {
-		switch output.GetType() {
-		case memo.OutputTypeP2PKH:
+		switch output.Script.(type) {
+		case *script.P2pkh:
 			fee += memo.OutputFeeP2PKH
 			outputValues += output.Amount
 		default:

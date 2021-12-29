@@ -14,6 +14,10 @@ func IsFreeTx(outputs []*Output) bool {
 	if len(outputs) != 1 {
 		return false
 	}
+	/*switch interface{}(outputs[0]).(type) {
+	case script.Post:
+		return true
+	}*/
 	switch outputs[0].GetType() {
 	case OutputTypeMemoMessage,
 		OutputTypeMemoSetProfile,
