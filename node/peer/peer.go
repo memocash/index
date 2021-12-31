@@ -2,10 +2,10 @@ package peer
 
 import (
 	"bytes"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btclog"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/peer"
 	"github.com/jchavannes/btcd/wire"
+	"github.com/jchavannes/btclog"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"

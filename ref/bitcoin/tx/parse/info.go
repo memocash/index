@@ -149,7 +149,7 @@ func GetTxInfo(tx *memo.Tx) TxInfo {
 		if err != nil {
 			return TxInfo{Error: jerr.Get("error disassembling lockScript", err)}
 		}
-		scriptClass, addresses, sigCount, err := txscript.ExtractPkScriptAddrs(out.PkScript, wallet.GetMainNetParamsOld())
+		scriptClass, addresses, sigCount, err := txscript.ExtractPkScriptAddrs(out.PkScript, wallet.GetMainNetParams())
 		var txInfoAddress TxInfoAddress
 		if out.Value > 0 {
 			var addressString string

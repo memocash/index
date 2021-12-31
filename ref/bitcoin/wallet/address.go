@@ -3,9 +3,9 @@ package wallet
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/btcsuite/btcutil"
 	"github.com/jchavannes/bchutil"
 	"github.com/jchavannes/btcd/txscript"
+	"github.com/jchavannes/btcutil"
 	"github.com/jchavannes/jgo/jerr"
 	"strings"
 )
@@ -22,12 +22,12 @@ func GetAddress(pubKey []byte) Address {
 	if len(pubKey) == 0 {
 		return Address{}
 	}
-	addr, err := btcutil.NewAddressPubKey(pubKey, GetMainNetParamsOld())
+	addr, err := btcutil.NewAddressPubKey(pubKey, GetMainNetParams())
 	if err != nil {
 		//fmt.Println(jerr.Get("error getting address", err))
 		return Address{}
 	}
-	address, err := btcutil.DecodeAddress(addr.EncodeAddress(), GetMainNetParamsOld())
+	address, err := btcutil.DecodeAddress(addr.EncodeAddress(), GetMainNetParams())
 	if err != nil {
 		//fmt.Printf("error decoding address: %v\n", err)
 		return Address{}
@@ -50,12 +50,12 @@ func GetAddressFromString(addressString string) Address {
 }
 
 func GetAddressFromStringErr(addressString string) (*Address, error) {
-	address, err := btcutil.DecodeAddress(addressString, GetMainNetParamsOld())
+	address, err := btcutil.DecodeAddress(addressString, GetMainNetParams())
 	if err != nil {
 		if len(addressString) > 0 {
-			address, err = bchutil.DecodeAddress(addressString, GetMainNetParamsOld())
+			address, err = bchutil.DecodeAddress(addressString, GetMainNetParams())
 			if err != nil && !strings.Contains(addressString, ":") {
-				address, err = bchutil.DecodeAddress(SlpAddrPrefix+":"+addressString, GetMainNetParamsOld())
+				address, err = bchutil.DecodeAddress(SlpAddrPrefix+":"+addressString, GetMainNetParams())
 			}
 		}
 		if err != nil {
@@ -63,12 +63,12 @@ func GetAddressFromStringErr(addressString string) (*Address, error) {
 		}
 		if strings.HasPrefix(addressString, "p") || strings.HasPrefix(addressString, "simpleledger:p") ||
 			strings.HasPrefix(addressString, "bitcoincash:p") || strings.HasPrefix(addressString, "bitcoin:p") {
-			address, err = btcutil.NewAddressScriptHashFromHash(address.ScriptAddress(), GetMainNetParamsOld())
+			address, err = btcutil.NewAddressScriptHashFromHash(address.ScriptAddress(), GetMainNetParams())
 			if err != nil {
 				return nil, jerr.Getf(err, "error getting p2sh address: %s", addressString)
 			}
 		} else {
-			address, err = btcutil.NewAddressPubKeyHash(address.ScriptAddress(), GetMainNetParamsOld())
+			address, err = btcutil.NewAddressPubKeyHash(address.ScriptAddress(), GetMainNetParams())
 			if err != nil {
 				return nil, jerr.Getf(err, "error getting btc address from bch address: %s", addressString)
 			}
@@ -80,12 +80,12 @@ func GetAddressFromStringErr(addressString string) (*Address, error) {
 }
 
 func GetAddressFromPkHash(pkHash []byte) Address {
-	addr, err := btcutil.NewAddressPubKeyHash(pkHash, GetMainNetParamsOld())
+	addr, err := btcutil.NewAddressPubKeyHash(pkHash, GetMainNetParams())
 	if err != nil {
 		//fmt.Println(jerr.Get("error getting address", err))
 		return Address{}
 	}
-	address, err := btcutil.DecodeAddress(addr.EncodeAddress(), GetMainNetParamsOld())
+	address, err := btcutil.DecodeAddress(addr.EncodeAddress(), GetMainNetParams())
 	if err != nil {
 		//fmt.Printf("error decoding address: %v\n", err)
 		return Address{}
@@ -96,11 +96,11 @@ func GetAddressFromPkHash(pkHash []byte) Address {
 }
 
 func GetAddressFromPkHashNew(pkHash []byte) (Address, error) {
-	addr, err := btcutil.NewAddressPubKeyHash(pkHash, GetMainNetParamsOld())
+	addr, err := btcutil.NewAddressPubKeyHash(pkHash, GetMainNetParams())
 	if err != nil {
 		return Address{}, jerr.Get("error getting address", err)
 	}
-	address, err := btcutil.DecodeAddress(addr.EncodeAddress(), GetMainNetParamsOld())
+	address, err := btcutil.DecodeAddress(addr.EncodeAddress(), GetMainNetParams())
 	if err != nil {
 		return Address{}, jerr.Get("error decoding address", err)
 	}
@@ -145,7 +145,7 @@ func IsAddressQuantityError(err error) bool {
 }
 
 func GetAddressFromPkScript(pkScript []byte) (*Address, error) {
-	_, addresses, _, err := txscript.ExtractPkScriptAddrs(pkScript, GetMainNetParamsOld())
+	_, addresses, _, err := txscript.ExtractPkScriptAddrs(pkScript, GetMainNetParams())
 	if err != nil {
 		return nil, jerr.Get("error extracting addresses from pk script", err)
 	}
@@ -160,7 +160,7 @@ func GetAddressFromPkScript(pkScript []byte) (*Address, error) {
 }
 
 func GetAddressStringFromPkScript(pkScript []byte) string {
-	scriptClass, addresses, _, err := txscript.ExtractPkScriptAddrs(pkScript, GetMainNetParamsOld())
+	scriptClass, addresses, _, err := txscript.ExtractPkScriptAddrs(pkScript, GetMainNetParams())
 	if err != nil {
 		return "error: " + scriptClass.String()
 	}
@@ -173,7 +173,7 @@ func GetAddressStringFromPkScript(pkScript []byte) string {
 }
 
 func GetAddressFromRedeemScript(redeemScript []byte) (*Address, error) {
-	address, err := btcutil.NewAddressScriptHash(redeemScript, GetMainNetParamsOld())
+	address, err := btcutil.NewAddressScriptHash(redeemScript, GetMainNetParams())
 	if err != nil {
 		return nil, jerr.Get("error getting address script hash from redeem script", err)
 	}
@@ -191,7 +191,7 @@ func GetAddressFromScriptHash(scriptHash []byte) Address {
 }
 
 func GetAddressFromScriptHashNew(scriptHash []byte) (*Address, error) {
-	address, err := btcutil.NewAddressScriptHashFromHash(scriptHash, GetMainNetParamsOld())
+	address, err := btcutil.NewAddressScriptHashFromHash(scriptHash, GetMainNetParams())
 	if err != nil {
 		return nil, jerr.Get("error getting address script hash from hash", err)
 	}
@@ -251,12 +251,12 @@ func (a Address) GetCashAddrString() string {
 		return ""
 	}
 	if a.IsP2SH() {
-		cashAddr, err := bchutil.NewCashAddressScriptHashFromHash(a.GetPkHash(), GetMainNetParamsOld())
+		cashAddr, err := bchutil.NewCashAddressScriptHashFromHash(a.GetPkHash(), GetMainNetParams())
 		if err == nil {
 			return cashAddr.String()
 		}
 	} else {
-		cashAddr, err := bchutil.NewCashAddressPubKeyHash(a.GetPkHash(), GetMainNetParamsOld())
+		cashAddr, err := bchutil.NewCashAddressPubKeyHash(a.GetPkHash(), GetMainNetParams())
 		if err == nil {
 			return cashAddr.String()
 		}

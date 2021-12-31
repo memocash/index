@@ -3,9 +3,9 @@ package wallet
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcutil/base58"
+	"github.com/jchavannes/btcd/btcec"
+	"github.com/jchavannes/btcutil"
+	"github.com/jchavannes/btcutil/base58"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/util"
 	"math/rand"

@@ -1,7 +1,7 @@
 package test_block
 
 import (
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/memocash/index/ref/config"
 	"math/rand"

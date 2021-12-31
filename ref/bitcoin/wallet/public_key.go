@@ -2,7 +2,7 @@ package wallet
 
 import (
 	"encoding/hex"
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/jchavannes/btcd/btcec"
 	"github.com/jchavannes/jgo/jerr"
 )
 

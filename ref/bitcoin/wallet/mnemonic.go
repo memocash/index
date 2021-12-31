@@ -48,7 +48,7 @@ func (m *Mnemonic) GetPathExtended(path string) (*hdkeychain.ExtendedKey, error)
 		if hardened {
 			uIndex += bip32.FirstHardenedChild
 		}
-		newKey, err = newKey.Child(uIndex)
+		newKey, err = newKey.Derive(uIndex)
 		if err != nil {
 			return nil, jerr.Getf(err, "error getting child key for index: %d", uIndex)
 		}

@@ -1,8 +1,8 @@
 package parse
 
 import (
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	wire2 "github.com/gcash/bchd/wire"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 )
 
