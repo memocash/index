@@ -245,6 +245,8 @@ github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:
 github.com/improbable-eng/grpc-web v0.13.0/go.mod h1:6hRR09jOEG81ADP5wCQju1z71g6OL4eEvELdran/3cs=
 github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NHg9XEKhtSvM=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
+github.com/jchavannes/btclog v0.0.0-20211231060513-6ff05f5c3d70 h1:gd69pvLtlt/CMIDDMqp8hwW5SJRd1mYo0hFSR9Gw9GE=
+github.com/jchavannes/btclog v0.0.0-20211231060513-6ff05f5c3d70/go.mod h1:jgXlyu/UfDM+TCp+ui1o0M0w4Fvh4z4QOe0VyZDeasU=
 github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65 h1:DdWODy0K8bxz4XtYRVdqBbM+34SNdsBMd8345YU5lxA=
 github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65/go.mod h1:0wKxri3IqwwE2j63qzxS5lXbI2cTEbKj95DQ7nmlRI4=
 github.com/jchavannes/gorm v0.0.0-20190714222221-6e209826f9bd h1:SyXcDofoDn1nwNxiiFOFY/t8fV8ZfGqBrHMxhdrsP1w=
