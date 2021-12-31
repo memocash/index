@@ -268,12 +268,12 @@ func (a Address) GetSlpAddrString() string {
 	var addr string
 	if a.address != nil {
 		if a.IsP2SH() {
-			slpAddr, err := bchutil.NewSlpAddressScriptHashFromHash(a.GetPkHash(), GetMainNetParamsOld())
+			slpAddr, err := bchutil.NewSlpAddressScriptHashFromHash(a.GetPkHash(), GetMainNetParams())
 			if err == nil {
 				addr = slpAddr.String()
 			}
 		} else {
-			slpAddr, err := bchutil.NewSlpAddressPubKeyHash(a.GetPkHash(), GetMainNetParamsOld())
+			slpAddr, err := bchutil.NewSlpAddressPubKeyHash(a.GetPkHash(), GetMainNetParams())
 			if err == nil {
 				addr = slpAddr.String()
 			}
