@@ -3,7 +3,8 @@ package peer
 import (
 	"bytes"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	btcPeer "github.com/jchavannes/btcd/peer"
+	"github.com/btcsuite/btclog"
+	"github.com/jchavannes/btcd/peer"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
@@ -13,6 +14,7 @@ import (
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 	"net"
+	"os"
 	"time"
 )
 
@@ -21,7 +23,7 @@ const (
 )
 
 type Peer struct {
-	peer        *btcPeer.Peer
+	peer        *peer.Peer
 	HandleError func(error)
 	BlockSave   dbi.BlockSave
 	TxSave      dbi.TxSave
@@ -39,12 +41,13 @@ func (p *Peer) Error(err error) {
 }
 
 func (p *Peer) Connect() error {
+	SetBtcdLogLevel()
 	connectionString := config.GetNodeHost()
-	peer, err := btcPeer.NewOutboundPeer(&btcPeer.Config{
+	newPeer, err := peer.NewOutboundPeer(&peer.Config{
 		UserAgentName:    "bch-lite-node",
 		UserAgentVersion: "0.2.0",
 		ChainParams:      wallet.GetMainNetParams(),
-		Listeners: btcPeer.MessageListeners{
+		Listeners: peer.MessageListeners{
 			OnVerAck:      p.OnVerAck,
 			OnHeaders:     p.OnHeaders,
 			OnInv:         p.OnInv,
@@ -59,18 +62,18 @@ func (p *Peer) Connect() error {
 	if err != nil {
 		return jerr.Get("error getting new outbound peer", err)
 	}
-	p.peer = peer
+	p.peer = newPeer
 	jlog.Logf("Starting node: %s\n", connectionString)
 	conn, err := net.Dial("tcp", connectionString)
 	if err != nil {
 		return jerr.Get("error getting network connection", err)
 	}
-	peer.AssociateConnection(conn)
-	peer.WaitForDisconnect()
+	newPeer.AssociateConnection(conn)
+	newPeer.WaitForDisconnect()
 	return nil
 }
 
-func (p *Peer) OnVerAck(_ *btcPeer.Peer, _ *wire.MsgVerAck) {
+func (p *Peer) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 	if p.BlockSave == nil {
 		p.peer.QueueMessage(wire.NewMsgMemPool(), nil)
 		return
@@ -125,7 +128,7 @@ func (p *Peer) OnVerAck(_ *btcPeer.Peer, _ *wire.MsgVerAck) {
 	p.peer.QueueMessage(msgGetHeaders, nil)
 }
 
-func (p *Peer) OnHeaders(_ *btcPeer.Peer, msg *wire.MsgHeaders) {
+func (p *Peer) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 	if jutil.IsNil(p.BlockSave) {
 		return
 	}
@@ -174,7 +177,7 @@ func (p *Peer) OnHeaders(_ *btcPeer.Peer, msg *wire.MsgHeaders) {
 	}
 }
 
-func (p *Peer) OnInv(_ *btcPeer.Peer, msg *wire.MsgInv) {
+func (p *Peer) OnInv(_ *peer.Peer, msg *wire.MsgInv) {
 	msgGetData := wire.NewMsgGetData()
 	for _, invItem := range msg.InvList {
 		switch invItem.Type {
@@ -207,7 +210,7 @@ func (p *Peer) OnInv(_ *btcPeer.Peer, msg *wire.MsgInv) {
 	}
 }
 
-func (p *Peer) OnBlock(_ *btcPeer.Peer, msg *wire.MsgBlock, _ []byte) {
+func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 	if p.TxSave != nil {
 		err := p.TxSave.SaveTxs(msg)
 		if err != nil {
@@ -229,7 +232,7 @@ func (p *Peer) OnBlock(_ *btcPeer.Peer, msg *wire.MsgBlock, _ []byte) {
 	}
 }
 
-func (p *Peer) OnTx(_ *btcPeer.Peer, msg *wire.MsgTx) {
+func (p *Peer) OnTx(_ *peer.Peer, msg *wire.MsgTx) {
 	if p.TxSave != nil {
 		jlog.Logf("OnTx: %s\n", msg.TxHash().String())
 		err := p.TxSave.SaveTxs(memo.GetBlockFromTxs([]*wire.MsgTx{msg}, nil))
@@ -254,21 +257,21 @@ func (p *Peer) OnTx(_ *btcPeer.Peer, msg *wire.MsgTx) {
 	}*/
 }
 
-func (p *Peer) OnReject(_ *btcPeer.Peer, msg *wire.MsgReject) {
+func (p *Peer) OnReject(_ *peer.Peer, msg *wire.MsgReject) {
 	jlog.Logf("OnReject: %#v\n", msg)
 }
 
-func (p *Peer) OnPing(_ *btcPeer.Peer, msg *wire.MsgPing) {
+func (p *Peer) OnPing(_ *peer.Peer, msg *wire.MsgPing) {
 	jlog.Logf("OnPing: %#v\n", msg)
 	pong := wire.NewMsgPong(msg.Nonce + 1)
 	p.peer.QueueMessage(pong, nil)
 }
 
-func (p *Peer) OnMerkleBlock(_ *btcPeer.Peer, msg *wire.MsgMerkleBlock) {
+func (p *Peer) OnMerkleBlock(_ *peer.Peer, msg *wire.MsgMerkleBlock) {
 	jlog.Logf("OnMerkleBlock: %#v\n", msg)
 }
 
-func (p *Peer) OnVersion(_ *btcPeer.Peer, msg *wire.MsgVersion) {
+func (p *Peer) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
 	jlog.Logf("OnVersion: %#v\n", msg)
 }
 
@@ -277,4 +280,10 @@ func NewConnection(blockSave dbi.BlockSave, txSave dbi.TxSave) *Peer {
 		BlockSave: blockSave,
 		TxSave:    txSave,
 	}
+}
+
+func SetBtcdLogLevel() {
+	logger := btclog.NewBackend(os.Stdout).Logger("MEMO")
+	logger.SetLevel(btclog.LevelError)
+	peer.UseLogger(logger)
 }
