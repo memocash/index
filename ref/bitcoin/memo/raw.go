@@ -2,7 +2,6 @@ package memo
 
 import (
 	"bytes"
-	wire2 "github.com/gcash/bchd/wire"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -27,16 +26,6 @@ func GetRaw(msg *wire.MsgTx) []byte {
 
 func GetMsgFromRaw(raw []byte) (*wire.MsgTx, error) {
 	msgTx := wire.NewMsgTx(1)
-	reader := bytes.NewReader(raw)
-	err := msgTx.Deserialize(reader)
-	if err != nil {
-		return nil, jerr.Get("error deserializing tx", err)
-	}
-	return msgTx, nil
-}
-
-func GetMsgFromRawGCash(raw []byte) (*wire2.MsgTx, error) {
-	msgTx := wire2.NewMsgTx(1)
 	reader := bytes.NewReader(raw)
 	err := msgTx.Deserialize(reader)
 	if err != nil {

@@ -3,9 +3,9 @@ package memo
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/gcash/bchd/chaincfg/chainhash"
-	"github.com/gcash/bchd/txscript"
-	"github.com/gcash/bchd/wire"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
+	"github.com/jchavannes/btcd/txscript"
+	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
@@ -104,7 +104,7 @@ func (h *ScriptHasher) Add(pkScript []byte, hashType txscript.SigHashType, idx i
 	binary.LittleEndian.PutUint32(sigHash.OutPointIndex[:], h.Tx.TxIn[idx].PreviousOutPoint.Index)
 
 	flags := txscript.StandardVerifyFlags
-	vm, err := txscript.NewEngine(pkScript, &h.Tx, idx, flags, nil, nil, amt)
+	vm, err := txscript.NewEngine(pkScript, &h.Tx, idx, flags, nil)
 	if err != nil {
 		return jerr.Get("error new pk script engine", err)
 	}

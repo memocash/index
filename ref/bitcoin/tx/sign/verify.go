@@ -1,8 +1,8 @@
 package sign
 
 import (
-	"github.com/gcash/bchd/txscript"
-	"github.com/gcash/bchd/wire"
+	"github.com/jchavannes/btcd/txscript"
+	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 )
 
@@ -16,7 +16,7 @@ func Verify(tx *wire.MsgTx, inputTxs []*wire.MsgTx) error {
 	for _, inputTx := range inputTxs {
 		inputTxHash := inputTx.TxHash()
 		for i, txIn := range tx.TxIn {
-			if txIn.PreviousOutPoint.Hash.Compare(&inputTxHash) == 0 {
+			if txIn.PreviousOutPoint.Hash.IsEqual(&inputTxHash) {
 				index := int(txIn.PreviousOutPoint.Index)
 				if len(inputTx.TxOut) <= index {
 					return jerr.Newf("error tx found but output index too high (%d %d)", len(inputTx.TxOut),
@@ -42,7 +42,7 @@ func VerifyWithOutputs(tx *wire.MsgTx, outputs []*Output) error {
 	flags := txscript.StandardVerifyFlags
 	for index := range tx.TxIn {
 		out := outputs[index]
-		vm, err := txscript.NewEngine(out.PkScript, tx, index, flags, nil, nil, out.Value)
+		vm, err := txscript.NewEngine(out.PkScript, tx, index, flags, nil)
 		if err != nil {
 			return jerr.Getf(err, "error getting new tx script engine for input: %s:%d", tx.TxHash(), index)
 		}
@@ -54,9 +54,9 @@ func VerifyWithOutputs(tx *wire.MsgTx, outputs []*Output) error {
 	return nil
 }
 
-func VerifySignature(pkScript []byte, spendTx *wire.MsgTx, index int, inputVal int64) error {
+func VerifySignature(pkScript []byte, spendTx *wire.MsgTx, index int) error {
 	flags := txscript.StandardVerifyFlags
-	vm, err := txscript.NewEngine(pkScript, spendTx, index, flags, nil, nil, inputVal)
+	vm, err := txscript.NewEngine(pkScript, spendTx, index, flags, nil)
 	if err != nil {
 		return jerr.Get("error getting new tx script engine", err)
 	}
