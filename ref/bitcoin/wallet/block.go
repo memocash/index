@@ -1,6 +1,6 @@
 package wallet
 
-import "github.com/btcsuite/btcd/chaincfg/chainhash"
+import "github.com/jchavannes/btcd/chaincfg/chainhash"
 
 type Block struct {
 	Hash       *chainhash.Hash

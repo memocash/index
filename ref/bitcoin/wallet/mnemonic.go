@@ -2,8 +2,8 @@ package wallet
 
 import (
 	"crypto/rand"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/jchavannes/btcd/chaincfg"
+	"github.com/jchavannes/btcutil/hdkeychain"
 	"github.com/jchavannes/go-mnemonic/bip39"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/util"

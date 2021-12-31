@@ -1,24 +1,16 @@
 module github.com/memocash/index
 
-replace (
-	github.com/gcash/bchd => ../../../pkg/github.com/gcash/bchd
-	github.com/jchavannes/bchutil => ../../jchavannes/bchutil
-	github.com/jchavannes/btcd => ../../jchavannes/btcd
-	github.com/jchavannes/btclog => ../../jchavannes/btclog
-	github.com/jchavannes/btcutil => ../../jchavannes/btcutil
-)
+replace github.com/gcash/bchd => ../../../pkg/github.com/gcash/bchd
 
 go 1.16
 
 require (
 	github.com/99designs/gqlgen v0.14.0
-	github.com/btcsuite/btcd v0.22.0-beta
-	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/gcash/bchd v0.17.1
-	github.com/jchavannes/bchutil v0.0.0-20190601153950-94d7f52a5867
-	github.com/jchavannes/btcd v0.0.0-20211231102419-9f97c2166438
-	github.com/jchavannes/btclog v0.0.0-20211231060513-6ff05f5c3d70
-	github.com/jchavannes/btcutil v1.0.3-0.20211231102310-a1560bb282e9
+	github.com/jchavannes/bchutil v1.1.3
+	github.com/jchavannes/btcd v1.1.3
+	github.com/jchavannes/btclog v1.1.0
+	github.com/jchavannes/btcutil v1.1.3
 	github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65
 	github.com/jchavannes/jgo v0.0.0-20211112043704-31caacec985a
 	github.com/pkg/errors v0.9.1 // indirect
