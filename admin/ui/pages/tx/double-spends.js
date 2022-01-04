@@ -4,6 +4,7 @@ import {useEffect, useState} from "react";
 import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
 import {graphQL} from "../../components/fetch";
+import column from "../../styles/column.module.css";
 
 const query = `
     query {
@@ -20,6 +21,12 @@ const query = `
                 index
                 tx {
                     seen
+                    suspect {
+                        hash
+                    }
+                    lost {
+                        hash
+                    }
                 }
             }
         }
@@ -71,7 +78,16 @@ function DoubleSpends() {
                                             <li key={input.hash + input.index}>
                                                 <Link href={"/tx/" + input.hash}>
                                                     <a>{input.hash}:{input.index}</a>
-                                                </Link> &middot; ({input.tx.seen})
+                                                </Link> &middot; ({input.tx.seen})&nbsp;
+                                                {input.tx.lost ?
+                                                    <span className={[column.red, column.bold].join(" ")}>
+                                                        LOST
+                                                    </span>
+                                                    : (input.tx.suspect ?
+                                                        <span className={[column.orange, column.bold].join(" ")}>
+                                                            SUSPECT
+                                                        </span>
+                                                        : "OK!")}
                                             </li>
                                         )
                                     })}
