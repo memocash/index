@@ -68,6 +68,7 @@ func (c Create) CheckOutputs() error {
 	for _, output := range c.Outputs {
 		switch output.Script.(type) {
 		case *script.P2pkh, *script.P2sh:
+		default:
 			continue
 		}
 		if output.Amount < memo.DustMinimumOutput {
