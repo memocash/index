@@ -20,7 +20,7 @@ func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx
 }
 
 func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error) {
-	txOutputs, err := dataloader.NewTxOutputLoader(txInputOutputLoaderConfig).Load(model.HashIndex{
+	txOutputs, err := dataloader.NewTxOutputLoader(txOutputLoaderConfig).Load(model.HashIndex{
 		Hash:  obj.PrevHash,
 		Index: obj.PrevIndex,
 	})

@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-var txInputOutputLoaderConfig = dataloader.TxOutputLoaderConfig{
+var txOutputLoaderConfig = dataloader.TxOutputLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,
 	Fetch: func(keys []model.HashIndex) ([]*model.TxOutput, []error) {

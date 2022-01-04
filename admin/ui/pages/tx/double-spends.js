@@ -10,9 +10,17 @@ const query = `
         double_spends {
             hash
             index
+            output {
+                tx {
+                    seen
+                }
+            }
             inputs {
                 hash
                 index
+                tx {
+                    seen
+                }
             }
         }
     }
@@ -56,14 +64,14 @@ function DoubleSpends() {
                             <div key={doubleSpend.hash + doubleSpend.index}>
                                 <Link href={"/tx/" + doubleSpend.hash}>
                                     <a>{doubleSpend.hash}:{doubleSpend.index}</a>
-                                </Link>
+                                </Link> &middot; ({doubleSpend.output.tx.seen})
                                 <ul>
                                     {doubleSpend.inputs.map((input) => {
                                         return (
                                             <li key={input.hash + input.index}>
                                                 <Link href={"/tx/" + input.hash}>
                                                     <a>{input.hash}:{input.index}</a>
-                                                </Link>
+                                                </Link> &middot; ({input.tx.seen})
                                             </li>
                                         )
                                     })}

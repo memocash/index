@@ -5,7 +5,8 @@ package resolver
 
 import (
 	"context"
-	"fmt"
+	"github.com/jchavannes/jgo/jutil"
+	"github.com/memocash/index/admin/graph/dataloader"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
@@ -17,7 +18,21 @@ import (
 )
 
 func (r *doubleSpendResolver) Output(ctx context.Context, obj *model.DoubleSpend) (*model.TxOutput, error) {
-	panic(fmt.Errorf("not implemented"))
+	preloads := GetPreloads(ctx)
+	if !jutil.StringsInSlice([]string{"amount", "script"}, preloads) {
+		return &model.TxOutput{
+			Hash:  obj.Hash,
+			Index: obj.Index,
+		}, nil
+	}
+	txOutput, err := dataloader.NewTxOutputLoader(txOutputLoaderConfig).Load(model.HashIndex{
+		Hash:  obj.Hash,
+		Index: obj.Index,
+	})
+	if err != nil {
+		return nil, jerr.Get("error getting output for double spend from loader", err)
+	}
+	return txOutput, nil
 }
 
 func (r *doubleSpendResolver) Inputs(ctx context.Context, obj *model.DoubleSpend) ([]*model.TxInput, error) {

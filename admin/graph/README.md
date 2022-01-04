@@ -11,6 +11,7 @@ go run github.com/vektah/dataloaden BlockLoader string []*github.com/memocash/in
 go run github.com/vektah/dataloaden TxSeenLoader string *github.com/memocash/index/admin/graph/model.Date
 go run github.com/vektah/dataloaden TxOutputLoader github.com/memocash/index/admin/graph/model.HashIndex *github.com/memocash/index/admin/graph/model.TxOutput
 go get github.com/vektah/dataloaden@none
+go mod tidy
 ```
 
 # GQL Gen
