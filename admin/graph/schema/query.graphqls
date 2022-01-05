@@ -3,5 +3,5 @@ type Query {
     address(address: String!): Lock
     block(hash: String!): Block
     blocks(newest: Boolean, start: Uint32): [Block!]
-    double_spends: [DoubleSpend!]
+    double_spends(start: String): [DoubleSpend!]
 }

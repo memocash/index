@@ -20,6 +20,9 @@ const query = `
                 hash
                 index
                 tx {
+                    blocks {
+                        hash
+                    }
                     seen
                     suspect {
                         hash
@@ -37,6 +40,7 @@ function DoubleSpends() {
     const [doubleSpends, setDoubleSpends] = useState([])
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
+    const [nextStart, setNextStart] = useState("")
     useEffect(() => {
         graphQL(query).then(res => {
             if (res.ok) {
@@ -51,6 +55,9 @@ function DoubleSpends() {
             }
             setLoading(false)
             setDoubleSpends(data.data.double_spends)
+            if (data.data.double_spends) {
+                setNextStart(data.data.double_spends[data.data.double_spends.length - 1].hash)
+            }
         }).catch((err) => {
             setErrorMessage("Double spends graphql error (see console)")
             console.log(err)
@@ -88,6 +95,7 @@ function DoubleSpends() {
                                                             SUSPECT
                                                         </span>
                                                         : "OK!")}
+                                                <span> {input.tx.blocks ? "BLOCK" : ""}</span>
                                             </li>
                                         )
                                     })}
@@ -95,6 +103,16 @@ function DoubleSpends() {
                             </div>
                         )
                     })}
+                    <div>
+                        <Link href={{
+                            pathname: "/tx/double-spends",
+                            query: {
+                                start: nextStart
+                            }
+                        }}>
+                            <a>Next</a>
+                        </Link>
+                    </div>
                 </Loading>
             </div>
         </Page>

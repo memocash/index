@@ -136,8 +136,16 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	return modelBlocks, nil
 }
 
-func (r *queryResolver) DoubleSpends(ctx context.Context) ([]*model.DoubleSpend, error) {
-	doubleSpends, err := item.GetDoubleSpendOutputs(nil, client.DefaultLimit)
+func (r *queryResolver) DoubleSpends(ctx context.Context, start *string) ([]*model.DoubleSpend, error) {
+	var startTxHashBytes []byte
+	if start != nil {
+		startTxHash, err := chainhash.NewHashFromStr(*start)
+		if err != nil {
+			return nil, jerr.Get("error parsing start tx hash for double spend query resolver", err)
+		}
+		startTxHashBytes = startTxHash.CloneBytes()
+	}
+	doubleSpends, err := item.GetDoubleSpendOutputs(startTxHashBytes, client.DefaultLimit)
 	if err != nil {
 		return nil, jerr.Get("error getting double spend outputs", err)
 	}
