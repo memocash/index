@@ -5,10 +5,11 @@ import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
 import {graphQL} from "../../components/fetch";
 import column from "../../styles/column.module.css";
+import {useRouter} from "next/router";
 
 const query = `
-    query {
-        double_spends {
+    query ($start: String) {
+        double_spends(start: $start) {
             hash
             index
             output {
@@ -41,8 +42,19 @@ function DoubleSpends() {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const [nextStart, setNextStart] = useState("")
+    const [lastStart, setLastStart] = useState("")
+    const router = useRouter()
     useEffect(() => {
-        graphQL(query).then(res => {
+        if (!router || !router.query || (router.query.start === lastStart)) {
+            return
+        }
+        let {start} = router.query
+        let variables = {}
+        if (start) {
+            variables.start = start
+        }
+        setLastStart(start)
+        graphQL(query, variables).then(res => {
             if (res.ok) {
                 return res.json()
             }
@@ -62,7 +74,7 @@ function DoubleSpends() {
             setErrorMessage("Double spends graphql error (see console)")
             console.log(err)
         })
-    }, [])
+    }, [router])
     return (
         <Page>
             <div>
@@ -106,9 +118,15 @@ function DoubleSpends() {
                     <div>
                         <Link href={{
                             pathname: "/tx/double-spends",
+                        }}>
+                            <a>First</a>
+                        </Link>
+                        &nbsp;&middot;&nbsp;
+                        <Link href={{
+                            pathname: "/tx/double-spends",
                             query: {
                                 start: nextStart
-                            }
+                            },
                         }}>
                             <a>Next</a>
                         </Link>

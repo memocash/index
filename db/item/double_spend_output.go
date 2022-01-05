@@ -60,7 +60,7 @@ func GetDoubleSpendOutputs(startTx []byte, limit uint32) ([]*DoubleSpendOutput, 
 		db := client.NewClient(shardConfig.GetHost())
 		err := db.GetWOpts(client.Opts{
 			Topic: TopicDoubleSpendOutput,
-			Start: startTx,
+			Start: jutil.ByteReverse(startTx),
 			Max:   limit,
 		})
 		if err != nil {
