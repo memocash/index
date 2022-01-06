@@ -43,6 +43,14 @@ export default function Hash() {
                     lock {
                         address
                     }
+                    tx {
+                        suspect {
+                            hash
+                        }
+                        lost {
+                            hash
+                        }
+                    }
                 }
             }
             outputs {
@@ -212,6 +220,17 @@ function Inputs(props) {
                             <Link href={"/tx/" + input.prev_hash}>
                                 <a><PreInline>{input.prev_hash}:{input.prev_index}</PreInline></a>
                             </Link>
+                            <div>
+                                {input.output.tx.lost ?
+                                    <span className={[column.red, column.bold].join(" ")}>
+                                        LOST
+                                    </span>
+                                    : (input.output.tx.suspect ?
+                                        <span className={[column.orange, column.bold].join(" ")}>
+                                            SUSPECT
+                                        </span>
+                                        : "")}
+                            </div>
                         </div>
                     </div>
                 )
