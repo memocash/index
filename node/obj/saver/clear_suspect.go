@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/node/act/block_tx"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -33,18 +34,7 @@ func (s *ClearSuspect) SaveBlock(block wire.BlockHeader) error {
 		return jerr.Newf("error unexpected number of height blocks returned for clear suspect: %d",
 			len(confirmedHeightBlocks))
 	}
-	const limit = client.DefaultLimit
-	var blockHash = confirmedHeightBlocks[0].BlockHash
-	var startUid []byte
-	for {
-		blockTxes, err := item.GetBlockTxes(item.BlockTxesRequest{
-			BlockHash: blockHash,
-			StartUid:  startUid,
-			Limit:     limit,
-		})
-		if err != nil {
-			return jerr.Get("error getting block txs for clear suspect", err)
-		}
+	if err := block_tx.NewLoop(func(blockTxes []*item.BlockTx) error {
 		var txHashes = make([][]byte, len(blockTxes))
 		for i := range blockTxes {
 			txHashes[i] = blockTxes[i].TxHash
@@ -60,10 +50,9 @@ func (s *ClearSuspect) SaveBlock(block wire.BlockHeader) error {
 		if err := s.ClearSuspectAndDescendants(inputTxsToClear, true); err != nil {
 			return jerr.Get("error clearing suspect and descendants", err)
 		}
-		if len(blockTxes) < limit {
-			break
-		}
-		startUid = item.GetBlockTxUid(blockHash, blockTxes[len(blockTxes)-1].TxHash)
+		return nil
+	}).Process(confirmedHeightBlocks[0].BlockHash); err != nil {
+		return jerr.Get("error processing block txs for clear suspect", err)
 	}
 	return nil
 }
