@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/act/double_spend"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -171,17 +172,24 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 		return jerr.Get("error getting tx losts for double spend check txs", err)
 	}
 	var newItemObjects []item.Object
+	var newTxLosts [][]byte
 	for _, txLost := range parentTxLosts {
+	LostTxLoop:
 		for _, tx := range txs {
 			for _, in := range tx.TxIn {
 				if bytes.Equal(in.PreviousOutPoint.Hash.CloneBytes(), txLost.TxHash) {
 					txHash := tx.TxHash()
-					newItemObjects = append(newItemObjects, &item.TxLost{
-						TxHash: txHash.CloneBytes(),
-					})
+					newTxLosts = append(newTxLosts, txHash.CloneBytes())
+					continue LostTxLoop
 				}
 			}
 		}
+	}
+	newTxLosts = jutil.RemoveDupesAndEmpties(newTxLosts)
+	for _, newTxLost := range newTxLosts {
+		newItemObjects = append(newItemObjects, &item.TxLost{
+			TxHash: newTxLost,
+		})
 	}
 	parentTxSuspects, err := item.GetTxSuspects(parentTxHashes)
 	if err != nil {
