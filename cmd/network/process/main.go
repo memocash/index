@@ -9,6 +9,7 @@ var processCommand = &cobra.Command{
 func GetCommand() *cobra.Command {
 	processCommand.AddCommand(
 		blockCmd,
+		doubleSpendCmd,
 	)
 	return processCommand
 }

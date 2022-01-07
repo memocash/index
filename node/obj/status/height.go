@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	NameBlock = "block"
-	NameUtxo  = "utxo"
+	NameBlock       = "block"
+	NameUtxo        = "utxo"
+	NameDoubleSpend = "double-spend"
 )
 
 type Height struct {
