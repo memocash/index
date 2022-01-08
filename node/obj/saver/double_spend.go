@@ -104,7 +104,17 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 	if err := double_spend.AttachAllToDoubleSpendChecks(doubleSpendChecks); err != nil {
 		return jerr.Get("error attaching all to double spend checks", err)
 	}
+	recentHeightBlock, err := item.GetRecentHeightBlock()
+	if err != nil {
+		return jerr.Get("error getting recent height block", err)
+	}
+	var recentHeight int64
+	if recentHeightBlock != nil {
+		recentHeight = recentHeightBlock.Height
+	}
+	blocksToConfirm := int64(config.GetBlocksToConfirm())
 	var lostTxsToRemove [][]byte
+	var suspectTxsToRemove [][]byte
 	var newItems []item.Object
 	var lockHashes [][]byte
 	for _, doubleSpendCheck := range doubleSpendChecks {
@@ -116,32 +126,98 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 				return jerr.Getf(err, "error checking if double spend check is winner (%s:%d)",
 					hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex)
 			}
-			descendantTxHashes, err := GetTxDescendants(checkSpend.TxHash)
-			if err != nil {
-				return jerr.Get("error getting descendant tx hashes for double spend", err)
-			}
-			if isWinner {
-				lostTxsToRemove = append(lostTxsToRemove, checkSpend.TxHash)
-				lostTxsToRemove = append(lostTxsToRemove, descendantTxHashes...)
-			} else {
-				newItems = append(newItems, &item.TxLost{
-					TxHash: checkSpend.TxHash,
-				})
-				for _, descendantTxHash := range descendantTxHashes {
-					newItems = append(newItems, &item.TxLost{
-						TxHash: descendantTxHash,
-					})
+			var allTxHashes [][]byte
+			var newTxHashes = [][]byte{checkSpend.TxHash}
+			for len(newTxHashes) > 0 {
+				txBlocks, err := item.GetTxBlocks(newTxHashes)
+				if err != nil {
+					return jerr.Get("error getting tx blocks for double spend check", err)
+				}
+				txLosts, err := item.GetTxLosts(newTxHashes)
+				if err != nil {
+					return jerr.Get("error getting tx losts for double spend check", err)
+				}
+				txSuspects, err := item.GetTxLosts(newTxHashes)
+				if err != nil {
+					return jerr.Get("error getting tx suspects for double spend check", err)
+				}
+				var blockHashes [][]byte
+				for _, txBlock := range txBlocks {
+					blockHashes = append(blockHashes, txBlock.BlockHash)
+				}
+				blockHeights, err := item.GetBlockHeights(blockHashes)
+				if err != nil {
+					return jerr.Get("error getting block heights for double spend check", err)
+				}
+				var needsChildTxHashes [][]byte
+				for _, txHash := range newTxHashes {
+					var isConfirmed, hasLost, hasSuspect bool
+					for _, txBlock := range txBlocks {
+						if bytes.Equal(txBlock.TxHash, txHash) {
+							for _, blockHeight := range blockHeights {
+								if bytes.Equal(blockHeight.BlockHash, txBlock.BlockHash) {
+									confirmations := recentHeight - blockHeight.Height
+									isConfirmed = confirmations >= blocksToConfirm
+									break
+								}
+							}
+							break
+						}
+					}
+					for _, txLost := range txLosts {
+						if bytes.Equal(txLost.TxHash, txHash) {
+							hasLost = true
+							break
+						}
+					}
+					for _, txSuspect := range txSuspects {
+						if bytes.Equal(txSuspect.TxHash, txHash) {
+							hasSuspect = true
+							break
+						}
+					}
+					if isWinner {
+						if hasLost {
+							lostTxsToRemove = append(lostTxsToRemove, txHash)
+						}
+						if !isConfirmed {
+							newItems = append(newItems, &item.TxSuspect{
+								TxHash: txHash,
+							})
+						} else if hasSuspect {
+							suspectTxsToRemove = append(suspectTxsToRemove, txHash)
+						}
+					} else {
+						if !hasLost {
+							newItems = append(newItems, &item.TxLost{
+								TxHash: txHash,
+							})
+						}
+						if hasSuspect {
+							suspectTxsToRemove = append(suspectTxsToRemove, txHash)
+						}
+					}
+					if !isConfirmed || hasLost || hasSuspect || !isWinner {
+						needsChildTxHashes = append(needsChildTxHashes, txHash)
+					}
+				}
+				newTxHashes = nil
+				outputInputs, err := item.GetOutputInputsForTxHashes(needsChildTxHashes)
+				if err != nil {
+					return jerr.Get("error getting output inputs for tx hash descendants", err)
+				}
+			Loop:
+				for _, outputInput := range outputInputs {
+					for _, allTxHash := range allTxHashes {
+						if bytes.Equal(allTxHash, outputInput.Hash) {
+							continue Loop
+						}
+					}
+					allTxHashes = append(allTxHashes, outputInput.Hash)
+					newTxHashes = append(newTxHashes, outputInput.Hash)
 				}
 			}
-			newItems = append(newItems, &item.TxSuspect{
-				TxHash: checkSpend.TxHash,
-			})
-			for _, descendantTxHash := range descendantTxHashes {
-				newItems = append(newItems, &item.TxSuspect{
-					TxHash: descendantTxHash,
-				})
-			}
-			descendantLockHashes, err := GetTxLockHashes(descendantTxHashes)
+			descendantLockHashes, err := GetTxLockHashes(allTxHashes)
 			if err != nil {
 				return jerr.Get("error getting tx lock hashes for descendant tx hashes double spend", err)
 			}
@@ -153,6 +229,9 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 	}
 	if err := item.RemoveTxLosts(lostTxsToRemove); err != nil {
 		return jerr.Get("error removing tx losts for winner", err)
+	}
+	if err := item.RemoveTxSuspects(suspectTxsToRemove); err != nil {
+		return jerr.Get("error removing tx suspects for double spends", err)
 	}
 	if err := item.RemoveLockBalances(lockHashes); err != nil {
 		return jerr.Get("error removing lock balances", err)
@@ -269,30 +348,6 @@ TxLoop:
 		return jerr.Get("error saving new tx losts", err)
 	}
 	return nil
-}
-
-func GetTxDescendants(txHash []byte) ([][]byte, error) {
-	var allTxHashes [][]byte
-	var newTxHashes = [][]byte{txHash}
-	for len(newTxHashes) > 0 {
-		var txHashesToCheck = newTxHashes
-		newTxHashes = [][]byte{}
-		outputInputs, err := item.GetOutputInputsForTxHashes(txHashesToCheck)
-		if err != nil {
-			return nil, jerr.Get("error getting output inputs for tx hash descendants", err)
-		}
-	Loop:
-		for _, outputInput := range outputInputs {
-			for _, allTxHash := range allTxHashes {
-				if bytes.Equal(allTxHash, outputInput.Hash) {
-					continue Loop
-				}
-			}
-			allTxHashes = append(allTxHashes, outputInput.Hash)
-			newTxHashes = append(newTxHashes, outputInput.Hash)
-		}
-	}
-	return allTxHashes, nil
 }
 
 func GetTxLockHashes(txHashes [][]byte) ([][]byte, error) {
