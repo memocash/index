@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/index/cmd/maint"
 	"github.com/memocash/index/cmd/network"
 	"github.com/memocash/index/cmd/peer"
 	"github.com/memocash/index/cmd/serve"
@@ -30,6 +31,7 @@ func Execute() error {
 		peer.GetCommand(),
 		network.GetCommand(),
 		serve.GetCommand(),
+		maint.GetCommand(),
 	)
 	if err := indexCmd.Execute(); err != nil {
 		return jerr.Get("error executing server command", err)
