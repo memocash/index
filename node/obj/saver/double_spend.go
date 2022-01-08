@@ -137,7 +137,7 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 				if err != nil {
 					return jerr.Get("error getting tx losts for double spend check", err)
 				}
-				txSuspects, err := item.GetTxLosts(newTxHashes)
+				txSuspects, err := item.GetTxSuspects(newTxHashes)
 				if err != nil {
 					return jerr.Get("error getting tx suspects for double spend check", err)
 				}
