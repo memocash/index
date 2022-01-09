@@ -24,6 +24,7 @@ const (
 	TopicLockBalance       = "lock_balance"
 	TopicLockOutput        = "lock_output"
 	TopicLockUtxo          = "lock_utxo"
+	TopicLockUtxoLost      = "lock_utxo_lost"
 	TopicMempoolTxRaw      = "mempool_tx_raw"
 	TopicMessage           = "message"
 	TopicOutputInput       = "output_input"

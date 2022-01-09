@@ -117,9 +117,9 @@ LockUtxoLoop:
 	if err != nil {
 		return jerr.Get("error getting matching tx outputs for inputs", err)
 	}
-	var spentOuts = make([]item.LockUtxo, len(matchingTxOutputs))
+	var spentOuts = make([]*item.LockUtxo, len(matchingTxOutputs))
 	for i := range matchingTxOutputs {
-		spentOuts[i] = item.LockUtxo{
+		spentOuts[i] = &item.LockUtxo{
 			LockHash: matchingTxOutputs[i].LockHash,
 			Hash:     matchingTxOutputs[i].TxHash,
 			Index:    matchingTxOutputs[i].Index,

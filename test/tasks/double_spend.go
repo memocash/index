@@ -53,9 +53,9 @@ var doubleSpendTest = suite.Test{
 			return jerr.Get("error checking address balances for double spend test after block", err)
 		}
 		if err := doubleSpend.CheckSuspects([]grp.TxSuspect{
-			{Tx: tx0.MemoTx.GetHash(), Expected: true},
+			{Tx: tx0.MemoTx.GetHash(), Expected: false},
 			{Tx: tx1.MemoTx.GetHash(), Expected: true},
-			{Tx: tx2.MemoTx.GetHash(), Expected: true},
+			{Tx: tx2.MemoTx.GetHash(), Expected: false},
 			{Tx: tx3.MemoTx.GetHash(), Expected: true},
 		}); err != nil {
 			return jerr.Get("error checking tx suspects for double spend test", err)
@@ -72,9 +72,9 @@ var doubleSpendTest = suite.Test{
 			}
 		}
 		if err := doubleSpend.CheckSuspects([]grp.TxSuspect{
-			{Tx: tx0.MemoTx.GetHash(), Expected: true},
+			{Tx: tx0.MemoTx.GetHash(), Expected: false},
 			{Tx: tx1.MemoTx.GetHash(), Expected: false},
-			{Tx: tx2.MemoTx.GetHash(), Expected: true},
+			{Tx: tx2.MemoTx.GetHash(), Expected: false},
 			{Tx: tx3.MemoTx.GetHash(), Expected: false},
 		}); err != nil {
 			return jerr.Get("error checking tx suspects for double spend test after block", err)

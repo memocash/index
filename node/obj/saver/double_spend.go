@@ -141,6 +141,70 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 				if err != nil {
 					return jerr.Get("error getting tx suspects for double spend check", err)
 				}
+				txOutputs, err := item.GetTxOutputsByHashes(newTxHashes)
+				if err != nil {
+					return jerr.Get("error getting tx outputs for double spend check", err)
+				}
+				var outs = make([]memo.Out, len(txOutputs))
+				for i := range txOutputs {
+					outs[i] = memo.Out{
+						TxHash:   txOutputs[i].TxHash,
+						Index:    txOutputs[i].Index,
+						Value:    txOutputs[i].Value,
+						LockHash: txOutputs[i].LockHash,
+					}
+				}
+				if isWinner {
+					lockUtxoLosts, err := item.GetLockUtxoLosts(outs)
+					if err != nil {
+						return jerr.Get("error getting lock utxo losts for double spend check", err)
+					}
+					var lostOuts = make([]memo.Out, len(lockUtxoLosts))
+					for i := range lockUtxoLosts {
+						lostOuts[i] = memo.Out{
+							TxHash: lockUtxoLosts[i].Hash,
+							Index:  lockUtxoLosts[i].Index,
+						}
+					}
+					outputInputs, err := item.GetOutputInputs(outs)
+					if err != nil {
+						return jerr.Get("error getting output inputs for lock utxo losts", err)
+					}
+				LockUtxoLostLoop:
+					for _, lockUtxoLost := range lockUtxoLosts {
+						for _, outputInput := range outputInputs {
+							if bytes.Equal(outputInput.PrevHash, lockUtxoLost.Hash) && outputInput.PrevIndex == lockUtxoLost.Index {
+								// Don't save LockUTXO if spent since lost saved
+								continue LockUtxoLostLoop
+							}
+						}
+						newItems = append(newItems, &item.LockUtxo{
+							LockHash: lockUtxoLost.LockHash,
+							Hash:     lockUtxoLost.Hash,
+							Index:    lockUtxoLost.Index,
+							Value:    lockUtxoLost.Value,
+						})
+					}
+					if err := item.RemoveLockUtxoLosts(lockUtxoLosts); err != nil {
+						return jerr.Get("error removing lock utxo losts for double spend check", err)
+					}
+				} else {
+					lockUtxos, err := item.GetLockUtxosByOuts(outs)
+					if err != nil {
+						return jerr.Get("error getting lock utxos for double spend check", err)
+					}
+					for _, lockUtxo := range lockUtxos {
+						newItems = append(newItems, &item.LockUtxoLost{
+							LockHash: lockUtxo.LockHash,
+							Hash:     lockUtxo.Hash,
+							Index:    lockUtxo.Index,
+							Value:    lockUtxo.Value,
+						})
+					}
+					if err := item.RemoveLockUtxos(lockUtxos); err != nil {
+						return jerr.Get("error removing lock utxos for double spend check", err)
+					}
+				}
 				var blockHashes [][]byte
 				for _, txBlock := range txBlocks {
 					blockHashes = append(blockHashes, txBlock.BlockHash)

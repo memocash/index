@@ -5,6 +5,7 @@ type Out struct {
 	Index    uint32
 	Value    int64
 	PkScript []byte
+	LockHash []byte
 }
 
 type SlpOut struct {

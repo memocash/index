@@ -8,7 +8,7 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type LockUtxo struct {
+type LockUtxoLost struct {
 	LockHash []byte
 	Hash     []byte
 	Index    uint32
@@ -16,19 +16,19 @@ type LockUtxo struct {
 	Special  bool
 }
 
-func (o LockUtxo) GetUid() []byte {
+func (o LockUtxoLost) GetUid() []byte {
 	return GetLockOutputUid(o.LockHash, o.Hash, o.Index)
 }
 
-func (o LockUtxo) GetShard() uint {
+func (o LockUtxoLost) GetShard() uint {
 	return client.GetByteShard(o.LockHash)
 }
 
-func (o LockUtxo) GetTopic() string {
-	return TopicLockUtxo
+func (o LockUtxoLost) GetTopic() string {
+	return TopicLockUtxoLost
 }
 
-func (o LockUtxo) Serialize() []byte {
+func (o LockUtxoLost) Serialize() []byte {
 	var special byte
 	if o.Special {
 		special = 1
@@ -39,7 +39,7 @@ func (o LockUtxo) Serialize() []byte {
 	)
 }
 
-func (o *LockUtxo) SetUid(uid []byte) {
+func (o *LockUtxoLost) SetUid(uid []byte) {
 	if len(uid) != 68 {
 		return
 	}
@@ -48,7 +48,7 @@ func (o *LockUtxo) SetUid(uid []byte) {
 	o.Index = jutil.GetUint32(uid[64:68])
 }
 
-func (o *LockUtxo) Deserialize(data []byte) {
+func (o *LockUtxoLost) Deserialize(data []byte) {
 	if len(data) < 9 {
 		return
 	}
@@ -56,54 +56,33 @@ func (o *LockUtxo) Deserialize(data []byte) {
 	o.Special = data[8] == 1
 }
 
-func GetLockUtxos(lockHash, start []byte) ([]*LockUtxo, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	err := db.GetWOpts(client.Opts{
-		Topic:    TopicLockUtxo,
-		Start:    start,
-		Prefixes: [][]byte{lockHash},
-		Max:      client.ExLargeLimit,
-	})
-	if err != nil {
-		return nil, jerr.Get("error getting db lock utxos by prefix", err)
-	}
-	var lockOutputs = make([]*LockUtxo, len(db.Messages))
-	for i := range db.Messages {
-		lockOutputs[i] = new(LockUtxo)
-		lockOutputs[i].SetUid(db.Messages[i].Uid)
-		lockOutputs[i].Deserialize(db.Messages[i].Message)
-	}
-	return lockOutputs, nil
-}
-
-func GetLockUtxosByOuts(outs []memo.Out) ([]*LockUtxo, error) {
+func GetLockUtxoLosts(outs []memo.Out) ([]*LockUtxoLost, error) {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, out := range outs {
 		shard := uint32(GetShard(GetShardByte(out.LockHash)))
 		shardUidsMap[shard] = append(shardUidsMap[shard], GetLockOutputUid(out.LockHash, out.TxHash, out.Index))
 	}
-	var lockUtxos []*LockUtxo
+	var lockUtxoLosts []*LockUtxoLost
 	for shard, shardUids := range shardUidsMap {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		db := client.NewClient(shardConfig.GetHost())
 		if err := db.GetWOpts(client.Opts{
-			Topic: TopicLockUtxo,
+			Topic: TopicLockUtxoLost,
 			Uids:  shardUids,
 		}); err != nil {
-			return nil, jerr.Get("error getting db lock utxos by outs", err)
+			return nil, jerr.Get("error getting db lock utxo losts by outs", err)
 		}
 		for i := range db.Messages {
-			var lockUtxoLost = new(LockUtxo)
+			var lockUtxoLost = new(LockUtxoLost)
 			lockUtxoLost.SetUid(db.Messages[i].Uid)
 			lockUtxoLost.Deserialize(db.Messages[i].Message)
-			lockUtxos = append(lockUtxos, lockUtxoLost)
+			lockUtxoLosts = append(lockUtxoLosts, lockUtxoLost)
 		}
 	}
-	return lockUtxos, nil
+	return lockUtxoLosts, nil
 }
 
-func RemoveLockUtxos(lockUtxos []*LockUtxo) error {
+func RemoveLockUtxoLosts(lockUtxos []*LockUtxoLost) error {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, lockUtxo := range lockUtxos {
 		shard := uint32(GetShard(lockUtxo.GetShard()))
@@ -112,7 +91,7 @@ func RemoveLockUtxos(lockUtxos []*LockUtxo) error {
 	for shard, shardUids := range shardUidsMap {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		db := client.NewClient(shardConfig.GetHost())
-		if err := db.DeleteMessages(TopicLockUtxo, shardUids); err != nil {
+		if err := db.DeleteMessages(TopicLockUtxoLost, shardUids); err != nil {
 			return jerr.Get("error deleting topic lock utxos", err)
 		}
 	}
