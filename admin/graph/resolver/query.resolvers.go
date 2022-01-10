@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -68,6 +67,25 @@ func (r *queryResolver) Address(ctx context.Context, address string) (*model.Loc
 		Address: balance.Address,
 		Balance: balance.Balance,
 	}, nil
+}
+
+func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error) {
+	var locks []*model.Lock
+	for _, address := range addresses {
+		balance, err := get.NewBalanceFromAddress(address)
+		if err != nil {
+			return nil, jerr.Get("error getting address from string for balances", err)
+		}
+		if err := balance.GetBalance(); err != nil {
+			return nil, jerr.Get("error getting address balance from network (multi)", err)
+		}
+		locks = append(locks, &model.Lock{
+			Hash:    hex.EncodeToString(script.GetLockHash(balance.LockScript)),
+			Address: balance.Address,
+			Balance: balance.Balance,
+		})
+	}
+	return locks, nil
 }
 
 func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, error) {
