@@ -5,7 +5,6 @@ import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/act/double_spend"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -255,9 +254,10 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 					} else {
 						if !hasLost {
 							jlog.Logf("Adding TxLost from double spend: %s (parent: %s:%d)\n", hs.GetTxString(txHash),
-								hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex)
+								hs.GetTxString(doubleSpendCheck.ParentTxHash), checkSpend.TxHash)
 							newItems = append(newItems, &item.TxLost{
-								TxHash: txHash,
+								TxHash:      txHash,
+								DoubleSpend: checkSpend.TxHash,
 							})
 						}
 						if hasSuspect {
@@ -318,25 +318,33 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 		return jerr.Get("error getting tx losts for double spend check txs", err)
 	}
 	var newItemObjects []item.Object
-	var newTxLosts [][]byte
+	var newTxLosts []item.TxLost
 	for _, txLost := range parentTxLosts {
 	LostTxLoop:
 		for _, tx := range txs {
 			for _, in := range tx.TxIn {
 				if bytes.Equal(in.PreviousOutPoint.Hash.CloneBytes(), txLost.TxHash) {
 					txHash := tx.TxHash()
-					jlog.Logf("Adding TxLost from Parent: %s (parent: %s)\n",
-						txHash.String(), hs.GetTxString(txLost.TxHash))
-					newTxLosts = append(newTxLosts, txHash.CloneBytes())
+					txHashBytes := txHash.CloneBytes()
+					for _, newTxLost := range newTxLosts {
+						if bytes.Equal(newTxLost.TxHash, txHashBytes) &&
+							bytes.Equal(newTxLost.DoubleSpend, txLost.DoubleSpend) {
+							continue LostTxLoop
+						}
+					}
+					newTxLosts = append(newTxLosts, item.TxLost{
+						TxHash:      txHashBytes,
+						DoubleSpend: txLost.DoubleSpend,
+					})
 					continue LostTxLoop
 				}
 			}
 		}
 	}
-	newTxLosts = jutil.RemoveDupesAndEmpties(newTxLosts)
 	for _, newTxLost := range newTxLosts {
 		newItemObjects = append(newItemObjects, &item.TxLost{
-			TxHash: newTxLost,
+			TxHash:      newTxLost.TxHash,
+			DoubleSpend: newTxLost.DoubleSpend,
 		})
 	}
 	parentTxSuspects, err := item.GetTxSuspects(parentTxHashes)

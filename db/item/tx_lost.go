@@ -8,11 +8,12 @@ import (
 )
 
 type TxLost struct {
-	TxHash []byte
+	TxHash      []byte
+	DoubleSpend []byte
 }
 
 func (l TxLost) GetUid() []byte {
-	return jutil.ByteReverse(l.TxHash)
+	return jutil.CombineBytes(jutil.ByteReverse(l.TxHash), jutil.ByteReverse(l.DoubleSpend))
 }
 
 func (l TxLost) GetShard() uint {
@@ -28,10 +29,14 @@ func (l TxLost) Serialize() []byte {
 }
 
 func (l *TxLost) SetUid(uid []byte) {
-	if len(uid) != 32 {
+	if len(uid) != 32 && len(uid) != 64 {
 		return
 	}
-	l.TxHash = jutil.ByteReverse(uid)
+	l.TxHash = jutil.ByteReverse(uid[:32])
+	if len(uid) != 64 {
+		return
+	}
+	l.DoubleSpend = jutil.ByteReverse(uid[32:])
 }
 
 func (l *TxLost) Deserialize([]byte) {}
