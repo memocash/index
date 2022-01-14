@@ -332,6 +332,8 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 							continue LostTxLoop
 						}
 					}
+					jlog.Logf("Adding TxLost from Parent: %s (parent: %s %s)\n",
+						txHash.String(), hs.GetTxString(txLost.TxHash), hs.GetTxString(txLost.DoubleSpend))
 					newTxLosts = append(newTxLosts, item.TxLost{
 						TxHash:      txHashBytes,
 						DoubleSpend: txLost.DoubleSpend,
