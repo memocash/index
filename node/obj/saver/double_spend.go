@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/act/double_spend"
@@ -253,6 +254,8 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 						}
 					} else {
 						if !hasLost {
+							jlog.Logf("Adding TxLost from double spend: %s (parent: %s:%d)\n", hs.GetTxString(txHash),
+								hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex)
 							newItems = append(newItems, &item.TxLost{
 								TxHash: txHash,
 							})
@@ -322,6 +325,8 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 			for _, in := range tx.TxIn {
 				if bytes.Equal(in.PreviousOutPoint.Hash.CloneBytes(), txLost.TxHash) {
 					txHash := tx.TxHash()
+					jlog.Logf("Adding TxLost from Parent: %s (parent: %s)",
+						txHash.String(), hs.GetTxString(txLost.TxHash))
 					newTxLosts = append(newTxLosts, txHash.CloneBytes())
 					continue LostTxLoop
 				}
