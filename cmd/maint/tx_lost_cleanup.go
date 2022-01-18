@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/obj/saver"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
 	"github.com/spf13/cobra"
 )
@@ -51,7 +52,7 @@ var txLostCleanupCmd = &cobra.Command{
 				if err != nil {
 					jerr.Get("fatal error getting block heights", err).Fatal()
 				}
-				var txLostsToRemove = make([][]byte, len(txBlocks))
+				var txLostsToRemove = make([]*item.TxLost, len(txBlocks))
 			TxBlocksLoop:
 				for i := range txBlocks {
 					var blockHeightFound *item.BlockHeight
@@ -73,12 +74,18 @@ var txLostCleanupCmd = &cobra.Command{
 							txLostTxHash = txLost.TxHash
 						}
 						if bytes.Equal(txLostTxHash, txBlocks[i].TxHash) {
-							txLostsToRemove[i] = txLost.TxHash
+							txLostsToRemove[i] = txLost
+							jlog.Logf("Removing TxLost: %s (ds: %s)\n",
+								hs.GetTxString(txLost.TxHash), hs.GetTxString(txLost.DoubleSpend))
 							continue TxBlocksLoop
 						}
 					}
 				}
-				lockHashBalancesToRemove, err := saver.GetTxLockHashes(txLostsToRemove)
+				var txLostsToRemoveHashes = make([][]byte, len(txLostsToRemove))
+				for i := range txLostsToRemove {
+					txLostsToRemoveHashes[i] = txLostsToRemove[i].TxHash
+				}
+				lockHashBalancesToRemove, err := saver.GetTxLockHashes(txLostsToRemoveHashes)
 				if err != nil {
 					jerr.Get("fatal error getting tx lock hashes", err).Fatal()
 				}

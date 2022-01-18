@@ -113,7 +113,7 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 		recentHeight = recentHeightBlock.Height
 	}
 	blocksToConfirm := int64(config.GetBlocksToConfirm())
-	var lostTxsToRemove [][]byte
+	var lostTxsToRemove []*item.TxLost
 	var suspectTxsToRemove [][]byte
 	var newItems []item.Object
 	var lockHashes [][]byte
@@ -215,7 +215,8 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 				}
 				var needsChildTxHashes [][]byte
 				for _, txHash := range newTxHashes {
-					var isConfirmed, hasLost, hasSuspect bool
+					var isConfirmed, hasSuspect bool
+					var foundTxLost *item.TxLost
 					for _, txBlock := range txBlocks {
 						if bytes.Equal(txBlock.TxHash, txHash) {
 							for _, blockHeight := range blockHeights {
@@ -230,7 +231,7 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 					}
 					for _, txLost := range txLosts {
 						if bytes.Equal(txLost.TxHash, txHash) {
-							hasLost = true
+							foundTxLost = txLost
 							break
 						}
 					}
@@ -241,8 +242,10 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 						}
 					}
 					if isWinner {
-						if hasLost {
-							lostTxsToRemove = append(lostTxsToRemove, txHash)
+						if foundTxLost != nil {
+							jlog.Logf("Removing TxLost: %s (spend: %s, parent: %s)\n", hs.GetTxString(txHash),
+								hs.GetTxString(checkSpend.TxHash), hs.GetTxString(doubleSpendCheck.ParentTxHash))
+							lostTxsToRemove = append(lostTxsToRemove, foundTxLost)
 						}
 						if !isConfirmed {
 							newItems = append(newItems, &item.TxSuspect{
@@ -252,9 +255,9 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 							suspectTxsToRemove = append(suspectTxsToRemove, txHash)
 						}
 					} else {
-						if !hasLost {
-							jlog.Logf("Adding TxLost from double spend: %s (parent: %s:%d)\n", hs.GetTxString(txHash),
-								hs.GetTxString(doubleSpendCheck.ParentTxHash), checkSpend.TxHash)
+						if foundTxLost == nil {
+							jlog.Logf("Adding TxLost from double spend: %s (spend: %s, parent: %s)\n", hs.GetTxString(txHash),
+								hs.GetTxString(checkSpend.TxHash), hs.GetTxString(doubleSpendCheck.ParentTxHash))
 							newItems = append(newItems, &item.TxLost{
 								TxHash:      txHash,
 								DoubleSpend: checkSpend.TxHash,
@@ -264,7 +267,7 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 							suspectTxsToRemove = append(suspectTxsToRemove, txHash)
 						}
 					}
-					if !isConfirmed || hasLost || hasSuspect || !isWinner {
+					if !isConfirmed || foundTxLost != nil || hasSuspect || !isWinner {
 						needsChildTxHashes = append(needsChildTxHashes, txHash)
 					}
 				}

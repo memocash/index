@@ -48,15 +48,15 @@ func GetTxLosts(txHashes [][]byte) ([]*TxLost, error) {
 		shardTxHashGroups[shard] = append(shardTxHashGroups[shard], txHash)
 	}
 	var txLosts []*TxLost
-	for shard, outGroup := range shardTxHashGroups {
+	for shard, groupTxHashes := range shardTxHashGroups {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		db := client.NewClient(shardConfig.GetHost())
-		var uids = make([][]byte, len(outGroup))
-		for i := range outGroup {
-			uids[i] = jutil.ByteReverse(outGroup[i])
+		var prefixes = make([][]byte, len(groupTxHashes))
+		for i := range groupTxHashes {
+			prefixes[i] = jutil.ByteReverse(groupTxHashes[i])
 		}
-		if err := db.GetSpecific(TopicTxLost, uids); err != nil {
-			return nil, jerr.Get("error getting by uids for tx losts", err)
+		if err := db.GetByPrefixes(TopicTxLost, prefixes); err != nil {
+			return nil, jerr.Get("error getting by prefixes for tx losts", err)
 		}
 		for i := range db.Messages {
 			var txLost = new(TxLost)
@@ -86,11 +86,11 @@ func GetAllTxLosts(shard uint32, startTxLost []byte) ([]*TxLost, error) {
 	return txLosts, nil
 }
 
-func RemoveTxLosts(txHashes [][]byte) error {
+func RemoveTxLosts(txLosts []*TxLost) error {
 	var shardUidsMap = make(map[uint32][][]byte)
-	for _, txHash := range txHashes {
-		shard := uint32(GetShard(client.GetByteShard(txHash)))
-		shardUidsMap[shard] = append(shardUidsMap[shard], jutil.ByteReverse(txHash))
+	for _, txLost := range txLosts {
+		shard := uint32(txLost.GetShard())
+		shardUidsMap[shard] = append(shardUidsMap[shard], txLost.GetUid())
 	}
 	for shard, shardUids := range shardUidsMap {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
