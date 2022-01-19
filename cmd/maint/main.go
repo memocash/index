@@ -11,6 +11,7 @@ var maintCommand = &cobra.Command{
 func GetCommand() *cobra.Command {
 	maintCommand.AddCommand(
 		txLostCleanupCmd,
+		populateDoubleSpendSeenCmd,
 	)
 	return maintCommand
 }

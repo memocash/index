@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"time"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -154,16 +156,16 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	return modelBlocks, nil
 }
 
-func (r *queryResolver) DoubleSpends(ctx context.Context, start *string) ([]*model.DoubleSpend, error) {
-	var startTxHashBytes []byte
+func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *model.Date) ([]*model.DoubleSpend, error) {
+	var startTime time.Time
 	if start != nil {
-		startTxHash, err := chainhash.NewHashFromStr(*start)
-		if err != nil {
-			return nil, jerr.Get("error parsing start tx hash for double spend query resolver", err)
-		}
-		startTxHashBytes = startTxHash.CloneBytes()
+		startTime = time.Time(*start)
 	}
-	doubleSpends, err := item.GetDoubleSpendOutputs(startTxHashBytes, client.DefaultLimit)
+	var newestBool bool
+	if newest != nil {
+		newestBool = *newest
+	}
+	doubleSpends, err := item.GetDoubleSpendSeensAllLimit(startTime, client.DefaultLimit, newestBool)
 	if err != nil {
 		return nil, jerr.Get("error getting double spend outputs", err)
 	}

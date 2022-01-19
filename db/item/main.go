@@ -40,6 +40,7 @@ const (
 	TopicTxProcessed       = "tx_processed"
 	TopicTxSeen            = "tx_seen"
 	TopicTxSuspect         = "tx_suspect"
+	TopicDoubleSpendSeen   = "double_spend_seen"
 )
 
 type Object interface {

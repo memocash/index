@@ -10,6 +10,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
+	"time"
 )
 
 type DoubleSpend struct {
@@ -41,6 +42,7 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 	var doubleSpendChecks []*double_spend.DoubleSpendCheck
 	var doubleSpendInputs []*item.DoubleSpendInput
 	var doubleSpendOutputs []*item.DoubleSpendOutput
+	var doubleSpendSeens []*item.DoubleSpendSeen
 	for _, msgTx := range block.Transactions {
 		txHash := msgTx.TxHash()
 		txHashBytes := txHash.CloneBytes()
@@ -62,6 +64,11 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 						TxHash: prevOutHash,
 						Index:  prevOutIndex,
 					})
+					doubleSpendSeens = append(doubleSpendSeens, &item.DoubleSpendSeen{
+						TxHash:    prevOutHash,
+						Index:     prevOutIndex,
+						Timestamp: time.Now(),
+					})
 					doubleSpendChecks = append(doubleSpendChecks, &double_spend.DoubleSpendCheck{
 						ParentTxHash:  prevOutHash,
 						ParentTxIndex: prevOutIndex,
@@ -78,6 +85,17 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 			}
 		}
 	}
+	var doubleSpendOuts = make([]memo.Out, len(doubleSpendOutputs))
+	for i := range doubleSpendOutputs {
+		doubleSpendOuts[i] = memo.Out{
+			TxHash: doubleSpendOutputs[i].TxHash,
+			Index:  doubleSpendOutputs[i].Index,
+		}
+	}
+	existingDoubleSpendOutputs, err := item.GetDoubleSpendsByOuts(doubleSpendOuts)
+	if err != nil {
+		return jerr.Get("error getting existing double spend outputs for double spends", err)
+	}
 	var numDoubleSpendInputs = len(doubleSpendInputs)
 	if numDoubleSpendInputs > 0 {
 		var objects = make([]item.Object, numDoubleSpendInputs+len(doubleSpendOutputs))
@@ -86,6 +104,16 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 		}
 		for i := range doubleSpendOutputs {
 			objects[numDoubleSpendInputs+i] = doubleSpendOutputs[i]
+		}
+	DoubleSeenLoop:
+		for _, doubleSpendSeen := range doubleSpendSeens {
+			for _, existingDoubleSpendOutput := range existingDoubleSpendOutputs {
+				if bytes.Equal(existingDoubleSpendOutput.TxHash, doubleSpendSeen.TxHash) &&
+					existingDoubleSpendOutput.Index == doubleSpendSeen.Index {
+					continue DoubleSeenLoop
+				}
+			}
+			objects = append(objects, doubleSpendSeen)
 		}
 		if err = item.Save(objects); err != nil {
 			return jerr.Get("error saving double spend objects", err)

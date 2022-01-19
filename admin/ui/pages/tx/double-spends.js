@@ -8,8 +8,8 @@ import column from "../../styles/column.module.css";
 import {useRouter} from "next/router";
 
 const query = `
-    query ($start: String) {
-        double_spends(start: $start) {
+    query ($start: Date) {
+        double_spends(start: $start, newest: True) {
             hash
             index
             output {
@@ -68,7 +68,7 @@ function DoubleSpends() {
             setLoading(false)
             setDoubleSpends(data.data.double_spends)
             if (data.data.double_spends) {
-                setNextStart(data.data.double_spends[data.data.double_spends.length - 1].hash)
+                setNextStart(data.data.double_spends[data.data.double_spends.length - 1].timestamp)
             }
         }).catch((err) => {
             setErrorMessage("Double spends graphql error (see console)")
