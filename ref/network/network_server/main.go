@@ -170,7 +170,7 @@ func (s *Server) GetMempoolTxs(_ context.Context, req *network_pb.MempoolTxReque
 }
 
 func (s *Server) GetDoubleSpends(_ context.Context, req *network_pb.DoubleSpendRequest) (*network_pb.DoubleSpendResponse, error) {
-	doubleSpendOutputs, err := item.GetDoubleSpendOutputs(req.Start, 0)
+	doubleSpendOutputs, err := item.GetDoubleSpendOutputs(&item.DoubleSpendOutput{TxHash: req.Start}, 0)
 	if err != nil {
 		return nil, jerr.Get("error getting mempool txs", err)
 	}

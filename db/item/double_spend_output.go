@@ -44,10 +44,12 @@ func (o *DoubleSpendOutput) Deserialize([]byte) {
 // GetDoubleSpendOutputs begins on shard 0 if no start tx specified.
 // If the limit is not reached it will move onto the next shard.
 // If the start tx is specified, results will begin with the shard of the start tx.
-func GetDoubleSpendOutputs(startTx []byte, limit uint32) ([]*DoubleSpendOutput, error) {
+func GetDoubleSpendOutputs(start *DoubleSpendOutput, limit uint32) ([]*DoubleSpendOutput, error) {
 	var startShard uint32
-	if len(startTx) > 0 {
-		startShard = client.GetByteShard32(startTx)
+	var startUid []byte
+	if start != nil {
+		startShard = client.GetByteShard32(start.TxHash)
+		startUid = start.GetUid()
 	}
 	configQueueShards := config.GetQueueShards()
 	startShardConfig := config.GetShardConfig(startShard, configQueueShards)
@@ -56,11 +58,14 @@ func GetDoubleSpendOutputs(startTx []byte, limit uint32) ([]*DoubleSpendOutput, 
 	}
 	var doubleSpendOutputs []*DoubleSpendOutput
 	for shard := startShardConfig.Min; shard < startShardConfig.Total; shard++ {
+		if shard > startShardConfig.Min {
+			startUid = nil
+		}
 		shardConfig := config.GetShardConfig(shard, configQueueShards)
 		db := client.NewClient(shardConfig.GetHost())
 		err := db.GetWOpts(client.Opts{
 			Topic: TopicDoubleSpendOutput,
-			Start: jutil.ByteReverse(startTx),
+			Start: startUid,
 			Max:   limit,
 		})
 		if err != nil {

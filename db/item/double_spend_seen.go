@@ -97,13 +97,12 @@ func GetDoubleSpendSeensByTxHashesScanAll(txHashes [][]byte) ([]*DoubleSpendSeen
 	var doubleSpendSeens []*DoubleSpendSeen
 	for shard, txHashGroup := range shardTxHashGroups {
 		sort.Slice(txHashGroup, func(i, j int) bool {
-			return bytes.Compare(txHashGroup[i], txHashGroup[j]) != -1
+			return bytes.Compare(txHashGroup[i], txHashGroup[j]) == -1
 		})
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		db := client.NewClient(shardConfig.GetHost())
 		var txHashId int
 		var startTxHash = txHashGroup[txHashId]
-	ShardLoop:
 		for {
 			if err := db.Get(TopicDoubleSpendSeen, startTxHash, false); err != nil {
 				return nil, jerr.Get("error getting by double spend seens for scan all", err)
@@ -111,10 +110,7 @@ func GetDoubleSpendSeensByTxHashesScanAll(txHashes [][]byte) ([]*DoubleSpendSeen
 			for i := range db.Messages {
 				var doubleSpendSeen = new(DoubleSpendSeen)
 				doubleSpendSeen.SetUid(db.Messages[i].Uid)
-				for ; bytes.Compare(doubleSpendSeen.TxHash, txHashGroup[txHashId]) != -1; txHashId++ {
-					if txHashId == len(txHashGroup) {
-						break ShardLoop
-					}
+				for ; txHashId < len(txHashGroup) && bytes.Compare(doubleSpendSeen.TxHash, txHashGroup[txHashId]) != -1; txHashId++ {
 					startTxHash = txHashGroup[txHashId]
 				}
 				if bytes.Equal(doubleSpendSeen.TxHash, startTxHash) {
