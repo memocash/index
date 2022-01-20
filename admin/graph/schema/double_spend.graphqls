@@ -1,6 +1,7 @@
 type DoubleSpend {
     hash: String!
     index: Uint32!
+    timestamp: Date!
     output: TxOutput!
     inputs: [TxInput!]!
 }

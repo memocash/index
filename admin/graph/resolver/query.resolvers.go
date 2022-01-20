@@ -165,15 +165,16 @@ func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *m
 	if newest != nil {
 		newestBool = *newest
 	}
-	doubleSpends, err := item.GetDoubleSpendSeensAllLimit(startTime, client.DefaultLimit, newestBool)
+	doubleSpendSeens, err := item.GetDoubleSpendSeensAllLimit(startTime, client.DefaultLimit, newestBool)
 	if err != nil {
 		return nil, jerr.Get("error getting double spend outputs", err)
 	}
-	var modelDoubleSpends = make([]*model.DoubleSpend, len(doubleSpends))
-	for i := range doubleSpends {
+	var modelDoubleSpends = make([]*model.DoubleSpend, len(doubleSpendSeens))
+	for i := range doubleSpendSeens {
 		modelDoubleSpends[i] = &model.DoubleSpend{
-			Hash:  hs.GetTxString(doubleSpends[i].TxHash),
-			Index: doubleSpends[i].Index,
+			Hash:      hs.GetTxString(doubleSpendSeens[i].TxHash),
+			Index:     doubleSpendSeens[i].Index,
+			Timestamp: model.Date(doubleSpendSeens[i].Timestamp),
 		}
 	}
 	return modelDoubleSpends, nil

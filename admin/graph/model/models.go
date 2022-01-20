@@ -20,8 +20,9 @@ type TxInput struct {
 }
 
 type DoubleSpend struct {
-	Hash  string `json:"hash"`
-	Index uint32 `json:"index"`
+	Hash      string `json:"hash"`
+	Index     uint32 `json:"index"`
+	Timestamp Date   `json:"timestamp"`
 }
 
 type TxLost struct {

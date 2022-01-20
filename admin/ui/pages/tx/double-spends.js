@@ -9,9 +9,10 @@ import {useRouter} from "next/router";
 
 const query = `
     query ($start: Date) {
-        double_spends(start: $start, newest: True) {
+        double_spends(start: $start, newest: true) {
             hash
             index
+            timestamp
             output {
                 tx {
                     seen
@@ -88,9 +89,9 @@ function DoubleSpends() {
                     {doubleSpends.map((doubleSpend) => {
                         return (
                             <div key={doubleSpend.hash + doubleSpend.index}>
-                                <Link href={"/tx/" + doubleSpend.hash}>
+                                {doubleSpend.output.tx.seen} &middot; <Link href={"/tx/" + doubleSpend.hash}>
                                     <a>{doubleSpend.hash}:{doubleSpend.index}</a>
-                                </Link> &middot; ({doubleSpend.output.tx.seen})
+                                </Link>
                                 <ul>
                                     {doubleSpend.inputs.map((input) => {
                                         return (

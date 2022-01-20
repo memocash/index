@@ -3,6 +3,7 @@ package maint
 import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/spf13/cobra"
@@ -44,7 +45,7 @@ var populateDoubleSpendSeenCmd = &cobra.Command{
 			if err != nil {
 				jerr.Get("fatal error getting tx seens for populate double spend seens", err).Fatal()
 			}
-			var objects = make([]item.Object, len(txSeens))
+			var objects []item.Object
 			for i := range txSeens {
 				for _, newDoubleSpendSeen := range newDoubleSpendSeens {
 					if bytes.Equal(newDoubleSpendSeen.TxHash, txSeens[i].TxHash) {
@@ -54,9 +55,14 @@ var populateDoubleSpendSeenCmd = &cobra.Command{
 					}
 				}
 			}
+			jlog.Logf("Saving %d new double spend seens\n", len(objects))
 			if err := item.Save(objects); err != nil {
 				jerr.Get("fatal error saving new double spend seens for population", err).Fatal()
 			}
+			if len(doubleSpendOutputs) < client.DefaultLimit {
+				break
+			}
+			startTxHash = doubleSpendOutputs[len(doubleSpendOutputs)-1].TxHash
 		}
 	},
 }

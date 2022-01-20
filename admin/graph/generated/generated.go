@@ -59,10 +59,11 @@ type ComplexityRoot struct {
 	}
 
 	DoubleSpend struct {
-		Hash   func(childComplexity int) int
-		Index  func(childComplexity int) int
-		Inputs func(childComplexity int) int
-		Output func(childComplexity int) int
+		Hash      func(childComplexity int) int
+		Index     func(childComplexity int) int
+		Inputs    func(childComplexity int) int
+		Output    func(childComplexity int) int
+		Timestamp func(childComplexity int) int
 	}
 
 	Lock struct {
@@ -254,6 +255,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.DoubleSpend.Output(childComplexity), true
+
+	case "DoubleSpend.timestamp":
+		if e.complexity.DoubleSpend.Timestamp == nil {
+			break
+		}
+
+		return e.complexity.DoubleSpend.Timestamp(childComplexity), true
 
 	case "Lock.address":
 		if e.complexity.Lock.Address == nil {
@@ -642,6 +650,7 @@ var sources = []*ast.Source{
 	{Name: "schema/double_spend.graphqls", Input: `type DoubleSpend {
     hash: String!
     index: Uint32!
+    timestamp: Date!
     output: TxOutput!
     inputs: [TxInput!]!
 }
@@ -1136,6 +1145,41 @@ func (ec *executionContext) _DoubleSpend_index(ctx context.Context, field graphq
 	res := resTmp.(uint32)
 	fc.Result = res
 	return ec.marshalNUint322uint32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DoubleSpend_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.DoubleSpend) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DoubleSpend",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Timestamp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Date)
+	fc.Result = res
+	return ec.marshalNDate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DoubleSpend_output(ctx context.Context, field graphql.CollectedField, obj *model.DoubleSpend) (ret graphql.Marshaler) {
@@ -3839,6 +3883,11 @@ func (ec *executionContext) _DoubleSpend(ctx context.Context, sel ast.SelectionS
 			}
 		case "index":
 			out.Values[i] = ec._DoubleSpend_index(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "timestamp":
+			out.Values[i] = ec._DoubleSpend_timestamp(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
