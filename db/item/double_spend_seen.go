@@ -96,26 +96,24 @@ func GetDoubleSpendSeensByTxHashesScanAll(txHashes [][]byte) ([]*DoubleSpendSeen
 	}
 	var doubleSpendSeens []*DoubleSpendSeen
 	for shard, txHashGroup := range shardTxHashGroups {
-		sort.Slice(txHashGroup, func(i, j int) bool {
-			return bytes.Compare(txHashGroup[i], txHashGroup[j]) == -1
-		})
+		txHashGroup = jutil.RemoveDupesAndEmpties(txHashGroup)
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		db := client.NewClient(shardConfig.GetHost())
-		var txHashId int
-		var startTxHash = txHashGroup[txHashId]
+		var startUid []byte
 		for {
-			if err := db.Get(TopicDoubleSpendSeen, startTxHash, false); err != nil {
+			if err := db.Get(TopicDoubleSpendSeen, startUid, false); err != nil {
 				return nil, jerr.Get("error getting by double spend seens for scan all", err)
 			}
 			for i := range db.Messages {
 				var doubleSpendSeen = new(DoubleSpendSeen)
 				doubleSpendSeen.SetUid(db.Messages[i].Uid)
-				for ; txHashId < len(txHashGroup) && bytes.Compare(doubleSpendSeen.TxHash, txHashGroup[txHashId]) != -1; txHashId++ {
-					startTxHash = txHashGroup[txHashId]
+				for _, txHash := range txHashGroup {
+					if bytes.Equal(doubleSpendSeen.TxHash, txHash) {
+						doubleSpendSeens = append(doubleSpendSeens, doubleSpendSeen)
+						break
+					}
 				}
-				if bytes.Equal(doubleSpendSeen.TxHash, startTxHash) {
-					doubleSpendSeens = append(doubleSpendSeens, doubleSpendSeen)
-				}
+				startUid = doubleSpendSeen.GetUid()
 			}
 			if len(db.Messages) < client.DefaultLimit {
 				break
