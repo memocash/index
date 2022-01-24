@@ -37,11 +37,7 @@ func (s *DoubleSpendSeen) SetUid(uid []byte) {
 		return
 	}
 	var ts = uid[:8]
-	if bytes.Equal(ts, []byte{0x0, 0x0, 0x0, 0x0}) {
-		s.Timestamp = jutil.GetByteTime(ts)
-	} else {
-		s.Timestamp = jutil.GetByteTimeNano(ts)
-	}
+	s.Timestamp = jutil.GetByteTimeNano(jutil.ByteReverse(ts))
 	s.TxHash = jutil.ByteReverse(uid[8:40])
 	s.Index = jutil.GetUint32(uid[40:44])
 }
@@ -49,7 +45,8 @@ func (s *DoubleSpendSeen) SetUid(uid []byte) {
 func (s *DoubleSpendSeen) Deserialize([]byte) {}
 
 func GetDoubleSpendSeenUid(timestamp time.Time, txHash []byte, index uint32) []byte {
-	return jutil.CombineBytes(jutil.GetTimeByteNano(timestamp), jutil.ByteReverse(txHash), jutil.GetUint32Data(index))
+	return jutil.CombineBytes(jutil.ByteReverse(jutil.GetTimeByteNano(timestamp)), jutil.ByteReverse(txHash),
+		jutil.GetUint32Data(index))
 }
 
 func GetDoubleSpendSeensAllLimit(startTime time.Time, limit uint32, newest bool) ([]*DoubleSpendSeen, error) {
@@ -60,7 +57,7 @@ func GetDoubleSpendSeensAllLimit(startTime time.Time, limit uint32, newest bool)
 		dbClient := client.NewClient(shardConfig.GetHost())
 		var start []byte
 		if !startTime.IsZero() {
-			start = jutil.GetTimeByteNano(startTime)
+			start = jutil.ByteReverse(jutil.GetTimeByteNano(startTime))
 		}
 		err := dbClient.GetWOpts(client.Opts{
 			Topic:  TopicDoubleSpendSeen,
