@@ -68,7 +68,7 @@ var txLostCleanupCmd = &cobra.Command{
 						i--
 					}
 				}
-				var txLostsToRemove = make([]*item.TxLost, len(txBlocks))
+				var txLostsToRemove []*item.TxLost
 				for _, txLost := range txLosts {
 					var txLostTxHash []byte
 					if len(txLost.DoubleSpend) > 0 {
@@ -76,9 +76,9 @@ var txLostCleanupCmd = &cobra.Command{
 					} else {
 						txLostTxHash = txLost.TxHash
 					}
-					for i := range txBlocks {
-						if bytes.Equal(txLostTxHash, txBlocks[i].TxHash) {
-							txLostsToRemove[i] = txLost
+					for _, txBlock := range txBlocks {
+						if bytes.Equal(txLostTxHash, txBlock.TxHash) {
+							txLostsToRemove = append(txLostsToRemove, txLost)
 							jlog.Logf("Removing TxLost: %s (ds: %s)\n",
 								hs.GetTxString(txLost.TxHash), hs.GetTxString(txLost.DoubleSpend))
 							break
