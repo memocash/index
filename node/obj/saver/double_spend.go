@@ -154,6 +154,9 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 				return jerr.Getf(err, "error checking if double spend check is winner (%s:%d)",
 					hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex)
 			}
+			jlog.Logf("Checking double spend: %s:%d (out: %s:%d, win: %t)\n",
+				hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex,
+				hs.GetTxString(checkSpend.TxHash), checkSpend.Index, isWinner)
 			var allTxHashes [][]byte
 			var newTxHashes = [][]byte{checkSpend.TxHash}
 			for len(newTxHashes) > 0 {

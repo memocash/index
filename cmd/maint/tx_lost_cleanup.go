@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/obj/saver"
@@ -23,13 +24,13 @@ var txLostCleanupCmd = &cobra.Command{
 		}
 		confirmsRequired := config.GetBlocksToConfirm()
 		for _, shard := range config.GetQueueShards() {
-			var lastTxHash []byte
+			var lastUid []byte
 			for {
-				txLosts, err := item.GetAllTxLosts(shard.Min, lastTxHash)
+				txLosts, err := item.GetAllTxLosts(shard.Min, lastUid)
 				if err != nil {
 					jerr.Get("fatal error getting all tx losts for cleanup", err).Fatal()
 				}
-				if len(lastTxHash) > 0 && len(txLosts) > 0 && bytes.Equal(txLosts[0].TxHash, lastTxHash) {
+				if len(lastUid) > 0 && len(txLosts) > 0 && bytes.Equal(txLosts[0].GetUid(), lastUid) {
 					txLosts = txLosts[1:]
 				}
 				var txHashes = make([][]byte, len(txLosts))
@@ -40,6 +41,7 @@ var txLostCleanupCmd = &cobra.Command{
 						txHashes[i] = txLosts[i].TxHash
 					}
 				}
+				txHashes = jutil.RemoveDupesAndEmpties(txHashes)
 				txBlocks, err := item.GetTxBlocks(txHashes)
 				if err != nil {
 					jerr.Get("fatal error getting tx blocks for tx losts maint", err).Fatal()
@@ -52,9 +54,7 @@ var txLostCleanupCmd = &cobra.Command{
 				if err != nil {
 					jerr.Get("fatal error getting block heights", err).Fatal()
 				}
-				var txLostsToRemove = make([]*item.TxLost, len(txBlocks))
-			TxBlocksLoop:
-				for i := range txBlocks {
+				for i := 0; i < len(txBlocks); i++ {
 					var blockHeightFound *item.BlockHeight
 					for _, blockHeight := range blockHeights {
 						if bytes.Equal(blockHeight.BlockHash, txBlocks[i].BlockHash) {
@@ -64,20 +64,24 @@ var txLostCleanupCmd = &cobra.Command{
 					}
 					if blockHeightFound == nil || currentHeightBlock.Height-blockHeightFound.Height < int64(confirmsRequired) {
 						// Block found but not considered confirmed yet
-						continue
+						txBlocks = append(txBlocks[:i], txBlocks[i+1:]...)
+						i--
 					}
-					for _, txLost := range txLosts {
-						var txLostTxHash []byte
-						if len(txLost.DoubleSpend) > 0 {
-							txLostTxHash = txLost.DoubleSpend
-						} else {
-							txLostTxHash = txLost.TxHash
-						}
+				}
+				var txLostsToRemove = make([]*item.TxLost, len(txBlocks))
+				for _, txLost := range txLosts {
+					var txLostTxHash []byte
+					if len(txLost.DoubleSpend) > 0 {
+						txLostTxHash = txLost.DoubleSpend
+					} else {
+						txLostTxHash = txLost.TxHash
+					}
+					for i := range txBlocks {
 						if bytes.Equal(txLostTxHash, txBlocks[i].TxHash) {
 							txLostsToRemove[i] = txLost
 							jlog.Logf("Removing TxLost: %s (ds: %s)\n",
 								hs.GetTxString(txLost.TxHash), hs.GetTxString(txLost.DoubleSpend))
-							continue TxBlocksLoop
+							break
 						}
 					}
 				}
@@ -102,7 +106,7 @@ var txLostCleanupCmd = &cobra.Command{
 				if len(txLosts) < client.DefaultLimit-1 {
 					break
 				}
-				lastTxHash = txLosts[len(txLosts)-1].TxHash
+				lastUid = txLosts[len(txLosts)-1].GetUid()
 			}
 		}
 		jlog.Logf("TotalTxLosts: %d, TxLostsRemoved: %d\n", totalTxLosts, txLostsRemoved)

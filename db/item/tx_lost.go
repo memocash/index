@@ -67,13 +67,13 @@ func GetTxLosts(txHashes [][]byte) ([]*TxLost, error) {
 	return txLosts, nil
 }
 
-func GetAllTxLosts(shard uint32, startTxLost []byte) ([]*TxLost, error) {
+func GetAllTxLosts(shard uint32, lastUid []byte) ([]*TxLost, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
 	var txLosts []*TxLost
 	if err := db.GetWOpts(client.Opts{
 		Topic: TopicTxLost,
-		Start: jutil.ByteReverse(startTxLost),
+		Start: lastUid,
 		Max:   client.DefaultLimit,
 	}); err != nil {
 		return nil, jerr.Get("error getting all tx losts", err)
@@ -89,7 +89,7 @@ func GetAllTxLosts(shard uint32, startTxLost []byte) ([]*TxLost, error) {
 func RemoveTxLosts(txLosts []*TxLost) error {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, txLost := range txLosts {
-		shard := uint32(txLost.GetShard())
+		shard := uint32(GetShard(txLost.GetShard()))
 		shardUidsMap[shard] = append(shardUidsMap[shard], txLost.GetUid())
 	}
 	for shard, shardUids := range shardUidsMap {
