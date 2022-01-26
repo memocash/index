@@ -1,4 +1,4 @@
-exports.Loading = function (props) {
+const Loading = (props) => {
     return (
         <div>
             {props.loading ?
@@ -16,7 +16,7 @@ exports.Loading = function (props) {
     )
 }
 
-exports.GetErrorMessage = function (errors) {
+const GetErrorMessage = (errors) => {
     let messages = [];
     for (const id in errors) {
         const error = errors[id]
@@ -27,4 +27,9 @@ exports.GetErrorMessage = function (errors) {
         messages.push(path + error.message)
     }
     return messages.join(", ")
+}
+
+module.exports = {
+    Loading,
+    GetErrorMessage,
 }
