@@ -13,11 +13,6 @@ const query = `
             hash
             index
             timestamp
-            output {
-                tx {
-                    seen
-                }
-            }
             inputs {
                 hash
                 index
@@ -89,7 +84,7 @@ function DoubleSpends() {
                     {doubleSpends.map((doubleSpend) => {
                         return (
                             <div key={doubleSpend.hash + doubleSpend.index}>
-                                {doubleSpend.output.tx.seen} &middot; <Link href={"/tx/" + doubleSpend.hash}>
+                                {doubleSpend.timestamp} &middot; <Link href={"/tx/" + doubleSpend.hash}>
                                     <a>{doubleSpend.hash}:{doubleSpend.index}</a>
                                 </Link>
                                 <ul>
