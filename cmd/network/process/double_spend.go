@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/node/obj/process"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/node/obj/status"
-	"github.com/memocash/index/ref/config"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +24,7 @@ var doubleSpendCmd = &cobra.Command{
 		doubleSpendStatus := status.NewHeight(status.NameDoubleSpend, startHeight)
 		doubleSpendSaver := saver.NewDoubleSpend(false)
 		doubleSpendProcessor := process.NewBlock(doubleSpendStatus, doubleSpendSaver)
-		doubleSpendProcessor.Delay = int(config.GetBlocksToConfirm())
+		doubleSpendProcessor.Delay = 5
 		if err := doubleSpendProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing double spends", err).Fatal()
 		}
