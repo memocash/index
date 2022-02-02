@@ -383,11 +383,8 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 			}
 		}
 	}
-	for _, newTxLost := range newTxLosts {
-		newItemObjects = append(newItemObjects, &item.TxLost{
-			TxHash:      newTxLost.TxHash,
-			DoubleSpend: newTxLost.DoubleSpend,
-		})
+	for i := range newTxLosts {
+		newItemObjects = append(newItemObjects, &newTxLosts[i])
 	}
 	parentTxSuspects, err := item.GetTxSuspects(parentTxHashes)
 	if err != nil {
