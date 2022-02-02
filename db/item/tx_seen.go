@@ -64,7 +64,6 @@ func GetTxSeens(txHashes [][]byte) ([]*TxSeen, error) {
 		for _, msg := range db.Messages {
 			var txSeen = new(TxSeen)
 			txSeen.SetUid(msg.Uid)
-			txSeen.Deserialize(msg.Message)
 			txSeens = append(txSeens, txSeen)
 		}
 	}

@@ -103,9 +103,10 @@ var txSeenLoaderConfig = dataloader.TxSeenLoaderConfig{
 		for i := range txHashes {
 			for _, txSeen := range txSeens {
 				if bytes.Equal(txSeen.TxHash, txHashes[i]) {
-					var modelDate = model.Date(txSeen.Timestamp)
-					modelTxSeens[i] = &modelDate
-					break
+					if modelTxSeens[i] == nil || time.Time(*modelTxSeens[i]).After(txSeen.Timestamp) {
+						var modelDate = model.Date(txSeen.Timestamp)
+						modelTxSeens[i] = &modelDate
+					}
 				}
 			}
 		}
