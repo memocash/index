@@ -38,7 +38,7 @@ func (t *Block) Process() error {
 		jlog.Logf("Using delay: %d\n", t.Delay)
 	}
 	for {
-		heightBlocks, err := item.GetHeightBlocksAll(height, waitForBlocks)
+		heightBlocks, err := item.GetHeightBlocksAll(height+1, waitForBlocks)
 		if err != nil {
 			return jerr.Getf(err, "error no blocks returned for block process, height: %d", height)
 		}
@@ -49,12 +49,14 @@ func (t *Block) Process() error {
 		}
 		delayBlocks = heightBlocks[delayIndex:]
 		var maxHeight int64
+		var processedCount int
 		for i := range heightBlocks {
 			var processBlock = i < delayIndex
 			if processBlock {
 				if err := t.ProcessBlock(heightBlocks[i]); err != nil {
 					return jerr.Get("error processing block height", err)
 				}
+				processedCount++
 			}
 			if heightBlocks[i].Height > maxHeight {
 				maxHeight = heightBlocks[i].Height
@@ -68,8 +70,8 @@ func (t *Block) Process() error {
 				}
 			}
 		}
-		if len(heightBlocks) > 1 {
-			jlog.Logf("Processed block heights: %d, height: %d\n", len(heightBlocks), height)
+		if processedCount > 1 {
+			jlog.Logf("Processed block heights: %d, height: %d\n", processedCount, height-int64(t.Delay))
 		}
 		if maxHeight == 0 || height == maxHeight {
 			if !waitForBlocks {
