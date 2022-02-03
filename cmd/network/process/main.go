@@ -10,6 +10,7 @@ func GetCommand() *cobra.Command {
 	processCommand.AddCommand(
 		blockCmd,
 		doubleSpendCmd,
+		lockHeightCmd,
 	)
 	return processCommand
 }

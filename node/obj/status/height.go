@@ -11,6 +11,7 @@ const (
 	NameBlock       = "block"
 	NameUtxo        = "utxo"
 	NameDoubleSpend = "double-spend"
+	NameLockHeight  = "lock-height"
 )
 
 type Height struct {

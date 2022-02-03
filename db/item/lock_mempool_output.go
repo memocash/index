@@ -1,8 +1,10 @@
 package item
 
 import (
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/ref/config"
 )
 
 type LockMempoolOutput struct {
@@ -37,3 +39,20 @@ func (o *LockMempoolOutput) SetUid(uid []byte) {
 }
 
 func (o *LockMempoolOutput) Deserialize([]byte) {}
+
+func RemoveLockMempoolOutputs(lockMempoolOutputs []*LockMempoolOutput) error {
+	var shardUidsMap = make(map[uint32][][]byte)
+	for _, lockMempoolOutput := range lockMempoolOutputs {
+		shard := GetShard32(lockMempoolOutput.GetShard())
+		shardUidsMap[shard] = append(shardUidsMap[shard], lockMempoolOutput.GetUid())
+	}
+	for shard, shardUids := range shardUidsMap {
+		shardUids = jutil.RemoveDupesAndEmpties(shardUids)
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		db := client.NewClient(shardConfig.GetHost())
+		if err := db.DeleteMessages(TopicLockMempoolOutput, shardUids); err != nil {
+			return jerr.Get("error deleting items topic lock mempool output", err)
+		}
+	}
+	return nil
+}
