@@ -44,8 +44,8 @@ func (p *Peer) Connect() error {
 	SetBtcdLogLevel()
 	connectionString := config.GetNodeHost()
 	newPeer, err := peer.NewOutboundPeer(&peer.Config{
-		UserAgentName:    "bch-lite-node",
-		UserAgentVersion: "0.2.0",
+		UserAgentName:    "memo-index",
+		UserAgentVersion: "0.3.0",
 		ChainParams:      wallet.GetMainNetParams(),
 		Listeners: peer.MessageListeners{
 			OnVerAck:      p.OnVerAck,
