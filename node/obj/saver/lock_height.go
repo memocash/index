@@ -40,7 +40,7 @@ func (t *LockHeight) QueueTxs(block *wire.MsgBlock) error {
 		height = blockHeight.Height
 	}
 	var objects []item.Object
-	var lockMempoolOutputsToRemove []*item.LockMempoolOutput
+	var lockHeightOutputsToRemove []*item.LockHeightOutput
 	var objectCount int
 	for _, tx := range block.Transactions {
 		txHash := tx.TxHash()
@@ -62,25 +62,22 @@ func (t *LockHeight) QueueTxs(block *wire.MsgBlock) error {
 		}
 		for h := range tx.TxOut {
 			lockHash := script.GetLockHash(tx.TxOut[h].PkScript)
+			var lockHeightOutput = &item.LockHeightOutput{
+				LockHash: lockHash,
+				Height:   height,
+				Hash:     txHashBytes,
+				Index:    uint32(h),
+			}
 			if height > 0 {
-				objects = append(objects, &item.LockHeightOutput{
-					LockHash: lockHash,
-					Height:   height,
-					Hash:     txHashBytes,
-					Index:    uint32(h),
-				})
-				lockMempoolOutputsToRemove = append(lockMempoolOutputsToRemove, &item.LockMempoolOutput{
+				lockHeightOutputsToRemove = append(lockHeightOutputsToRemove, &item.LockHeightOutput{
 					LockHash: lockHash,
 					Hash:     txHashBytes,
 					Index:    uint32(h),
 				})
 			} else {
-				objects = append(objects, &item.LockMempoolOutput{
-					LockHash: lockHash,
-					Hash:     txHashBytes,
-					Index:    uint32(h),
-				})
+				lockHeightOutput.Height = item.HeightMempool
 			}
+			objects = append(objects, lockHeightOutput)
 			if len(objects) >= 10000 {
 				if err := item.Save(objects); err != nil {
 					return jerr.Get("error saving db lock height objects (at limit)", err)
@@ -94,8 +91,8 @@ func (t *LockHeight) QueueTxs(block *wire.MsgBlock) error {
 	if err := item.Save(objects); err != nil {
 		return jerr.Get("error saving db lock height objects", err)
 	}
-	if err := item.RemoveLockMempoolOutputs(lockMempoolOutputsToRemove); err != nil {
-		return jerr.Get("error removing lock mempool outputs for lock heights", err)
+	if err := item.RemoveLockHeightOutputs(lockHeightOutputsToRemove); err != nil {
+		return jerr.Get("error removing mempool lock height outputs for lock heights", err)
 	}
 	objectCount += len(objects)
 	jlog.Logf("Saved %d lock height objects, height: %d\n", objectCount, height)

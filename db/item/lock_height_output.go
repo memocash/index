@@ -1,15 +1,23 @@
 package item
 
 import (
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/ref/config"
 )
+
+const HeightMempool = -1
 
 type LockHeightOutput struct {
 	LockHash []byte
 	Height   int64
 	Hash     []byte
 	Index    uint32
+}
+
+func (o LockHeightOutput) IsMempool() bool {
+	return o.Height == HeightMempool
 }
 
 func (o LockHeightOutput) GetUid() []byte {
@@ -47,4 +55,21 @@ func GetLockHeightOutputUid(lockHash []byte, height int64, hash []byte, index ui
 		jutil.ByteReverse(hash),
 		jutil.GetUint32Data(index),
 	)
+}
+
+func RemoveLockHeightOutputs(lockHeightOutputs []*LockHeightOutput) error {
+	var shardUidsMap = make(map[uint32][][]byte)
+	for _, lockHeightOutput := range lockHeightOutputs {
+		shard := GetShard32(lockHeightOutput.GetShard())
+		shardUidsMap[shard] = append(shardUidsMap[shard], lockHeightOutput.GetUid())
+	}
+	for shard, shardUids := range shardUidsMap {
+		shardUids = jutil.RemoveDupesAndEmpties(shardUids)
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		db := client.NewClient(shardConfig.GetHost())
+		if err := db.DeleteMessages(TopicLockHeightOutput, shardUids); err != nil {
+			return jerr.Get("error deleting items topic lock height output", err)
+		}
+	}
+	return nil
 }
