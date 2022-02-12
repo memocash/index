@@ -1,6 +1,7 @@
 package saver
 
 import (
+	"bytes"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
@@ -39,6 +40,9 @@ func (t *LockHeight) QueueTxs(block *wire.MsgBlock) error {
 		}
 		height = blockHeight.Height
 	}
+	if height == 0 {
+		height = item.HeightMempool
+	}
 	var objects []item.Object
 	var lockHeightOutputsToRemove []*item.LockHeightOutput
 	var objectCount int
@@ -47,18 +51,6 @@ func (t *LockHeight) QueueTxs(block *wire.MsgBlock) error {
 		txHashBytes := txHash.CloneBytes()
 		if t.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())
-		}
-		for j := range tx.TxIn {
-			if memo.IsCoinbaseInput(tx.TxIn[j]) {
-				continue
-			}
-			/*objects = append(objects, &item.LockHeightOutputInput{
-				LockHash: ,
-				Hash:      txHashBytes,
-				Index:     uint32(j),
-				PrevHash:  tx.TxIn[j].PreviousOutPoint.Hash.CloneBytes(),
-				PrevIndex: tx.TxIn[j].PreviousOutPoint.Index,
-			})*/
 		}
 		for h := range tx.TxOut {
 			lockHash := script.GetLockHash(tx.TxOut[h].PkScript)
@@ -74,8 +66,6 @@ func (t *LockHeight) QueueTxs(block *wire.MsgBlock) error {
 					Hash:     txHashBytes,
 					Index:    uint32(h),
 				})
-			} else {
-				lockHeightOutput.Height = item.HeightMempool
 			}
 			objects = append(objects, lockHeightOutput)
 			if len(objects) >= 10000 {
@@ -86,6 +76,50 @@ func (t *LockHeight) QueueTxs(block *wire.MsgBlock) error {
 				objects = nil
 				runtime.GC()
 			}
+		}
+	}
+	var outputsToGet []memo.Out
+	for _, tx := range block.Transactions {
+		txHash := tx.TxHash()
+		txHashBytes := txHash.CloneBytes()
+		for j := range tx.TxIn {
+			if memo.IsCoinbaseInput(tx.TxIn[j]) {
+				continue
+			}
+			outputsToGet = append(outputsToGet, memo.Out{
+				TxHash: txHashBytes,
+				Index:  uint32(j),
+			})
+		}
+	}
+	if err := item.Save(objects); err != nil {
+		return jerr.Get("error saving db lock height objects", err)
+	}
+	objects = nil
+	outputs, err := item.GetTxOutputs(outputsToGet)
+	if err != nil {
+		return jerr.Get("error getting outputs for lock height inputs", err)
+	}
+	for _, tx := range block.Transactions {
+		txHash := tx.TxHash()
+		txHashBytes := txHash.CloneBytes()
+		for j := range tx.TxIn {
+			var index = uint32(j)
+			var lockHash []byte
+			for _, output := range outputs {
+				if bytes.Equal(output.TxHash, txHashBytes) && output.Index == index {
+					lockHash = output.LockHash
+					break
+				}
+			}
+			objects = append(objects, &item.LockHeightOutputInput{
+				LockHash:  lockHash,
+				Height:    height,
+				Hash:      txHashBytes,
+				Index:     index,
+				PrevHash:  tx.TxIn[j].PreviousOutPoint.Hash.CloneBytes(),
+				PrevIndex: tx.TxIn[j].PreviousOutPoint.Index,
+			})
 		}
 	}
 	if err := item.Save(objects); err != nil {
