@@ -190,15 +190,29 @@ func (t *LockHeightSaveRun) SaveOutputInputsForInputs(block *wire.MsgBlock) erro
 		return jerr.Get("error saving db lock height output inputs for inputs", err)
 	}
 	if err := item.RemoveLockHeightOutputInputs(lockHeightOutputInputsToRemove); err != nil {
-		return jerr.Get("error removing mempool lock height output inputs for lock heights", err)
+		return jerr.Get("error removing mempool lock height output inputs for inputs for lock heights", err)
 	}
 	t.ObjectCount += len(objects)
 	return nil
 }
 
-func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
+func (t *LockHeightSaveRun) SaveOutputInputsForOutputs(block *wire.MsgBlock) error {
 	var objects []item.Object
-	outputInputs, err := item.GetOutputInputs(t.LockOuts)
+	var lockHeightOutputInputsToRemove []*item.LockHeightOutputInput
+	var lockOuts = t.LockOuts
+	for _, tx := range block.Transactions {
+		for j, in := range tx.TxIn {
+			outHash := in.PreviousOutPoint.Hash.CloneBytes()
+			var index = uint32(j)
+			for i := range lockOuts {
+				if bytes.Equal(lockOuts[i].TxHash, outHash) && lockOuts[i].Index == index {
+					lockOuts = append(lockOuts[:i], lockOuts[i+1:]...)
+					i--
+				}
+			}
+		}
+	}
+	outputInputs, err := item.GetOutputInputs(lockOuts)
 	if err != nil {
 		return jerr.Get("error getting output inputs for lock output inputs", err)
 	}
@@ -221,7 +235,7 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 	}
 	for _, outputInput := range outputInputs {
 		var lockHash []byte
-		for _, lockOut := range t.LockOuts {
+		for _, lockOut := range lockOuts {
 			if bytes.Equal(lockOut.TxHash, outputInput.PrevHash) &&
 				lockOut.Index == outputInput.PrevIndex {
 				lockHash = lockOut.LockHash
@@ -243,17 +257,30 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 				}
 			}
 		}
-		objects = append(objects, &item.LockHeightOutputInput{
+		var lockHeightOutputInput = &item.LockHeightOutputInput{
 			LockHash:  lockHash,
 			Height:    txBlockHeight,
 			Hash:      outputInput.Hash,
 			Index:     outputInput.Index,
 			PrevHash:  outputInput.PrevHash,
 			PrevIndex: outputInput.PrevIndex,
-		})
+		}
+		objects = append(objects, lockHeightOutputInput)
+		if t.Height > 0 {
+			lockHeightOutputInputsToRemove = append(lockHeightOutputInputsToRemove, &item.LockHeightOutputInput{
+				LockHash:  lockHeightOutputInput.LockHash,
+				Hash:      lockHeightOutputInput.Hash,
+				Index:     lockHeightOutputInput.Index,
+				PrevHash:  lockHeightOutputInput.PrevHash,
+				PrevIndex: lockHeightOutputInput.PrevIndex,
+			})
+		}
 	}
 	if err := item.Save(objects); err != nil {
-		return jerr.Get("error saving db lock height objects 2", err)
+		return jerr.Get("error saving db lock height output inputs for outputs", err)
+	}
+	if err := item.RemoveLockHeightOutputInputs(lockHeightOutputInputsToRemove); err != nil {
+		return jerr.Get("error removing mempool lock height output inputs for outputs for lock heights", err)
 	}
 	t.ObjectCount += len(objects)
 	return nil
