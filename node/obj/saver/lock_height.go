@@ -30,7 +30,7 @@ func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
 	if err := saveRun.SaveOutputInputsForInputs(block); err != nil {
 		return jerr.Get("error saving output inputs for lock height saver run", err)
 	}
-	if err := saveRun.SaveOutputInputsForOutputs(); err != nil {
+	if err := saveRun.SaveOutputInputsForOutputs(block); err != nil {
 		return jerr.Get("error saving output inputs for outputs for lock height saver run", err)
 	}
 	jlog.Logf("Saved %d lock height objects, height: %d\n", saveRun.ObjectCount, saveRun.Height)
