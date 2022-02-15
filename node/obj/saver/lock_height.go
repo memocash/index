@@ -27,7 +27,7 @@ func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
 	if err := saveRun.SaveOutputs(); err != nil {
 		return jerr.Get("error saving outputs for lock height saver run", err)
 	}
-	if err := saveRun.SaveOutputInputs(block); err != nil {
+	if err := saveRun.SaveOutputInputsForInputs(block); err != nil {
 		return jerr.Get("error saving output inputs for lock height saver run", err)
 	}
 	if err := saveRun.SaveOutputInputsForOutputs(); err != nil {
@@ -89,6 +89,7 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 			Hash:     lockOut.TxHash,
 			Index:    lockOut.Index,
 		}
+		objects = append(objects, lockHeightOutput)
 		if t.Height > 0 {
 			lockHeightOutputsToRemove = append(lockHeightOutputsToRemove, &item.LockHeightOutput{
 				LockHash: lockOut.LockHash,
@@ -96,7 +97,6 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 				Index:    lockOut.Index,
 			})
 		}
-		objects = append(objects, lockHeightOutput)
 		if len(objects) >= 10000 {
 			if err := item.Save(objects); err != nil {
 				return jerr.Get("error saving db lock height objects (at limit)", err)
@@ -108,7 +108,7 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 
 	}
 	if err := item.Save(objects); err != nil {
-		return jerr.Get("error saving db lock height objects 1", err)
+		return jerr.Get("error saving db lock height outputs", err)
 	}
 	t.ObjectCount += len(objects)
 	if err := item.RemoveLockHeightOutputs(lockHeightOutputsToRemove); err != nil {
@@ -117,9 +117,10 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 	return nil
 }
 
-func (t *LockHeightSaveRun) SaveOutputInputs(block *wire.MsgBlock) error {
+func (t *LockHeightSaveRun) SaveOutputInputsForInputs(block *wire.MsgBlock) error {
 	var objects []item.Object
 	var inputOuts []memo.Out
+	var lockHeightOutputInputsToRemove []*item.LockHeightOutputInput
 	for _, tx := range block.Transactions {
 	TxInLoop:
 		for j := range tx.TxIn {
@@ -146,6 +147,9 @@ func (t *LockHeightSaveRun) SaveOutputInputs(block *wire.MsgBlock) error {
 		txHash := tx.TxHash()
 		txHashBytes := txHash.CloneBytes()
 		for j := range tx.TxIn {
+			if memo.IsCoinbaseInput(tx.TxIn[j]) {
+				continue
+			}
 			var index = uint32(j)
 			var lockHash []byte
 			for _, inputOutput := range inputOutputs {
@@ -162,18 +166,31 @@ func (t *LockHeightSaveRun) SaveOutputInputs(block *wire.MsgBlock) error {
 					}
 				}
 			}
-			objects = append(objects, &item.LockHeightOutputInput{
+			var lockHeightOutputInput = &item.LockHeightOutputInput{
 				LockHash:  lockHash,
 				Height:    t.Height,
 				Hash:      txHashBytes,
 				Index:     index,
 				PrevHash:  tx.TxIn[j].PreviousOutPoint.Hash.CloneBytes(),
 				PrevIndex: tx.TxIn[j].PreviousOutPoint.Index,
-			})
+			}
+			objects = append(objects, lockHeightOutputInput)
+			if t.Height > 0 {
+				lockHeightOutputInputsToRemove = append(lockHeightOutputInputsToRemove, &item.LockHeightOutputInput{
+					LockHash:  lockHeightOutputInput.LockHash,
+					Hash:      lockHeightOutputInput.Hash,
+					Index:     lockHeightOutputInput.Index,
+					PrevHash:  lockHeightOutputInput.PrevHash,
+					PrevIndex: lockHeightOutputInput.PrevIndex,
+				})
+			}
 		}
 	}
 	if err := item.Save(objects); err != nil {
-		return jerr.Get("error saving db lock height objects 2", err)
+		return jerr.Get("error saving db lock height output inputs for inputs", err)
+	}
+	if err := item.RemoveLockHeightOutputInputs(lockHeightOutputInputsToRemove); err != nil {
+		return jerr.Get("error removing mempool lock height output inputs for lock heights", err)
 	}
 	t.ObjectCount += len(objects)
 	return nil

@@ -1,8 +1,10 @@
 package item
 
 import (
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/ref/config"
 )
 
 type LockHeightOutputInput struct {
@@ -50,3 +52,20 @@ func (t LockHeightOutputInput) Serialize() []byte {
 }
 
 func (t *LockHeightOutputInput) Deserialize([]byte) {}
+
+func RemoveLockHeightOutputInputs(lockHeightOutputInputs []*LockHeightOutputInput) error {
+	var shardUidsMap = make(map[uint32][][]byte)
+	for _, lockHeightOutputInput := range lockHeightOutputInputs {
+		shard := GetShard32(lockHeightOutputInput.GetShard())
+		shardUidsMap[shard] = append(shardUidsMap[shard], lockHeightOutputInput.GetUid())
+	}
+	for shard, shardUids := range shardUidsMap {
+		shardUids = jutil.RemoveDupesAndEmpties(shardUids)
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		db := client.NewClient(shardConfig.GetHost())
+		if err := db.DeleteMessages(TopicLockHeightOutputInput, shardUids); err != nil {
+			return jerr.Get("error deleting items topic lock height output input", err)
+		}
+	}
+	return nil
+}
