@@ -2,12 +2,14 @@ package saver
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"runtime"
 )
@@ -21,19 +23,23 @@ func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
 		return jerr.Newf("error nil block for lock height")
 	}
 	saveRun := NewLockHeightSaveRun(t.Verbose)
-	if err := saveRun.SetHashHeightOuts(block); err != nil {
+	if err := saveRun.SetHashHeightInOuts(block); err != nil {
 		return jerr.Get("error setting hash height for lock height saver run", err)
 	}
 	if err := saveRun.SaveOutputs(); err != nil {
 		return jerr.Get("error saving outputs for lock height saver run", err)
 	}
-	if err := saveRun.SaveOutputInputsForInputs(block); err != nil {
+	if err := saveRun.SaveOutputInputsForInputs(); err != nil {
 		return jerr.Get("error saving output inputs for lock height saver run", err)
 	}
-	if err := saveRun.SaveOutputInputsForOutputs(block); err != nil {
+	if err := saveRun.SaveOutputInputsForOutputs(); err != nil {
 		return jerr.Get("error saving output inputs for outputs for lock height saver run", err)
 	}
-	jlog.Logf("Saved %d lock height objects, height: %d\n", saveRun.ObjectCount, saveRun.Height)
+	var noLockHashStatus = ""
+	if saveRun.NoLockHash > 0 {
+		noLockHashStatus = fmt.Sprintf(" (%d)", saveRun.NoLockHash)
+	}
+	jlog.Logf("Saved %d%s lock height objects, height: %d\n", saveRun.ObjectCount, noLockHashStatus, saveRun.Height)
 	return nil
 }
 
@@ -42,10 +48,12 @@ type LockHeightSaveRun struct {
 	BlockHash   []byte
 	Height      int64
 	ObjectCount int
+	NoLockHash  int
+	Ins         []memo.InOut
 	LockOuts    []memo.Out
 }
 
-func (t *LockHeightSaveRun) SetHashHeightOuts(block *wire.MsgBlock) error {
+func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
 	if block == nil {
 		return jerr.Newf("error nil block for lock height queue txs")
 	}
@@ -66,6 +74,17 @@ func (t *LockHeightSaveRun) SetHashHeightOuts(block *wire.MsgBlock) error {
 		txHashBytes := txHash.CloneBytes()
 		if t.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())
+		}
+		for j := range tx.TxIn {
+			if memo.IsCoinbaseInput(tx.TxIn[j]) {
+				continue
+			}
+			t.Ins = append(t.Ins, memo.InOut{
+				Hash:      txHashBytes,
+				Index:     uint32(j),
+				PrevHash:  tx.TxIn[j].PreviousOutPoint.Hash.CloneBytes(),
+				PrevIndex: tx.TxIn[j].PreviousOutPoint.Index,
+			})
 		}
 		for h := range tx.TxOut {
 			lockHash := script.GetLockHash(tx.TxOut[h].PkScript)
@@ -117,73 +136,67 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 	return nil
 }
 
-func (t *LockHeightSaveRun) SaveOutputInputsForInputs(block *wire.MsgBlock) error {
+func (t *LockHeightSaveRun) SaveOutputInputsForInputs() error {
 	var objects []item.Object
 	var inputOuts []memo.Out
 	var lockHeightOutputInputsToRemove []*item.LockHeightOutputInput
-	for _, tx := range block.Transactions {
-	TxInLoop:
-		for j := range tx.TxIn {
-			if memo.IsCoinbaseInput(tx.TxIn[j]) {
-				continue
+TxInLoop:
+	for _, in := range t.Ins {
+		for _, lockOut := range t.LockOuts {
+			if bytes.Equal(lockOut.TxHash, in.PrevHash) && lockOut.Index == in.PrevIndex {
+				continue TxInLoop
 			}
-			var out = memo.Out{
-				TxHash: tx.TxIn[j].PreviousOutPoint.Hash.CloneBytes(),
-				Index:  tx.TxIn[j].PreviousOutPoint.Index,
-			}
-			for _, lockOut := range t.LockOuts {
-				if bytes.Equal(lockOut.TxHash, out.TxHash) && lockOut.Index == out.Index {
-					continue TxInLoop
-				}
-			}
-			inputOuts = append(inputOuts, out)
 		}
+		inputOuts = append(inputOuts, memo.Out{
+			TxHash: in.PrevHash,
+			Index:  in.PrevIndex,
+		})
 	}
 	inputOutputs, err := item.GetTxOutputs(inputOuts)
 	if err != nil {
 		return jerr.Get("error getting outputs for lock height inputs", err)
 	}
-	for _, tx := range block.Transactions {
-		txHash := tx.TxHash()
-		txHashBytes := txHash.CloneBytes()
-		for j := range tx.TxIn {
-			if memo.IsCoinbaseInput(tx.TxIn[j]) {
-				continue
+	for _, in := range t.Ins {
+		var lockHash []byte
+		for _, inputOutput := range inputOutputs {
+			if bytes.Equal(inputOutput.TxHash, in.PrevHash) && inputOutput.Index == in.PrevIndex {
+				lockHash = inputOutput.LockHash
+				break
 			}
-			var index = uint32(j)
-			var lockHash []byte
-			for _, inputOutput := range inputOutputs {
-				if bytes.Equal(inputOutput.TxHash, txHashBytes) && inputOutput.Index == index {
-					lockHash = inputOutput.LockHash
+		}
+		if lockHash == nil {
+			for _, lockOut := range t.LockOuts {
+				if bytes.Equal(lockOut.TxHash, in.PrevHash) && lockOut.Index == in.PrevIndex {
+					lockHash = lockOut.LockHash
 					break
 				}
 			}
-			if lockHash == nil {
-				for _, lockOut := range t.LockOuts {
-					if bytes.Equal(lockOut.TxHash, txHashBytes) && lockOut.Index == index {
-						lockHash = lockOut.LockHash
-						break
-					}
-				}
+		}
+		if lockHash == nil {
+			if t.Verbose {
+				jlog.Logf("lock hash is nil for input (%s:%d) with output (%s:%d)\n",
+					hs.GetTxString(in.Hash), in.Index, hs.GetTxString(in.PrevHash), in.PrevIndex)
 			}
-			var lockHeightOutputInput = &item.LockHeightOutputInput{
-				LockHash:  lockHash,
-				Height:    t.Height,
-				Hash:      txHashBytes,
-				Index:     index,
-				PrevHash:  tx.TxIn[j].PreviousOutPoint.Hash.CloneBytes(),
-				PrevIndex: tx.TxIn[j].PreviousOutPoint.Index,
-			}
-			objects = append(objects, lockHeightOutputInput)
-			if t.Height > 0 {
-				lockHeightOutputInputsToRemove = append(lockHeightOutputInputsToRemove, &item.LockHeightOutputInput{
-					LockHash:  lockHeightOutputInput.LockHash,
-					Hash:      lockHeightOutputInput.Hash,
-					Index:     lockHeightOutputInput.Index,
-					PrevHash:  lockHeightOutputInput.PrevHash,
-					PrevIndex: lockHeightOutputInput.PrevIndex,
-				})
-			}
+			t.NoLockHash++
+			continue
+		}
+		var lockHeightOutputInput = &item.LockHeightOutputInput{
+			LockHash:  lockHash,
+			Height:    t.Height,
+			Hash:      in.Hash,
+			Index:     in.Index,
+			PrevHash:  in.PrevHash,
+			PrevIndex: in.PrevIndex,
+		}
+		objects = append(objects, lockHeightOutputInput)
+		if t.Height > 0 {
+			lockHeightOutputInputsToRemove = append(lockHeightOutputInputsToRemove, &item.LockHeightOutputInput{
+				LockHash:  lockHeightOutputInput.LockHash,
+				Hash:      lockHeightOutputInput.Hash,
+				Index:     lockHeightOutputInput.Index,
+				PrevHash:  lockHeightOutputInput.PrevHash,
+				PrevIndex: lockHeightOutputInput.PrevIndex,
+			})
 		}
 	}
 	if err := item.Save(objects); err != nil {
@@ -196,19 +209,15 @@ func (t *LockHeightSaveRun) SaveOutputInputsForInputs(block *wire.MsgBlock) erro
 	return nil
 }
 
-func (t *LockHeightSaveRun) SaveOutputInputsForOutputs(block *wire.MsgBlock) error {
+func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 	var objects []item.Object
 	var lockHeightOutputInputsToRemove []*item.LockHeightOutputInput
 	var lockOuts = t.LockOuts
-	for _, tx := range block.Transactions {
-		for j, in := range tx.TxIn {
-			outHash := in.PreviousOutPoint.Hash.CloneBytes()
-			var index = uint32(j)
-			for i := 0; i < len(lockOuts); i++ {
-				if bytes.Equal(lockOuts[i].TxHash, outHash) && lockOuts[i].Index == index {
-					lockOuts = append(lockOuts[:i], lockOuts[i+1:]...)
-					i--
-				}
+	for _, in := range t.Ins {
+		for i := 0; i < len(lockOuts); i++ {
+			if bytes.Equal(lockOuts[i].TxHash, in.PrevHash) && lockOuts[i].Index == in.PrevIndex {
+				lockOuts = append(lockOuts[:i], lockOuts[i+1:]...)
+				i--
 			}
 		}
 	}
