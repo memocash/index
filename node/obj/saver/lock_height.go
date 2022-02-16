@@ -204,7 +204,7 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs(block *wire.MsgBlock) err
 		for j, in := range tx.TxIn {
 			outHash := in.PreviousOutPoint.Hash.CloneBytes()
 			var index = uint32(j)
-			for i := range lockOuts {
+			for i := 0; i < len(lockOuts); i++ {
 				if bytes.Equal(lockOuts[i].TxHash, outHash) && lockOuts[i].Index == index {
 					lockOuts = append(lockOuts[:i], lockOuts[i+1:]...)
 					i--
