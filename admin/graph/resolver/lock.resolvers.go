@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"github.com/memocash/index/ref/bitcoin/memo"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
@@ -59,14 +60,26 @@ func (r *lockResolver) Outputs(ctx context.Context, obj *model.Lock, start *mode
 	if err != nil {
 		return nil, jerr.Get("error getting lock outputs for lock output resolver", err)
 	}
-	var txOutputs = make([]*model.TxOutput, len(lockOutputs))
+	var outs = make([]memo.Out, len(lockOutputs))
 	for i := range lockOutputs {
-		txOutputs[i] = &model.TxOutput{
-			Hash:  hs.GetTxString(lockOutputs[i].Hash),
-			Index: lockOutputs[i].Index,
+		outs[i] = memo.Out{
+			TxHash: lockOutputs[i].Hash,
+			Index:  lockOutputs[i].Index,
 		}
 	}
-	return txOutputs, nil
+	txOutputs, err := item.GetTxOutputs(outs)
+	if err != nil {
+		return nil, jerr.Get("error getting tx outputs for lock resolver", err)
+	}
+	var modelTxOutputs = make([]*model.TxOutput, len(lockOutputs))
+	for i := range txOutputs {
+		modelTxOutputs[i] = &model.TxOutput{
+			Hash:   hs.GetTxString(txOutputs[i].TxHash),
+			Index:  txOutputs[i].Index,
+			Amount: txOutputs[i].Value,
+		}
+	}
+	return modelTxOutputs, nil
 }
 
 // Lock returns generated.LockResolver implementation.
