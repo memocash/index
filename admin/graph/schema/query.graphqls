@@ -1,5 +1,6 @@
 type Query {
     tx(hash: String!): Tx
+    txs(hashes: [String!]): [Tx]
     address(address: String!): Lock
     addresses(addresses: [String!]): [Lock]
     block(hash: String!): Block

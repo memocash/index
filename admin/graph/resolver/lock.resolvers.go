@@ -6,12 +6,12 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"github.com/memocash/index/ref/bitcoin/memo"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 

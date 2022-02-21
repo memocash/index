@@ -7,12 +7,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"github.com/memocash/index/admin/graph/dataloader"
+	"fmt"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
+	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
@@ -40,6 +41,10 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 		Hash: txHashString,
 		Raw:  raw,
 	}, nil
+}
+
+func (r *queryResolver) Txs(ctx context.Context, hashes []string) ([]*model.Tx, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) Address(ctx context.Context, address string) (*model.Lock, error) {

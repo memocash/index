@@ -85,6 +85,7 @@ type ComplexityRoot struct {
 		Blocks       func(childComplexity int, newest *bool, start *uint32) int
 		DoubleSpends func(childComplexity int, newest *bool, start *model.Date) int
 		Tx           func(childComplexity int, hash string) int
+		Txs          func(childComplexity int, hashes []string) int
 	}
 
 	Tx struct {
@@ -146,6 +147,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Tx(ctx context.Context, hash string) (*model.Tx, error)
+	Txs(ctx context.Context, hashes []string) ([]*model.Tx, error)
 	Address(ctx context.Context, address string) (*model.Lock, error)
 	Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error)
 	Block(ctx context.Context, hash string) (*model.Block, error)
@@ -386,6 +388,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Tx(childComplexity, args["hash"].(string)), true
+
+	case "Query.txs":
+		if e.complexity.Query.Txs == nil {
+			break
+		}
+
+		args, err := ec.field_Query_txs_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Txs(childComplexity, args["hashes"].([]string)), true
 
 	case "Tx.blocks":
 		if e.complexity.Tx.Blocks == nil {
@@ -669,6 +683,7 @@ var sources = []*ast.Source{
 `, BuiltIn: false},
 	{Name: "schema/query.graphqls", Input: `type Query {
     tx(hash: String!): Tx
+    txs(hashes: [String!]): [Tx]
     address(address: String!): Lock
     addresses(addresses: [String!]): [Lock]
     block(hash: String!): Block
@@ -895,6 +910,21 @@ func (ec *executionContext) field_Query_tx_args(ctx context.Context, rawArgs map
 		}
 	}
 	args["hash"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_txs_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []string
+	if tmp, ok := rawArgs["hashes"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hashes"))
+		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["hashes"] = arg0
 	return args, nil
 }
 
@@ -1501,6 +1531,45 @@ func (ec *executionContext) _Query_tx(ctx context.Context, field graphql.Collect
 	res := resTmp.(*model.Tx)
 	fc.Result = res
 	return ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_txs(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_txs_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Txs(rctx, args["hashes"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Tx)
+	fc.Result = res
+	return ec.marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_address(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4040,6 +4109,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_tx(ctx, field)
 				return res
 			})
+		case "txs":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_txs(ctx, field)
+				return res
+			})
 		case "address":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -5524,6 +5604,47 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
+}
+
+func (ec *executionContext) marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx context.Context, sel ast.SelectionSet, v []*model.Tx) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
 }
 
 func (ec *executionContext) marshalOTx2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tx) graphql.Marshaler {
