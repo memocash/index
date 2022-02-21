@@ -2,6 +2,7 @@ package resolver
 
 import (
 	"bytes"
+	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -111,6 +112,70 @@ var txSeenLoaderConfig = dataloader.TxSeenLoaderConfig{
 			}
 		}
 		return modelTxSeens, nil
+	},
+}
+
+var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
+	Wait:     2 * time.Millisecond,
+	MaxBatch: 100,
+	Fetch: func(keys []string) ([]string, []error) {
+		var txHashes = make([][]byte, len(keys))
+		for i := range keys {
+			hash, err := chainhash.NewHashFromStr(keys[i])
+			if err != nil {
+				return nil, []error{jerr.Get("error parsing spend tx hash for output", err)}
+			}
+			txHashes[i] = hash.CloneBytes()
+		}
+		txBlocks, err := item.GetTxBlocks(txHashes)
+		if err != nil {
+			return nil, []error{jerr.Get("error getting tx blocks from items", err)}
+		}
+		var mempoolTxHashes [][]byte
+		var blockTxHashes []*item.BlockTx
+		for _, txHash := range txHashes {
+			var blockHash []byte
+			for _, txBlock := range txBlocks {
+				if bytes.Equal(txBlock.TxHash, txHash) {
+					blockHash = txBlock.BlockHash
+					break
+				}
+			}
+			if blockHash != nil {
+				blockTxHashes = append(blockTxHashes, &item.BlockTx{
+					TxHash:    txHash,
+					BlockHash: blockHash,
+				})
+			} else {
+				mempoolTxHashes = append(mempoolTxHashes, txHash)
+			}
+		}
+		mempoolTxRaws, err := item.GetMempoolTxRawByHashes(mempoolTxHashes)
+		if err != nil {
+			return nil, []error{jerr.Get("error getting mempool tx raw", err)}
+		}
+		blockTxRaws, err := item.GetRawBlockTxsByHashes(blockTxHashes)
+		if err != nil {
+			return nil, []error{jerr.Get("error getting block tx raws for tx resolver", err)}
+		}
+		var txRaws = make([]string, len(txHashes))
+		for i := range txHashes {
+			for _, mempoolTxRaw := range mempoolTxRaws {
+				if bytes.Equal(mempoolTxRaw.TxHash, txHashes[i]) {
+					txRaws[i] = hex.EncodeToString(mempoolTxRaw.Raw)
+					break
+				}
+			}
+			if txRaws[i] == "" {
+				for _, blockTxRaw := range blockTxRaws {
+					if bytes.Equal(blockTxRaw.TxHash, txHashes[i]) {
+						txRaws[i] = hex.EncodeToString(blockTxRaw.Raw)
+						break
+					}
+				}
+			}
+		}
+		return txRaws, nil
 	},
 }
 

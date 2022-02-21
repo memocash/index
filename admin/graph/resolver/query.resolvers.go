@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"github.com/memocash/index/admin/graph/dataloader"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -23,36 +24,21 @@ import (
 )
 
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
-	chainHash, err := chainhash.NewHashFromStr(hash)
+	txHash, err := chainhash.NewHashFromStr(hash)
 	if err != nil {
 		return nil, jerr.Get("error getting tx hash from hash", err)
 	}
-	txHash := chainHash.CloneBytes()
-	txHashString := chainHash.String()
+	txHashString := txHash.String()
 	preloads := GetPreloads(ctx)
-	var raw []byte
+	var raw string
 	if jutil.StringsInSlice([]string{"raw", "inputs", "outputs"}, preloads) {
-		txBlocks, err := item.GetSingleTxBlocks(txHash)
-		if err != nil {
-			return nil, jerr.Get("error getting tx blocks from items", err)
-		}
-		if len(txBlocks) == 0 {
-			mempoolTxRaw, err := item.GetMempoolTxRawByHash(txHash)
-			if err != nil {
-				return nil, jerr.Get("error getting mempool tx raw", err)
-			}
-			raw = mempoolTxRaw.Raw
-		} else {
-			txRaw, err := item.GetRawBlockTxByHash(txBlocks[0].BlockHash, txHash)
-			if err != nil {
-				return nil, jerr.Get("error getting block tx by hash", err)
-			}
-			raw = txRaw.Raw
+		if raw, err = dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHashString); err != nil {
+			return nil, jerr.Get("error getting tx raw from dataloader for tx query resolver", err)
 		}
 	}
 	return &model.Tx{
 		Hash: txHashString,
-		Raw:  hex.EncodeToString(raw),
+		Raw:  raw,
 	}, nil
 }
 

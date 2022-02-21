@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/jchavannes/jgo/jutil"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -18,9 +19,18 @@ import (
 )
 
 func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {
-	return &model.Tx{
+	preloads := GetPreloads(ctx)
+	var tx = &model.Tx{
 		Hash: obj.Hash,
-	}, nil
+	}
+	if jutil.StringsInSlice([]string{"outputs", "inputs", "raw"}, preloads) {
+		txRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(obj.Hash)
+		if err != nil {
+			return nil, jerr.Get("error getting tx raw for output from loader", err)
+		}
+		tx.Raw = txRaw
+	}
+	return tx, nil
 }
 
 func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error) {
