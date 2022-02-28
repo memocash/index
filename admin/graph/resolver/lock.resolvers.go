@@ -43,7 +43,7 @@ func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock, start *model.
 	return txOutputs, nil
 }
 
-func (r *lockResolver) Outputs(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error) {
+func (r *lockResolver) Outputs(ctx context.Context, obj *model.Lock, start *model.HashIndex, height *int) ([]*model.TxOutput, error) {
 	lockHash, err := hex.DecodeString(obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error decoding lock hash for lock output resolver", err)
@@ -54,24 +54,28 @@ func (r *lockResolver) Outputs(ctx context.Context, obj *model.Lock, start *mode
 		if err != nil {
 			return nil, jerr.Get("error decoding start hash", err)
 		}
-		startUid = item.GetLockOutputUid(lockHash, startHash, start.Index)
+		var height64 int64
+		if height != nil {
+			height64 = int64(*height)
+		}
+		startUid = item.GetLockHeightOutputUid(lockHash, height64, startHash, start.Index)
 	}
-	lockOutputs, err := item.GetLockOutputs(lockHash, startUid)
+	lockHeightOutputs, err := item.GetLockHeightOutputs(lockHash, startUid)
 	if err != nil {
 		return nil, jerr.Get("error getting lock outputs for lock output resolver", err)
 	}
-	var outs = make([]memo.Out, len(lockOutputs))
-	for i := range lockOutputs {
+	var outs = make([]memo.Out, len(lockHeightOutputs))
+	for i := range lockHeightOutputs {
 		outs[i] = memo.Out{
-			TxHash: lockOutputs[i].Hash,
-			Index:  lockOutputs[i].Index,
+			TxHash: lockHeightOutputs[i].Hash,
+			Index:  lockHeightOutputs[i].Index,
 		}
 	}
 	txOutputs, err := item.GetTxOutputs(outs)
 	if err != nil {
 		return nil, jerr.Get("error getting tx outputs for lock resolver", err)
 	}
-	var modelTxOutputs = make([]*model.TxOutput, len(lockOutputs))
+	var modelTxOutputs = make([]*model.TxOutput, len(lockHeightOutputs))
 	for i := range txOutputs {
 		modelTxOutputs[i] = &model.TxOutput{
 			Hash:   hs.GetTxString(txOutputs[i].TxHash),

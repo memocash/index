@@ -48,6 +48,26 @@ func (o *LockHeightOutput) SetUid(uid []byte) {
 
 func (o *LockHeightOutput) Deserialize([]byte) {}
 
+func GetLockHeightOutputs(lockHash, start []byte) ([]*LockHeightOutput, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
+	db := client.NewClient(shardConfig.GetHost())
+	if err := db.GetWOpts(client.Opts{
+		Topic:    TopicLockHeightOutput,
+		Start:    start,
+		Prefixes: [][]byte{lockHash},
+		Max:      client.ExLargeLimit,
+	}); err != nil {
+		return nil, jerr.Get("error getting db lock outputs by prefix", err)
+	}
+	var lockHeightOutputs = make([]*LockHeightOutput, len(db.Messages))
+	for i := range db.Messages {
+		lockHeightOutputs[i] = new(LockHeightOutput)
+		lockHeightOutputs[i].SetUid(db.Messages[i].Uid)
+		lockHeightOutputs[i].Deserialize(db.Messages[i].Message)
+	}
+	return lockHeightOutputs, nil
+}
+
 func GetLockHeightOutputUid(lockHash []byte, height int64, hash []byte, index uint32) []byte {
 	return jutil.CombineBytes(
 		lockHash,

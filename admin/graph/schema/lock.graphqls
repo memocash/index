@@ -3,5 +3,5 @@ type Lock {
     address: String
     balance: Int64!
     utxos(start: HashIndex): [TxOutput!]
-    outputs(start: HashIndex): [TxOutput!]
+    outputs(start: HashIndex, height: Int): [TxOutput!]
 }
