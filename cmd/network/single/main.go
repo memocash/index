@@ -9,6 +9,7 @@ var singleCommand = &cobra.Command{
 func GetCommand() *cobra.Command {
 	singleCommand.AddCommand(
 		doubleSpendBlockCmd,
+		lockHeightBlockCmd,
 	)
 	return singleCommand
 }
