@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"github.com/jchavannes/jgo/jutil"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
@@ -59,6 +60,8 @@ func (r *lockResolver) Outputs(ctx context.Context, obj *model.Lock, start *mode
 			height64 = int64(*height)
 		}
 		startUid = item.GetLockHeightOutputUid(lockHash, height64, startHash, start.Index)
+	} else if height != nil {
+		startUid = jutil.CombineBytes(lockHash, jutil.GetInt64DataBig(int64(*height)))
 	}
 	lockHeightOutputs, err := item.GetLockHeightOutputs(lockHash, startUid)
 	if err != nil {
