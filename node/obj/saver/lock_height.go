@@ -163,6 +163,7 @@ TxInLoop:
 	if err != nil {
 		return jerr.Get("error getting outputs for lock height inputs", err)
 	}
+	jlog.Logf("inputOutputs: %d, inputOuts: %d\n", len(inputOutputs), len(inputOuts))
 	for _, in := range t.Ins {
 		var lockHash []byte
 		for _, inputOutput := range inputOutputs {
@@ -194,6 +195,14 @@ TxInLoop:
 			Index:     in.Index,
 			PrevHash:  in.PrevHash,
 			PrevIndex: in.PrevIndex,
+		}
+		if len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, lockHeightOutputInput.Hash) {
+			jlog.Logf("Saving lock height output input (for input): %s:%d\n",
+				hs.GetTxString(lockHeightOutputInput.Hash), lockHeightOutputInput.Index)
+		}
+		if len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, lockHeightOutputInput.PrevHash) {
+			jlog.Logf("Saving lock height output input (for input - prev): %s:%d\n",
+				hs.GetTxString(lockHeightOutputInput.PrevHash), lockHeightOutputInput.PrevIndex)
 		}
 		objects = append(objects, lockHeightOutputInput)
 		if t.Height > 0 {
@@ -232,6 +241,7 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 	if err != nil {
 		return jerr.Get("error getting output inputs for lock output inputs", err)
 	}
+	jlog.Logf("outputInputs: %d, lockOuts: %d\n", len(outputInputs), len(lockOuts))
 	var txHashes = make([][]byte, len(outputInputs))
 	for i := range outputInputs {
 		txHashes[i] = outputInputs[i].Hash
@@ -280,6 +290,14 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 			Index:     outputInput.Index,
 			PrevHash:  outputInput.PrevHash,
 			PrevIndex: outputInput.PrevIndex,
+		}
+		if len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, lockHeightOutputInput.Hash) {
+			jlog.Logf("Saving lock height output input (for output): %s:%d\n",
+				hs.GetTxString(lockHeightOutputInput.Hash), lockHeightOutputInput.Index)
+		}
+		if len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, lockHeightOutputInput.PrevHash) {
+			jlog.Logf("Saving lock height output input (for output - prev): %s:%d\n",
+				hs.GetTxString(lockHeightOutputInput.PrevHash), lockHeightOutputInput.PrevIndex)
 		}
 		objects = append(objects, lockHeightOutputInput)
 		if t.Height > 0 {

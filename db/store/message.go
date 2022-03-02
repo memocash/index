@@ -106,6 +106,7 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 	}()
 	var messages []*Message
 	for _, prefix = range prefixes {
+		var prefixMessages []*Message
 		var iter iterator.Iterator
 		if newest {
 			var iterRange *util.Range
@@ -124,32 +125,33 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 		}
 		if isGetLast {
 			if iter.Last() {
-				messages = append(messages, &Message{
+				prefixMessages = append(prefixMessages, &Message{
 					Uid:     GetPtrSlice(iter.Key()),
 					Message: GetPtrSlice(iter.Value()),
 				})
 			}
 		} else if newest {
 			for ok := iter.Last(); ok; ok = iter.Prev() {
-				messages = append(messages, &Message{
+				prefixMessages = append(prefixMessages, &Message{
 					Uid:     GetPtrSlice(iter.Key()),
 					Message: GetPtrSlice(iter.Value()),
 				})
-				if len(messages) >= max {
+				if len(prefixMessages) >= max {
 					break
 				}
 			}
 		} else {
 			for iter.Next() {
-				messages = append(messages, &Message{
+				prefixMessages = append(prefixMessages, &Message{
 					Uid:     GetPtrSlice(iter.Key()),
 					Message: GetPtrSlice(iter.Value()),
 				})
-				if len(messages) >= max {
+				if len(prefixMessages) >= max {
 					break
 				}
 			}
 		}
+		messages = append(messages, prefixMessages...)
 		iter.Release()
 		err = iter.Error()
 		if err != nil {
