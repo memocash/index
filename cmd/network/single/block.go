@@ -50,7 +50,7 @@ var doubleSpendBlockCmd = &cobra.Command{
 
 var lockHeightBlockCmd = &cobra.Command{
 	Use:   "lock-height-block",
-	Short: "lock-height-block BLOCK_HASH",
+	Short: "lock-height-block BLOCK_HASH TX_HASH",
 	Run: func(c *cobra.Command, args []string) {
 		if len(args) < 1 {
 			jerr.New("fatal error must specify block hash").Fatal()
@@ -58,6 +58,14 @@ var lockHeightBlockCmd = &cobra.Command{
 		blockHash, err := chainhash.NewHashFromStr(args[0])
 		if err != nil {
 			jerr.Get("fatal error parsing block hash", err).Fatal()
+		}
+		var checkTxHashBytes []byte
+		if len(args) >= 2 {
+			checkTxHash, err := chainhash.NewHashFromStr(args[1])
+			if err != nil {
+				jerr.Get("fatal error parsing tx hash", err)
+			}
+			checkTxHashBytes = checkTxHash.CloneBytes()
 		}
 		blockHashBytes := blockHash.CloneBytes()
 		block, err := item.GetBlock(blockHashBytes)
@@ -69,6 +77,7 @@ var lockHeightBlockCmd = &cobra.Command{
 			jerr.Get("fatal error getting block header from raw", err).Fatal()
 		}
 		lockHeightSaver := saver.NewLockHeight(false)
+		lockHeightSaver.CheckTxHash = checkTxHashBytes
 		if err := block_tx.NewLoopRaw(func(blockTxesRaw []*item.BlockTxRaw) error {
 			var msgTxs = make([]*wire.MsgTx, len(blockTxesRaw))
 			for i := range blockTxesRaw {

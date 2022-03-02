@@ -15,7 +15,8 @@ import (
 )
 
 type LockHeight struct {
-	Verbose bool
+	Verbose     bool
+	CheckTxHash []byte
 }
 
 func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
@@ -23,6 +24,7 @@ func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
 		return jerr.Newf("error nil block for lock height")
 	}
 	saveRun := NewLockHeightSaveRun(t.Verbose)
+	saveRun.CheckTxHash = t.CheckTxHash
 	if err := saveRun.SetHashHeightInOuts(block); err != nil {
 		return jerr.Get("error setting hash height for lock height saver run", err)
 	}
@@ -51,6 +53,7 @@ type LockHeightSaveRun struct {
 	NoLockHash  int
 	Ins         []memo.InOut
 	LockOuts    []memo.Out
+	CheckTxHash []byte
 }
 
 func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
@@ -107,6 +110,10 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 			Height:   t.Height,
 			Hash:     lockOut.TxHash,
 			Index:    lockOut.Index,
+		}
+		if len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, lockHeightOutput.Hash) {
+			jlog.Logf("Saving lock height output: %s:%d\n",
+				hs.GetTxString(lockHeightOutput.Hash), lockHeightOutput.Index)
 		}
 		objects = append(objects, lockHeightOutput)
 		if t.Height > 0 {
