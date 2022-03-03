@@ -75,7 +75,7 @@ func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
 	for _, tx := range block.Transactions {
 		txHash := tx.TxHash()
 		txHashBytes := txHash.CloneBytes()
-		if t.Verbose {
+		if t.Verbose || (len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, txHashBytes)) {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}
 		for j := range tx.TxIn {
@@ -131,7 +131,6 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 			objects = nil
 			runtime.GC()
 		}
-
 	}
 	if err := item.Save(objects); err != nil {
 		return jerr.Get("error saving db lock height outputs", err)

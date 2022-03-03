@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -17,11 +16,11 @@ import (
 func (r *txResolver) Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInput, error) {
 	rawBytes, err := hex.DecodeString(obj.Raw)
 	if err != nil {
-		return nil, jerr.Get("error decoding raw tx", err)
+		return nil, jerr.Get("error decoding raw tx for resolver inputs", err)
 	}
 	msgTx, err := memo.GetMsgFromRaw(rawBytes)
 	if err != nil {
-		return nil, jerr.Get("error getting tx msg from raw", err)
+		return nil, jerr.Getf(err, "error getting tx msg from raw for inputs (%s)", obj.Hash)
 	}
 	var inputs = make([]*model.TxInput, len(msgTx.TxIn))
 	for i := range msgTx.TxIn {
@@ -38,11 +37,11 @@ func (r *txResolver) Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInpu
 func (r *txResolver) Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOutput, error) {
 	rawBytes, err := hex.DecodeString(obj.Raw)
 	if err != nil {
-		return nil, jerr.Get("error decoding raw tx", err)
+		return nil, jerr.Get("error decoding raw tx for resolver outputs", err)
 	}
 	msgTx, err := memo.GetMsgFromRaw(rawBytes)
 	if err != nil {
-		return nil, jerr.Get("error getting tx msg from raw", err)
+		return nil, jerr.Getf(err, "error getting tx msg from raw for outputs (%s)", obj.Hash)
 	}
 	var outputs = make([]*model.TxOutput, len(msgTx.TxOut))
 	for i := range msgTx.TxOut {
