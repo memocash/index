@@ -78,6 +78,10 @@ func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
 		if t.Verbose || (len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, txHashBytes)) {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}
+		if len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, txHashBytes) {
+			jlog.Logf("Adding checked tx: %s (ins: %d, outs: %d)\n",
+				hs.GetTxString(txHashBytes), len(tx.TxIn), len(tx.TxOut))
+		}
 		for j := range tx.TxIn {
 			if memo.IsCoinbaseInput(tx.TxIn[j]) {
 				continue
@@ -180,10 +184,8 @@ TxInLoop:
 			}
 		}
 		if lockHash == nil {
-			if t.Verbose {
-				jlog.Logf("lock hash is nil for input (%s:%d) with output (%s:%d)\n",
-					hs.GetTxString(in.Hash), in.Index, hs.GetTxString(in.PrevHash), in.PrevIndex)
-			}
+			jlog.Logf("lock hash is nil for input (%s:%d) with output (%s:%d)\n",
+				hs.GetTxString(in.Hash), in.Index, hs.GetTxString(in.PrevHash), in.PrevIndex)
 			t.NoLockHash++
 			continue
 		}

@@ -76,7 +76,7 @@ var lockHeightBlockCmd = &cobra.Command{
 		if err != nil {
 			jerr.Get("fatal error getting block header from raw", err).Fatal()
 		}
-		lockHeightSaver := saver.NewLockHeight(false)
+		lockHeightSaver := saver.NewLockHeight(true)
 		lockHeightSaver.CheckTxHash = checkTxHashBytes
 		if err := block_tx.NewLoopRaw(func(blockTxesRaw []*item.BlockTxRaw) error {
 			var msgTxs = make([]*wire.MsgTx, len(blockTxesRaw))
