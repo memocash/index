@@ -41,7 +41,9 @@ func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
 	if saveRun.NoLockHash > 0 {
 		noLockHashStatus = fmt.Sprintf(" (%d)", saveRun.NoLockHash)
 	}
-	jlog.Logf("Saved %d%s lock height objects, height: %d\n", saveRun.ObjectCount, noLockHashStatus, saveRun.Height)
+	if t.Verbose {
+		jlog.Logf("Saved %d%s lock height objects, height: %d\n", saveRun.ObjectCount, noLockHashStatus, saveRun.Height)
+	}
 	return nil
 }
 
@@ -166,7 +168,9 @@ TxInLoop:
 	if err != nil {
 		return jerr.Get("error getting outputs for lock height inputs", err)
 	}
-	jlog.Logf("inputOutputs: %d, inputOuts: %d\n", len(inputOutputs), len(inputOuts))
+	if t.Verbose {
+		jlog.Logf("inputOutputs: %d, inputOuts: %d\n", len(inputOutputs), len(inputOuts))
+	}
 	for _, in := range t.Ins {
 		var lockHash []byte
 		for _, inputOutput := range inputOutputs {
@@ -242,7 +246,9 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 	if err != nil {
 		return jerr.Get("error getting output inputs for lock output inputs", err)
 	}
-	jlog.Logf("outputInputs: %d, lockOuts: %d\n", len(outputInputs), len(lockOuts))
+	if t.Verbose {
+		jlog.Logf("outputInputs: %d, lockOuts: %d\n", len(outputInputs), len(lockOuts))
+	}
 	var txHashes = make([][]byte, len(outputInputs))
 	for i := range outputInputs {
 		txHashes[i] = outputInputs[i].Hash
