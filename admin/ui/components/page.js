@@ -8,6 +8,7 @@ import {setHost} from "./fetch";
 const LocalStorageKey = "server-select"
 const SelectValDev = "dev"
 const SelectValLive = "live"
+const SelectValLiveSv = "live-sv"
 
 export default function Page(props) {
     const [selectValue, setSelectValue] = useState("")
@@ -21,6 +22,9 @@ export default function Page(props) {
                 break;
             case SelectValLive:
                 host = config.LiveHost
+                break;
+            case SelectValLiveSv:
+                host = config.LiveSvHost
                 break;
             default:
                 throw "select host value not recognized: " + val
@@ -108,6 +112,7 @@ export default function Page(props) {
                         &nbsp;
                         <select id={"server-select"} value={selectValue} onChange={selectChange}>
                             <option value={SelectValLive}>Live</option>
+                            <option value={SelectValLiveSv}>Live SV</option>
                             <option value={SelectValDev}>Dev</option>
                         </select>
                     </div>
