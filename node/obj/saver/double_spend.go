@@ -46,6 +46,9 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 	for _, msgTx := range block.Transactions {
 		txHash := msgTx.TxHash()
 		txHashBytes := txHash.CloneBytes()
+		if s.Verbose {
+			jlog.Logf("Double spend tx: %s\n", txHash.String())
+		}
 		for index, in := range msgTx.TxIn {
 			prevOutHash := in.PreviousOutPoint.Hash.CloneBytes()
 			prevOutIndex := in.PreviousOutPoint.Index

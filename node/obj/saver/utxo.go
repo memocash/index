@@ -32,6 +32,9 @@ func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
 		if meta.Multi {
 			jlog.Logf("FOUND meta with multi OP_RETURNS! %s\n", txHash)
 		}
+		if u.Verbose {
+			jlog.Logf("Utxo tx: %s\n", txHash.String())
+		}
 		specialIndexes := meta.GetSpecialIndexes()
 		for g := range msgTx.TxIn {
 			ins = append(ins, memo.Out{

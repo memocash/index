@@ -50,7 +50,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 		txHash := chainhash.DoubleHashH(raw)
 		txHashBytes := txHash.CloneBytes()
 		if t.Verbose {
-			jlog.Logf("tx: %s\n", txHash.String())
+			jlog.Logf("raw tx: %s\n", txHash.String())
 		}
 		if len(blockHashBytes) > 0 {
 			objects = append(objects, &item.BlockTxRaw{

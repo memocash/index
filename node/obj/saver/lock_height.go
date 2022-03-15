@@ -78,7 +78,7 @@ func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
 		txHash := tx.TxHash()
 		txHashBytes := txHash.CloneBytes()
 		if t.Verbose || (len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, txHashBytes)) {
-			jlog.Logf("tx: %s\n", txHash.String())
+			jlog.Logf("lock height tx: %s\n", txHash.String())
 		}
 		if len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, txHashBytes) {
 			jlog.Logf("Adding checked tx: %s (ins: %d, outs: %d)\n",

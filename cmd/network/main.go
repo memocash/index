@@ -15,6 +15,9 @@ var networkCommand = &cobra.Command{
 }
 
 func GetCommand() *cobra.Command {
+	nodeCmd.PersistentFlags().Bool(FlagVerbose, false, "verbose")
+	mempoolCmd.PersistentFlags().Bool(FlagVerbose, false, "verbose")
+	serverCmd.PersistentFlags().Bool(FlagVerbose, false, "verbose")
 	networkCommand.AddCommand(
 		process.GetCommand(),
 		single.GetCommand(),

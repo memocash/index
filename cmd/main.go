@@ -8,8 +8,13 @@ import (
 	"github.com/memocash/index/cmd/serve"
 	"github.com/memocash/index/cmd/test"
 	"github.com/memocash/index/ref/config"
+	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
 )
+
+var pf interface {
+	Stop()
+}
 
 var indexCmd = &cobra.Command{
 	Use:   "index",
@@ -21,11 +26,21 @@ var indexCmd = &cobra.Command{
 		if err := config.Init(cmd); err != nil {
 			jerr.Get("fatal error initializing config", err).Fatal()
 		}
+		profileExecution, _ := cmd.Flags().GetBool(config.FlagProfile)
+		if profileExecution {
+			pf = profile.Start()
+		}
+	},
+	PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		if pf != nil {
+			pf.Stop()
+		}
 	},
 }
 
 func Execute() error {
 	indexCmd.PersistentFlags().String(config.FlagConfig, "", "config file name")
+	indexCmd.PersistentFlags().Bool(config.FlagProfile, false, "profile execution")
 	indexCmd.AddCommand(
 		test.GetCommand(),
 		peer.GetCommand(),

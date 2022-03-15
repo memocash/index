@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	FlagConfig = "config"
+	FlagConfig  = "config"
+	FlagProfile = "profile"
 
 	Localhost         = "127.0.0.1"
 	DefaultApiPort    = 10000
