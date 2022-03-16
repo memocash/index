@@ -100,9 +100,9 @@ func Init(cmd *cobra.Command) error {
 		config = "config"
 	}
 	viper.SetConfigName(config)
-	viper.AddConfigPath("$HOME/.memo-server")
+	viper.AddConfigPath("$HOME/.index")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath(".config/memo")
+	viper.AddConfigPath(".config/index")
 	if err := viper.ReadInConfig(); err != nil {
 		// Config not found, use default
 		_config = DefaultConfig

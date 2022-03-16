@@ -10,6 +10,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"sort"
 )
 
 type Utxo struct {
@@ -69,15 +70,44 @@ func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
 			txOutputs = append(txOutputs, txOutput)
 		}
 	}
+	sort.Slice(lockUtxos, func(i, j int) bool {
+		switch bytes.Compare(lockUtxos[i].Hash, lockUtxos[j].Hash) {
+		case -1:
+			return true
+		case 1:
+			return false
+		default:
+			return lockUtxos[i].Index < lockUtxos[j].Index
+		}
+	})
+	sort.Slice(ins, func(i, j int) bool {
+		switch bytes.Compare(ins[i].TxHash, ins[j].TxHash) {
+		case -1:
+			return true
+		case 1:
+			return false
+		default:
+			return ins[i].Index < ins[j].Index
+		}
+	})
 	var outs []memo.Out
+	var g = 0
 LockUtxoLoop:
 	for i := 0; i < len(lockUtxos); i++ {
 		lockUtxo := lockUtxos[i]
-		for _, in := range ins {
-			if bytes.Equal(in.TxHash, lockUtxo.Hash) && in.Index == lockUtxo.Index {
+		for ; g < len(ins); g++ {
+			if bytes.Equal(ins[g].TxHash, lockUtxo.Hash) && ins[g].Index == lockUtxo.Index {
 				lockUtxos = append(lockUtxos[:i], lockUtxos[i+1:]...)
 				i--
 				continue LockUtxoLoop
+			}
+			switch bytes.Compare(ins[g].TxHash, lockUtxo.Hash) {
+			case 1:
+				break
+			case 0:
+				if ins[g].Index > lockUtxo.Index {
+					break
+				}
 			}
 		}
 		outs = append(outs, memo.Out{
