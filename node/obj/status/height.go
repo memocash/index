@@ -68,5 +68,8 @@ func NewHeight(name string, startHeight int64) *Height {
 }
 
 func GetStatusShardName(name string, shards []int) string {
-	return fmt.Sprintf("%s-%v", name, strings.Trim(strings.Join(strings.Fields(fmt.Sprint(shards)), ","), "[]"))
+	if len(shards) == 0 {
+		return name
+	}
+	return fmt.Sprintf("%s-%s", name, strings.Trim(strings.Join(strings.Fields(fmt.Sprint(shards)), ","), "[]"))
 }
