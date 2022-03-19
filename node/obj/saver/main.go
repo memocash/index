@@ -34,11 +34,10 @@ func CombinedTxSaver(verbose bool) dbi.TxSave {
 	})
 }
 
-func CombinedTxSaverNoDS(verbose bool) dbi.TxSave {
+func CombinedTxSaverBasic(verbose bool) dbi.TxSave {
 	return NewCombined([]dbi.TxSave{
 		NewTxRaw(verbose),
 		NewTx(verbose),
-		NewUtxo(verbose),
 	})
 }
 
