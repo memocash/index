@@ -24,6 +24,7 @@ var doubleSpendCmd = &cobra.Command{
 		doubleSpendStatus := status.NewHeight(status.NameDoubleSpend, startHeight)
 		doubleSpendSaver := saver.NewDoubleSpend(false)
 		doubleSpendProcessor := process.NewBlock(doubleSpendStatus, doubleSpendSaver)
+		doubleSpendProcessor.Shards, _ = c.Flags().GetIntSlice(FlagShards)
 		doubleSpendProcessor.Delay = 5
 		if err := doubleSpendProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing double spends", err).Fatal()

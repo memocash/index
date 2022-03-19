@@ -241,20 +241,6 @@ func (p *Peer) OnTx(_ *peer.Peer, msg *wire.MsgTx) {
 		}
 		return
 	}
-	/*for _, in := range msg.TxIn {
-		sigAsm, err := txscript.DisasmString(in.SignatureScript)
-		if err != nil {
-			p.Error(jerr.Get("error disasm input", err))
-		}
-		jlog.Logf("In: %s:%d - %s\n", in.PreviousOutPoint.Hash.String(), in.PreviousOutPoint.Index, sigAsm)
-	}
-	for _, out := range msg.TxOut {
-		scriptAsm, err := txscript.DisasmString(out.PkScript)
-		if err != nil {
-			p.Error(jerr.Get("error disasm output", err))
-		}
-		jlog.Logf("Out: %d - %s\n", out.Value, scriptAsm)
-	}*/
 }
 
 func (p *Peer) OnReject(_ *peer.Peer, msg *wire.MsgReject) {

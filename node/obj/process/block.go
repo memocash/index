@@ -23,6 +23,7 @@ type Block struct {
 	txSave dbi.TxSave
 	Status StatusHeight
 	Delay  int
+	Shards []int
 }
 
 // Process goes through all blocks, read tx_outputs, save outputs
@@ -101,6 +102,9 @@ func (t *Block) ProcessBlock(heightBlock *item.HeightBlock) error {
 	}
 	var txCount int
 	for _, shard := range config.GetQueueShards() {
+		if len(t.Shards) > 0 && !jutil.InIntSlice(int(shard.Min), t.Shards) {
+			continue
+		}
 		var lastTxHashReverse []byte
 		for {
 			blockTxesRaw, err := item.GetBlockTxesRaw(item.BlockTxesRawRequest{
