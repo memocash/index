@@ -38,6 +38,9 @@ func (t *Block) Process() error {
 	if t.Delay > 0 {
 		jlog.Logf("Using delay: %d\n", t.Delay)
 	}
+	if len(t.Shards) > 0 {
+		jlog.Logf("Using shards: %v\n", t.Shards)
+	}
 	for {
 		heightBlocks, err := item.GetHeightBlocksAll(height+1, waitForBlocks)
 		if err != nil {

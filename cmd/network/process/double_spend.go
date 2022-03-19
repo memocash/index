@@ -20,11 +20,12 @@ var doubleSpendCmd = &cobra.Command{
 				startHeight = -1
 			}
 		}
+		shards, _ := c.Flags().GetIntSlice(FlagShards)
 		jlog.Log("Starting double spend processor...")
-		doubleSpendStatus := status.NewHeight(status.NameDoubleSpend, startHeight)
+		doubleSpendStatus := status.NewHeight(status.GetStatusShardName(status.NameDoubleSpend, shards), startHeight)
 		doubleSpendSaver := saver.NewDoubleSpend(false)
 		doubleSpendProcessor := process.NewBlock(doubleSpendStatus, doubleSpendSaver)
-		doubleSpendProcessor.Shards, _ = c.Flags().GetIntSlice(FlagShards)
+		doubleSpendProcessor.Shards = shards
 		doubleSpendProcessor.Delay, _ = c.Flags().GetInt(FlagDelay)
 		if err := doubleSpendProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing double spends", err).Fatal()

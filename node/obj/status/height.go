@@ -1,10 +1,12 @@
 package status
 
 import (
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/obj/process"
+	"strings"
 )
 
 const (
@@ -63,4 +65,8 @@ func NewHeight(name string, startHeight int64) *Height {
 		Name:        name,
 		StartHeight: startHeight,
 	}
+}
+
+func GetStatusShardName(name string, shards []int) string {
+	return fmt.Sprintf("%s-%v", name, strings.Trim(strings.Join(strings.Fields(fmt.Sprint(shards)), ","), "[]"))
 }
