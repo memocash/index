@@ -74,6 +74,5 @@ func CombinedBlockSaver(verbose bool) dbi.BlockSave {
 	blockSaver := NewBlock(verbose)
 	return NewCombinedBlock(blockSaver, []dbi.BlockSave{
 		blockSaver,
-		NewClearSuspect(verbose),
 	})
 }

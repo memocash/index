@@ -3,56 +3,29 @@ package saver
 import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
-	"github.com/memocash/index/node/act/block_tx"
-	"github.com/memocash/index/ref/config"
 )
 
 type ClearSuspect struct {
 	Verbose bool
 }
 
-func (s *ClearSuspect) SaveBlock(block wire.BlockHeader) error {
-	saveBlockHash := block.BlockHash()
-	saveBlockHeight, err := item.GetBlockHeight(saveBlockHash.CloneBytes())
-	if err != nil && !client.IsEntryNotFoundError(err) {
-		return jerr.Get("error getting block height for clear suspect", err)
+func (s *ClearSuspect) SaveTxs(block *wire.MsgBlock) error {
+	var txHashes = make([][]byte, len(block.Transactions))
+	for i := range block.Transactions {
+		txHash := block.Transactions[i].TxHash()
+		txHashes[i] = txHash.CloneBytes()
 	}
-	if saveBlockHeight == nil {
-		return nil
-	}
-	blocksToConfirm := config.GetBlocksToConfirm()
-	if saveBlockHeight == nil || saveBlockHeight.Height <= int64(blocksToConfirm) {
-		return nil
-	}
-	confirmedHeightBlocks, err := item.GetHeightBlock(saveBlockHeight.Height - int64(blocksToConfirm))
+	doubleSpendInputs, err := item.GetDoubleSpendInputsByTxHashes(txHashes)
 	if err != nil {
-		return jerr.Get("error getting height block for confirm to clear suspect", err)
+		return jerr.Get("error getting double spend inputs by tx hashes", err)
 	}
-	if len(confirmedHeightBlocks) != 1 {
-		return jerr.Newf("error unexpected number of height blocks returned for clear suspect: %d",
-			len(confirmedHeightBlocks))
+	var inputTxsToClear = make([][]byte, len(doubleSpendInputs))
+	for i := range doubleSpendInputs {
+		inputTxsToClear[i] = doubleSpendInputs[i].TxHash
 	}
-	if err := block_tx.NewLoop(func(blockTxes []*item.BlockTx) error {
-		var txHashes = make([][]byte, len(blockTxes))
-		for i := range blockTxes {
-			txHashes[i] = blockTxes[i].TxHash
-		}
-		doubleSpendInputs, err := item.GetDoubleSpendInputsByTxHashes(txHashes)
-		if err != nil {
-			return jerr.Get("error getting double spend inputs by tx hashes", err)
-		}
-		var inputTxsToClear = make([][]byte, len(doubleSpendInputs))
-		for i := range doubleSpendInputs {
-			inputTxsToClear[i] = doubleSpendInputs[i].TxHash
-		}
-		if err := s.ClearSuspectAndDescendants(inputTxsToClear, true); err != nil {
-			return jerr.Get("error clearing suspect and descendants", err)
-		}
-		return nil
-	}).Process(confirmedHeightBlocks[0].BlockHash); err != nil {
-		return jerr.Get("error processing block txs for clear suspect", err)
+	if err := s.ClearSuspectAndDescendants(inputTxsToClear, true); err != nil {
+		return jerr.Get("error clearing suspect and descendants", err)
 	}
 	return nil
 }
