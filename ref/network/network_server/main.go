@@ -43,7 +43,12 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 		}
 		blockTxs[blockHashStr] = append(blockTxs[blockHashStr], txMsg)
 	}
-	combinedSaver := saver.CombinedTxSaver(false)
+	combinedSaver := saver.NewCombined([]dbi.TxSave{
+		saver.NewTxRaw(false),
+		saver.NewTx(false),
+		saver.NewUtxo(false),
+		saver.NewDoubleSpend(false),
+	})
 	for blockHashStr, msgTxs := range blockTxs {
 		var blockHeader *wire.BlockHeader
 		if blockHashStr != "" {

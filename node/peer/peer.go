@@ -261,7 +261,7 @@ func (p *Peer) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
 	jlog.Logf("OnVersion: %#v\n", msg)
 }
 
-func NewConnection(blockSave dbi.BlockSave, txSave dbi.TxSave) *Peer {
+func NewConnection(txSave dbi.TxSave, blockSave dbi.BlockSave) *Peer {
 	return &Peer{
 		BlockSave: blockSave,
 		TxSave:    txSave,

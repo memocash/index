@@ -33,8 +33,13 @@ type DoubleSpend struct {
 }
 
 func (s *DoubleSpend) Init(wallet *build.Wallet) error {
-	s.TxSaver = saver.CombinedTxSaver(false)
-	s.BlockSaver = saver.CombinedBlockSaver(false)
+	s.TxSaver = saver.NewCombined([]dbi.TxSave{
+		saver.NewTxRaw(false),
+		saver.NewTx(false),
+		saver.NewUtxo(false),
+		saver.NewDoubleSpend(false),
+	})
+	s.BlockSaver = saver.BlockSaver(false)
 
 	fundingTx, err := test_tx.GetFundingTx(wallet.Address, FundingValue)
 	if err != nil {

@@ -25,7 +25,6 @@ var blockCmd = &cobra.Command{
 		blockStatus := status.NewHeight(status.NameBlock, startHeight)
 		combinedSaver := saver.NewCombined([]dbi.TxSave{
 			saver.NewTx(false),
-			saver.NewUtxo(false),
 		})
 		blockProcessor := process.NewBlock(blockStatus, combinedSaver)
 		err := blockProcessor.Process()
