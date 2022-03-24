@@ -13,6 +13,7 @@ import (
 const (
 	TopicBlock                  = "block"
 	TopicBlockHeight            = "block_height"
+	TopicBlockHeightRaw         = "block_height_raw"
 	TopicBlockTx                = "block_tx"
 	TopicBlockTxRaw             = "block_tx_raw"
 	TopicDoubleSpendOutput      = "double_spend_output"
@@ -129,4 +130,9 @@ func Save(objects []Object) error {
 
 func GetTxHashIndexUid(txHash []byte, index uint32) []byte {
 	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetUint32Data(index))
+}
+
+func Set(obj Object, msg client.Message) {
+	obj.SetUid(msg.Uid)
+	obj.Deserialize(msg.Message)
 }
