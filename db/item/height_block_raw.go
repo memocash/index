@@ -6,7 +6,9 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
+	"sort"
 	"strings"
+	"time"
 )
 
 type HeightBlockRaw struct {
@@ -101,5 +103,58 @@ func GetHeightBlockRaw(height int64) ([]*HeightBlockRaw, error) {
 		heightBlockRaws[i].SetUid(dbClient.Messages[i].Uid)
 		heightBlockRaws[i].Deserialize(dbClient.Messages[i].Message)
 	}
+	return heightBlockRaws, nil
+}
+
+func GetHeightBlockRawsAll(startHeight int64, waitSingle bool) ([]*HeightBlockRaw, error) {
+	heightBlockRaws, err := GetHeightBlockRawsAllLimit(startHeight, waitSingle, client.LargeLimit, false)
+	if err != nil {
+		return nil, jerr.Get("error getting height block raws all large limit", err)
+	}
+	return heightBlockRaws, nil
+}
+
+func GetHeightBlockRawsAllLimit(startHeight int64, waitSingle bool, limit uint32, newest bool) ([]*HeightBlockRaw, error) {
+	var heightBlockRaws []*HeightBlockRaw
+	shardConfigs := config.GetQueueShards()
+	shardLimit := limit / uint32(len(shardConfigs))
+	for _, shardConfig := range shardConfigs {
+		if waitSingle && GetShard32(uint(startHeight)) != shardConfig.Min {
+			continue
+		}
+		dbClient := client.NewClient(shardConfig.GetHost())
+		var timeout time.Duration
+		if waitSingle {
+			timeout = time.Hour
+		}
+		var start []byte
+		if startHeight != 0 {
+			start = jutil.GetInt64DataBig(startHeight)
+		}
+		err := dbClient.GetWOpts(client.Opts{
+			Topic:   TopicHeightBlockRaw,
+			Start:   start,
+			Wait:    waitSingle,
+			Max:     shardLimit,
+			Newest:  newest,
+			Timeout: timeout,
+		})
+		if err != nil {
+			return nil, jerr.Get("error getting height block raws from queue client all", err)
+		}
+		for i := range dbClient.Messages {
+			var heightBlockRaw = new(HeightBlockRaw)
+			heightBlockRaw.SetUid(dbClient.Messages[i].Uid)
+			heightBlockRaw.Deserialize(dbClient.Messages[i].Message)
+			heightBlockRaws = append(heightBlockRaws, heightBlockRaw)
+		}
+	}
+	sort.Slice(heightBlockRaws, func(i, j int) bool {
+		if newest {
+			return heightBlockRaws[i].Height > heightBlockRaws[j].Height
+		} else {
+			return heightBlockRaws[i].Height < heightBlockRaws[j].Height
+		}
+	})
 	return heightBlockRaws, nil
 }

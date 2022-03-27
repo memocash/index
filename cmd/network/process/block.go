@@ -27,6 +27,7 @@ var blockCmd = &cobra.Command{
 			saver.NewTx(false),
 		})
 		blockProcessor := process.NewBlock(blockStatus, combinedSaver)
+		blockProcessor.UseRaw = true
 		if err := blockProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing blocks (new)", err).Fatal()
 		}

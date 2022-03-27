@@ -19,10 +19,16 @@ const (
 	BlockProcessLimit = client.LargeLimit
 )
 
+type HeightBlock struct {
+	Height    int64
+	BlockHash []byte
+}
+
 type Block struct {
 	txSave dbi.TxSave
 	Status StatusHeight
 	Delay  int
+	UseRaw bool
 	Shards []int
 }
 
@@ -34,7 +40,7 @@ func (t *Block) Process() error {
 	}
 	var height = statusHeight.Height
 	var waitForBlocks bool
-	var delayBlocks []*item.HeightBlock
+	var delayBlocks []*HeightBlock
 	if t.Delay > 0 {
 		jlog.Logf("Using delay: %d\n", t.Delay)
 	}
@@ -42,9 +48,29 @@ func (t *Block) Process() error {
 		jlog.Logf("Using shards: %v\n", t.Shards)
 	}
 	for {
-		heightBlocks, err := item.GetHeightBlocksAll(height+1, waitForBlocks)
-		if err != nil {
-			return jerr.Getf(err, "error no blocks returned for block process, height: %d", height)
+		var heightBlocks []*HeightBlock
+		if t.UseRaw {
+			heightBlockRawItems, err := item.GetHeightBlockRawsAll(height+1, waitForBlocks)
+			if err != nil {
+				return jerr.Getf(err, "error no block raws returned for block process, height: %d", height)
+			}
+			for _, heightBlockRawItem := range heightBlockRawItems {
+				heightBlocks = append(heightBlocks, &HeightBlock{
+					Height:    heightBlockRawItem.Height,
+					BlockHash: heightBlockRawItem.BlockHash,
+				})
+			}
+		} else {
+			heightBlockItems, err := item.GetHeightBlocksAll(height+1, waitForBlocks)
+			if err != nil {
+				return jerr.Getf(err, "error no blocks returned for block process, height: %d", height)
+			}
+			for _, heightBlockItem := range heightBlockItems {
+				heightBlocks = append(heightBlocks, &HeightBlock{
+					Height:    heightBlockItem.Height,
+					BlockHash: heightBlockItem.BlockHash,
+				})
+			}
 		}
 		heightBlocks = append(delayBlocks, heightBlocks...)
 		delayIndex := len(heightBlocks) - t.Delay
@@ -93,7 +119,7 @@ func (t *Block) Process() error {
 	}
 }
 
-func (t *Block) ProcessBlock(heightBlock *item.HeightBlock) error {
+func (t *Block) ProcessBlock(heightBlock *HeightBlock) error {
 	block, err := item.GetBlock(heightBlock.BlockHash)
 	if err != nil {
 		return jerr.Getf(err, "error getting block: %d %x", heightBlock.Height,
