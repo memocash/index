@@ -75,8 +75,7 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 				Index:    uint32(h),
 			})
 			if len(objects) >= 10000 {
-				err := item.Save(objects)
-				if err != nil {
+				if err := item.Save(objects); err != nil {
 					return jerr.Get("error saving db tx objects (at limit)", err)
 				}
 				objects = nil
@@ -88,8 +87,19 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 			Timestamp: time.Now(),
 		})
 	}
-	err := item.Save(objects)
-	if err != nil {
+	var heightBlock *item.HeightBlock
+	if len(blockHashBytes) > 0 {
+		blockHeight, err := item.GetBlockHeight(blockHashBytes)
+		if err != nil {
+			return jerr.Get("error getting block height for tx save", err)
+		}
+		heightBlock = &item.HeightBlock{
+			Height:    blockHeight.Height,
+			BlockHash: blockHeight.BlockHash,
+		}
+		objects = append(objects, heightBlock)
+	}
+	if err := item.Save(objects); err != nil {
 		return jerr.Get("error saving db tx objects", err)
 	}
 	return nil

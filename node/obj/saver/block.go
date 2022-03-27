@@ -78,51 +78,51 @@ func (t *Block) saveBlockObjects(header wire.BlockHeader) error {
 			// block does not match parent or config init block
 		}
 	}
-	var heightBlock *item.HeightBlock
+	var heightBlockRaw *item.HeightBlockRaw
 	if !skipHeight {
-		heightBlock = &item.HeightBlock{
+		heightBlockRaw = &item.HeightBlockRaw{
 			Height:    newBlockHeight,
 			BlockHash: t.BlockHashBytes,
 		}
-		var blockHeightRaw = &item.BlockHeightRaw{
+		var blockHeight = &item.BlockHeight{
 			Height:    newBlockHeight,
 			BlockHash: t.BlockHashBytes,
 		}
-		objects = append(objects, blockHeightRaw)
+		objects = append(objects, blockHeight)
 		t.PrevBlockHeight = newBlockHeight
 		t.PrevBlockHash = t.BlockHashBytes
 	}
 	if err := item.Save(objects); err != nil {
 		return jerr.Get("error saving new db block objects", err)
 	}
-	if heightBlock != nil {
+	if heightBlockRaw != nil {
 		// Save height block afterward to avoid race conditions with listeners not being able to find block info
-		if err := item.Save([]item.Object{heightBlock}); err != nil {
-			return jerr.Get("error saving height block", err)
+		if err := item.Save([]item.Object{heightBlockRaw}); err != nil {
+			return jerr.Get("error saving height block raw", err)
 		}
 	}
 	return nil
 }
 
 func (t *Block) GetBlock(heightBack int64) ([]byte, error) {
-	heightBlock, err := item.GetRecentHeightBlock()
+	heightBlockRaw, err := item.GetRecentHeightBlockRaw()
 	if err != nil {
-		return nil, jerr.Get("error getting recent height block from queue", err)
+		return nil, jerr.Get("error getting recent height block raw from queue", err)
 	}
-	if heightBlock == nil {
+	if heightBlockRaw == nil {
 		return nil, nil
 	}
 	if heightBack > 0 {
-		height := heightBlock.Height - heightBack
-		heightBlock, err = item.GetHeightBlockSingle(height)
+		height := heightBlockRaw.Height - heightBack
+		heightBlockRaw, err = item.GetHeightBlockRawSingle(height)
 		if err != nil {
-			return nil, jerr.Getf(err, "error getting height back height block (height: %d, back: %d)",
+			return nil, jerr.Getf(err, "error getting height back height block raw (height: %d, back: %d)",
 				height, heightBack)
 		}
 	}
-	t.PrevBlockHash = heightBlock.BlockHash
-	t.PrevBlockHeight = heightBlock.Height
-	return heightBlock.BlockHash, nil
+	t.PrevBlockHash = heightBlockRaw.BlockHash
+	t.PrevBlockHeight = heightBlockRaw.Height
+	return heightBlockRaw.BlockHash, nil
 }
 
 func NewBlock(verbose bool) *Block {

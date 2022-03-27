@@ -20,6 +20,7 @@ const (
 	TopicDoubleSpendInput       = "double_spend_input"
 	TopicFoundPeer              = "found_peer"
 	TopicHeightBlock            = "height_block"
+	TopicHeightBlockRaw         = "height_block_raw"
 	TopicHeightDuplicate        = "height_duplicate"
 	TopicHeightProcessed        = "height_processed"
 	TopicLockBalance            = "lock_balance"
