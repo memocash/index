@@ -57,12 +57,6 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 				BlockHash: blockHashBytes,
 				TxHash:    txHashBytes,
 				Raw:       raw,
-			}, &item.BlockTx{
-				TxHash:    txHashBytes,
-				BlockHash: blockHashBytes,
-			}, &item.TxBlock{
-				TxHash:    txHashBytes,
-				BlockHash: blockHashBytes,
 			})
 		} else {
 			objects = append(objects, &item.MempoolTxRaw{
