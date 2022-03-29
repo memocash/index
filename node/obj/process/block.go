@@ -176,10 +176,11 @@ func (t *Block) ProcessBlock(heightBlock *HeightBlock) error {
 	return nil
 }
 
-func NewBlock(status StatusHeight, txSave dbi.TxSave) *Block {
+func NewBlockRaw(status StatusHeight, txSave dbi.TxSave) *Block {
 	return &Block{
 		Status: status,
 		txSave: txSave,
+		UseRaw: true,
 	}
 }
 

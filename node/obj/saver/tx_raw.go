@@ -20,8 +20,7 @@ func (t *TxRaw) SaveTxs(block *wire.MsgBlock) error {
 	if block == nil {
 		return jerr.Newf("error nil block")
 	}
-	err := t.QueueTxs(block)
-	if err != nil {
+	if err := t.QueueTxs(block); err != nil {
 		return jerr.Get("error queueing msg txs", err)
 	}
 	return nil
@@ -70,8 +69,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 		})
 		txsSize += tx.SerializeSize()
 		if len(objects) >= 10000 || txsSize > 10000000 {
-			err := item.Save(objects)
-			if err != nil {
+			if err := item.Save(objects); err != nil {
 				return jerr.Get("error saving db tx objects (at limit)", err)
 			}
 			objects = nil
@@ -79,8 +77,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 			runtime.GC()
 		}
 	}
-	err := item.Save(objects)
-	if err != nil {
+	if err := item.Save(objects); err != nil {
 		return jerr.Get("error saving db tx objects", err)
 	}
 	return nil

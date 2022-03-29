@@ -136,3 +136,20 @@ func GetMempoolTxs(startTx []byte, limit uint32) ([]*MempoolTxRaw, error) {
 	}
 	return txs, nil
 }
+
+func RemoveMempoolTxRaws(mempoolTxRaws []*MempoolTxRaw) error {
+	var shardUidsMap = make(map[uint32][][]byte)
+	for _, mempoolTxRaw := range mempoolTxRaws {
+		shard := GetShard32(mempoolTxRaw.GetShard())
+		shardUidsMap[shard] = append(shardUidsMap[shard], mempoolTxRaw.GetUid())
+	}
+	for shard, shardUids := range shardUidsMap {
+		shardUids = jutil.RemoveDupesAndEmpties(shardUids)
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		db := client.NewClient(shardConfig.GetHost())
+		if err := db.DeleteMessages(TopicMempoolTxRaw, shardUids); err != nil {
+			return jerr.Get("error deleting items topic mempool tx raw", err)
+		}
+	}
+	return nil
+}
