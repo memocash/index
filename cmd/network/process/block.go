@@ -27,7 +27,7 @@ var blockCmd = &cobra.Command{
 		combinedSaver := saver.NewCombined([]dbi.TxSave{
 			saver.NewTxShard(false, shard),
 		})
-		blockProcessor := process.NewBlockRaw(blockStatus, combinedSaver)
+		blockProcessor := process.NewBlockRaw(shard, blockStatus, combinedSaver)
 		if err := blockProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing blocks (new)", err).Fatal()
 		}
