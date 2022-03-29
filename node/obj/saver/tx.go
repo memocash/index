@@ -95,11 +95,6 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 				Height:    blockHeight.Height,
 				BlockHash: blockHeight.BlockHash,
 			})
-		} else {
-			objects = append(objects, &item.HeightBlock{
-				Height:    blockHeight.Height,
-				BlockHash: blockHeight.BlockHash,
-			})
 		}
 	}
 	if err := item.Save(objects); err != nil {

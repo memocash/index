@@ -19,7 +19,6 @@ const (
 	TopicDoubleSpendInput      = "double_spend_input"
 	TopicFoundPeer             = "found_peer"
 	TopicHeightBlock           = "height_block"
-	TopicHeightBlockRaw        = "height_block_raw"
 	TopicHeightBlockShard      = "height_block_shard"
 	TopicHeightDuplicate       = "height_duplicate"
 	TopicHeightProcessed       = "height_processed"

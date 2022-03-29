@@ -78,9 +78,9 @@ func (t *Block) saveBlockObjects(header wire.BlockHeader) error {
 			// block does not match parent or config init block
 		}
 	}
-	var heightBlockRaw *item.HeightBlockRaw
+	var heightBlock *item.HeightBlock
 	if !skipHeight {
-		heightBlockRaw = &item.HeightBlockRaw{
+		heightBlock = &item.HeightBlock{
 			Height:    newBlockHeight,
 			BlockHash: t.BlockHashBytes,
 		}
@@ -95,34 +95,34 @@ func (t *Block) saveBlockObjects(header wire.BlockHeader) error {
 	if err := item.Save(objects); err != nil {
 		return jerr.Get("error saving new db block objects", err)
 	}
-	if heightBlockRaw != nil {
+	if heightBlock != nil {
 		// Save height block afterward to avoid race conditions with listeners not being able to find block info
-		if err := item.Save([]item.Object{heightBlockRaw}); err != nil {
-			return jerr.Get("error saving height block raw", err)
+		if err := item.Save([]item.Object{heightBlock}); err != nil {
+			return jerr.Get("error saving height block", err)
 		}
 	}
 	return nil
 }
 
 func (t *Block) GetBlock(heightBack int64) ([]byte, error) {
-	heightBlockRaw, err := item.GetRecentHeightBlockRaw()
+	heightBlock, err := item.GetRecentHeightBlock()
 	if err != nil {
-		return nil, jerr.Get("error getting recent height block raw from queue", err)
+		return nil, jerr.Get("error getting recent height block from queue", err)
 	}
-	if heightBlockRaw == nil {
+	if heightBlock == nil {
 		return nil, nil
 	}
 	if heightBack > 0 {
-		height := heightBlockRaw.Height - heightBack
-		heightBlockRaw, err = item.GetHeightBlockRawSingle(height)
+		height := heightBlock.Height - heightBack
+		heightBlock, err = item.GetHeightBlockSingle(height)
 		if err != nil {
-			return nil, jerr.Getf(err, "error getting height back height block raw (height: %d, back: %d)",
+			return nil, jerr.Getf(err, "error getting height back height block (height: %d, back: %d)",
 				height, heightBack)
 		}
 	}
-	t.PrevBlockHash = heightBlockRaw.BlockHash
-	t.PrevBlockHeight = heightBlockRaw.Height
-	return heightBlockRaw.BlockHash, nil
+	t.PrevBlockHash = heightBlock.BlockHash
+	t.PrevBlockHeight = heightBlock.Height
+	return heightBlock.BlockHash, nil
 }
 
 func NewBlock(verbose bool) *Block {

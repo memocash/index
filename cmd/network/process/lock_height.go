@@ -21,9 +21,10 @@ var lockHeightCmd = &cobra.Command{
 			}
 		}
 		jlog.Log("Starting lock height processor...")
-		lockHeightStatus := status.NewHeight(status.NameLockHeight, startHeight)
+		shard, _ := c.Flags().GetInt(FlagShard)
+		lockHeightStatus := status.NewHeight(status.GetStatusShardName(status.NameLockHeight, shard), startHeight)
 		lockHeightSaver := saver.NewLockHeight(false)
-		lockHeightProcessor := process.NewBlock(lockHeightStatus, lockHeightSaver)
+		lockHeightProcessor := process.NewBlockShard(shard, lockHeightStatus, lockHeightSaver)
 		if err := lockHeightProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing lock height", err).Fatal()
 		}

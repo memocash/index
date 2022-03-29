@@ -51,14 +51,14 @@ func (t *Block) Process() error {
 	for {
 		var heightBlocks []*HeightBlock
 		if t.UseRaw {
-			heightBlockRawItems, err := item.GetHeightBlockRawsAll(height+1, waitForBlocks)
+			heightBlockItems, err := item.GetHeightBlocksAll(height+1, waitForBlocks)
 			if err != nil {
 				return jerr.Getf(err, "error no block raws returned for block process, height: %d", height)
 			}
-			for _, heightBlockRawItem := range heightBlockRawItems {
+			for _, heightBlockItem := range heightBlockItems {
 				heightBlocks = append(heightBlocks, &HeightBlock{
-					Height:    heightBlockRawItem.Height,
-					BlockHash: heightBlockRawItem.BlockHash,
+					Height:    heightBlockItem.Height,
+					BlockHash: heightBlockItem.BlockHash,
 				})
 			}
 		} else if t.Shard != status.NoShard {
@@ -73,16 +73,7 @@ func (t *Block) Process() error {
 				})
 			}
 		} else {
-			heightBlockItems, err := item.GetHeightBlocksAll(height+1, waitForBlocks)
-			if err != nil {
-				return jerr.Getf(err, "error no blocks returned for block process, height: %d", height)
-			}
-			for _, heightBlockItem := range heightBlockItems {
-				heightBlocks = append(heightBlocks, &HeightBlock{
-					Height:    heightBlockItem.Height,
-					BlockHash: heightBlockItem.BlockHash,
-				})
-			}
+			return jerr.New("error not using raw or shard for block tx processor")
 		}
 		heightBlocks = append(delayBlocks, heightBlocks...)
 		delayIndex := len(heightBlocks) - t.Delay

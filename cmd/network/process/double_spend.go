@@ -21,12 +21,10 @@ var doubleSpendCmd = &cobra.Command{
 				startHeight = -1
 			}
 		}
-		shard, _ := c.Flags().GetInt(FlagShard)
 		jlog.Log("Starting double spend processor...")
+		shard, _ := c.Flags().GetInt(FlagShard)
 		doubleSpendStatus := status.NewHeight(status.GetStatusShardName(status.NameDoubleSpend, shard), startHeight)
-		doubleSpendSaver := saver.NewCombined([]dbi.TxSave{
-			saver.NewDoubleSpend(false),
-		})
+		doubleSpendSaver := saver.NewCombined([]dbi.TxSave{saver.NewDoubleSpend(false)})
 		doubleSpendProcessor := process.NewBlockShard(shard, doubleSpendStatus, doubleSpendSaver)
 		doubleSpendProcessor.Delay, _ = c.Flags().GetInt(FlagDelay)
 		if doubleSpendProcessor.Delay != 0 {
