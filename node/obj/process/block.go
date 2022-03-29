@@ -9,6 +9,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/node/obj/status"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
@@ -29,7 +30,7 @@ type Block struct {
 	Status StatusHeight
 	Delay  int
 	UseRaw bool
-	Shards []int
+	Shard  int
 }
 
 // Process goes through all blocks, read tx_outputs, save outputs
@@ -44,8 +45,8 @@ func (t *Block) Process() error {
 	if t.Delay > 0 {
 		jlog.Logf("Using delay: %d\n", t.Delay)
 	}
-	if len(t.Shards) > 0 {
-		jlog.Logf("Using shards: %v\n", t.Shards)
+	if t.Shard != status.NoShard {
+		jlog.Logf("Using shard: %d\n", t.Shard)
 	}
 	for {
 		var heightBlocks []*HeightBlock
@@ -58,6 +59,17 @@ func (t *Block) Process() error {
 				heightBlocks = append(heightBlocks, &HeightBlock{
 					Height:    heightBlockRawItem.Height,
 					BlockHash: heightBlockRawItem.BlockHash,
+				})
+			}
+		} else if t.Shard != status.NoShard {
+			heightBlockItems, err := item.GetHeightBlockShardsAll(uint(t.Shard), height+1, waitForBlocks)
+			if err != nil {
+				return jerr.Getf(err, "error no block shards returned for block process, height: %d", height)
+			}
+			for _, heightBlockItem := range heightBlockItems {
+				heightBlocks = append(heightBlocks, &HeightBlock{
+					Height:    heightBlockItem.Height,
+					BlockHash: heightBlockItem.BlockHash,
 				})
 			}
 		} else {
@@ -91,7 +103,7 @@ func (t *Block) Process() error {
 			if heightBlocks[i].Height > maxHeight {
 				maxHeight = heightBlocks[i].Height
 				if processBlock {
-					if err := t.Status.SetHeight(BlockHeight{
+					if err := t.Status.SetHeight(status.BlockHeight{
 						Height: heightBlocks[i].Height,
 						Block:  heightBlocks[i].BlockHash,
 					}); err != nil {
@@ -131,7 +143,7 @@ func (t *Block) ProcessBlock(heightBlock *HeightBlock) error {
 	}
 	var txCount int
 	for _, shard := range config.GetQueueShards() {
-		if len(t.Shards) > 0 && !jutil.InIntSlice(int(shard.Min), t.Shards) {
+		if t.Shard != status.NoShard && int(shard.Min) != t.Shard {
 			continue
 		}
 		var lastTxHashReverse []byte
@@ -177,5 +189,13 @@ func NewBlock(status StatusHeight, txSave dbi.TxSave) *Block {
 	return &Block{
 		Status: status,
 		txSave: txSave,
+	}
+}
+
+func NewBlockShard(shard int, status StatusHeight, txSave dbi.TxSave) *Block {
+	return &Block{
+		Status: status,
+		txSave: txSave,
+		Shard:  shard,
 	}
 }

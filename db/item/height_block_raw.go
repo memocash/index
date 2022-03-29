@@ -106,6 +106,26 @@ func GetHeightBlockRaw(height int64) ([]*HeightBlockRaw, error) {
 	return heightBlockRaws, nil
 }
 
+func GetHeightBlockRaws(shard uint32, startHeight int64, newest bool) ([]*HeightBlockRaw, error) {
+	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	var startHeightBytes []byte
+	if startHeight > 0 || !newest {
+		startHeightBytes = jutil.GetInt64DataBig(startHeight)
+	}
+	err := dbClient.GetLarge(TopicHeightBlockRaw, startHeightBytes, false, newest)
+	if err != nil {
+		return nil, jerr.Get("error getting height block raws from queue client", err)
+	}
+	var heightBlockRaws = make([]*HeightBlockRaw, len(dbClient.Messages))
+	for i := range dbClient.Messages {
+		heightBlockRaws[i] = new(HeightBlockRaw)
+		heightBlockRaws[i].SetUid(dbClient.Messages[i].Uid)
+		heightBlockRaws[i].Deserialize(dbClient.Messages[i].Message)
+	}
+	return heightBlockRaws, nil
+}
+
 func GetHeightBlockRawsAll(startHeight int64, waitSingle bool) ([]*HeightBlockRaw, error) {
 	heightBlockRaws, err := GetHeightBlockRawsAllLimit(startHeight, waitSingle, client.LargeLimit, false)
 	if err != nil {

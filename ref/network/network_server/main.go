@@ -235,13 +235,13 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 }
 
 func (s *Server) GetBlockInfos(_ context.Context, req *network_pb.BlockRequest) (*network_pb.BlockInfoReply, error) {
-	var heightBlocks []*item.HeightBlock
+	var heightBlocks []*item.HeightBlockRaw
 	for _, shardConfig := range config.GetQueueShards() {
-		shardHeightBlocks, err := item.GetHeightBlocks(shardConfig.Min, req.GetHeight(), req.Newest)
+		shardHeightBlockRaws, err := item.GetHeightBlockRaws(shardConfig.Min, req.GetHeight(), req.Newest)
 		if err != nil {
-			return nil, jerr.Get("error getting height blocks", err)
+			return nil, jerr.Get("error getting height block raws", err)
 		}
-		heightBlocks = append(heightBlocks, shardHeightBlocks...)
+		heightBlocks = append(heightBlocks, shardHeightBlockRaws...)
 	}
 	if len(heightBlocks) == 0 {
 		return nil, jerr.Newf("error no blocks returned for serv get block infos, height: %d", req.GetHeight())

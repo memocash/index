@@ -22,9 +22,10 @@ var blockCmd = &cobra.Command{
 			}
 		}
 		jlog.Log("Starting block processor...")
-		blockStatus := status.NewHeight(status.NameBlock, startHeight)
+		shard, _ := c.Flags().GetInt(FlagShard)
+		blockStatus := status.NewHeight(status.GetStatusShardName(status.NameBlock, shard), startHeight)
 		combinedSaver := saver.NewCombined([]dbi.TxSave{
-			saver.NewTx(false),
+			saver.NewTxShard(false, shard),
 		})
 		blockProcessor := process.NewBlock(blockStatus, combinedSaver)
 		blockProcessor.UseRaw = true

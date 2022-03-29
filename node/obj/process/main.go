@@ -1,16 +1,13 @@
 package process
 
+import "github.com/memocash/index/node/obj/status"
+
 type Status interface {
 	GetHeight() (int64, error)
 	SetHeight(int64) error
 }
 
 type StatusHeight interface {
-	GetHeight() (BlockHeight, error)
-	SetHeight(BlockHeight) error
-}
-
-type BlockHeight struct {
-	Height int64
-	Block  []byte
+	GetHeight() (status.BlockHeight, error)
+	SetHeight(status.BlockHeight) error
 }

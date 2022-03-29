@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/node/obj/status"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"runtime"
@@ -13,6 +14,7 @@ import (
 
 type Tx struct {
 	Verbose bool
+	Shard   int
 }
 
 func (t *Tx) SaveTxs(block *wire.MsgBlock) error {
@@ -34,11 +36,6 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 	var blockHashBytes []byte
 	if !block.Header.Timestamp.IsZero() {
 		blockHashBytes = blockHash.CloneBytes()
-	}
-	if len(blockHashBytes) > 0 {
-		/*jlog.Logf("block: %s, %s, txs: %10s, size: %14s\n", blockHash.String(),
-		block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(len(block.Transactions)),
-		jfmt.AddCommasInt(block.SerializeSize()))*/
 	}
 	var objects []item.Object
 	for _, tx := range block.Transactions {
@@ -87,17 +84,23 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 			Timestamp: time.Now(),
 		})
 	}
-	var heightBlock *item.HeightBlock
 	if len(blockHashBytes) > 0 {
 		blockHeight, err := item.GetBlockHeight(blockHashBytes)
 		if err != nil {
 			return jerr.Get("error getting block height for tx save", err)
 		}
-		heightBlock = &item.HeightBlock{
-			Height:    blockHeight.Height,
-			BlockHash: blockHeight.BlockHash,
+		if t.Shard != status.NoShard {
+			objects = append(objects, &item.HeightBlockShard{
+				Shard:     uint(t.Shard),
+				Height:    blockHeight.Height,
+				BlockHash: blockHeight.BlockHash,
+			})
+		} else {
+			objects = append(objects, &item.HeightBlock{
+				Height:    blockHeight.Height,
+				BlockHash: blockHeight.BlockHash,
+			})
 		}
-		objects = append(objects, heightBlock)
 	}
 	if err := item.Save(objects); err != nil {
 		return jerr.Get("error saving db tx objects", err)
@@ -108,5 +111,12 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 func NewTx(verbose bool) *Tx {
 	return &Tx{
 		Verbose: verbose,
+	}
+}
+
+func NewTxShard(verbose bool, shard int) *Tx {
+	return &Tx{
+		Verbose: verbose,
+		Shard:   shard,
 	}
 }
