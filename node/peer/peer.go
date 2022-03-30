@@ -248,7 +248,7 @@ func (p *Peer) OnReject(_ *peer.Peer, msg *wire.MsgReject) {
 }
 
 func (p *Peer) OnPing(_ *peer.Peer, msg *wire.MsgPing) {
-	jlog.Logf("OnPing: %#v\n", msg)
+	jlog.Logf("OnPing: %d\n", msg.Nonce)
 	pong := wire.NewMsgPong(msg.Nonce + 1)
 	p.peer.QueueMessage(pong, nil)
 }
