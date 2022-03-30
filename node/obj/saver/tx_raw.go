@@ -44,8 +44,8 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 	seenTime := time.Now()
 	var objects []item.Object
 	var txsSize int
-	for _, tx := range block.Transactions {
-		raw := memo.GetRaw(tx)
+	for i := range block.Transactions {
+		raw := memo.GetRaw(block.Transactions[i])
 		txHash := chainhash.DoubleHashH(raw)
 		txHashBytes := txHash.CloneBytes()
 		if t.Verbose {
@@ -67,7 +67,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 			TxHash:    txHashBytes,
 			Timestamp: seenTime,
 		})
-		txsSize += tx.SerializeSize()
+		txsSize += block.Transactions[i].SerializeSize()
 		if len(objects) >= 10000 || txsSize > 100000000 {
 			if err := item.Save(objects); err != nil {
 				return jerr.Get("error saving db tx objects (at limit)", err)
