@@ -258,7 +258,7 @@ func (p *Peer) OnMerkleBlock(_ *peer.Peer, msg *wire.MsgMerkleBlock) {
 }
 
 func (p *Peer) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
-	jlog.Logf("OnVersion: %#v\n", msg)
+	jlog.Logf("OnVersion: %s (last: %d)\n", msg.UserAgent, msg.LastBlock)
 }
 
 func NewConnection(txSave dbi.TxSave, blockSave dbi.BlockSave) *Peer {
