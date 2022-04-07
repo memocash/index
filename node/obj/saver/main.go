@@ -30,6 +30,7 @@ func CombinedTxSaver(verbose bool) dbi.TxSave {
 		NewTxRaw(verbose),
 		NewTx(verbose),
 		NewUtxo(verbose),
+		NewLockHeight(verbose),
 		NewDoubleSpend(verbose),
 	})
 }

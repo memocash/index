@@ -125,6 +125,7 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 		if t.Height > 0 {
 			lockHeightOutputsToRemove = append(lockHeightOutputsToRemove, &item.LockHeightOutput{
 				LockHash: lockOut.LockHash,
+				Height:   item.HeightMempool,
 				Hash:     lockOut.TxHash,
 				Index:    lockOut.Index,
 			})
