@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
+	"sort"
 	"sync"
 	"time"
 )
@@ -111,6 +112,9 @@ func Save(objects []Object) error {
 	for shardT, messagesT := range shardMessages {
 		go func(shard uint, messages []*client.Message) {
 			defer wg.Done()
+			sort.Slice(messages, func(i, j int) bool {
+				return jutil.ByteLT(messages[i].Uid, messages[j].Uid)
+			})
 			shardConfig := config.GetShardConfig(uint32(shard), configs)
 			queueClient := client.NewClient(shardConfig.GetHost())
 			err := queueClient.Save(messages, time.Now())

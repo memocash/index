@@ -68,7 +68,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 			Timestamp: seenTime,
 		})
 		txsSize += block.Transactions[i].SerializeSize()
-		if len(objects) >= 10000 || txsSize > 100000000 {
+		if len(objects) >= 25000 || txsSize > 250000000 {
 			if err := item.Save(objects); err != nil {
 				return jerr.Get("error saving db tx objects (at limit)", err)
 			}
