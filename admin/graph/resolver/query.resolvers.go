@@ -171,7 +171,15 @@ func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *m
 	return modelDoubleSpends, nil
 }
 
+func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// Subscription returns generated.SubscriptionResolver implementation.
+func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
+
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }

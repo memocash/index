@@ -10,7 +10,7 @@ require (
 	github.com/jchavannes/btcutil v1.1.3
 	github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65
 	github.com/jchavannes/jgo v0.0.0-20220319040824-b73fd861762e
-	github.com/pkg/profile v1.6.0 // indirect
+	github.com/pkg/profile v1.6.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
 	github.com/syndtr/goleveldb v1.0.0

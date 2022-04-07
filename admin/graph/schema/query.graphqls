@@ -7,3 +7,7 @@ type Query {
     blocks(newest: Boolean, start: Uint32): [Block!]
     double_spends(newest: Boolean, start: Date): [DoubleSpend!]
 }
+
+type Subscription {
+    address(address: String!): Tx
+}
