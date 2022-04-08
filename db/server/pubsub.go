@@ -7,48 +7,58 @@ import (
 )
 
 type Subscribe struct {
+	Id       int64
 	Topic    string
 	Start    []byte
 	Prefixes [][]byte
-	Done     chan error
+	UidChan  chan []byte
+	PubSub   *PubSub
+}
+
+func (s *Subscribe) Close() {
+	s.PubSub.Close(s.Id)
 }
 
 type PubSub struct {
-	Subs []*Subscribe
+	Incr int64
+	Subs map[int64]*Subscribe
 }
 
 func (s *PubSub) Subscribe(topic string, start []byte, prefixes [][]byte) *Subscribe {
+	s.Incr++
 	var sub = &Subscribe{
+		Id:       s.Incr,
 		Topic:    topic,
 		Start:    start,
 		Prefixes: prefixes,
-		Done:     make(chan error),
+		UidChan:  make(chan []byte),
+		PubSub:   s,
 	}
-	s.Subs = append(s.Subs, sub)
+	s.Subs[sub.Id] = sub
 	return sub
 }
 
+func (s *PubSub) Close(id int64) {
+	close(s.Subs[id].UidChan)
+	delete(s.Subs, id)
+}
+
 func (s *PubSub) Publish(topic string, uid []byte) {
-	for i := 0; i < len(s.Subs); i++ {
-		if s.Subs[i].Topic != topic {
-		} else if len(s.Subs[i].Start) > 0 && bytes.Compare(uid, s.Subs[i].Start) == 1 {
-			goto Found
+	for id := range s.Subs {
+		var sub = s.Subs[id]
+		if sub.Topic != topic {
+		} else if len(sub.Start) > 0 && bytes.Compare(uid, sub.Start) == 1 {
+			sub.UidChan <- uid
 		} else {
 			lenUid := len(uid)
-			for _, prefix := range s.Subs[i].Prefixes {
+			for _, prefix := range sub.Prefixes {
 				lenPrefix := len(prefix)
 				if lenPrefix <= lenUid && bytes.Equal(prefix, uid[:lenPrefix]) {
-					goto Found
+					sub.UidChan <- uid
+					continue
 				}
 			}
 		}
-		continue
-	Found:
-		go func(sub *Subscribe) {
-			sub.Done <- nil
-		}(s.Subs[i])
-		s.Subs = append(s.Subs[:i], s.Subs[i+1:]...)
-		i--
 	}
 }
 
@@ -60,23 +70,40 @@ func initNewListener() {
 	}
 }
 
-func ListenNew(ctx context.Context, topic string, start []byte, prefixes [][]byte) chan error {
+// ListenSingle returns nil if a matching new item is found, otherwise an error
+func ListenSingle(ctx context.Context, topic string, start []byte, prefixes [][]byte) error {
 	initNewListener()
 	var done = make(chan error)
 	go func() {
 		sub := _globalPubSub.Subscribe(topic, start, prefixes)
+		defer sub.Close()
 		select {
 		case <-ctx.Done():
 			done <- jerr.Newf("error timeout")
-		case err := <-sub.Done:
-			if err != nil {
-				done <- jerr.Getf(err, "error listening for event (%s %x)", topic, start)
-			} else {
-				done <- nil
+		case <-sub.UidChan:
+			done <- nil
+		}
+	}()
+	return <-done
+}
+
+// Listen returns a channel of messages
+func Listen(ctx context.Context, topic string, prefixes [][]byte) chan []byte {
+	initNewListener()
+	var uidChan = make(chan []byte)
+	go func() {
+		sub := _globalPubSub.Subscribe(topic, nil, prefixes)
+		defer sub.Close()
+		for {
+			select {
+			case <-ctx.Done():
+				break
+			case uid := <-sub.UidChan:
+				uidChan <- uid
 			}
 		}
 	}()
-	return done
+	return uidChan
 }
 
 func ReceiveNew(topic string, uid []byte) {

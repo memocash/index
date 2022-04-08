@@ -133,8 +133,7 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 				return nil, jerr.Getf(err, "error getting messages for topic: %s", request.Topic)
 			}
 			if len(messages) == 0 && request.Wait && i == 0 {
-				err = <-ListenNew(ctx, request.Topic, request.Start, request.Prefixes)
-				if err != nil {
+				if err := ListenSingle(ctx, request.Topic, request.Start, request.Prefixes); err != nil {
 					return nil, jerr.Get("error listening for new topic item", err)
 				}
 			} else {
@@ -153,6 +152,26 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 	return &queue_pb.Messages{
 		Messages: queueMessages,
 	}, nil
+}
+
+func (s *Server) GetStreamMessages(request *queue_pb.RequestStream, server queue_pb.Queue_GetStreamMessagesServer) error {
+	uidChan := Listen(server.Context(), request.Topic, request.Prefixes)
+	for {
+		uid := <-uidChan
+		if uid == nil {
+			// End of stream
+			return nil
+		}
+		message, err := store.GetMessage(request.Topic, s.Shard, uid)
+		if err != nil {
+			return jerr.Getf(err, "error getting stream message for topic: %s", request.Topic)
+		}
+		server.Send(&queue_pb.Message{
+			Uid:       uid,
+			Topic:     request.Topic,
+			Message:   message.Message,
+		})
+	}
 }
 
 func (s *Server) GetMessageCount(ctx context.Context, request *queue_pb.CountRequest) (*queue_pb.TopicCount, error) {
