@@ -301,6 +301,40 @@ func (s *Client) GetTopicList() error {
 	return nil
 }
 
+func (s *Client) Listen(topic string, prefixes [][]byte) (chan *Message, error) {
+	if err := s.SetConn(); err != nil {
+		return nil, jerr.Get("error setting connection", err)
+	}
+	c := queue_pb.NewQueueClient(s.conn)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultSetTimeout)
+	defer cancel()
+	var request = &queue_pb.RequestStream{
+		Topic:    topic,
+		Prefixes: prefixes,
+	}
+	stream, err := c.GetStreamMessages(ctx, request)
+	if err != nil {
+		return nil, jerr.Get("error getting stream messages", err)
+	}
+	var messageChan = make(chan *Message)
+	go func() {
+		for {
+			msg, err := stream.Recv()
+			if err != nil {
+				messageChan <- nil
+				close(messageChan)
+				return
+			}
+			messageChan <- &Message{
+				Topic:   msg.Topic,
+				Uid:     msg.Uid,
+				Message: msg.Message,
+			}
+		}
+	}()
+	return messageChan, nil
+}
+
 func (s *Client) GetTopicCount(topic string, prefix []byte) (uint64, error) {
 	if err := s.SetConn(); err != nil {
 		return 0, jerr.Get("error setting connection", err)

@@ -48,6 +48,35 @@ func (o *LockHeightOutput) SetUid(uid []byte) {
 
 func (o *LockHeightOutput) Deserialize([]byte) {}
 
+func ListenMempoolLockHeightOutputs(lockHash []byte) (chan *LockHeightOutput, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
+	db := client.NewClient(shardConfig.GetHost())
+	prefix := jutil.CombineBytes(
+		lockHash,
+		jutil.GetInt64DataBig(HeightMempool),
+	)
+	chanMessage, err := db.Listen(TopicLockHeightOutput, [][]byte{prefix})
+	if err != nil {
+		return nil, jerr.Get("error getting lock height output listen message chan", err)
+	}
+	var chanLockHeightOutput = make(chan *LockHeightOutput)
+	go func() {
+		for {
+			msg := <-chanMessage
+			if msg == nil {
+				chanLockHeightOutput <- nil
+				close(chanLockHeightOutput)
+				return
+			}
+			var lockHeightOutput = new(LockHeightOutput)
+			lockHeightOutput.SetUid(msg.Uid)
+			lockHeightOutput.Deserialize(msg.Message)
+			chanLockHeightOutput <- lockHeightOutput
+		}
+	}()
+	return chanLockHeightOutput, nil
+}
+
 func GetLockHeightOutputs(lockHash, start []byte) ([]*LockHeightOutput, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())

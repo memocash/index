@@ -74,7 +74,7 @@ func GetAllTxLosts(shard uint32, lastUid []byte) ([]*TxLost, error) {
 	if err := db.GetWOpts(client.Opts{
 		Topic: TopicTxLost,
 		Start: lastUid,
-		Max:   client.DefaultLimit,
+		Max:   client.HugeLimit,
 	}); err != nil {
 		return nil, jerr.Get("error getting all tx losts", err)
 	}

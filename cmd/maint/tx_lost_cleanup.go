@@ -16,6 +16,7 @@ import (
 var txLostCleanupCmd = &cobra.Command{
 	Use: "tx-lost",
 	Run: func(cmd *cobra.Command, args []string) {
+		verbose, _ := cmd.Flags().GetBool(FlagVerbose)
 		var totalTxLosts int
 		var txLostsRemoved int
 		currentHeightBlock, err := item.GetRecentHeightBlock()
@@ -79,8 +80,10 @@ var txLostCleanupCmd = &cobra.Command{
 					for _, txBlock := range txBlocks {
 						if bytes.Equal(txLostTxHash, txBlock.TxHash) {
 							txLostsToRemove = append(txLostsToRemove, txLost)
-							jlog.Logf("Removing TxLost: %s (ds: %s)\n",
-								hs.GetTxString(txLost.TxHash), hs.GetTxString(txLost.DoubleSpend))
+							if verbose {
+								jlog.Logf("Removing TxLost: %s (ds: %s)\n",
+									hs.GetTxString(txLost.TxHash), hs.GetTxString(txLost.DoubleSpend))
+							}
 							break
 						}
 					}
@@ -101,11 +104,12 @@ var txLostCleanupCmd = &cobra.Command{
 				}
 				totalTxLosts += len(txLosts)
 				txLostsRemoved += len(txLostsToRemove)
-				jlog.Logf("len(txLosts): %d, len(txLostsToRemove): %d, len(lockHashBalancesToRemove): %d\n",
-					len(txLosts), len(txLostsToRemove), len(lockHashBalancesToRemove))
 				if len(txLosts) < client.DefaultLimit-1 {
 					break
 				}
+				jlog.Logf("len(txLosts): %d, len(txLostsToRemove): %d, len(lockHashBalancesToRemove): %d, Last: %s\n",
+					len(txLosts), len(txLostsToRemove), len(lockHashBalancesToRemove),
+					hs.GetTxString(txLosts[len(txLosts)-1].TxHash))
 				lastUid = txLosts[len(txLosts)-1].GetUid()
 			}
 		}

@@ -143,24 +143,9 @@ func (b *Balance) CalculateWithUtxos() error {
 
 func NewBalanceFromAddress(address string) (*Balance, error) {
 	addr := wallet.GetAddressFromString(address)
-	var lockScript []byte
-	var err error
-	if !addr.IsSet() {
-		return nil, jerr.New("error parsing address")
-	} else if addr.IsP2PKH() {
-		s := script.P2pkh{PkHash: addr.GetPkHash()}
-		lockScript, err = s.Get()
-		if err != nil {
-			return nil, jerr.Get("error getting lock script for p2pkh address", err)
-		}
-	} else if addr.IsP2SH() {
-		s := script.P2sh{ScriptHash: addr.ScriptAddress()}
-		lockScript, err = s.Get()
-		if err != nil {
-			return nil, jerr.Get("error getting lock script for p2sh address", err)
-		}
-	} else {
-		return nil, jerr.Newf("error unknown address type")
+	lockScript, err := LockScriptFromAddress(addr)
+	if err != nil {
+		return nil, jerr.Get("error getting lock script from address", err)
 	}
 	return &Balance{
 		LockScript: lockScript,
@@ -172,4 +157,27 @@ func NewBalance(lockScript []byte) *Balance {
 	return &Balance{
 		LockScript: lockScript,
 	}
+}
+
+func LockScriptFromAddress(address wallet.Address) ([]byte, error) {
+	var lockScript []byte
+	var err error
+	if !address.IsSet() {
+		return nil, jerr.New("error parsing address")
+	} else if address.IsP2PKH() {
+		s := script.P2pkh{PkHash: address.GetPkHash()}
+		lockScript, err = s.Get()
+		if err != nil {
+			return nil, jerr.Get("error getting lock script for p2pkh address", err)
+		}
+	} else if address.IsP2SH() {
+		s := script.P2sh{ScriptHash: address.ScriptAddress()}
+		lockScript, err = s.Get()
+		if err != nil {
+			return nil, jerr.Get("error getting lock script for p2sh address", err)
+		}
+	} else {
+		return nil, jerr.Newf("error unknown address type")
+	}
+	return lockScript, nil
 }
