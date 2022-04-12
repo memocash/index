@@ -104,12 +104,12 @@ var txLostCleanupCmd = &cobra.Command{
 				}
 				totalTxLosts += len(txLosts)
 				txLostsRemoved += len(txLostsToRemove)
-				jlog.Logf("len(txLosts): %d, len(txLostsToRemove): %d, len(lockHashBalancesToRemove): %d, Last: %s\n",
-					len(txLosts), len(txLostsToRemove), len(lockHashBalancesToRemove),
-					hs.GetTxString(txLosts[len(txLosts)-1].TxHash))
 				if len(txLosts) < client.DefaultLimit-1 {
 					break
 				}
+				jlog.Logf("len(txLosts): %d, len(txLostsToRemove): %d, len(lockHashBalancesToRemove): %d, Last: %s\n",
+					len(txLosts), len(txLostsToRemove), len(lockHashBalancesToRemove),
+					hs.GetTxString(txLosts[len(txLosts)-1].TxHash))
 				lastUid = txLosts[len(txLosts)-1].GetUid()
 			}
 		}
