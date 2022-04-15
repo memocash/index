@@ -6,6 +6,8 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
+	"sort"
+	"sync"
 )
 
 type TxOutput struct {
@@ -85,23 +87,36 @@ func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
 		shardOutGroups[shard] = append(shardOutGroups[shard], out)
 	}
 	var txOutputs []*TxOutput
-	for shard, outGroup := range shardOutGroups {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		var uids = make([][]byte, len(outGroup))
-		for i := range outGroup {
-			uids[i] = GetTxOutputUid(outGroup[i].TxHash, outGroup[i].Index)
-		}
-		err := db.GetSpecific(TopicTxOutput, uids)
-		if err != nil {
-			return nil, jerr.Get("error getting db", err)
-		}
-		for i := range db.Messages {
-			var txOutput = new(TxOutput)
-			txOutput.SetUid(db.Messages[i].Uid)
-			txOutput.Deserialize(db.Messages[i].Message)
-			txOutputs = append(txOutputs, txOutput)
-		}
+	var wg sync.WaitGroup
+	wg.Add(len(shardOutGroups))
+	var errs []error
+	for shardT, outGroupT := range shardOutGroups {
+		go func(shard uint32, outGroup []memo.Out) {
+			defer wg.Done()
+			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+			db := client.NewClient(shardConfig.GetHost())
+			var uids = make([][]byte, len(outGroup))
+			for i := range outGroup {
+				uids[i] = GetTxOutputUid(outGroup[i].TxHash, outGroup[i].Index)
+			}
+			sort.Slice(uids, func(i, j int) bool {
+				return jutil.ByteLT(uids[i], uids[j])
+			})
+			if err := db.GetSpecific(TopicTxOutput, uids); err != nil {
+				errs = append(errs, jerr.Get("error getting db", err))
+				return
+			}
+			for i := range db.Messages {
+				var txOutput = new(TxOutput)
+				txOutput.SetUid(db.Messages[i].Uid)
+				txOutput.Deserialize(db.Messages[i].Message)
+				txOutputs = append(txOutputs, txOutput)
+			}
+		}(shardT, outGroupT)
+	}
+	wg.Wait()
+	if len(errs) > 0 {
+		return nil, jerr.Get("error getting tx outputs", jerr.Combine(errs...))
 	}
 	return txOutputs, nil
 }
