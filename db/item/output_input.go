@@ -6,7 +6,7 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
-	"sync"
+	"sort"
 )
 
 type OutputInput struct {
@@ -72,14 +72,11 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 		shard := GetShardByte32(out.TxHash)
 		shardOutGroups[shard] = append(shardOutGroups[shard], out)
 	}
-	var wg sync.WaitGroup
-	var lock sync.RWMutex
-	wg.Add(len(shardOutGroups))
+	wait := NewWait(len(shardOutGroups))
 	var outputInputs []*OutputInput
-	var errs []error
 	for shardT, outGroupT := range shardOutGroups {
 		go func(shard uint32, outGroup []memo.Out) {
-			defer wg.Done()
+			defer wait.Group.Done()
 			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 			db := client.NewClient(shardConfig.GetHost())
 			var prefixes = make([][]byte, len(outGroup))
@@ -89,6 +86,9 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 					jutil.GetUint32Data(outGroup[i].Index),
 				)
 			}
+			sort.Slice(prefixes, func(i, j int) bool {
+				return jutil.ByteLT(prefixes[i], prefixes[j])
+			})
 			for len(prefixes) > 0 {
 				var prefixesToUse [][]byte
 				if len(prefixes) > client.HugeLimit {
@@ -97,23 +97,23 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 					prefixesToUse, prefixes = prefixes, nil
 				}
 				if err := db.GetByPrefixes(TopicOutputInput, prefixesToUse); err != nil {
-					errs = append(errs, jerr.Get("error getting by prefixes for output inputs", err))
+					wait.AddError(jerr.Get("error getting by prefixes for output inputs", err))
 					return
 				}
-				lock.Lock()
+				wait.Lock.Lock()
 				for i := range db.Messages {
 					var outputInput = new(OutputInput)
 					outputInput.SetUid(db.Messages[i].Uid)
 					outputInput.Deserialize(db.Messages[i].Message)
 					outputInputs = append(outputInputs, outputInput)
 				}
-				lock.Unlock()
+				wait.Lock.Unlock()
 			}
 		}(shardT, outGroupT)
 	}
-	wg.Wait()
-	if len(errs) > 0 {
-		return nil, jerr.Get("error getting output input messages", jerr.Combine(errs...))
+	wait.Group.Wait()
+	if len(wait.Errs) > 0 {
+		return nil, jerr.Get("error getting output input messages", jerr.Combine(wait.Errs...))
 	}
 	return outputInputs, nil
 }

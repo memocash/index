@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
+	"sort"
 	"strings"
 )
 
@@ -68,20 +69,32 @@ func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
 		shard := GetShardByte32(blockHash)
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(blockHash))
 	}
+	wait := NewWait(len(shardPrefixes))
 	var blockHeights []*BlockHeight
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		err := db.GetByPrefixes(TopicBlockHeight, prefixes)
-		if err != nil {
-			return nil, jerr.Get("error getting client message block heights", err)
-		}
-		for _, msg := range db.Messages {
-			var blockHeight = new(BlockHeight)
-			blockHeight.SetUid(msg.Uid)
-			blockHeight.Deserialize(msg.Message)
-			blockHeights = append(blockHeights, blockHeight)
-		}
+	for shardT, prefixesT := range shardPrefixes {
+		go func(shard uint32, prefixes [][]byte) {
+			defer wait.Group.Done()
+			sort.Slice(prefixes, func(i, j int) bool {
+				return jutil.ByteLT(prefixes[i], prefixes[j])
+			})
+			db := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
+			if err := db.GetByPrefixes(TopicBlockHeight, prefixes); err != nil {
+				wait.AddError(jerr.Get("error getting client message block heights", err))
+				return
+			}
+			wait.Lock.Lock()
+			for _, msg := range db.Messages {
+				var blockHeight = new(BlockHeight)
+				blockHeight.SetUid(msg.Uid)
+				blockHeight.Deserialize(msg.Message)
+				blockHeights = append(blockHeights, blockHeight)
+			}
+			wait.Lock.Unlock()
+		}(shardT, prefixesT)
+	}
+	wait.Group.Wait()
+	if len(wait.Errs) > 0 {
+		return nil, jerr.Get("error getting block heights", jerr.Combine(wait.Errs...))
 	}
 	return blockHeights, nil
 }

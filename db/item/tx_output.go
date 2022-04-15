@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 	"sort"
-	"sync"
 )
 
 type TxOutput struct {
@@ -86,13 +85,11 @@ func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
 		shard := GetShardByte32(out.TxHash)
 		shardOutGroups[shard] = append(shardOutGroups[shard], out)
 	}
+	wait := NewWait(len(shardOutGroups))
 	var txOutputs []*TxOutput
-	var wg sync.WaitGroup
-	wg.Add(len(shardOutGroups))
-	var errs []error
 	for shardT, outGroupT := range shardOutGroups {
 		go func(shard uint32, outGroup []memo.Out) {
-			defer wg.Done()
+			defer wait.Group.Done()
 			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 			db := client.NewClient(shardConfig.GetHost())
 			var uids = make([][]byte, len(outGroup))
@@ -103,20 +100,22 @@ func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
 				return jutil.ByteLT(uids[i], uids[j])
 			})
 			if err := db.GetSpecific(TopicTxOutput, uids); err != nil {
-				errs = append(errs, jerr.Get("error getting db", err))
+				wait.AddError(jerr.Get("error getting db", err))
 				return
 			}
+			wait.Lock.Lock()
 			for i := range db.Messages {
 				var txOutput = new(TxOutput)
 				txOutput.SetUid(db.Messages[i].Uid)
 				txOutput.Deserialize(db.Messages[i].Message)
 				txOutputs = append(txOutputs, txOutput)
 			}
+			wait.Lock.Unlock()
 		}(shardT, outGroupT)
 	}
-	wg.Wait()
-	if len(errs) > 0 {
-		return nil, jerr.Get("error getting tx outputs", jerr.Combine(errs...))
+	wait.Group.Wait()
+	if len(wait.Errs) > 0 {
+		return nil, jerr.Get("error getting tx outputs", jerr.Combine(wait.Errs...))
 	}
 	return txOutputs, nil
 }

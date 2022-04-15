@@ -138,3 +138,19 @@ func Set(obj Object, msg client.Message) {
 	obj.SetUid(msg.Uid)
 	obj.Deserialize(msg.Message)
 }
+
+type Wait struct {
+	Group sync.WaitGroup
+	Lock  sync.RWMutex
+	Errs  []error
+}
+
+func (w *Wait) AddError(err error) {
+	w.Errs = append(w.Errs, err)
+}
+
+func NewWait(size int) *Wait {
+	var wait = new(Wait)
+	wait.Group.Add(size)
+	return wait
+}
