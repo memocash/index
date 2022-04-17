@@ -102,7 +102,7 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 	var prefix []byte
 	defer func() {
 		if r := recover(); r != nil {
-			jlog.Logf("prefix: %x, start: %x\n", prefix, start)
+			jlog.Logf("PANIC prefix: %x, start: %x\n", prefix, start)
 			panic(r)
 		}
 	}()
@@ -110,6 +110,38 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 	sort.Slice(prefixes, func(i, j int) bool {
 		return jutil.ByteLT(prefixes[i], prefixes[j])
 	})
+	if !newest && !isGetLast {
+		iter := snap.NewIterator(nil, nil)
+		defer iter.Release()
+		for _, prefix = range prefixes {
+			var prefixMessages []*Message
+			var seek = start
+			if len(seek) == 0 || jutil.ByteLT(start, prefix) {
+				seek = prefix
+			}
+			if !iter.Seek(seek) {
+				continue
+			}
+			for ok := true; ok; ok = iter.Next() {
+				uid := GetPtrSlice(iter.Key())
+				if !jutil.HasPrefix(uid, prefix) {
+					break
+				}
+				prefixMessages = append(prefixMessages, &Message{
+					Uid:     uid,
+					Message: GetPtrSlice(iter.Value()),
+				})
+				if len(prefixMessages) >= max {
+					break
+				}
+			}
+			messages = append(messages, prefixMessages...)
+		}
+		if err = iter.Error(); err != nil {
+			return nil, jerr.Get("error with iterator", err)
+		}
+		return messages, nil
+	}
 	for _, prefix = range prefixes {
 		var prefixMessages []*Message
 		var iter iterator.Iterator
