@@ -18,6 +18,7 @@ func GetCommand() *cobra.Command {
 		txLostCleanupCmd,
 		populateDoubleSpendSeenCmd,
 		populateHeightBlockShardCmd,
+		queueProfileCmd,
 	)
 	return maintCommand
 }

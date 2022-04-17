@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"sort"
 )
 
 type Message struct {
@@ -105,6 +107,9 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 		}
 	}()
 	var messages []*Message
+	sort.Slice(prefixes, func(i, j int) bool {
+		return jutil.ByteLT(prefixes[i], prefixes[j])
+	})
 	for _, prefix = range prefixes {
 		var prefixMessages []*Message
 		var iter iterator.Iterator
@@ -153,8 +158,7 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 		}
 		messages = append(messages, prefixMessages...)
 		iter.Release()
-		err = iter.Error()
-		if err != nil {
+		if err = iter.Error(); err != nil {
 			return nil, jerr.Get("error with releasing iterator", err)
 		}
 	}
