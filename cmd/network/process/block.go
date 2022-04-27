@@ -22,14 +22,13 @@ var blockCmd = &cobra.Command{
 			}
 		}
 		jlog.Log("Starting block processor...")
-		blockStatus := status.NewHeight(status.NameBlock, startHeight)
+		shard, _ := c.Flags().GetInt(FlagShard)
+		blockStatus := status.NewHeight(status.GetStatusShardName(status.NameBlock, shard), startHeight)
 		combinedSaver := saver.NewCombined([]dbi.TxSave{
-			saver.NewTx(false),
-			saver.NewUtxo(false),
+			saver.NewTxShard(false, shard),
 		})
-		blockProcessor := process.NewBlock(blockStatus, combinedSaver)
-		err := blockProcessor.Process()
-		if err != nil {
+		blockProcessor := process.NewBlockRaw(shard, blockStatus, combinedSaver)
+		if err := blockProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing blocks (new)", err).Fatal()
 		}
 	},

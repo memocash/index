@@ -6,45 +6,45 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
+	"sort"
 	"sync"
 	"time"
 )
 
 const (
-	TopicBlock                  = "block"
-	TopicBlockHeight            = "block_height"
-	TopicBlockTx                = "block_tx"
-	TopicBlockTxRaw             = "block_tx_raw"
-	TopicDoubleSpendOutput      = "double_spend_output"
-	TopicDoubleSpendInput       = "double_spend_input"
-	TopicFoundPeer              = "found_peer"
-	TopicHeightBlock            = "height_block"
-	TopicHeightDuplicate        = "height_duplicate"
-	TopicHeightProcessed        = "height_processed"
-	TopicLockBalance            = "lock_balance"
-	TopicLockOutput             = "lock_output"
-	TopicLockHeightOutput       = "lock_height_output"
-	TopicLockHeightOutputInput  = "lock_height_output_input"
-	TopicLockMempoolOutput      = "lock_mempool_output"
-	TopicLockMempoolOutputInput = "lock_mempool_output_input"
-	TopicLockUtxo               = "lock_utxo"
-	TopicLockUtxoLost           = "lock_utxo_lost"
-	TopicMempoolTxRaw           = "mempool_tx_raw"
-	TopicMessage                = "message"
-	TopicOutputInput            = "output_input"
-	TopicPeer                   = "peer"
-	TopicPeerConnection         = "peer_connection"
-	TopicPeerFound              = "peer_found"
-	TopicProcessStatus          = "process_status"
-	TopicTx                     = "tx"
-	TopicTxBlock                = "tx_block"
-	TopicTxInput                = "tx_input"
-	TopicTxLost                 = "tx_lost"
-	TopicTxOutput               = "tx_output"
-	TopicTxProcessed            = "tx_processed"
-	TopicTxSeen                 = "tx_seen"
-	TopicTxSuspect              = "tx_suspect"
-	TopicDoubleSpendSeen        = "double_spend_seen"
+	TopicBlock                 = "block"
+	TopicBlockHeight           = "block_height"
+	TopicBlockTx               = "block_tx"
+	TopicBlockTxRaw            = "block_tx_raw"
+	TopicDoubleSpendOutput     = "double_spend_output"
+	TopicDoubleSpendInput      = "double_spend_input"
+	TopicFoundPeer             = "found_peer"
+	TopicHeightBlock           = "height_block"
+	TopicHeightBlockShard      = "height_block_shard"
+	TopicHeightDuplicate       = "height_duplicate"
+	TopicHeightProcessed       = "height_processed"
+	TopicLockBalance           = "lock_balance"
+	TopicLockOutput            = "lock_output"
+	TopicLockHeightOutput      = "lock_height_output"
+	TopicLockHeightOutputInput = "lock_height_output_input"
+	TopicLockUtxo              = "lock_utxo"
+	TopicLockUtxoLost          = "lock_utxo_lost"
+	TopicMempoolTxRaw          = "mempool_tx_raw"
+	TopicMessage               = "message"
+	TopicOutputInput           = "output_input"
+	TopicPeer                  = "peer"
+	TopicPeerConnection        = "peer_connection"
+	TopicPeerFound             = "peer_found"
+	TopicProcessStatus         = "process_status"
+	TopicTx                    = "tx"
+	TopicTxBlock               = "tx_block"
+	TopicTxInput               = "tx_input"
+	TopicTxLost                = "tx_lost"
+	TopicTxOutput              = "tx_output"
+	TopicTxProcessed           = "tx_processed"
+	TopicTxSeen                = "tx_seen"
+	TopicTxSuspect             = "tx_suspect"
+	TopicDoubleSpendSeen       = "double_spend_seen"
 )
 
 type Object interface {
@@ -112,6 +112,9 @@ func Save(objects []Object) error {
 	for shardT, messagesT := range shardMessages {
 		go func(shard uint, messages []*client.Message) {
 			defer wg.Done()
+			sort.Slice(messages, func(i, j int) bool {
+				return jutil.ByteLT(messages[i].Uid, messages[j].Uid)
+			})
 			shardConfig := config.GetShardConfig(uint32(shard), configs)
 			queueClient := client.NewClient(shardConfig.GetHost())
 			err := queueClient.Save(messages, time.Now())
@@ -129,4 +132,25 @@ func Save(objects []Object) error {
 
 func GetTxHashIndexUid(txHash []byte, index uint32) []byte {
 	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetUint32Data(index))
+}
+
+func Set(obj Object, msg client.Message) {
+	obj.SetUid(msg.Uid)
+	obj.Deserialize(msg.Message)
+}
+
+type Wait struct {
+	Group sync.WaitGroup
+	Lock  sync.RWMutex
+	Errs  []error
+}
+
+func (w *Wait) AddError(err error) {
+	w.Errs = append(w.Errs, err)
+}
+
+func NewWait(size int) *Wait {
+	var wait = new(Wait)
+	wait.Group.Add(size)
+	return wait
 }

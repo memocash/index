@@ -7,7 +7,6 @@ import (
 )
 
 type ClearSuspect struct {
-	Verbose bool
 }
 
 func (s *ClearSuspect) SaveTxs(block *wire.MsgBlock) error {
@@ -65,8 +64,6 @@ func (s *ClearSuspect) GetBlock(int64) ([]byte, error) {
 	return nil, nil
 }
 
-func NewClearSuspect(verbose bool) *ClearSuspect {
-	return &ClearSuspect{
-		Verbose: verbose,
-	}
+func NewClearSuspect() *ClearSuspect {
+	return &ClearSuspect{}
 }

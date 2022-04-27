@@ -5,9 +5,9 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
-	"github.com/memocash/index/node/obj/process"
-	"strings"
 )
+
+const NoShard = -1
 
 const (
 	NameBlock       = "block"
@@ -15,6 +15,11 @@ const (
 	NameDoubleSpend = "double-spend"
 	NameLockHeight  = "lock-height"
 )
+
+type BlockHeight struct {
+	Height int64
+	Block  []byte
+}
 
 type Height struct {
 	Name        string
@@ -25,7 +30,7 @@ func (s *Height) error(err error) {
 	jerr.Get("error saving tx queue", err).Print()
 }
 
-func (s *Height) SetHeight(blockHeight process.BlockHeight) error {
+func (s *Height) SetHeight(blockHeight BlockHeight) error {
 	var heightProcessed = &item.HeightProcessed{
 		Name:   s.Name,
 		Height: blockHeight.Height,
@@ -38,23 +43,23 @@ func (s *Height) SetHeight(blockHeight process.BlockHeight) error {
 	return nil
 }
 
-func (s *Height) GetHeight() (process.BlockHeight, error) {
+func (s *Height) GetHeight() (BlockHeight, error) {
 	if s.StartHeight != 0 {
 		if s.StartHeight == -1 {
-			return process.BlockHeight{}, nil
+			return BlockHeight{}, nil
 		}
-		return process.BlockHeight{
+		return BlockHeight{
 			Height: s.StartHeight,
 		}, nil
 	}
 	heightProcessed, err := item.GetRecentHeightProcessed(s.Name)
 	if err != nil {
 		if client.IsMessageNotSetError(err) {
-			return process.BlockHeight{}, nil
+			return BlockHeight{}, nil
 		}
-		return process.BlockHeight{}, jerr.Get("error getting max height processed", err)
+		return BlockHeight{}, jerr.Get("error getting max height processed", err)
 	}
-	return process.BlockHeight{
+	return BlockHeight{
 		Height: heightProcessed.Height,
 		Block:  heightProcessed.Block,
 	}, nil
@@ -67,9 +72,9 @@ func NewHeight(name string, startHeight int64) *Height {
 	}
 }
 
-func GetStatusShardName(name string, shards []int) string {
-	if len(shards) == 0 {
+func GetStatusShardName(name string, shard int) string {
+	if shard == NoShard {
 		return name
 	}
-	return fmt.Sprintf("%s-%s", name, strings.Trim(strings.Join(strings.Fields(fmt.Sprint(shards)), ","), "[]"))
+	return fmt.Sprintf("%s-%d", name, shard)
 }

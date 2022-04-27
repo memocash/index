@@ -92,16 +92,12 @@ func (t *Block) saveBlockObjects(header wire.BlockHeader) error {
 		t.PrevBlockHeight = newBlockHeight
 		t.PrevBlockHash = t.BlockHashBytes
 	}
-	err := item.Save(objects)
-	if err != nil {
+	if err := item.Save(objects); err != nil {
 		return jerr.Get("error saving new db block objects", err)
 	}
 	if heightBlock != nil {
 		// Save height block afterward to avoid race conditions with listeners not being able to find block info
-		err = item.Save([]item.Object{
-			heightBlock,
-		})
-		if err != nil {
+		if err := item.Save([]item.Object{heightBlock}); err != nil {
 			return jerr.Get("error saving height block", err)
 		}
 	}

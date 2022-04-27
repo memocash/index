@@ -20,8 +20,7 @@ func (t *TxRaw) SaveTxs(block *wire.MsgBlock) error {
 	if block == nil {
 		return jerr.Newf("error nil block")
 	}
-	err := t.QueueTxs(block)
-	if err != nil {
+	if err := t.QueueTxs(block); err != nil {
 		return jerr.Get("error queueing msg txs", err)
 	}
 	return nil
@@ -45,8 +44,8 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 	seenTime := time.Now()
 	var objects []item.Object
 	var txsSize int
-	for _, tx := range block.Transactions {
-		raw := memo.GetRaw(tx)
+	for i := range block.Transactions {
+		raw := memo.GetRaw(block.Transactions[i])
 		txHash := chainhash.DoubleHashH(raw)
 		txHashBytes := txHash.CloneBytes()
 		if t.Verbose {
@@ -57,12 +56,6 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 				BlockHash: blockHashBytes,
 				TxHash:    txHashBytes,
 				Raw:       raw,
-			}, &item.BlockTx{
-				TxHash:    txHashBytes,
-				BlockHash: blockHashBytes,
-			}, &item.TxBlock{
-				TxHash:    txHashBytes,
-				BlockHash: blockHashBytes,
 			})
 		} else {
 			objects = append(objects, &item.MempoolTxRaw{
@@ -74,10 +67,9 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 			TxHash:    txHashBytes,
 			Timestamp: seenTime,
 		})
-		txsSize += tx.SerializeSize()
-		if len(objects) >= 10000 || txsSize > 10000000 {
-			err := item.Save(objects)
-			if err != nil {
+		txsSize += block.Transactions[i].SerializeSize()
+		if len(objects) >= 25000 || txsSize > 250000000 {
+			if err := item.Save(objects); err != nil {
 				return jerr.Get("error saving db tx objects (at limit)", err)
 			}
 			objects = nil
@@ -85,8 +77,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 			runtime.GC()
 		}
 	}
-	err := item.Save(objects)
-	if err != nil {
+	if err := item.Save(objects); err != nil {
 		return jerr.Get("error saving db tx objects", err)
 	}
 	return nil

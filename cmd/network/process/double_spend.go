@@ -21,17 +21,17 @@ var doubleSpendCmd = &cobra.Command{
 				startHeight = -1
 			}
 		}
-		shards, _ := c.Flags().GetIntSlice(FlagShards)
 		jlog.Log("Starting double spend processor...")
-		doubleSpendStatus := status.NewHeight(status.GetStatusShardName(status.NameDoubleSpend, shards), startHeight)
-		doubleSpendSaver := saver.NewCombined([]dbi.TxSave{
-			saver.NewDoubleSpend(false),
-		})
-		doubleSpendProcessor := process.NewBlock(doubleSpendStatus, doubleSpendSaver)
-		doubleSpendProcessor.Shards = shards
+		shard, _ := c.Flags().GetInt(FlagShard)
+		doubleSpendStatus := status.NewHeight(status.GetStatusShardName(status.NameDoubleSpend, shard), startHeight)
+		doubleSpendSaver := saver.NewCombined([]dbi.TxSave{saver.NewDoubleSpend(false)})
+		doubleSpendProcessor := process.NewBlockShard(shard, doubleSpendStatus, doubleSpendSaver)
 		doubleSpendProcessor.Delay, _ = c.Flags().GetInt(FlagDelay)
 		if doubleSpendProcessor.Delay != 0 {
-			doubleSpendSaver.Savers = append(doubleSpendSaver.Savers, saver.NewClearSuspect(false))
+			doubleSpendSaver.Savers = append(doubleSpendSaver.Savers,
+				saver.NewClearSuspect(),
+				saver.NewClearMempoolTxRaw(),
+			)
 		}
 		if err := doubleSpendProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing double spends", err).Fatal()

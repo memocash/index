@@ -248,7 +248,7 @@ func (p *Peer) OnReject(_ *peer.Peer, msg *wire.MsgReject) {
 }
 
 func (p *Peer) OnPing(_ *peer.Peer, msg *wire.MsgPing) {
-	jlog.Logf("OnPing: %#v\n", msg)
+	jlog.Logf("OnPing: %d\n", msg.Nonce)
 	pong := wire.NewMsgPong(msg.Nonce + 1)
 	p.peer.QueueMessage(pong, nil)
 }
@@ -258,10 +258,10 @@ func (p *Peer) OnMerkleBlock(_ *peer.Peer, msg *wire.MsgMerkleBlock) {
 }
 
 func (p *Peer) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
-	jlog.Logf("OnVersion: %#v\n", msg)
+	jlog.Logf("OnVersion: %s (last: %d)\n", msg.UserAgent, msg.LastBlock)
 }
 
-func NewConnection(blockSave dbi.BlockSave, txSave dbi.TxSave) *Peer {
+func NewConnection(txSave dbi.TxSave, blockSave dbi.BlockSave) *Peer {
 	return &Peer{
 		BlockSave: blockSave,
 		TxSave:    txSave,

@@ -1,10 +1,13 @@
 package process
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/memocash/index/node/obj/status"
+	"github.com/spf13/cobra"
+)
 
 const (
-	FlagShards = "shards"
-	FlagDelay  = "delay"
+	FlagShard = "shard"
+	FlagDelay = "delay"
 )
 
 var processCommand = &cobra.Command{
@@ -12,9 +15,11 @@ var processCommand = &cobra.Command{
 }
 
 func GetCommand() *cobra.Command {
-	doubleSpendCmd.PersistentFlags().IntSlice(FlagShards, nil, "--shards 1,2,3")
+	blockCmd.PersistentFlags().Int(FlagShard, status.NoShard, "--shard 1")
+	doubleSpendCmd.PersistentFlags().Int(FlagShard, status.NoShard, "--shard 1")
 	doubleSpendCmd.PersistentFlags().Int(FlagDelay, 0, "delay")
-	utxoCmd.PersistentFlags().IntSlice(FlagShards, nil, "--shards 1,2,3")
+	utxoCmd.PersistentFlags().Int(FlagShard, status.NoShard, "--shard 1")
+	lockHeightCmd.PersistentFlags().Int(FlagShard, status.NoShard, "--shard 1")
 	processCommand.AddCommand(
 		blockCmd,
 		doubleSpendCmd,

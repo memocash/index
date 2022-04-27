@@ -20,12 +20,10 @@ var utxoCmd = &cobra.Command{
 				startHeight = -1
 			}
 		}
-		shards, _ := c.Flags().GetIntSlice(FlagShards)
 		jlog.Log("Starting utxo processor...")
-		utxoStatus := status.NewHeight(status.GetStatusShardName(status.NameUtxo, shards), startHeight)
-		utxoSaver := saver.NewUtxo(false)
-		utxoProcessor := process.NewBlock(utxoStatus, utxoSaver)
-		utxoProcessor.Shards = shards
+		shard, _ := c.Flags().GetInt(FlagShard)
+		utxoStatus := status.NewHeight(status.GetStatusShardName(status.NameUtxo, shard), startHeight)
+		utxoProcessor := process.NewBlockShard(shard, utxoStatus, saver.NewUtxo(false))
 		if err := utxoProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing utxos", err).Fatal()
 		}
