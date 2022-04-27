@@ -26,6 +26,23 @@ func NewCombined(savers []dbi.TxSave) *CombinedTx {
 	}
 }
 
+func CombinedTxSaver(verbose bool) dbi.TxSave {
+	return NewCombined([]dbi.TxSave{
+		NewTxRaw(verbose),
+		NewTx(verbose),
+		NewUtxo(verbose),
+		NewLockHeight(verbose),
+		NewDoubleSpend(verbose),
+	})
+}
+
+func CombinedTxSaverBasic(verbose bool) dbi.TxSave {
+	return NewCombined([]dbi.TxSave{
+		NewTxRaw(verbose),
+		NewTx(verbose),
+	})
+}
+
 type CombinedBlock struct {
 	Main   dbi.BlockSave
 	Savers []dbi.BlockSave

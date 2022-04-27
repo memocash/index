@@ -22,6 +22,7 @@ type QueueClient interface {
 	DeleteMessages(ctx context.Context, in *MessageUids, opts ...grpc.CallOption) (*ErrorReply, error)
 	GetMessage(ctx context.Context, in *RequestSingle, opts ...grpc.CallOption) (*Message, error)
 	GetMessages(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Messages, error)
+	GetStreamMessages(ctx context.Context, in *RequestStream, opts ...grpc.CallOption) (Queue_GetStreamMessagesClient, error)
 	GetTopicList(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*TopicListReply, error)
 	GetMessageCount(ctx context.Context, in *CountRequest, opts ...grpc.CallOption) (*TopicCount, error)
 }
@@ -70,6 +71,38 @@ func (c *queueClient) GetMessages(ctx context.Context, in *Request, opts ...grpc
 	return out, nil
 }
 
+func (c *queueClient) GetStreamMessages(ctx context.Context, in *RequestStream, opts ...grpc.CallOption) (Queue_GetStreamMessagesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Queue_ServiceDesc.Streams[0], "/queue_pb.Queue/GetStreamMessages", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &queueGetStreamMessagesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Queue_GetStreamMessagesClient interface {
+	Recv() (*Message, error)
+	grpc.ClientStream
+}
+
+type queueGetStreamMessagesClient struct {
+	grpc.ClientStream
+}
+
+func (x *queueGetStreamMessagesClient) Recv() (*Message, error) {
+	m := new(Message)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *queueClient) GetTopicList(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*TopicListReply, error) {
 	out := new(TopicListReply)
 	err := c.cc.Invoke(ctx, "/queue_pb.Queue/GetTopicList", in, out, opts...)
@@ -96,6 +129,7 @@ type QueueServer interface {
 	DeleteMessages(context.Context, *MessageUids) (*ErrorReply, error)
 	GetMessage(context.Context, *RequestSingle) (*Message, error)
 	GetMessages(context.Context, *Request) (*Messages, error)
+	GetStreamMessages(*RequestStream, Queue_GetStreamMessagesServer) error
 	GetTopicList(context.Context, *EmptyRequest) (*TopicListReply, error)
 	GetMessageCount(context.Context, *CountRequest) (*TopicCount, error)
 	mustEmbedUnimplementedQueueServer()
@@ -116,6 +150,9 @@ func (UnimplementedQueueServer) GetMessage(context.Context, *RequestSingle) (*Me
 }
 func (UnimplementedQueueServer) GetMessages(context.Context, *Request) (*Messages, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMessages not implemented")
+}
+func (UnimplementedQueueServer) GetStreamMessages(*RequestStream, Queue_GetStreamMessagesServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetStreamMessages not implemented")
 }
 func (UnimplementedQueueServer) GetTopicList(context.Context, *EmptyRequest) (*TopicListReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTopicList not implemented")
@@ -208,6 +245,27 @@ func _Queue_GetMessages_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Queue_GetStreamMessages_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RequestStream)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(QueueServer).GetStreamMessages(m, &queueGetStreamMessagesServer{stream})
+}
+
+type Queue_GetStreamMessagesServer interface {
+	Send(*Message) error
+	grpc.ServerStream
+}
+
+type queueGetStreamMessagesServer struct {
+	grpc.ServerStream
+}
+
+func (x *queueGetStreamMessagesServer) Send(m *Message) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _Queue_GetTopicList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(EmptyRequest)
 	if err := dec(in); err != nil {
@@ -276,6 +334,12 @@ var Queue_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Queue_GetMessageCount_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetStreamMessages",
+			Handler:       _Queue_GetStreamMessages_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "queue.proto",
 }

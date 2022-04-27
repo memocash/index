@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -171,7 +172,32 @@ func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *m
 	return modelDoubleSpends, nil
 }
 
+func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
+	lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
+	if err != nil {
+		return nil, jerr.Get("error getting lock script for address subscription", err)
+	}
+	lockHeightListener, err := item.ListenMempoolLockHeightOutputs(script.GetLockHash(lockScript))
+	if err != nil {
+		return nil, jerr.Get("error getting lock height listener for address subscription", err)
+	}
+	var txChan = make(chan *model.Tx)
+	go func() {
+		for {
+			lockHeightOutput := <-lockHeightListener
+			if lockHeightOutput == nil {
+
+			}
+		}
+	}()
+	return txChan, nil
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// Subscription returns generated.SubscriptionResolver implementation.
+func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
+
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }

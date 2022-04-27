@@ -13,6 +13,8 @@ service Queue {
   }
   rpc GetMessages (Request) returns (Messages) {
   }
+  rpc GetStreamMessages(RequestStream) returns (stream Message) {
+  }
   rpc GetTopicList (EmptyRequest) returns (TopicListReply) {
   }
   rpc GetMessageCount (CountRequest) returns (TopicCount) {
@@ -52,6 +54,11 @@ message Request {
   repeated bytes uids = 5;
   bool wait = 6;
   bool newest = 7;
+}
+
+message RequestStream {
+  string topic = 1;
+  repeated bytes prefixes = 2;
 }
 
 message EmptyRequest {
