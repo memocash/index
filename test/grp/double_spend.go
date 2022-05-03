@@ -97,11 +97,11 @@ func (s *DoubleSpend) SaveBlock(txs []*memo.Tx) error {
 		wireTxs[i] = txs[i].MsgTx
 	}
 	block := test_block.GetNextBlock(wireTxs)
-	if err := s.TxSaver.SaveTxs(block); err != nil {
-		return jerr.Get("error adding txs block to network", err)
-	}
 	if err := s.BlockSaver.SaveBlock(block.Header); err != nil {
 		return jerr.Get("error saving block header for double spend grp", err)
+	}
+	if err := s.TxSaver.SaveTxs(block); err != nil {
+		return jerr.Get("error adding txs block to network", err)
 	}
 	return nil
 }

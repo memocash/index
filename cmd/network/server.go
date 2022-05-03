@@ -16,8 +16,7 @@ var serverCmd = &cobra.Command{
 		port := config.GetServerPort()
 		server := network_server.NewServer(verbose, port)
 		jlog.Logf("Starting network server on port: %d\n", port)
-		err := server.Serve()
-		if err != nil {
+		if err := server.Run(); err != nil {
 			jerr.Get("fatal error with network server", err).Fatal()
 		}
 	},

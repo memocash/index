@@ -57,9 +57,8 @@ func (c *Connection) GetDefaultContext() context.Context {
 }
 
 func NewConnection() (*Connection, error) {
-	conn := &Connection{}
-	err := conn.connect()
-	if err != nil {
+	var conn = new(Connection)
+	if err := conn.connect(); err != nil {
 		return nil, jerr.Get("error connecting", err)
 	}
 	return conn, nil

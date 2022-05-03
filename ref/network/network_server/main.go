@@ -25,6 +25,8 @@ import (
 )
 
 type Server struct {
+	listener net.Listener
+	grpc     *grpc.Server
 	network_pb.UnimplementedNetworkServer
 	Verbose bool
 	Port    int
@@ -43,6 +45,7 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 		}
 		blockTxs[blockHashStr] = append(blockTxs[blockHashStr], txMsg)
 	}
+	blockSaver := saver.NewBlock(false)
 	combinedSaver := saver.NewCombined([]dbi.TxSave{
 		saver.NewTxRaw(false),
 		saver.NewTx(false),
@@ -65,6 +68,11 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 				return nil, jerr.Get("error getting block header from raw", err)
 			}
 			blockHeader = header
+		}
+		if blockHeader != nil {
+			if err := blockSaver.SaveBlock(*blockHeader); err != nil {
+				return nil, jerr.Get("error saving block", err)
+			}
 		}
 		if err := combinedSaver.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader)); err != nil {
 			err = jerr.Get("error saving transactions", err)
@@ -217,6 +225,10 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 	if err != nil {
 		return nil, jerr.Get("error parsing block header", err)
 	}
+	blockSaver := saver.NewBlock(true)
+	if err = blockSaver.SaveBlock(*blockHeader); err != nil {
+		return nil, jerr.Get("error saving block", err)
+	}
 	combinedSaver := saver.NewCombined([]dbi.TxSave{
 		saver.NewTxRaw(false),
 		saver.NewTx(false),
@@ -225,11 +237,6 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 	err = combinedSaver.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader))
 	if err != nil {
 		return nil, jerr.Get("error saving transactions", err)
-	}
-	blockSaver := saver.NewBlock(true)
-	err = blockSaver.SaveBlock(*blockHeader)
-	if err != nil {
-		return nil, jerr.Get("error saving block", err)
 	}
 	return &network_pb.ErrorReply{}, nil
 }
@@ -383,16 +390,27 @@ func (s *Server) GetUtxos(_ context.Context, req *network_pb.UtxosRequest) (*net
 	}, nil
 }
 
-func (s *Server) Serve() error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", s.Port))
-	if err != nil {
+func (s *Server) Run() error {
+	if err := s.Start(); err != nil {
+		return jerr.Get("error starting network server", err)
+	}
+	// Serve always returns an error
+	return jerr.Get("error serving network server", s.Serve())
+}
+
+func (s *Server) Start() error {
+	var err error
+	if s.listener, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", s.Port)); err != nil {
 		return jerr.Get("failed to listen", err)
 	}
-	server := grpc.NewServer()
-	network_pb.RegisterNetworkServer(server, s)
-	reflection.Register(server)
-	err = server.Serve(lis)
-	if err != nil {
+	s.grpc = grpc.NewServer()
+	network_pb.RegisterNetworkServer(s.grpc, s)
+	reflection.Register(s.grpc)
+	return nil
+}
+
+func (s *Server) Serve() error {
+	if err := s.grpc.Serve(s.listener); err != nil {
 		return jerr.Get("failed to serve", err)
 	}
 	return jerr.New("network rpc server disconnected")

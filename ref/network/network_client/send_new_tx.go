@@ -35,9 +35,7 @@ func NewSendTx() *SendTx {
 }
 
 func SendNewTx(raw []byte) error {
-	send := NewSendTx()
-	err := send.Send([][]byte{raw})
-	if err != nil {
+	if err := NewSendTx().Send([][]byte{raw}); err != nil {
 		return jerr.Get("error sending single transaction", err)
 	}
 	return nil

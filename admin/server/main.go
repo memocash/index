@@ -9,12 +9,15 @@ import (
 	node2 "github.com/memocash/index/admin/server/node"
 	"github.com/memocash/index/node"
 	"github.com/memocash/index/ref/config"
+	"net"
 	"net/http"
 )
 
 type Server struct {
-	Nodes *node.Group
-	Port  uint
+	Nodes    *node.Group
+	Port     uint
+	server   http.Server
+	listener net.Listener
 }
 
 var routes = admin.Routes([]admin.Route{
@@ -26,6 +29,14 @@ var routes = admin.Routes([]admin.Route{
 )
 
 func (s *Server) Run() error {
+	if err := s.Start(); err != nil {
+		return jerr.Get("error starting admin server", err)
+	}
+	// Serve always returns an error
+	return jerr.Get("error serving admin server", s.Serve())
+}
+
+func (s *Server) Start() error {
 	mux := http.NewServeMux()
 	for _, tempRoute := range routes {
 		route := tempRoute
@@ -43,14 +54,18 @@ func (s *Server) Run() error {
 		return jerr.Get("error getting graphql handler", err)
 	}
 	mux.HandleFunc(admin.UrlGraphql, getHandler(graphqlHandler.ServeHTTP))
-	server := http.Server{
-		Addr:    config.GetHost(s.Port),
-		Handler: mux,
-	}
-	if err := server.ListenAndServe(); err != nil {
-		return jerr.Get("error listening and serving admin server", err)
+	s.server = http.Server{Handler: mux}
+	if s.listener, err = net.Listen("tcp", config.GetHost(s.Port)); err != nil {
+		return jerr.Get("failed to listen admin server", err)
 	}
 	return nil
+}
+
+func (s *Server) Serve() error {
+	if err := s.server.Serve(s.listener); err != nil {
+		return jerr.Get("error listening and serving admin server", err)
+	}
+	return jerr.New("error admin server disconnected")
 }
 
 func NewServer(group *node.Group) *Server {

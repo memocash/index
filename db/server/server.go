@@ -16,6 +16,7 @@ type Server struct {
 	Port        uint
 	Shard       uint
 	Stopped     bool
+	listener    net.Listener
 	MsgDoneChan chan *MsgDone
 	Timeout     time.Duration
 	Grpc        *grpc.Server
@@ -167,9 +168,9 @@ func (s *Server) GetStreamMessages(request *queue_pb.RequestStream, server queue
 			return jerr.Getf(err, "error getting stream message for topic: %s", request.Topic)
 		}
 		server.Send(&queue_pb.Message{
-			Uid:       uid,
-			Topic:     request.Topic,
-			Message:   message.Message,
+			Uid:     uid,
+			Topic:   request.Topic,
+			Message: message.Message,
 		})
 	}
 }
@@ -185,16 +186,28 @@ func (s *Server) GetMessageCount(ctx context.Context, request *queue_pb.CountReq
 }
 
 func (s *Server) Run() error {
+	if err := s.Start(); err != nil {
+		return jerr.Get("error starting db server", err)
+	}
+	// Serve always returns an error
+	return jerr.Get("error serving db server", s.Serve())
+}
+
+func (s *Server) Start() error {
 	s.Stopped = false
-	lis, err := net.Listen("tcp", GetHost(s.Port))
-	if err != nil {
+	var err error
+	if s.listener, err = net.Listen("tcp", GetHost(s.Port)); err != nil {
 		return jerr.Get("failed to listen", err)
 	}
 	go s.StartMessageChan()
 	s.Grpc = grpc.NewServer(grpc.MaxRecvMsgSize(32*10e6), grpc.MaxSendMsgSize(32*10e6))
 	queue_pb.RegisterQueueServer(s.Grpc, s)
 	reflection.Register(s.Grpc)
-	if err = s.Grpc.Serve(lis); err != nil {
+	return nil
+}
+
+func (s *Server) Serve() error {
+	if err := s.Grpc.Serve(s.listener); err != nil {
 		return jerr.Get("failed to serve", err)
 	}
 	return jerr.New("queue server disconnected")

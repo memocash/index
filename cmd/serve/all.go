@@ -16,39 +16,47 @@ var allCmd = &cobra.Command{
 	Use: "all",
 	Run: func(c *cobra.Command, args []string) {
 		var errorHandler = make(chan error)
-		nodeGroup := node.NewGroup()
+		// API server
 		apiServer := api.NewServer()
-		adminServer := admin.NewServer(nodeGroup)
-		var queueServers []*db.Server
-		for i, queueShard := range config.GetQueueShards() {
-			queueServers = append(queueServers, db.NewServer(uint(queueShard.Port), uint(i)))
+		if err := apiServer.Start(); err != nil {
+			jerr.Get("fatal error starting api server", err).Fatal()
 		}
-		networkServer := network_server.NewServer(false, config.GetServerPort())
+		jlog.Logf("API (unused REST) server started on port: %d...\n", apiServer.Port)
 		go func() {
-			err := apiServer.Run()
-			errorHandler <- jerr.Get("error running api server", err)
+			errorHandler <- jerr.Get("error running api server", apiServer.Serve())
 		}()
+		// Admin server
+		nodeGroup := node.NewGroup()
+		adminServer := admin.NewServer(nodeGroup)
+		if err := adminServer.Start(); err != nil {
+			jerr.Get("fatal error starting admin server", err).Fatal()
+		}
+		jlog.Logf("Admin server (including graphql) started on port: %d...\n", adminServer.Port)
 		go func() {
-			err := adminServer.Run()
-			errorHandler <- jerr.Get("error running admin server", err)
+			errorHandler <- jerr.Get("error running admin server", adminServer.Serve())
 		}()
-		for i := range queueServers {
-			queueServer := queueServers[i]
+		// Queue servers
+		for i, queueShard := range config.GetQueueShards() {
+			queueServer := db.NewServer(uint(queueShard.Port), uint(i))
+			if err := queueServer.Start(); err != nil {
+				jerr.Getf(err, "fatal error starting db queue server shard %d", queueServer.Shard).Fatal()
+			}
+			jlog.Logf("Queue server %d started on port: %d...\n", queueServer.Port)
 			go func() {
-				err := queueServer.Run()
-				errorHandler <- jerr.Getf(err, "error running db queue server shard %d", queueServer.Shard)
+				errorHandler <- jerr.Getf(queueServer.Serve(), "error running db queue server shard %d",
+					queueServer.Shard)
 			}()
 		}
-		go func() {
-			err := networkServer.Serve()
-			errorHandler <- jerr.Get("error running network server", err)
-		}()
-		jlog.Logf("API (unused REST) server started on port: %d...\n", apiServer.Port)
-		jlog.Logf("Admin server (including graphql) started on port: %d...\n", adminServer.Port)
-		for i, queueServer := range queueServers {
-			jlog.Logf("Queue server %d started on port: %d...\n", i, queueServer.Port)
+		// Network server
+		networkServer := network_server.NewServer(false, config.GetServerPort())
+		if err := networkServer.Start(); err != nil {
+			jerr.Get("fatal error starting network server", err).Fatal()
 		}
 		jlog.Logf("Starting network server on port: %d\n", networkServer.Port)
+		go func() {
+			errorHandler <- jerr.Get("error running network server", networkServer.Serve())
+		}()
+		// Error handler
 		jerr.Get("fatal memo server error encountered", <-errorHandler).Fatal()
 	},
 }
