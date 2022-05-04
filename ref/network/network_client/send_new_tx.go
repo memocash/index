@@ -22,8 +22,8 @@ func (t *SendTx) Send(txs [][]byte) error {
 		return jerr.Get("error connecting to network", err)
 	}
 	defer connection.Close()
-	if reply, err := connection.Client.SaveTxs(connection.GetTimeoutContext(time.Second), networkTxs); err != nil {
-		return jerr.Get("could not greet network", err)
+	if reply, err := connection.Client.SaveTxs(connection.GetTimeoutContext(5*time.Second), networkTxs); err != nil {
+		return jerr.Get("error network client save txs request", err)
 	} else if reply.Error != "" {
 		return jerr.Newf("send new tx rpc error received: %s", reply.Error)
 	}

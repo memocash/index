@@ -50,6 +50,7 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 		saver.NewTxRaw(false),
 		saver.NewTx(false),
 		saver.NewUtxo(false),
+		saver.NewLockHeight(false),
 		saver.NewDoubleSpend(false),
 	})
 	for blockHashStr, msgTxs := range blockTxs {
@@ -233,6 +234,8 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 		saver.NewTxRaw(false),
 		saver.NewTx(false),
 		saver.NewUtxo(false),
+		saver.NewLockHeight(false),
+		saver.NewDoubleSpend(false),
 	})
 	err = combinedSaver.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader))
 	if err != nil {

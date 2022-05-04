@@ -41,7 +41,7 @@ var allCmd = &cobra.Command{
 			if err := queueServer.Start(); err != nil {
 				jerr.Getf(err, "fatal error starting db queue server shard %d", queueServer.Shard).Fatal()
 			}
-			jlog.Logf("Queue server %d started on port: %d...\n", queueServer.Port)
+			jlog.Logf("Queue server started on port: %d...\n", queueServer.Port)
 			go func() {
 				errorHandler <- jerr.Getf(queueServer.Serve(), "error running db queue server shard %d",
 					queueServer.Shard)
