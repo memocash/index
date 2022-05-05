@@ -66,7 +66,9 @@ var _globalPubSub *PubSub
 
 func initNewListener() {
 	if _globalPubSub == nil {
-		_globalPubSub = &PubSub{}
+		_globalPubSub = &PubSub{
+			Subs: make(map[int64]*Subscribe),
+		}
 	}
 }
 

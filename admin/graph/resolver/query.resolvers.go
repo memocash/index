@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"time"
 
@@ -186,7 +187,17 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 		for {
 			lockHeightOutput := <-lockHeightListener
 			if lockHeightOutput == nil {
-
+				jlog.Log("nil lock height output, closing address subscription")
+				return
+			}
+			txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutput.Hash)
+			if err != nil {
+				jerr.Get("error getting mempool tx raw for address subscription", err).Print()
+				return
+			}
+			txChan <- &model.Tx{
+				Hash: hs.GetTxString(lockHeightOutput.Hash),
+				Raw:  hex.EncodeToString(txRaw.Raw),
 			}
 		}
 	}()

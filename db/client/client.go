@@ -321,6 +321,7 @@ func (s *Client) Listen(topic string, prefixes [][]byte) (chan *Message, error) 
 		for {
 			msg, err := stream.Recv()
 			if err != nil {
+				jerr.Get("error receiving stream message", err).Print()
 				messageChan <- nil
 				close(messageChan)
 				return
