@@ -307,13 +307,13 @@ func (s *Client) Listen(topic string, prefixes [][]byte) (chan *Message, error) 
 	}
 	c := queue_pb.NewQueueClient(s.conn)
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultSetTimeout)
-	defer cancel()
 	var request = &queue_pb.RequestStream{
 		Topic:    topic,
 		Prefixes: prefixes,
 	}
 	stream, err := c.GetStreamMessages(ctx, request)
 	if err != nil {
+		cancel()
 		return nil, jerr.Get("error getting stream messages", err)
 	}
 	var messageChan = make(chan *Message)
@@ -324,6 +324,7 @@ func (s *Client) Listen(topic string, prefixes [][]byte) (chan *Message, error) 
 				jerr.Get("error receiving stream message", err).Print()
 				messageChan <- nil
 				close(messageChan)
+				cancel()
 				return
 			}
 			messageChan <- &Message{
