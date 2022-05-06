@@ -34,6 +34,7 @@ var mempoolCmd = &cobra.Command{
 			saver.NewTxRaw(verbose),
 			saver.NewTx(verbose),
 			saver.NewUtxo(verbose),
+			saver.NewLockHeight(verbose),
 			saver.NewDoubleSpend(verbose),
 		}), nil)
 		if err := connection.Connect(); err != nil {
