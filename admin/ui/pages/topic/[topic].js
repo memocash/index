@@ -42,7 +42,7 @@ export default function Topic() {
                 <h4>{topic}</h4>
                 {topicData.Items && topicData.Items.map((item, key) => {
                     return (
-                        <p key={key}>{item.Uid}</p>
+                        <p key={key}>{item.Shard}: {item.Uid}</p>
                     )
                 })}
                 <p>

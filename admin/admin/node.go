@@ -81,6 +81,7 @@ type TopicItem struct {
 	Topic   string
 	Uid     string
 	Content string
+	Shard   uint
 }
 
 type TopicViewResponse struct {

@@ -29,6 +29,7 @@ var viewRoute = admin.Route{
 					Topic:   topicViewRequest.Topic,
 					Uid:     hex.EncodeToString(msg.Uid),
 					Content: hex.EncodeToString(msg.Message),
+					Shard:   uint(shardConfig.Min),
 				})
 			}
 		}
