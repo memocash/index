@@ -154,3 +154,40 @@ func NewWait(size int) *Wait {
 	wait.Group.Add(size)
 	return wait
 }
+
+func GetTopics() []Object {
+	return []Object{
+		&Block{},
+		&BlockHeight{},
+		&BlockTx{},
+		&DoubleSpendInput{},
+		&DoubleSpendOutput{},
+		&DoubleSpendSeen{},
+		&FoundPeer{},
+		&HeightBlock{},
+		&HeightBlockShard{},
+		&HeightDuplicate{},
+		&HeightProcessed{},
+		&LockBalance{},
+		&LockHeightOutput{},
+		&LockHeightOutputInput{},
+		&LockOutput{},
+		&LockUtxo{},
+		&LockUtxoLost{},
+		&MempoolTxRaw{},
+		&Message{},
+		&OutputInput{},
+		&Peer{},
+		&PeerConnection{},
+		&PeerFound{},
+		&ProcessStatus{},
+		&Tx{},
+		&TxBlock{},
+		&TxInput{},
+		&TxLost{},
+		&TxOutput{},
+		&TxProcessed{},
+		&TxSeen{},
+		&TxSuspect{},
+	}
+}

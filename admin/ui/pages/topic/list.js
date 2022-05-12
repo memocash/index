@@ -1,6 +1,7 @@
 import Page from "../../components/page";
 import homeStyles from "../../styles/Home.module.css";
 import {useEffect, useState} from "react";
+import Link from "next/link";
 
 function List() {
     const [allTopics, setAllTopics] = useState([])
@@ -12,7 +13,6 @@ function List() {
             }
             return Promise.reject(res)
         }).then(data => {
-            console.log(data)
             setAllTopics(data.Topics)
         }).catch(err => {
             console.log(err)
@@ -24,13 +24,17 @@ function List() {
                 <h2 className={homeStyles.subTitle}>
                     Topic List
                 </h2>
-                <div>
-                    {allTopics.map((topic) => {
+                <ul>
+                    {allTopics.map((topic, key) => {
                         return (
-                            <p>{topic.Name}</p>
+                            <li key={key}>
+                                <Link href={{pathname: "/topic/" + topic.Name}}>
+                                    <a>{topic.Name}</a>
+                                </Link>
+                            </li>
                         )
                     })}
-                </div>
+                </ul>
             </div>
         </Page>
     )
