@@ -1,6 +1,7 @@
 import Page from "../components/page";
 import {useEffect, useState} from "react";
 import styles from "../styles/Home.module.css";
+import {getUrl} from "../components/fetch";
 
 function Hello() {
     const [hello, setHello] = useState("")
@@ -8,7 +9,7 @@ function Hello() {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     useEffect(() => {
-        fetch("/api/hello")
+        getUrl("/api/hello")
             .then(res => {
                 if (res.ok) {
                     return res.json()

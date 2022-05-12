@@ -3,6 +3,7 @@ import Page from "../../../components/page";
 import Link from "next/link";
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
+import {getUrl} from "../../../components/fetch";
 
 export default function Topic() {
     const [topic, setTopic] = useState("")
@@ -24,7 +25,7 @@ export default function Topic() {
         setTopic(router.query.topic)
         setShard(router.query.shard)
         setUid(router.query.uid)
-        fetch("/api/topic/item", {
+        getUrl("/api/topic/item", {
             method: "POST",
             body: JSON.stringify({
                 topic: router.query.topic,

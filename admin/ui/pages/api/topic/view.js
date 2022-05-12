@@ -4,7 +4,11 @@ export default function handler(req, res) {
     return new Promise((resolve, reject) => {
         const {topic, start, shard} = JSON.parse(req.body)
         const shardInt = parseInt(shard)
-        fetch(GetHost() + "/topic/view", {
+        let {server} = req.headers
+        if (!server || !server.length) {
+            server = GetHost()
+        }
+        fetch(server + "/topic/view", {
             method: "POST",
             body: JSON.stringify({
                 Topic: topic,

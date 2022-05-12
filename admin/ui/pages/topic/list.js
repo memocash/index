@@ -2,12 +2,13 @@ import Page from "../../components/page";
 import homeStyles from "../../styles/Home.module.css";
 import {useEffect, useState} from "react";
 import Link from "next/link";
+import {getUrl} from "../../components/fetch";
 
 function List() {
     const [allTopics, setAllTopics] = useState([])
 
     useEffect(() => {
-        fetch("/api/topic/list").then(res => {
+        getUrl("/api/topic/list").then(res => {
             if (res.ok) {
                 return res.json()
             }

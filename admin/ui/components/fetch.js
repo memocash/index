@@ -11,7 +11,10 @@ export async function graphQL(query, variables) {
     })
 }
 
-export default async function getUrl(url, options) {
+export async function getUrl(url, options) {
+    if (!options) {
+        options = {}
+    }
     if (options.headers === undefined) {
         options.headers = {}
     }

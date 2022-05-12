@@ -3,6 +3,7 @@ import Page from "../../components/page";
 import Link from "next/link";
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
+import {getUrl} from "../../components/fetch";
 
 export default function Topic() {
     const [topic, setTopic] = useState("")
@@ -36,7 +37,7 @@ export default function Topic() {
         if (router.query.start !== undefined) {
             data.start = router.query.start
         }
-        fetch("/api/topic/view", {
+        getUrl("/api/topic/view", {
             method: "POST",
             body: JSON.stringify(data),
         }).then(res => {
