@@ -75,6 +75,8 @@ type TopicListResponse struct {
 
 type TopicViewRequest struct {
 	Topic string
+	Start string
+	Shard int
 }
 
 type TopicItem struct {

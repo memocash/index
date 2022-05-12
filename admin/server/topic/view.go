@@ -17,10 +17,21 @@ var viewRoute = admin.Route{
 			jerr.Get("error unmarshalling topic view request", err).Print()
 			return
 		}
+		var start []byte
+		if topicViewRequest.Start != "" {
+			var err error
+			if start, err = hex.DecodeString(topicViewRequest.Start); err != nil {
+				jerr.Get("error parsing start from topic view request", err)
+				return
+			}
+		}
 		var topicViewResponse = new(admin.TopicViewResponse)
 		for _, shardConfig := range config.GetQueueShards() {
+			if topicViewRequest.Shard >= 0 && uint32(topicViewRequest.Shard) != shardConfig.Min {
+				continue
+			}
 			db := client.NewClient(shardConfig.GetHost())
-			if err := db.Get(topicViewRequest.Topic, nil, false); err != nil {
+			if err := db.Get(topicViewRequest.Topic, start, false); err != nil {
 				jerr.Get("error getting topic items for admin view", err).Print()
 				return
 			}
