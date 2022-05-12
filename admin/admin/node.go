@@ -64,3 +64,11 @@ type NodePeerReportResponse struct {
 	PeersConnected uint64
 	PeersFailed    uint64
 }
+
+type Topic struct {
+	Name string
+}
+
+type TopicListResponse struct {
+	Topics []Topic
+}

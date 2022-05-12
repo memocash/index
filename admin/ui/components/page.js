@@ -107,6 +107,14 @@ export default function Page(props) {
                             </Link>
                         </li>
                     </ul>
+                    <h3>Storage</h3>
+                    <ul>
+                        <li>
+                            <Link href="/topic/list">
+                                <a>Topic List</a>
+                            </Link>
+                        </li>
+                    </ul>
                     <div>
                         <label htmlFor="server-select">Server:</label>
                         &nbsp;

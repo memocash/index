@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/index/admin/server/graphql"
 	"github.com/memocash/index/admin/server/network"
 	node2 "github.com/memocash/index/admin/server/node"
+	"github.com/memocash/index/admin/server/topic"
 	"github.com/memocash/index/node"
 	"github.com/memocash/index/ref/config"
 	"net"
@@ -25,6 +26,7 @@ var routes = admin.Routes([]admin.Route{
 },
 	network.GetRoutes(),
 	node2.GetRoutes(),
+	topic.GetRoutes(),
 	//graphql.GetRoutes(),
 )
 
