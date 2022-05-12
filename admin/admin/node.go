@@ -72,3 +72,18 @@ type Topic struct {
 type TopicListResponse struct {
 	Topics []Topic
 }
+
+type TopicViewRequest struct {
+	Topic string
+}
+
+type TopicItem struct {
+	Topic   string
+	Uid     string
+	Content string
+}
+
+type TopicViewResponse struct {
+	Name  string
+	Items []TopicItem
+}

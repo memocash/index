@@ -47,4 +47,5 @@ const (
 	UrlNetworkTx           = "/network/tx"
 	UrlGraphql             = "/graphql"
 	UrlTopicList           = "/topic/list"
+	UrlTopicView           = "/topic/view"
 )
