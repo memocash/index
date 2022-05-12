@@ -68,7 +68,10 @@ export default function Topic() {
                 </div>
                 {topicData.Items && topicData.Items.map((item, key) => {
                     return (
-                        <p key={key}>{item.Shard}: {item.Uid}</p>
+                        <p key={key}>{item.Shard}: <Link href={{
+                            pathname: "/topic/" + topic + "/" + item.Uid,
+                            query: {shard: item.Shard},
+                        }}><a>{item.Uid}</a></Link></p>
                     )
                 })}
                 <p>

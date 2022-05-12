@@ -39,7 +39,7 @@ var viewRoute = admin.Route{
 				topicViewResponse.Items = append(topicViewResponse.Items, admin.TopicItem{
 					Topic:   topicViewRequest.Topic,
 					Uid:     hex.EncodeToString(msg.Uid),
-					Content: hex.EncodeToString(msg.Message),
+					Message: hex.EncodeToString(msg.Message),
 					Shard:   uint(shardConfig.Min),
 				})
 			}

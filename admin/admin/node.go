@@ -82,11 +82,21 @@ type TopicViewRequest struct {
 type TopicItem struct {
 	Topic   string
 	Uid     string
-	Content string
+	Message string
 	Shard   uint
 }
 
 type TopicViewResponse struct {
 	Name  string
 	Items []TopicItem
+}
+
+type TopicItemRequest struct {
+	Topic string
+	Shard uint
+	Uid   string
+}
+
+type TopicItemResponse struct {
+	Item TopicItem
 }

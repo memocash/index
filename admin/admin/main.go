@@ -48,4 +48,5 @@ const (
 	UrlGraphql             = "/graphql"
 	UrlTopicList           = "/topic/list"
 	UrlTopicView           = "/topic/view"
+	UrlTopicItem           = "/topic/item"
 )
