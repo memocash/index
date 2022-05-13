@@ -58,6 +58,13 @@ export default function Topic() {
                 <div>
                     {item.Message}
                 </div>
+                <ul>
+                    {item.Props && Object.keys(item.Props).map(key => {
+                        return (
+                            <li>{key}: {item.Props[key]}</li>
+                        )
+                    })}
+                </ul>
                 <p>
                     <Link href={{pathname: "/topic/list"}}>
                         <a>Back to List</a>

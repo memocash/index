@@ -84,6 +84,7 @@ type TopicItem struct {
 	Uid     string
 	Message string
 	Shard   uint
+	Props   map[string]interface{}
 }
 
 type TopicViewResponse struct {
