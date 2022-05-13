@@ -2,13 +2,13 @@ import styles from '../../styles/Home.module.css'
 import Page from "../../components/page";
 import Link from "next/link";
 import {useRouter} from "next/router";
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {getUrl} from "../../components/fetch";
 
 export default function Topic() {
     const [topic, setTopic] = useState("")
-    const [shard, setShard] = useState(undefined)
-    const [start, setStart] = useState(undefined)
+    const startRef = useRef()
+    const shardRef = useRef()
     const [topicData, setTopicData] = useState({
         Items: [],
     })
@@ -25,8 +25,12 @@ export default function Topic() {
         lastShard = router.query.shard
         lastStart = router.query.start
         setTopic(router.query.topic)
-        setShard(router.query.shard)
-        setStart(router.query.start)
+        if (router.query.start && router.query.start.length) {
+            startRef.current.value = router.query.start
+        }
+        if (router.query.shard && router.query.shard.length) {
+            shardRef.current.value = router.query.shard
+        }
         let data = {
             topic: router.query.topic,
             shard: router.query.shard,
@@ -51,6 +55,20 @@ export default function Topic() {
             console.log(err)
         })
     }, [router])
+    const formSubmit = (e) => {
+        e.preventDefault()
+        let query = {}
+        if (startRef.current.value.length) {
+            query.start = startRef.current.value
+        }
+        if (shardRef.current.value.length) {
+            query.shard = shardRef.current.value
+        }
+        router.push({
+            pathname: "/topic/" + topic,
+            query: query,
+        })
+    }
     return (
         <Page>
             <div>
@@ -62,11 +80,13 @@ export default function Topic() {
                         <a>{topic}</a>
                     </Link>
                 </h4>
-                <div>
-                    <label>Start UID: <input type={"text"}/></label>
+                <form onSubmit={formSubmit}>
+                    <label>Start UID: <input type={"text"} ref={startRef}/></label>
                     &nbsp;&nbsp;
-                    <label>Shard (empty=all): <input type={"number"}/></label>
-                </div>
+                    <label>Shard (empty=all): <input type={"number"} ref={shardRef}/></label>
+                    &nbsp;
+                    <input type={"submit"} value={"Update"}/>
+                </form>
                 {topicData.Items && topicData.Items.map((item, key) => {
                     return (
                         <p key={key}>{item.Shard}: <Link href={{
@@ -78,8 +98,7 @@ export default function Topic() {
                 <p>
                     <Link href={{pathname: "/topic/list"}}>
                         <a>Back to List</a>
-                    </Link>
-                    {topicData.Items && topicData.Items.length &&
+                    </Link> &middot; {topicData.Items && topicData.Items.length &&
                     <Link href={{
                         pathname: "/topic/" + topic, query: {
                             shard: topicData.Items[topicData.Items.length - 1].Shard,
