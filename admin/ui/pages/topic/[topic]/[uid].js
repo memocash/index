@@ -59,9 +59,10 @@ export default function Topic() {
                     {item.Message}
                 </div>
                 <ul>
-                    {item.Props && Object.keys(item.Props).map(key => {
+                    {item.Props && Object.keys(item.Props).map((key, i) => {
                         return (
-                            <li>{key}: {item.Props[key]}</li>
+                            <li key={i}>{key}: {(typeof item.Props[key] === "boolean") ?
+                                (item.Props[key] ? "True" : "False") : item.Props[key]}</li>
                         )
                     })}
                 </ul>

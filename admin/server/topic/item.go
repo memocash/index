@@ -10,6 +10,7 @@ import (
 	"github.com/memocash/index/ref/config"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 var typeOfBytes = reflect.TypeOf([]byte(nil))
@@ -46,10 +47,10 @@ var itemRoute = admin.Route{
 			obj := reflect.New(objType).Interface().(item.Object)
 			obj.SetUid(db.Messages[0].Uid)
 			obj.Deserialize(db.Messages[0].Message)
-			objVal := reflect.ValueOf(obj)
+			elem := reflect.ValueOf(obj).Elem()
 			for i := 0; i < objType.NumField(); i++ {
-				fieldValue := objVal.Elem().Field(i)
-				fieldName := objVal.Elem().Type().Field(i).Name
+				fieldValue := elem.Field(i)
+				fieldName := elem.Type().Field(i).Name
 				switch fieldValue.Kind() {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					props[fieldName] = strconv.FormatInt(fieldValue.Int(), 10)
@@ -57,18 +58,21 @@ var itemRoute = admin.Route{
 					props[fieldName] = strconv.FormatUint(fieldValue.Uint(), 10)
 				case reflect.Slice:
 					if fieldValue.Type() == typeOfBytes {
-						/*var buf = new(bytes.Buffer)
-						if err := binary.Read(buf, binary.BigEndian, fieldValue.Addr()); err != nil {
-							jerr.Get("error reading byte slice buffer for topic item", err).Print()
-							return
-						}
-						props[fieldName], _ = ioutil.ReadAll(buf)*/
+						props[fieldName] = hex.EncodeToString(fieldValue.Bytes())
+					} else {
+						props[fieldName] = fieldValue.String()
 					}
-					props[fieldName] = fieldValue.String()
 				case reflect.String:
 					props[fieldName] = fieldValue.String()
+				case reflect.Bool:
+					props[fieldName] = fieldValue.Bool()
 				default:
-					props[fieldName] = fieldValue.String()
+					switch v := fieldValue.Interface().(type) {
+					case time.Time:
+						props[fieldName] = v.Format(time.RFC3339Nano)
+					default:
+						props[fieldName] = fieldValue.String()
+					}
 				}
 			}
 		}
