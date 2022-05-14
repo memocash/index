@@ -15,6 +15,7 @@ var maintCommand = &cobra.Command{
 func GetCommand() *cobra.Command {
 	populateDoubleSpendSeenCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
 	txLostCleanupCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
+	checkLockUtxoCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
 	maintCommand.AddCommand(
 		txLostCleanupCmd,
 		populateDoubleSpendSeenCmd,

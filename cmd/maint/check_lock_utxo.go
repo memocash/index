@@ -20,14 +20,18 @@ var checkLockUtxoCmd = &cobra.Command{
 		if err != nil {
 			jerr.Get("error parsing block hash", err).Fatal()
 		}
+		verbose, _ := c.Flags().GetBool(FlagVerbose)
 		checkLockUtxos := maint.NewCheckLockUtxo()
+		jlog.Log("Starting check lock utxo for block...")
 		if err := checkLockUtxos.Check(blockHash.CloneBytes()); err != nil {
 			jerr.Get("error maint check lock utxo", err).Fatal()
 		}
 		jlog.Logf("Checked outputs: %d, missing: %d\n", checkLockUtxos.CheckedOutputs, len(checkLockUtxos.MissingUtxos))
-		for _, missingUtxo := range checkLockUtxos.MissingUtxos {
-			jlog.Logf("unspent output without lock utxo: %s:%d\n",
-				hs.GetTxString(missingUtxo.TxHash), missingUtxo.Index)
+		if verbose {
+			for _, missingUtxo := range checkLockUtxos.MissingUtxos {
+				jlog.Logf("unspent output without lock utxo: %s:%d\n",
+					hs.GetTxString(missingUtxo.TxHash), missingUtxo.Index)
+			}
 		}
 	},
 }
