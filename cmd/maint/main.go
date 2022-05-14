@@ -20,6 +20,7 @@ func GetCommand() *cobra.Command {
 		populateDoubleSpendSeenCmd,
 		populateHeightBlockShardCmd,
 		queueProfileCmd,
+		checkLockUtxoCmd,
 	)
 	return maintCommand
 }
