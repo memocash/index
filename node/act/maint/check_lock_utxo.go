@@ -14,6 +14,10 @@ import (
 type CheckLockUtxo struct {
 	MissingUtxos   []memo.Out
 	CheckedOutputs int
+	FoundInputs    int
+	FoundUtxos     int
+	OutsRemoved1   int
+	OutsRemoved2   int
 }
 
 func (c *CheckLockUtxo) Check(blockHash []byte) error {
@@ -48,11 +52,12 @@ func (c *CheckLockUtxo) Check(blockHash []byte) error {
 		if err != nil {
 			return jerr.Get("error getting output inputs for check lock utxos", err)
 		}
+		c.FoundInputs += len(outputInputs)
 		sort.Slice(outputInputs, func(i, j int) bool {
 			if !bytes.Equal(outputInputs[i].PrevHash, outputInputs[j].PrevHash) {
 				return jutil.ByteLT(outputInputs[i].PrevHash, outputInputs[j].PrevHash)
 			}
-			return outputInputs[i].Index < outputInputs[j].Index
+			return outputInputs[i].PrevIndex < outputInputs[j].PrevIndex
 		})
 		var outIndex int
 		for _, outputInput := range outputInputs {
@@ -61,6 +66,7 @@ func (c *CheckLockUtxo) Check(blockHash []byte) error {
 					outputInput.PrevIndex == outs[outIndex].Index {
 					outs = append(outs[:outIndex], outs[outIndex+1:]...)
 					outIndex--
+					c.OutsRemoved1++
 				} else if jutil.ByteLT(outputInput.PrevHash, outs[outIndex].TxHash) ||
 					(bytes.Equal(outputInput.PrevHash, outs[outIndex].TxHash) &&
 						outputInput.PrevIndex < outs[outIndex].Index) {
@@ -72,6 +78,7 @@ func (c *CheckLockUtxo) Check(blockHash []byte) error {
 		if err != nil {
 			return jerr.Get("error getting lock utxos for check lock utxos", err)
 		}
+		c.FoundUtxos += len(lockUtxos)
 		sort.Slice(lockUtxos, func(i, j int) bool {
 			if !bytes.Equal(lockUtxos[i].Hash, lockUtxos[j].Hash) {
 				return jutil.ByteLT(lockUtxos[i].Hash, lockUtxos[j].Hash)
@@ -85,6 +92,7 @@ func (c *CheckLockUtxo) Check(blockHash []byte) error {
 					lockUtxo.Index == outs[outIndex].Index {
 					outs = append(outs[:outIndex], outs[outIndex+1:]...)
 					outIndex--
+					c.OutsRemoved2++
 				} else if jutil.ByteLT(lockUtxo.Hash, outs[outIndex].TxHash) ||
 					(bytes.Equal(lockUtxo.Hash, outs[outIndex].TxHash) &&
 						lockUtxo.Index < outs[outIndex].Index) {

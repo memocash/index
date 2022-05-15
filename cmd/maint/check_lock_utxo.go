@@ -26,8 +26,10 @@ var checkLockUtxoCmd = &cobra.Command{
 		if err := checkLockUtxos.Check(blockHash.CloneBytes()); err != nil {
 			jerr.Get("error maint check lock utxo", err).Fatal()
 		}
-		jlog.Logf("Checked outputs: %d, missing: %d\n", checkLockUtxos.CheckedOutputs, len(checkLockUtxos.MissingUtxos))
+		jlog.Logf("Checked outputs: %d, spends: %d, lock utxos: %d, missing: %d\n", checkLockUtxos.CheckedOutputs,
+			checkLockUtxos.FoundInputs, checkLockUtxos.FoundUtxos, len(checkLockUtxos.MissingUtxos))
 		if verbose {
+			jlog.Logf("Removed outs (1): %d, removed outs (2): %d\n", checkLockUtxos.OutsRemoved1, checkLockUtxos.OutsRemoved2)
 			for _, missingUtxo := range checkLockUtxos.MissingUtxos {
 				jlog.Logf("unspent output without lock utxo: %s:%d\n",
 					hs.GetTxString(missingUtxo.TxHash), missingUtxo.Index)
