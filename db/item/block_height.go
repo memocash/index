@@ -98,3 +98,28 @@ func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
 	}
 	return blockHeights, nil
 }
+
+func ListenBlockHeights() (chan *BlockHeight, error) {
+	var chanBlockHeight = make(chan *BlockHeight)
+	for _, shardConfig := range config.GetQueueShards() {
+		db := client.NewClient(shardConfig.GetHost())
+		chanMessage, err := db.Listen(TopicBlockHeight, nil)
+		if err != nil {
+			return nil, jerr.Get("error getting block height listen message chan", err)
+		}
+		go func() {
+			for {
+				msg := <-chanMessage
+				if msg == nil {
+					chanBlockHeight <- nil
+					close(chanBlockHeight)
+					return
+				}
+				var blockHeight = new(BlockHeight)
+				Set(blockHeight, *msg)
+				chanBlockHeight <- blockHeight
+			}
+		}()
+	}
+	return chanBlockHeight, nil
+}

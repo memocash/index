@@ -8,12 +8,11 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -24,6 +23,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
@@ -103,6 +103,27 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 	height := int(blockHeight.Height)
 	return &model.Block{
 		Hash:      hs.GetTxString(blockHeight.BlockHash),
+		Timestamp: model.Date(blockHeader.Timestamp),
+		Height:    &height,
+	}, nil
+}
+
+func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
+	heightBlock, err := item.GetRecentHeightBlock()
+	if err != nil {
+		return nil, jerr.Get("error getting recent height block for query", err)
+	}
+	block, err := item.GetBlock(heightBlock.BlockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting raw block", err)
+	}
+	blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
+	if err != nil {
+		return nil, jerr.Get("error getting block header from raw", err)
+	}
+	height := int(heightBlock.Height)
+	return &model.Block{
+		Hash:      hs.GetTxString(heightBlock.BlockHash),
 		Timestamp: model.Date(blockHeader.Timestamp),
 		Height:    &height,
 	}, nil
@@ -202,6 +223,47 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 		}
 	}()
 	return txChan, nil
+}
+
+func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block, error) {
+	blockHeightListener, err := item.ListenBlockHeights()
+	if err != nil {
+		return nil, jerr.Get("error getting block height listener for subscription", err)
+	}
+	var blockChan = make(chan *model.Block)
+	go func() {
+		defer close(blockChan)
+		for {
+			var blockHeight *item.BlockHeight
+			select {
+			case <-ctx.Done():
+				jerr.Get("error blocks subscription context done", ctx.Err()).Print()
+				return
+			case blockHeight = <-blockHeightListener:
+			}
+			if blockHeight == nil {
+				jlog.Log("nil block height, closing subscription")
+				return
+			}
+			block, err := item.GetBlock(blockHeight.BlockHash)
+			if err != nil {
+				jerr.Get("error getting block for block height subscription", err).Print()
+				return
+			}
+			blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
+			if err != nil {
+				jerr.Get("error getting block header from raw", err).Print()
+				return
+			}
+			height := int(blockHeight.Height)
+			blockChan <- &model.Block{
+				Hash:      hs.GetTxString(blockHeight.BlockHash),
+				Timestamp: model.Date(blockHeader.Timestamp),
+				Height:    &height,
+			}
+		}
+	}()
+	return blockChan, nil
 }
 
 // Query returns generated.QueryResolver implementation.

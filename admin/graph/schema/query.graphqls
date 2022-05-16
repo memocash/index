@@ -4,10 +4,12 @@ type Query {
     address(address: String!): Lock
     addresses(addresses: [String!]): [Lock]
     block(hash: String!): Block
+    block_newest: Block
     blocks(newest: Boolean, start: Uint32): [Block!]
     double_spends(newest: Boolean, start: Date): [DoubleSpend!]
 }
 
 type Subscription {
     address(address: String!): Tx
+    blocks: Block
 }

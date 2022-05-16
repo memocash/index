@@ -84,6 +84,7 @@ type ComplexityRoot struct {
 		Address      func(childComplexity int, address string) int
 		Addresses    func(childComplexity int, addresses []string) int
 		Block        func(childComplexity int, hash string) int
+		BlockNewest  func(childComplexity int) int
 		Blocks       func(childComplexity int, newest *bool, start *uint32) int
 		DoubleSpends func(childComplexity int, newest *bool, start *model.Date) int
 		Tx           func(childComplexity int, hash string) int
@@ -92,6 +93,7 @@ type ComplexityRoot struct {
 
 	Subscription struct {
 		Address func(childComplexity int, address string) int
+		Blocks  func(childComplexity int) int
 	}
 
 	Tx struct {
@@ -157,11 +159,13 @@ type QueryResolver interface {
 	Address(ctx context.Context, address string) (*model.Lock, error)
 	Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error)
 	Block(ctx context.Context, hash string) (*model.Block, error)
+	BlockNewest(ctx context.Context) (*model.Block, error)
 	Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error)
 	DoubleSpends(ctx context.Context, newest *bool, start *model.Date) ([]*model.DoubleSpend, error)
 }
 type SubscriptionResolver interface {
 	Address(ctx context.Context, address string) (<-chan *model.Tx, error)
+	Blocks(ctx context.Context) (<-chan *model.Block, error)
 }
 type TxResolver interface {
 	Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInput, error)
@@ -362,6 +366,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Block(childComplexity, args["hash"].(string)), true
 
+	case "Query.block_newest":
+		if e.complexity.Query.BlockNewest == nil {
+			break
+		}
+
+		return e.complexity.Query.BlockNewest(childComplexity), true
+
 	case "Query.blocks":
 		if e.complexity.Query.Blocks == nil {
 			break
@@ -421,6 +432,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Subscription.Address(childComplexity, args["address"].(string)), true
+
+	case "Subscription.blocks":
+		if e.complexity.Subscription.Blocks == nil {
+			break
+		}
+
+		return e.complexity.Subscription.Blocks(childComplexity), true
 
 	case "Tx.blocks":
 		if e.complexity.Tx.Blocks == nil {
@@ -725,12 +743,14 @@ var sources = []*ast.Source{
     address(address: String!): Lock
     addresses(addresses: [String!]): [Lock]
     block(hash: String!): Block
+    block_newest: Block
     blocks(newest: Boolean, start: Uint32): [Block!]
     double_spends(newest: Boolean, start: Date): [DoubleSpend!]
 }
 
 type Subscription {
     address(address: String!): Tx
+    blocks: Block
 }
 `, BuiltIn: false},
 	{Name: "schema/scalar.graphqls", Input: `scalar Int64
@@ -1755,6 +1775,38 @@ func (ec *executionContext) _Query_block(ctx context.Context, field graphql.Coll
 	return ec.marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_block_newest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().BlockNewest(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Block)
+	fc.Result = res
+	return ec.marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_blocks(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1948,6 +2000,48 @@ func (ec *executionContext) _Subscription_address(ctx context.Context, field gra
 			graphql.MarshalString(field.Alias).MarshalGQL(w)
 			w.Write([]byte{':'})
 			ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
+func (ec *executionContext) _Subscription_blocks(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().Blocks(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.Block)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res).MarshalGQL(w)
 			w.Write([]byte{'}'})
 		})
 	}
@@ -4398,6 +4492,26 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "block_newest":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_block_newest(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "blocks":
 			field := field
 
@@ -4478,6 +4592,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch fields[0].Name {
 	case "address":
 		return ec._Subscription_address(ctx, fields[0])
+	case "blocks":
+		return ec._Subscription_blocks(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
