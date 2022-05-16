@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -99,7 +100,8 @@ func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
 	return blockHeights, nil
 }
 
-func ListenBlockHeights() (chan *BlockHeight, error) {
+func ListenBlockHeights(ctx context.Context) (chan *BlockHeight, error) {
+	cancelCtx, cancel := context.WithCancel(ctx)
 	var chanBlockHeight = make(chan *BlockHeight)
 	for _, shardConfig := range config.GetQueueShards() {
 		db := client.NewClient(shardConfig.GetHost())
@@ -109,9 +111,15 @@ func ListenBlockHeights() (chan *BlockHeight, error) {
 		}
 		go func() {
 			for {
-				msg := <-chanMessage
+				var msg *client.Message
+				select {
+				case <-cancelCtx.Done():
+					return
+				case msg = <-chanMessage:
+				}
 				if msg == nil {
 					chanBlockHeight <- nil
+					cancel()
 					return
 				}
 				var blockHeight = new(BlockHeight)

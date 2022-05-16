@@ -226,7 +226,7 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 }
 
 func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block, error) {
-	blockHeightListener, err := item.ListenBlockHeights()
+	blockHeightListener, err := item.ListenBlockHeights(ctx)
 	if err != nil {
 		return nil, jerr.Get("error getting block height listener for subscription", err)
 	}
