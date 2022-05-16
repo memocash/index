@@ -232,7 +232,7 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 	}
 	var blockChan = make(chan *model.Block)
 	go func() {
-		defer close(blockChan)
+		defer func() { blockChan <- nil }()
 		for {
 			var blockHeight *item.BlockHeight
 			select {

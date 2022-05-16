@@ -112,7 +112,6 @@ func ListenBlockHeights() (chan *BlockHeight, error) {
 				msg := <-chanMessage
 				if msg == nil {
 					chanBlockHeight <- nil
-					close(chanBlockHeight)
 					return
 				}
 				var blockHeight = new(BlockHeight)
