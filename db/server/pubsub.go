@@ -81,7 +81,7 @@ func ListenSingle(ctx context.Context, topic string, start []byte, prefixes [][]
 		defer sub.Close()
 		select {
 		case <-ctx.Done():
-			done <- jerr.Newf("error timeout")
+			done <- jerr.Newf("error timeout listen single context")
 		case <-sub.UidChan:
 			done <- nil
 		}

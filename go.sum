@@ -222,12 +222,13 @@ github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NHg9XEKhtSvM=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
-github.com/jchavannes/bchutil v1.1.3 h1:vv3iYLW3aQt/vAgDRRG0PdGyaEyBTNO9DOQH+Q9Gc9o=
-github.com/jchavannes/bchutil v1.1.3/go.mod h1:Q8nQQBCgKfv/dLE62W1j1f7mbSCUxYum3YJnqBxJGxc=
+github.com/jchavannes/bchutil v1.1.5-0.20220519214029-6a6c086b1f21 h1:RWjGgv9WeIm3/9LNJQgPo+OQmUcf+JOHTEi40l/49Xc=
+github.com/jchavannes/bchutil v1.1.5-0.20220519214029-6a6c086b1f21/go.mod h1:RMY/WfPnja9xSHTwWGo18m5cysga+CusjTvp9GK7DXg=
 github.com/jchavannes/btcd v1.1.3/go.mod h1:St0/2+Kqgp5VDuUcmp+4Slsx1STz6yUlkEL5YZ95TjM=
 github.com/jchavannes/btcd v1.1.4/go.mod h1:e0hFVlDywdbJkZr1DSZNRf0pcuOqddUAWOYmPELgjjM=
-github.com/jchavannes/btcd v1.1.5-0.20220406213515-10beee4eb768 h1:90C1qWQXuBYEkotrpqUZIuZGWTIGZ9P/++6iGlSM1rY=
-github.com/jchavannes/btcd v1.1.5-0.20220406213515-10beee4eb768/go.mod h1:e0hFVlDywdbJkZr1DSZNRf0pcuOqddUAWOYmPELgjjM=
+github.com/jchavannes/btcd v1.1.5-0.20220519213716-7bed47cfae5b/go.mod h1:e0hFVlDywdbJkZr1DSZNRf0pcuOqddUAWOYmPELgjjM=
+github.com/jchavannes/btcd v1.1.5-0.20220522064301-f19f7c1a2514 h1:7ammi6Bz3egEZLc/NfrKzXmLPVd8cvdaJo5iyZkQd0w=
+github.com/jchavannes/btcd v1.1.5-0.20220522064301-f19f7c1a2514/go.mod h1:e0hFVlDywdbJkZr1DSZNRf0pcuOqddUAWOYmPELgjjM=
 github.com/jchavannes/btclog v1.1.0 h1:UWXSCm2v+6Dr3vN5WtfWfnuQe6YQAbgghOAh2xG2WBM=
 github.com/jchavannes/btclog v1.1.0/go.mod h1:jgXlyu/UfDM+TCp+ui1o0M0w4Fvh4z4QOe0VyZDeasU=
 github.com/jchavannes/btcrpcclient v1.1.3 h1:ETwt7XMJApfH4lmORpsUG3BGUHjMeSa2IgMATOcZP1I=

@@ -32,7 +32,7 @@ func Sign(msg *wire.MsgTx, inputs []memo.TxInput, keyRing wallet.KeyRing) error 
 }
 
 func InputSignature(tx *wire.MsgTx, index int, keyRing wallet.KeyRing, spendOuts []memo.TxInput) ([]byte, error) {
-	sig, err := txscript.RawTxInSignature(
+	sig, err := txscript.RawTxInECDSASignature(
 		tx, index, spendOuts[index].PkScript, txscript.SigHashAll|wallet.SigHashForkID,
 		keyRing.GetKey(spendOuts[index].PkHash).GetBtcEcPrivateKey(), spendOuts[index].Value)
 	if err != nil {
@@ -42,7 +42,7 @@ func InputSignature(tx *wire.MsgTx, index int, keyRing wallet.KeyRing, spendOuts
 }
 
 func InputSignatureSingle(tx *wire.MsgTx, index int, privateKey wallet.PrivateKey, prevOut memo.Out) ([]byte, error) {
-	sig, err := txscript.RawTxInSignature(
+	sig, err := txscript.RawTxInECDSASignature(
 		tx, index, prevOut.PkScript, txscript.SigHashSingle|txscript.SigHashAnyOneCanPay|wallet.SigHashForkID,
 		privateKey.GetBtcEcPrivateKey(), prevOut.Value)
 	if err != nil {

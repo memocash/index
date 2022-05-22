@@ -34,7 +34,7 @@ func (tst VerifyTest) Test(t *testing.T) {
 	err := sign.Verify(tst.Tx, tst.InputTxs)
 	if (err != nil && tst.Error == "") || (err == nil && tst.Error != "") ||
 		(tst.Error != "" && !jerr.HasError(err, tst.Error)) {
-		t.Error(jerr.Newf("VerifyTest does not match expected: %s", tst.Error))
+		t.Error(jerr.Newf("VerifyTest does not match expected: %s - %s", tst.Error, err))
 	}
 }
 

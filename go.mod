@@ -4,8 +4,8 @@ go 1.16
 
 require (
 	github.com/99designs/gqlgen v0.16.0
-	github.com/jchavannes/bchutil v1.1.3
-	github.com/jchavannes/btcd v1.1.5-0.20220406213515-10beee4eb768
+	github.com/jchavannes/bchutil v1.1.5-0.20220519214029-6a6c086b1f21
+	github.com/jchavannes/btcd v1.1.5-0.20220522064301-f19f7c1a2514
 	github.com/jchavannes/btclog v1.1.0
 	github.com/jchavannes/btcutil v1.1.4
 	github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65

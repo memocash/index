@@ -104,7 +104,7 @@ func (h *ScriptHasher) Add(pkScript []byte, hashType txscript.SigHashType, idx i
 	binary.LittleEndian.PutUint32(sigHash.OutPointIndex[:], h.Tx.TxIn[idx].PreviousOutPoint.Index)
 
 	flags := txscript.StandardVerifyFlags
-	vm, err := txscript.NewEngine(pkScript, &h.Tx, idx, flags, nil)
+	vm, err := txscript.NewEngine(pkScript, &h.Tx, idx, flags, nil, amt)
 	if err != nil {
 		return jerr.Get("error new pk script engine", err)
 	}

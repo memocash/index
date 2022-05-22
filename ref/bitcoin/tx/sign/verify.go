@@ -42,7 +42,7 @@ func VerifyWithOutputs(tx *wire.MsgTx, outputs []*Output) error {
 	flags := txscript.StandardVerifyFlags
 	for index := range tx.TxIn {
 		out := outputs[index]
-		vm, err := txscript.NewEngine(out.PkScript, tx, index, flags, nil)
+		vm, err := txscript.NewEngine(out.PkScript, tx, index, flags, nil, out.Value)
 		if err != nil {
 			return jerr.Getf(err, "error getting new tx script engine for input: %s:%d", tx.TxHash(), index)
 		}
@@ -54,9 +54,9 @@ func VerifyWithOutputs(tx *wire.MsgTx, outputs []*Output) error {
 	return nil
 }
 
-func VerifySignature(pkScript []byte, spendTx *wire.MsgTx, index int) error {
+func VerifySignature(pkScript []byte, spendTx *wire.MsgTx, index int, amount int64) error {
 	flags := txscript.StandardVerifyFlags
-	vm, err := txscript.NewEngine(pkScript, spendTx, index, flags, nil)
+	vm, err := txscript.NewEngine(pkScript, spendTx, index, flags, nil, amount)
 	if err != nil {
 		return jerr.Get("error getting new tx script engine", err)
 	}
