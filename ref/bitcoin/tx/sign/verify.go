@@ -46,8 +46,7 @@ func VerifyWithOutputs(tx *wire.MsgTx, outputs []*Output) error {
 		if err != nil {
 			return jerr.Getf(err, "error getting new tx script engine for input: %s:%d", tx.TxHash(), index)
 		}
-		err = vm.Execute()
-		if err != nil {
+		if err = vm.Execute(); err != nil {
 			return jerr.Getf(err, "error executing vm engine for input: %s:%d", tx.TxHash(), index)
 		}
 	}
@@ -60,8 +59,7 @@ func VerifySignature(pkScript []byte, spendTx *wire.MsgTx, index int, amount int
 	if err != nil {
 		return jerr.Get("error getting new tx script engine", err)
 	}
-	err = vm.Execute()
-	if err != nil {
+	if err = vm.Execute(); err != nil {
 		return jerr.Get("error executing vm engine", err)
 	}
 	return nil
