@@ -49,3 +49,9 @@
 .bold {
     font-weight: bold;
 }
+
+pre.pre {
+    width: 100%;
+    word-break: break-all;
+    white-space: pre-wrap;
+}

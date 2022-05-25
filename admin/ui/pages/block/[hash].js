@@ -25,6 +25,7 @@ export default function LockHash() {
             hash
             height
             timestamp
+            raw
             txs(start: $start) {
                 hash
             }
@@ -82,6 +83,12 @@ export default function LockHash() {
                     <div className={column.container}>
                         <div className={column.width15}>Height</div>
                         <div className={column.width85}>{block.height.toLocaleString()}</div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width15}>Raw</div>
+                        <div className={column.width85}>
+                            <pre className={column.pre}>{block.raw}</pre>
+                        </div>
                     </div>
                     <div className={column.container}>
                         <div>
