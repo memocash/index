@@ -1,5 +1,6 @@
 type Block {
     hash: String!
+    raw: String!
     timestamp: Date!
     height: Int
     txs(start: String): [Tx!]

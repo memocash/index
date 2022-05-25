@@ -105,6 +105,7 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 		Hash:      hs.GetTxString(blockHeight.BlockHash),
 		Timestamp: model.Date(blockHeader.Timestamp),
 		Height:    &height,
+		Raw:       hex.EncodeToString(block.Raw),
 	}, nil
 }
 

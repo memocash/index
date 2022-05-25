@@ -41,6 +41,7 @@ type Lock struct {
 
 type Block struct {
 	Hash      string `json:"hash"`
+	Raw       string `json:"raw"`
 	Timestamp Date   `json:"timestamp"`
 	Height    *int   `json:"height"`
 }
