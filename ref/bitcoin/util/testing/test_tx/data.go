@@ -132,6 +132,13 @@ var (
 )
 
 const (
+	BlockHeight659588 = 659588 // BlockHeight659588 is first block in tests
+	BlockHeight659589 = 659589
+	BlockHeight659590 = 659590
+	BlockHeight659591 = 659591
+	BlockHeight659592 = 659592
+	BlockHeight659593 = 659593
+
 	Block659588HashStr       = "00000000000000000177033d90e3c3622d14b1734c01bd6a29b3f93739770ee5"
 	Block659589OrphanHashStr = "000000000000000002a705c477b54cd00bd7c2e89fb23e19a5d1d783a01d8eeb"
 	Block659589RealHashStr   = "000000000000000003802538273ed0e9dbffeddbebf1ad3d4f8fed673843f811"
