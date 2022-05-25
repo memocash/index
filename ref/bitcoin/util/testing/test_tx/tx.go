@@ -2,7 +2,6 @@ package test_tx
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/build"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -41,8 +40,11 @@ var fundingTx = Tx{
 	}},
 }
 
+var fundingIndex uint32
+
 func GetFundingTx(address wallet.Address, amount int64) (*memo.Tx, error) {
-	address1wlt := GetWallet(Address1key, amount+memo.FeeP2pkh1In1OutTx, jutil.FastHash32Uint(address.GetEncoded())%10e6)
+	fundingIndex++
+	address1wlt := GetWallet(Address1key, amount+memo.FeeP2pkh1In1OutTx, fundingIndex)
 	utxos, _ := address1wlt.Getter.GetUTXOs(nil)
 	tx, err := build.Send(build.SendRequest{
 		Wallet:  address1wlt,
