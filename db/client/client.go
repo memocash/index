@@ -301,17 +301,17 @@ func (s *Client) GetTopicList() error {
 	return nil
 }
 
-func (s *Client) Listen(topic string, prefixes [][]byte) (chan *Message, error) {
+func (s *Client) Listen(ctx context.Context, topic string, prefixes [][]byte) (chan *Message, error) {
 	if err := s.SetConn(); err != nil {
 		return nil, jerr.Get("error setting connection", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultSetTimeout)
+	ctx2, cancel := context.WithTimeout(ctx, DefaultSetTimeout)
 	var request = &queue_pb.RequestStream{
 		Topic:    topic,
 		Prefixes: prefixes,
 	}
-	stream, err := c.GetStreamMessages(ctx, request)
+	stream, err := c.GetStreamMessages(ctx2, request)
 	if err != nil {
 		cancel()
 		return nil, jerr.Get("error getting stream messages", err)

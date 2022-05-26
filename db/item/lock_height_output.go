@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -55,7 +56,7 @@ func ListenMempoolLockHeightOutputs(lockHash []byte) (chan *LockHeightOutput, er
 		lockHash,
 		jutil.GetInt64DataBig(HeightMempool),
 	)
-	chanMessage, err := db.Listen(TopicLockHeightOutput, [][]byte{prefix})
+	chanMessage, err := db.Listen(context.Background(), TopicLockHeightOutput, [][]byte{prefix})
 	if err != nil {
 		return nil, jerr.Get("error getting lock height output listen message chan", err)
 	}

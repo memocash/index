@@ -33,7 +33,7 @@ func (t *Block) SaveBlock(header wire.BlockHeader) error {
 func (t *Block) saveBlockObjects(header wire.BlockHeader) error {
 	var objects = make([]item.Object, 1)
 	if t.Verbose {
-		jlog.Logf("block: %s\n", t.BlockHash.String())
+		jlog.Logf("saving block: %s\n", t.BlockHash.String())
 	}
 	headerRaw := memo.GetRawBlockHeader(header)
 	objects[0] = &item.Block{

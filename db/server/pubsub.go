@@ -8,6 +8,7 @@ import (
 
 type Subscribe struct {
 	Id       int64
+	Shard    uint
 	Topic    string
 	Start    []byte
 	Prefixes [][]byte
@@ -24,10 +25,11 @@ type PubSub struct {
 	Subs map[int64]*Subscribe
 }
 
-func (s *PubSub) Subscribe(topic string, start []byte, prefixes [][]byte) *Subscribe {
+func (s *PubSub) Subscribe(shard uint, topic string, start []byte, prefixes [][]byte) *Subscribe {
 	s.Incr++
 	var sub = &Subscribe{
 		Id:       s.Incr,
+		Shard:    shard,
 		Topic:    topic,
 		Start:    start,
 		Prefixes: prefixes,
@@ -43,13 +45,16 @@ func (s *PubSub) Close(id int64) {
 	delete(s.Subs, id)
 }
 
-func (s *PubSub) Publish(topic string, uid []byte) {
+func (s *PubSub) Publish(shard uint, topic string, uid []byte) {
 	for id := range s.Subs {
 		var sub = s.Subs[id]
-		if sub.Topic != topic {
-		} else if len(sub.Start) > 0 && bytes.Compare(uid, sub.Start) == 1 {
-			sub.UidChan <- uid
-		} else {
+		if sub.Shard != shard || sub.Topic != topic {
+			continue
+		} else if len(sub.Start) > 0 {
+			if bytes.Compare(uid, sub.Start) == 1 {
+				sub.UidChan <- uid
+			}
+		} else if len(sub.Prefixes) > 0 {
 			lenUid := len(uid)
 			for _, prefix := range sub.Prefixes {
 				lenPrefix := len(prefix)
@@ -58,6 +63,8 @@ func (s *PubSub) Publish(topic string, uid []byte) {
 					continue
 				}
 			}
+		} else {
+			sub.UidChan <- uid
 		}
 	}
 }
@@ -73,11 +80,11 @@ func initNewListener() {
 }
 
 // ListenSingle returns nil if a matching new item is found, otherwise an error
-func ListenSingle(ctx context.Context, topic string, start []byte, prefixes [][]byte) error {
+func ListenSingle(ctx context.Context, shard uint, topic string, start []byte, prefixes [][]byte) error {
 	initNewListener()
 	var done = make(chan error)
 	go func() {
-		sub := _globalPubSub.Subscribe(topic, start, prefixes)
+		sub := _globalPubSub.Subscribe(shard, topic, start, prefixes)
 		defer sub.Close()
 		select {
 		case <-ctx.Done():
@@ -90,11 +97,11 @@ func ListenSingle(ctx context.Context, topic string, start []byte, prefixes [][]
 }
 
 // Listen returns a channel of messages
-func Listen(ctx context.Context, topic string, prefixes [][]byte) chan []byte {
+func Listen(ctx context.Context, shard uint, topic string, prefixes [][]byte) chan []byte {
 	initNewListener()
 	var uidChan = make(chan []byte)
 	go func() {
-		sub := _globalPubSub.Subscribe(topic, nil, prefixes)
+		sub := _globalPubSub.Subscribe(shard, topic, nil, prefixes)
 		defer sub.Close()
 		for {
 			select {
@@ -108,7 +115,7 @@ func Listen(ctx context.Context, topic string, prefixes [][]byte) chan []byte {
 	return uidChan
 }
 
-func ReceiveNew(topic string, uid []byte) {
+func ReceiveNew(shard uint, topic string, uid []byte) {
 	initNewListener()
-	_globalPubSub.Publish(topic, uid)
+	_globalPubSub.Publish(shard, topic, uid)
 }

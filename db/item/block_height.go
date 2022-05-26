@@ -105,7 +105,7 @@ func ListenBlockHeights(ctx context.Context) (chan *BlockHeight, error) {
 	var chanBlockHeight = make(chan *BlockHeight)
 	for _, shardConfig := range config.GetQueueShards() {
 		db := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := db.Listen(TopicBlockHeight, nil)
+		chanMessage, err := db.Listen(ctx, TopicBlockHeight, nil)
 		if err != nil {
 			return nil, jerr.Get("error getting block height listen message chan", err)
 		}

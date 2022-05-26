@@ -217,28 +217,21 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 	var msgTxs = make([]*wire.MsgTx, len(txBlock.Txs))
 	var err error
 	for i := range txBlock.Txs {
-		msgTxs[i], err = memo.GetMsgFromRaw(txBlock.Txs[i].Raw)
-		if err != nil {
+		if msgTxs[i], err = memo.GetMsgFromRaw(txBlock.Txs[i].Raw); err != nil {
 			return nil, jerr.Get("error getting tx from raw", err)
 		}
 	}
-	blockHeader, err := memo.GetBlockHeaderFromRaw(txBlock.Block.Header)
-	if err != nil {
+	if blockHeader, err := memo.GetBlockHeaderFromRaw(txBlock.Block.Header); err != nil {
 		return nil, jerr.Get("error parsing block header", err)
-	}
-	blockSaver := saver.NewBlock(true)
-	if err = blockSaver.SaveBlock(*blockHeader); err != nil {
+	} else if err := saver.NewBlock(true).SaveBlock(*blockHeader); err != nil {
 		return nil, jerr.Get("error saving block", err)
-	}
-	combinedSaver := saver.NewCombined([]dbi.TxSave{
+	} else if err := saver.NewCombined([]dbi.TxSave{
 		saver.NewTxRaw(false),
 		saver.NewTx(false),
 		saver.NewUtxo(false),
 		saver.NewLockHeight(false),
 		saver.NewDoubleSpend(false),
-	})
-	err = combinedSaver.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader))
-	if err != nil {
+	}).SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader)); err != nil {
 		return nil, jerr.Get("error saving transactions", err)
 	}
 	return &network_pb.ErrorReply{}, nil

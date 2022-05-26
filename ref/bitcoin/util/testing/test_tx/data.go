@@ -3,6 +3,7 @@ package test_tx
 import (
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
+	"github.com/jchavannes/btcd/wire"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/build"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
@@ -172,6 +173,15 @@ var (
 	Block659591Header       = GetBlockHeader(Block659591HeaderStr)
 	Block659592Header       = GetBlockHeader(Block659592HeaderStr)
 	Block659593Header       = GetBlockHeader(Block659593HeaderStr)
+
+	BlockHeightHeaders = map[int]wire.BlockHeader{
+		BlockHeight659588: Block659588Header,
+		BlockHeight659589: Block659589RealHeader,
+		BlockHeight659590: Block659590Header,
+		BlockHeight659591: Block659591Header,
+		BlockHeight659592: Block659592Header,
+		BlockHeight659593: Block659593Header,
+	}
 )
 
 func GetAddress1WalletSingle100k() build.Wallet {

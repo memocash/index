@@ -79,7 +79,7 @@ func (s *Server) SaveMsgs(msgs []*Msg) error {
 			return jerr.Getf(err, "error saving messages for topic: %s", topic)
 		}
 		for _, message := range messagesToSave {
-			ReceiveNew(topic, message.Uid)
+			ReceiveNew(s.Shard, topic, message.Uid)
 		}
 	}
 	return nil
@@ -134,7 +134,7 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 				return nil, jerr.Getf(err, "error getting messages for topic: %s", request.Topic)
 			}
 			if len(messages) == 0 && request.Wait && i == 0 {
-				if err := ListenSingle(ctx, request.Topic, request.Start, request.Prefixes); err != nil {
+				if err := ListenSingle(ctx, s.Shard, request.Topic, request.Start, request.Prefixes); err != nil {
 					return nil, jerr.Get("error listening for new topic item", err)
 				}
 			} else {
@@ -156,7 +156,7 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 }
 
 func (s *Server) GetStreamMessages(request *queue_pb.RequestStream, server queue_pb.Queue_GetStreamMessagesServer) error {
-	uidChan := Listen(server.Context(), request.Topic, request.Prefixes)
+	uidChan := Listen(server.Context(), s.Shard, request.Topic, request.Prefixes)
 	for {
 		uid := <-uidChan
 		if uid == nil {
@@ -166,6 +166,10 @@ func (s *Server) GetStreamMessages(request *queue_pb.RequestStream, server queue
 		message, err := store.GetMessage(request.Topic, s.Shard, uid)
 		if err != nil {
 			return jerr.Getf(err, "error getting stream message for topic: %s", request.Topic)
+		}
+		if message == nil {
+			return jerr.Newf("error nil message from store for stream, shard: %d, topic: %s, uid: %x",
+				s.Shard, request.Topic, uid)
 		}
 		server.Send(&queue_pb.Message{
 			Uid:     uid,
