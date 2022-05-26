@@ -26,6 +26,9 @@ type PubSub struct {
 }
 
 func (s *PubSub) Subscribe(shard uint, topic string, start []byte, prefixes [][]byte) *Subscribe {
+	//prefixStrings := jutil.ByteSliceStrings(prefixes)
+	//jlog.Logf("New subscribe item shard: %d, topic: %s, start: %x, prefixes: %s\n",
+	//	shard, topic, start, strings.Join(prefixStrings, " "))
 	s.Incr++
 	var sub = &Subscribe{
 		Id:       s.Incr,
@@ -46,6 +49,7 @@ func (s *PubSub) Close(id int64) {
 }
 
 func (s *PubSub) Publish(shard uint, topic string, uid []byte) {
+	//jlog.Logf("New published item shard: %d, topic: %s, uid: %x\n", shard, topic, uid)
 	for id := range s.Subs {
 		var sub = s.Subs[id]
 		if sub.Shard != shard || sub.Topic != topic {
