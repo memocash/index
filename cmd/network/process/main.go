@@ -25,6 +25,8 @@ func GetCommand() *cobra.Command {
 		doubleSpendCmd,
 		lockHeightCmd,
 		utxoCmd,
+		statusGetCmd,
+		statusSetCmd,
 	)
 	return processCommand
 }
