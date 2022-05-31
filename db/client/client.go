@@ -306,7 +306,7 @@ func (s *Client) Listen(ctx context.Context, topic string, prefixes [][]byte) (c
 		return nil, jerr.Get("error setting connection", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
-	ctx2, cancel := context.WithTimeout(ctx, DefaultSetTimeout)
+	ctx2, cancel := context.WithTimeout(ctx, DefaultStreamTimeout)
 	var request = &queue_pb.RequestStream{
 		Topic:    topic,
 		Prefixes: prefixes,
