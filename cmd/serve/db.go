@@ -21,6 +21,7 @@ var dbCmd = &cobra.Command{
 		if len(shards) < shard {
 			jerr.Newf("fatal error shard specified greater than num shards: %d %d", shard, len(shards)).Fatal()
 		}
+		go config.SetProfileSignalListener()
 		server := db.NewServer(uint(shards[shard].Port), uint(shard))
 		jlog.Logf("Starting queue server shard %d on port %d...\n", server.Shard, server.Port)
 		jerr.Get("fatal error running queue server", server.Run()).Fatal()
