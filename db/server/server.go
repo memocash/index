@@ -204,7 +204,7 @@ func (s *Server) Start() error {
 		return jerr.Get("failed to listen", err)
 	}
 	go s.StartMessageChan()
-	s.Grpc = grpc.NewServer(grpc.MaxRecvMsgSize(32*10e6), grpc.MaxSendMsgSize(32*10e6))
+	s.Grpc = grpc.NewServer(grpc.MaxRecvMsgSize(client.MaxMessageSize), grpc.MaxSendMsgSize(client.MaxMessageSize))
 	queue_pb.RegisterQueueServer(s.Grpc, s)
 	reflection.Register(s.Grpc)
 	return nil

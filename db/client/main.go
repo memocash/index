@@ -24,6 +24,10 @@ const (
 )
 
 const (
+	MaxMessageSize = 32 * 10e7
+)
+
+const (
 	MessageNotSetErrorMessage  = "error message not set"
 	MultipleEntryErrorMessage  = "error multiple entries found"
 	EntryNotFoundErrorMessage  = "error entry not found"

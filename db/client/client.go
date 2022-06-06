@@ -80,7 +80,7 @@ func (s *Client) Save(messages []*Message, timestamp time.Time) error {
 		queueMessagesToUse, queueMessages = queueMessages[:max], queueMessages[max:]
 		reply, err := c.SaveMessages(ctx, &queue_pb.Messages{
 			Messages: queueMessagesToUse,
-		}, grpc.MaxCallRecvMsgSize(32*10e6), grpc.MaxCallSendMsgSize(32*10e6))
+		}, grpc.MaxCallRecvMsgSize(MaxMessageSize), grpc.MaxCallSendMsgSize(MaxMessageSize))
 		if err != nil {
 			return jerr.Getf(err, "error saving messages and getting reply rpc: %d", len(queueMessagesToUse))
 		}
@@ -262,7 +262,7 @@ func (s *Client) GetWOpts(opts Opts) error {
 			Uids:     optGroup.Uids,
 			Wait:     optGroup.Wait,
 			Newest:   optGroup.Newest,
-		}, grpc.MaxCallRecvMsgSize(32*10e6))
+		}, grpc.MaxCallRecvMsgSize(MaxMessageSize))
 		if err != nil {
 			return jerr.Get("error getting messages rpc", err)
 		}
