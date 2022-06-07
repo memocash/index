@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	BlockProcessLimit = client.LargeLimit
+	BlockProcessLimit = client.MediumLimit
 )
 
 type HeightBlock struct {

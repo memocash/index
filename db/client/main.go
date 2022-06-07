@@ -18,6 +18,7 @@ const (
 
 const (
 	DefaultLimit = db_util.DefaultLimit
+	MediumLimit  = db_util.MediumLimit
 	LargeLimit   = db_util.LargeLimit
 	ExLargeLimit = db_util.ExLargeLimit
 	HugeLimit    = db_util.HugeLimit
