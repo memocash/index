@@ -10,7 +10,7 @@ import (
 	"github.com/memocash/index/admin/graph/generated"
 )
 
-func (r *mutationResolver) Null(ctx context.Context) (*int, error) {
+func (r *mutationResolver) Broadcast(ctx context.Context, raw string) (*bool, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

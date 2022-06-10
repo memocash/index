@@ -78,7 +78,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		Null func(childComplexity int) int
+		Broadcast func(childComplexity int, raw string) int
 	}
 
 	Query struct {
@@ -152,7 +152,7 @@ type LockResolver interface {
 	Outputs(ctx context.Context, obj *model.Lock, start *model.HashIndex, height *int) ([]*model.TxOutput, error)
 }
 type MutationResolver interface {
-	Null(ctx context.Context) (*int, error)
+	Broadcast(ctx context.Context, raw string) (*bool, error)
 }
 type QueryResolver interface {
 	Tx(ctx context.Context, hash string) (*model.Tx, error)
@@ -331,12 +331,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Lock.Utxos(childComplexity, args["start"].(*model.HashIndex)), true
 
-	case "Mutation.null":
-		if e.complexity.Mutation.Null == nil {
+	case "Mutation.broadcast":
+		if e.complexity.Mutation.Broadcast == nil {
 			break
 		}
 
-		return e.complexity.Mutation.Null(childComplexity), true
+		args, err := ec.field_Mutation_broadcast_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Broadcast(childComplexity, args["raw"].(string)), true
 
 	case "Query.address":
 		if e.complexity.Query.Address == nil {
@@ -743,7 +748,7 @@ var sources = []*ast.Source{
 }
 `, BuiltIn: false},
 	{Name: "schema/mutation.graphqls", Input: `type Mutation {
-    null: Int
+    broadcast(raw: String!): Boolean
 }
 `, BuiltIn: false},
 	{Name: "schema/query.graphqls", Input: `type Query {
@@ -867,6 +872,21 @@ func (ec *executionContext) field_Lock_utxos_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["start"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_broadcast_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["raw"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("raw"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["raw"] = arg0
 	return args, nil
 }
 
@@ -1592,7 +1612,7 @@ func (ec *executionContext) _Lock_outputs(ctx context.Context, field graphql.Col
 	return ec.marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_null(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_broadcast(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1608,9 +1628,16 @@ func (ec *executionContext) _Mutation_null(ctx context.Context, field graphql.Co
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_broadcast_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Null(rctx)
+		return ec.resolvers.Mutation().Broadcast(rctx, args["raw"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1619,9 +1646,9 @@ func (ec *executionContext) _Mutation_null(ctx context.Context, field graphql.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*int)
+	res := resTmp.(*bool)
 	fc.Result = res
-	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_tx(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4409,9 +4436,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "null":
+		case "broadcast":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_null(ctx, field)
+				return ec._Mutation_broadcast(ctx, field)
 			}
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)
