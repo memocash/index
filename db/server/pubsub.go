@@ -110,7 +110,7 @@ func Listen(ctx context.Context, shard uint, topic string, prefixes [][]byte) ch
 		for {
 			select {
 			case <-ctx.Done():
-				break
+				return
 			case uid := <-sub.UidChan:
 				uidChan <- uid
 			}
