@@ -200,17 +200,25 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 	if err != nil {
 		return nil, jerr.Get("error getting lock script for address subscription", err)
 	}
+	ctx, cancel := context.WithCancel(ctx)
 	lockHeightOutputsListener, err := item.ListenMempoolLockHeightOutputs(ctx, script.GetLockHash(lockScript))
 	if err != nil {
+		cancel()
 		return nil, jerr.Get("error getting lock height outputs listener for address subscription", err)
 	}
 	lockHeightInputsListener, err := item.ListenMempoolLockHeightOutputInputs(ctx, script.GetLockHash(lockScript))
 	if err != nil {
+		cancel()
 		return nil, jerr.Get("error getting lock height inputs listener for address subscription", err)
 	}
 	var txChan = make(chan *model.Tx)
 	go func() {
-		defer func() { txChan <- nil }()
+		defer func() {
+			txChan <- nil
+			close(lockHeightOutputsListener)
+			close(lockHeightInputsListener)
+			cancel()
+		}()
 		for {
 			select {
 			case lockHeightOutput := <-lockHeightOutputsListener:
