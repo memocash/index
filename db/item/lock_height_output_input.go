@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -52,6 +53,31 @@ func (t LockHeightOutputInput) Serialize() []byte {
 }
 
 func (t *LockHeightOutputInput) Deserialize([]byte) {}
+
+func ListenMempoolLockHeightOutputInputs(ctx context.Context, lockHash []byte) (chan *LockHeightOutputInput, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
+	db := client.NewClient(shardConfig.GetHost())
+	chanMessage, err := db.Listen(ctx, TopicLockHeightOutputInput, [][]byte{lockHash})
+	if err != nil {
+		return nil, jerr.Get("error getting lock height output input listen message chan", err)
+	}
+	var chanLockHeightOutputInput = make(chan *LockHeightOutputInput)
+	go func() {
+		for {
+			msg := <-chanMessage
+			if msg == nil {
+				chanLockHeightOutputInput <- nil
+				close(chanLockHeightOutputInput)
+				return
+			}
+			var lockHeightOutputInput = new(LockHeightOutputInput)
+			lockHeightOutputInput.SetUid(msg.Uid)
+			lockHeightOutputInput.Deserialize(msg.Message)
+			chanLockHeightOutputInput <- lockHeightOutputInput
+		}
+	}()
+	return chanLockHeightOutputInput, nil
+}
 
 func RemoveLockHeightOutputInputs(lockHeightOutputInputs []*LockHeightOutputInput) error {
 	var shardUidsMap = make(map[uint32][][]byte)

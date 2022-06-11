@@ -200,27 +200,49 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 	if err != nil {
 		return nil, jerr.Get("error getting lock script for address subscription", err)
 	}
-	lockHeightListener, err := item.ListenMempoolLockHeightOutputs(script.GetLockHash(lockScript))
+	lockHeightOutputsListener, err := item.ListenMempoolLockHeightOutputs(ctx, script.GetLockHash(lockScript))
 	if err != nil {
-		return nil, jerr.Get("error getting lock height listener for address subscription", err)
+		return nil, jerr.Get("error getting lock height outputs listener for address subscription", err)
+	}
+	lockHeightInputsListener, err := item.ListenMempoolLockHeightOutputInputs(ctx, script.GetLockHash(lockScript))
+	if err != nil {
+		return nil, jerr.Get("error getting lock height inputs listener for address subscription", err)
 	}
 	var txChan = make(chan *model.Tx)
 	go func() {
+		defer func() { txChan <- nil }()
 		for {
-			lockHeightOutput := <-lockHeightListener
-			if lockHeightOutput == nil {
-				jlog.Log("nil lock height output, closing address subscription")
-				return
+			select {
+			case lockHeightOutput := <-lockHeightOutputsListener:
+				if lockHeightOutput == nil {
+					jlog.Log("nil lock height output, closing address subscription")
+					return
+				}
+				txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutput.Hash)
+				if err != nil {
+					jerr.Get("error getting mempool tx raw for address subscription output", err).Print()
+					return
+				}
+				txChan <- &model.Tx{
+					Hash: hs.GetTxString(lockHeightOutput.Hash),
+					Raw:  hex.EncodeToString(txRaw.Raw),
+				}
+			case lockHeightOutputInput := <-lockHeightInputsListener:
+				if lockHeightOutputInput == nil {
+					jlog.Log("nil lock height output input, closing address subscription")
+					return
+				}
+				txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutputInput.Hash)
+				if err != nil {
+					jerr.Get("error getting mempool tx raw for address subscription input", err).Print()
+					return
+				}
+				txChan <- &model.Tx{
+					Hash: hs.GetTxString(lockHeightOutputInput.Hash),
+					Raw:  hex.EncodeToString(txRaw.Raw),
+				}
 			}
-			txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutput.Hash)
-			if err != nil {
-				jerr.Get("error getting mempool tx raw for address subscription", err).Print()
-				return
-			}
-			txChan <- &model.Tx{
-				Hash: hs.GetTxString(lockHeightOutput.Hash),
-				Raw:  hex.EncodeToString(txRaw.Raw),
-			}
+
 		}
 	}()
 	return txChan, nil
