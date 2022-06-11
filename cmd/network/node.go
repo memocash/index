@@ -41,6 +41,18 @@ var mempoolCmd = &cobra.Command{
 			saver.NewLockHeight(verbose),
 			saver.NewDoubleSpend(verbose),
 		}), nil)
+		if err := connection.Connect(); err != nil {
+			jerr.Get("fatal error connecting to peer", err).Fatal()
+		}
+		jlog.Log("connection ended")
+	},
+}
+
+var broadcasterCmd = &cobra.Command{
+	Use:   "broadcaster",
+	Short: "Run Network Broadcaster Node",
+	Run: func(c *cobra.Command, args []string) {
+		connection := peer.NewConnection(nil, nil)
 		broadcastServer := broadcast_server.NewServer(config.GetBroadcastRpc().Port, func(ctx context.Context, raw []byte) error {
 			txMsg, err := memo.GetMsgFromRaw(raw)
 			if err != nil {

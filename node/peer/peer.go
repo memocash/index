@@ -76,6 +76,9 @@ func (p *Peer) Connect() error {
 
 func (p *Peer) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 	if p.BlockSave == nil {
+		if p.TxSave == nil {
+			return
+		}
 		p.peer.QueueMessage(wire.NewMsgMemPool(), nil)
 		return
 	}

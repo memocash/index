@@ -23,6 +23,7 @@ func GetCommand() *cobra.Command {
 		single.GetCommand(),
 		nodeCmd,
 		mempoolCmd,
+		broadcasterCmd,
 		serverCmd,
 	)
 	return networkCommand
