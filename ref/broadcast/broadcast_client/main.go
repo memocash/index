@@ -59,7 +59,7 @@ func (c *Connection) GetDefaultContext() context.Context {
 func NewConnection() (*Connection, error) {
 	var conn = new(Connection)
 	if err := conn.connect(); err != nil {
-		return nil, jerr.Get("error connecting", err)
+		return nil, jerr.Get("error connecting broadcast client", err)
 	}
 	return conn, nil
 }

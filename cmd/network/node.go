@@ -52,6 +52,7 @@ var mempoolCmd = &cobra.Command{
 			return nil
 		})
 		go func() {
+			jlog.Logf("Running broadcast server on port: %d\n", broadcastServer.Port)
 			err := broadcastServer.Run()
 			jerr.Get("fatal error running broadcast server", err).Fatal()
 		}()
