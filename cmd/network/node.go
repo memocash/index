@@ -46,6 +46,7 @@ var mempoolCmd = &cobra.Command{
 			if err != nil {
 				return jerr.Get("error parsing raw tx", err)
 			}
+			jlog.Logf("Broadcasting transaction: %s\n", txMsg.TxHash())
 			if err := connection.BroadcastTx(ctx, txMsg); err != nil {
 				return jerr.Get("error broadcasting tx to connection peer", err)
 			}
