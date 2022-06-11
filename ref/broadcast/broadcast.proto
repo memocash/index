@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package broadcast_pb;
+
+option go_package = "github.com/memocash/index/ref/broadcast/gen/broadcast_pb";
+
+service Broadcast {
+  rpc BroadcastTx (BroadcastRequest) returns (BroadcastReply);
+}
+
+message BroadcastRequest {
+  bytes raw = 1;
+}
+
+message BroadcastReply {
+}

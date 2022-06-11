@@ -2,6 +2,7 @@ package peer
 
 import (
 	"bytes"
+	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/peer"
 	"github.com/jchavannes/btcd/wire"
@@ -259,6 +260,19 @@ func (p *Peer) OnMerkleBlock(_ *peer.Peer, msg *wire.MsgMerkleBlock) {
 
 func (p *Peer) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
 	jlog.Logf("OnVersion: %s (last: %d)\n", msg.UserAgent, msg.LastBlock)
+}
+
+func (p *Peer) BroadcastTx(ctx context.Context, msgTx *wire.MsgTx) error {
+	var done = make(chan struct{})
+	p.peer.QueueMessage(msgTx, done)
+	ctx, cancel := context.WithTimeout(ctx, 10 * time.Second)
+	defer cancel()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return jerr.Newf("error context timeout")
+	}
 }
 
 func NewConnection(txSave dbi.TxSave, blockSave dbi.BlockSave) *Peer {

@@ -12,12 +12,12 @@ const (
 	FlagConfig  = "config"
 	FlagProfile = "profile"
 
-	Localhost         = "127.0.0.1"
-	DefaultApiPort    = 10000
-	DefaultAdminPort  = 26770
-	DefaultShard0Port = 26780
-	DefaultShard1Port = 26781
-	DefaultServerPort = 19021
+	Localhost            = "127.0.0.1"
+	DefaultBroadcastPort = 26769
+	DefaultAdminPort     = 26770
+	DefaultShard0Port    = 26780
+	DefaultShard1Port    = 26781
+	DefaultServerPort    = 19021
 
 	DefaultInitBlock       = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
 	DefaultInitBlockParent = "000000000000000000925634d697d3dcd7a8f5aef312f043f4cb278fd9152baa"
@@ -43,8 +43,8 @@ type Config struct {
 
 	SaveMetrics bool `mapstructure:"SAVE_METRICS"`
 
-	ApiPort   uint `mapstructure:"API_PORT"`
-	AdminPort uint `mapstructure:"ADMIN_PORT"`
+	AdminPort     uint `mapstructure:"ADMIN_PORT"`
+	BroadcastPort int  `mapstructure:"BROADCAST_PORT"`
 
 	DataDir string `mapstructure:"DATA_DIR"`
 
@@ -66,8 +66,8 @@ var DefaultConfig = Config{
 	BlocksToConfirm: DefaultBlocksToConfirm,
 	ServerHost:      Localhost,
 	ServerPort:      DefaultServerPort,
-	ApiPort:         DefaultApiPort,
 	AdminPort:       DefaultAdminPort,
+	BroadcastPort:   DefaultBroadcastPort,
 	DataDir:         DefaultDataDir,
 	QueueShards: []Shard{{
 		Min:   0,
@@ -157,22 +157,14 @@ func GetProcessLimitUtxos() int {
 	return _config.ProcessLimit.Utxos
 }
 
-func GetApiPort() uint {
-	return _config.ApiPort
-}
-
 func GetAdminPort() uint {
 	return _config.AdminPort
 }
 
-func GetSelfRpc() RpcConfig {
-	var host = _config.ServerHost
-	if host == "" {
-		host = Localhost
-	}
+func GetBroadcastRpc() RpcConfig {
 	return RpcConfig{
-		Host: host,
-		Port: _config.ServerPort,
+		Host: Localhost,
+		Port: _config.BroadcastPort,
 	}
 }
 

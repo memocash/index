@@ -5,13 +5,23 @@ package resolver
 
 import (
 	"context"
-	"fmt"
+	"encoding/hex"
 
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/ref/broadcast/broadcast_client"
 )
 
-func (r *mutationResolver) Broadcast(ctx context.Context, raw string) (*bool, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) Broadcast(ctx context.Context, raw string) (bool, error) {
+	rawBytes, err := hex.DecodeString(raw)
+	if err != nil {
+		return false, jerr.Get("error decoding raw tx for graphql broadcast", err)
+	}
+	client := broadcast_client.NewBroadcast()
+	if err := client.Broadcast(ctx, rawBytes); err != nil {
+		return false, jerr.Get("error broadcasting tx for graphql", err)
+	}
+	return true, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

@@ -4,7 +4,6 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	admin "github.com/memocash/index/admin/server"
-	"github.com/memocash/index/api"
 	db "github.com/memocash/index/db/server"
 	"github.com/memocash/index/node"
 	"github.com/memocash/index/ref/config"
@@ -16,15 +15,6 @@ var allCmd = &cobra.Command{
 	Use: "all",
 	Run: func(c *cobra.Command, args []string) {
 		var errorHandler = make(chan error)
-		// API server
-		apiServer := api.NewServer()
-		if err := apiServer.Start(); err != nil {
-			jerr.Get("fatal error starting api server", err).Fatal()
-		}
-		jlog.Logf("API (unused REST) server started on port: %d...\n", apiServer.Port)
-		go func() {
-			errorHandler <- jerr.Get("error running api server", apiServer.Serve())
-		}()
 		// Admin server
 		nodeGroup := node.NewGroup()
 		adminServer := admin.NewServer(nodeGroup)

@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/index/cmd/peer"
 	"github.com/memocash/index/cmd/serve"
 	"github.com/memocash/index/cmd/test"
+	"github.com/memocash/index/ref/broadcast/broadcast_client"
 	"github.com/memocash/index/ref/config"
 	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
@@ -26,6 +27,7 @@ var indexCmd = &cobra.Command{
 		if err := config.Init(cmd); err != nil {
 			jerr.Get("fatal error initializing config", err).Fatal()
 		}
+		broadcast_client.SetConfig(config.GetBroadcastRpc())
 		profileExecution, _ := cmd.Flags().GetBool(config.FlagProfile)
 		if profileExecution {
 			pf = profile.Start()

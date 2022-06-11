@@ -1,10 +1,14 @@
 package network
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/node/peer"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/broadcast/broadcast_server"
+	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 	"github.com/spf13/cobra"
 )
@@ -37,6 +41,20 @@ var mempoolCmd = &cobra.Command{
 			saver.NewLockHeight(verbose),
 			saver.NewDoubleSpend(verbose),
 		}), nil)
+		broadcastServer := broadcast_server.NewServer(config.GetBroadcastRpc().Port, func(ctx context.Context, raw []byte) error {
+			txMsg, err := memo.GetMsgFromRaw(raw)
+			if err != nil {
+				return jerr.Get("error parsing raw tx", err)
+			}
+			if err := connection.BroadcastTx(ctx, txMsg); err != nil {
+				return jerr.Get("error broadcasting tx to connection peer", err)
+			}
+			return nil
+		})
+		go func() {
+			err := broadcastServer.Run()
+			jerr.Get("fatal error running broadcast server", err).Fatal()
+		}()
 		if err := connection.Connect(); err != nil {
 			jerr.Get("fatal error connecting to peer", err).Fatal()
 		}
