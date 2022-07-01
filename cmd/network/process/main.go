@@ -20,6 +20,7 @@ func GetCommand() *cobra.Command {
 	doubleSpendCmd.PersistentFlags().Int(FlagDelay, 0, "delay")
 	utxoCmd.PersistentFlags().Int(FlagShard, status.NoShard, "--shard 1")
 	lockHeightCmd.PersistentFlags().Int(FlagShard, status.NoShard, "--shard 1")
+	memoCmd.PersistentFlags().Int(FlagShard, status.NoShard, "--shard 1")
 	processCommand.AddCommand(
 		blockCmd,
 		doubleSpendCmd,
@@ -27,6 +28,7 @@ func GetCommand() *cobra.Command {
 		utxoCmd,
 		statusGetCmd,
 		statusSetCmd,
+		memoCmd,
 	)
 	return processCommand
 }

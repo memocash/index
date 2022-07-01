@@ -17,6 +17,7 @@ func (n MemoName) GetUid() []byte {
 	return jutil.CombineBytes(
 		n.LockHash,
 		jutil.GetInt64DataBig(n.Height),
+		jutil.ByteReverse(n.TxHash),
 	)
 }
 
@@ -29,24 +30,18 @@ func (n MemoName) GetTopic() string {
 }
 
 func (n MemoName) Serialize() []byte {
-	return jutil.CombineBytes(
-		jutil.ByteReverse(n.TxHash),
-		[]byte(n.Name),
-	)
+	return []byte(n.Name)
 }
 
 func (n *MemoName) SetUid(uid []byte) {
-	if len(uid) != 68 {
+	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
 	n.LockHash = uid[:32]
-	n.Height = jutil.GetInt64Big(uid[32:])
+	n.Height = jutil.GetInt64Big(uid[32:40])
+	n.TxHash = jutil.ByteReverse(uid[40:72])
 }
 
 func (n *MemoName) Deserialize(data []byte) {
-	if len(data) < memo.TxHashLength {
-		return
-	}
-	n.TxHash = jutil.ByteReverse(data[0:32])
-	n.Name = string(data[32:])
+	n.Name = string(data)
 }

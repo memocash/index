@@ -161,7 +161,6 @@ func GetTopics() []Object {
 	return []Object{
 		&Block{},
 		&BlockHeight{},
-		&BlockOpReturn{},
 		&BlockTx{},
 		&DoubleSpendInput{},
 		&DoubleSpendOutput{},
