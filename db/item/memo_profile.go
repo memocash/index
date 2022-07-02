@@ -8,14 +8,14 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type MemoName struct {
+type MemoProfile struct {
 	LockHash []byte
 	Height   int64
 	TxHash   []byte
-	Name     string
+	Profile  string
 }
 
-func (n MemoName) GetUid() []byte {
+func (n MemoProfile) GetUid() []byte {
 	return jutil.CombineBytes(
 		n.LockHash,
 		jutil.GetInt64DataBig(n.Height),
@@ -23,19 +23,19 @@ func (n MemoName) GetUid() []byte {
 	)
 }
 
-func (n MemoName) GetShard() uint {
+func (n MemoProfile) GetShard() uint {
 	return client.GetByteShard(n.LockHash)
 }
 
-func (n MemoName) GetTopic() string {
-	return TopicMemoName
+func (n MemoProfile) GetTopic() string {
+	return TopicMemoProfile
 }
 
-func (n MemoName) Serialize() []byte {
-	return []byte(n.Name)
+func (n MemoProfile) Serialize() []byte {
+	return []byte(n.Profile)
 }
 
-func (n *MemoName) SetUid(uid []byte) {
+func (n *MemoProfile) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
@@ -44,21 +44,21 @@ func (n *MemoName) SetUid(uid []byte) {
 	n.TxHash = jutil.ByteReverse(uid[40:72])
 }
 
-func (n *MemoName) Deserialize(data []byte) {
-	n.Name = string(data)
+func (n *MemoProfile) Deserialize(data []byte) {
+	n.Profile = string(data)
 }
 
-func GetMemoName(lockHash []byte) (*MemoName, error) {
+func GetMemoProfile(lockHash []byte) (*MemoProfile, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetByPrefix(TopicMemoName, lockHash); err != nil {
-		return nil, jerr.Get("error getting db memo name by prefix", err)
+	if err := db.GetByPrefix(TopicMemoProfile, lockHash); err != nil {
+		return nil, jerr.Get("error getting db memo profile by prefix", err)
 	}
 	if len(db.Messages) == 0 {
-		return nil, jerr.Get("error no memo names found", client.EntryNotFoundError)
+		return nil, jerr.Get("error no memo profiles found", client.EntryNotFoundError)
 	}
-	var memoName = new(MemoName)
-	memoName.SetUid(db.Messages[0].Uid)
-	memoName.Deserialize(db.Messages[0].Message)
-	return memoName, nil
+	var memoProfile = new(MemoProfile)
+	memoProfile.SetUid(db.Messages[0].Uid)
+	memoProfile.Deserialize(db.Messages[0].Message)
+	return memoProfile, nil
 }

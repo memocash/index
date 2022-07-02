@@ -195,6 +195,41 @@ func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *m
 	return modelDoubleSpends, nil
 }
 
+func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error) {
+	var profiles []*model.Profile
+	for _, addressString := range addresses {
+		address := wallet.GetAddressFromString(addressString)
+		lockHash := script.GetLockHashForAddress(address)
+		var profile = &model.Profile{Lock: &model.Lock{
+			Hash:    hex.EncodeToString(lockHash),
+			Address: address.GetEncoded(),
+		}}
+		memoName, err := item.GetMemoName(lockHash)
+		if err != nil && !client.IsEntryNotFoundError(err) {
+			return nil, jerr.Get("error getting memo name", err)
+		}
+		if memoName != nil {
+			profile.Name = &memoName.Name
+		}
+		memoProfile, err := item.GetMemoProfile(lockHash)
+		if err != nil && !client.IsEntryNotFoundError(err) {
+			return nil, jerr.Get("error getting memo profile", err)
+		}
+		if memoProfile != nil {
+			profile.Profile = &memoProfile.Profile
+		}
+		memoProfilePic, err := item.GetMemoProfilePic(lockHash)
+		if err != nil && !client.IsEntryNotFoundError(err) {
+			return nil, jerr.Get("error getting memo profile pic", err)
+		}
+		if memoProfilePic != nil {
+			profile.Image = &memoProfilePic.Pic
+		}
+		profiles = append(profiles, profile)
+	}
+	return profiles, nil
+}
+
 func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
 	lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
 	if err != nil {

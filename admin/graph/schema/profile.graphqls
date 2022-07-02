@@ -1,0 +1,6 @@
+type Profile {
+    lock: Lock
+    name: String
+    profile: String
+    image: String
+}

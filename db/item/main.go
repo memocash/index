@@ -45,8 +45,9 @@ const (
 	TopicTxSeen                = "tx_seen"
 	TopicTxSuspect             = "tx_suspect"
 	TopicDoubleSpendSeen       = "double_spend_seen"
-	TopicBlockOpReturn         = "block_op_return"
 	TopicMemoName              = "memo_name"
+	TopicMemoProfile           = "memo_profile"
+	TopicMemoProfilePic        = "memo_profile_pic"
 )
 
 type Object interface {
@@ -177,6 +178,8 @@ func GetTopics() []Object {
 		&LockUtxo{},
 		&LockUtxoLost{},
 		&MemoName{},
+		&MemoProfile{},
+		&MemoProfilePic{},
 		&MempoolTxRaw{},
 		&Message{},
 		&OutputInput{},
