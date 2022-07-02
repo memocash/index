@@ -13,7 +13,6 @@ import (
 
 type Memo struct {
 	Verbose bool
-	Shard   int
 }
 
 func (t *Memo) SaveTxs(block *wire.MsgBlock) error {
@@ -80,9 +79,8 @@ func (t *Memo) SaveTxs(block *wire.MsgBlock) error {
 	return nil
 }
 
-func NewMemoShard(verbose bool, shard int) *Memo {
+func NewMemo(verbose bool) *Memo {
 	return &Memo{
 		Verbose: verbose,
-		Shard:   shard,
 	}
 }

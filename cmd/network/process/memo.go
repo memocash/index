@@ -25,7 +25,7 @@ var memoCmd = &cobra.Command{
 		shard, _ := c.Flags().GetInt(FlagShard)
 		blockStatus := status.NewHeight(status.GetStatusShardName(status.NameMemo, shard), startHeight)
 		combinedSaver := saver.NewCombined([]dbi.TxSave{
-			saver.NewMemoShard(false, shard),
+			saver.NewMemo(false),
 		})
 		blockProcessor := process.NewBlockShard(shard, blockStatus, combinedSaver)
 		if err := blockProcessor.Process(); err != nil {

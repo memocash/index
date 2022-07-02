@@ -69,3 +69,12 @@ func GetMemoProfilePic(ctx context.Context, lockHash []byte) (*MemoProfilePic, e
 	memoProfilePic.Deserialize(db.Messages[0].Message)
 	return memoProfilePic, nil
 }
+
+func RemoveMemoProfilePic(memoProfilePic *MemoProfilePic) error {
+	shardConfig := config.GetShardConfig(GetShard32(memoProfilePic.GetShard()), config.GetQueueShards())
+	db := client.NewClient(shardConfig.GetHost())
+	if err := db.DeleteMessages(TopicMemoProfilePic, [][]byte{memoProfilePic.GetUid()}); err != nil {
+		return jerr.Get("error deleting item topic memo profile pic", err)
+	}
+	return nil
+}

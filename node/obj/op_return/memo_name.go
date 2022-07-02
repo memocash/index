@@ -14,14 +14,20 @@ var memoNameHandler = &Handler{
 			return jerr.Newf("invalid set name, incorrect push data (%d)", len(info.PushData))
 		}
 		var name = jutil.GetUtf8String(info.PushData[1])
-		var setName = &item.MemoName{
+		var memoName = &item.MemoName{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
 			Name:     name,
 		}
-		if err := item.Save([]item.Object{setName}); err != nil {
+		if err := item.Save([]item.Object{memoName}); err != nil {
 			return jerr.Get("error saving db memo name object", err)
+		}
+		if info.Height != item.HeightMempool {
+			memoName.Height = item.HeightMempool
+			if err := item.RemoveMemoName(memoName); err != nil {
+				return jerr.Get("error removing db memo name", err)
+			}
 		}
 		return nil
 	},

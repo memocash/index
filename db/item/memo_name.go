@@ -69,3 +69,12 @@ func GetMemoName(ctx context.Context, lockHash []byte) (*MemoName, error) {
 	memoName.Deserialize(db.Messages[0].Message)
 	return memoName, nil
 }
+
+func RemoveMemoName(memoName *MemoName) error {
+	shardConfig := config.GetShardConfig(GetShard32(memoName.GetShard()), config.GetQueueShards())
+	db := client.NewClient(shardConfig.GetHost())
+	if err := db.DeleteMessages(TopicMemoName, [][]byte{memoName.GetUid()}); err != nil {
+		return jerr.Get("error deleting item topic memo name", err)
+	}
+	return nil
+}

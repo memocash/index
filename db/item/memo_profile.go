@@ -69,3 +69,12 @@ func GetMemoProfile(ctx context.Context, lockHash []byte) (*MemoProfile, error) 
 	memoProfile.Deserialize(db.Messages[0].Message)
 	return memoProfile, nil
 }
+
+func RemoveMemoProfile(memoProfile *MemoProfile) error {
+	shardConfig := config.GetShardConfig(GetShard32(memoProfile.GetShard()), config.GetQueueShards())
+	db := client.NewClient(shardConfig.GetHost())
+	if err := db.DeleteMessages(TopicMemoProfile, [][]byte{memoProfile.GetUid()}); err != nil {
+		return jerr.Get("error deleting item topic memo profile", err)
+	}
+	return nil
+}
