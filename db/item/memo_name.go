@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -48,10 +49,16 @@ func (n *MemoName) Deserialize(data []byte) {
 	n.Name = string(data)
 }
 
-func GetMemoName(lockHash []byte) (*MemoName, error) {
+func GetMemoName(ctx context.Context, lockHash []byte) (*MemoName, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetByPrefix(TopicMemoName, lockHash); err != nil {
+	if err := db.GetWOpts(client.Opts{
+		Topic:    TopicMemoName,
+		Prefixes: [][]byte{lockHash},
+		Newest:   true,
+		Max:      1,
+		Context:  ctx,
+	}); err != nil {
 		return nil, jerr.Get("error getting db memo name by prefix", err)
 	}
 	if len(db.Messages) == 0 {

@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -48,10 +49,16 @@ func (n *MemoProfilePic) Deserialize(data []byte) {
 	n.Pic = string(data)
 }
 
-func GetMemoProfilePic(lockHash []byte) (*MemoProfilePic, error) {
+func GetMemoProfilePic(ctx context.Context, lockHash []byte) (*MemoProfilePic, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetByPrefix(TopicMemoProfilePic, lockHash); err != nil {
+	if err := db.GetWOpts(client.Opts{
+		Topic:    TopicMemoProfilePic,
+		Prefixes: [][]byte{lockHash},
+		Newest:   true,
+		Max:      1,
+		Context:  ctx,
+	}); err != nil {
 		return nil, jerr.Get("error getting db memo profile pic by prefix", err)
 	}
 	if len(db.Messages) == 0 {

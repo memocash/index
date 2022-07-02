@@ -204,21 +204,21 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*mo
 			Hash:    hex.EncodeToString(lockHash),
 			Address: address.GetEncoded(),
 		}}
-		memoName, err := item.GetMemoName(lockHash)
+		memoName, err := item.GetMemoName(ctx, lockHash)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return nil, jerr.Get("error getting memo name", err)
 		}
 		if memoName != nil {
 			profile.Name = &memoName.Name
 		}
-		memoProfile, err := item.GetMemoProfile(lockHash)
+		memoProfile, err := item.GetMemoProfile(ctx, lockHash)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return nil, jerr.Get("error getting memo profile", err)
 		}
 		if memoProfile != nil {
 			profile.Profile = &memoProfile.Profile
 		}
-		memoProfilePic, err := item.GetMemoProfilePic(lockHash)
+		memoProfilePic, err := item.GetMemoProfilePic(ctx, lockHash)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return nil, jerr.Get("error getting memo profile pic", err)
 		}
