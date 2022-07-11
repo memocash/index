@@ -3,8 +3,29 @@
 package model
 
 type Profile struct {
-	Lock    *Lock   `json:"lock"`
-	Name    *string `json:"name"`
-	Profile *string `json:"profile"`
-	Image   *string `json:"image"`
+	Lock    *Lock       `json:"lock"`
+	Name    *SetName    `json:"name"`
+	Profile *SetProfile `json:"profile"`
+	Pic     *SetPic     `json:"pic"`
+}
+
+type SetName struct {
+	Tx     *Tx    `json:"tx"`
+	TxHash string `json:"tx_hash"`
+	Lock   *Lock  `json:"lock"`
+	Name   string `json:"name"`
+}
+
+type SetPic struct {
+	Tx     *Tx    `json:"tx"`
+	TxHash string `json:"tx_hash"`
+	Lock   *Lock  `json:"lock"`
+	Pic    string `json:"pic"`
+}
+
+type SetProfile struct {
+	Tx     *Tx    `json:"tx"`
+	TxHash string `json:"tx_hash"`
+	Lock   *Lock  `json:"lock"`
+	Text   string `json:"text"`
 }

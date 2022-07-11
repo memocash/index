@@ -200,30 +200,43 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*mo
 	for _, addressString := range addresses {
 		address := wallet.GetAddressFromString(addressString)
 		lockHash := script.GetLockHashForAddress(address)
-		var profile = &model.Profile{Lock: &model.Lock{
+		var lock = &model.Lock{
 			Hash:    hex.EncodeToString(lockHash),
 			Address: address.GetEncoded(),
-		}}
+		}
+		var profile = &model.Profile{Lock: lock}
 		memoName, err := item.GetMemoName(ctx, lockHash)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return nil, jerr.Get("error getting memo name", err)
 		}
 		if memoName != nil {
-			profile.Name = &memoName.Name
+			profile.Name = &model.SetName{
+				TxHash: hs.GetTxString(memoName.TxHash),
+				Name:   memoName.Name,
+				Lock:   lock,
+			}
 		}
 		memoProfile, err := item.GetMemoProfile(ctx, lockHash)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return nil, jerr.Get("error getting memo profile", err)
 		}
 		if memoProfile != nil {
-			profile.Profile = &memoProfile.Profile
+			profile.Profile = &model.SetProfile{
+				TxHash: hs.GetTxString(memoProfile.TxHash),
+				Text:   memoProfile.Profile,
+				Lock:   lock,
+			}
 		}
 		memoProfilePic, err := item.GetMemoProfilePic(ctx, lockHash)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return nil, jerr.Get("error getting memo profile pic", err)
 		}
 		if memoProfilePic != nil {
-			profile.Image = &memoProfilePic.Pic
+			profile.Pic = &model.SetPic{
+				TxHash: hs.GetTxString(memoProfilePic.TxHash),
+				Lock:   lock,
+				Pic:    memoProfilePic.Pic,
+			}
 		}
 		profiles = append(profiles, profile)
 	}

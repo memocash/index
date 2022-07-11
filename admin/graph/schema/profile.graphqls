@@ -1,6 +1,27 @@
 type Profile {
     lock: Lock
-    name: String
-    profile: String
-    image: String
+    name: SetName
+    profile: SetProfile
+    pic: SetPic
+}
+
+type SetName {
+    tx: Tx!
+    tx_hash: String!
+    lock: Lock
+    name: String!
+}
+
+type SetProfile {
+    tx: Tx!
+    tx_hash: String!
+    lock: Lock
+    text: String!
+}
+
+type SetPic {
+    tx: Tx!
+    tx_hash: String!
+    lock: Lock
+    pic: String!
 }

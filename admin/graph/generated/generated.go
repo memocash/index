@@ -82,9 +82,9 @@ type ComplexityRoot struct {
 	}
 
 	Profile struct {
-		Image   func(childComplexity int) int
 		Lock    func(childComplexity int) int
 		Name    func(childComplexity int) int
+		Pic     func(childComplexity int) int
 		Profile func(childComplexity int) int
 	}
 
@@ -98,6 +98,27 @@ type ComplexityRoot struct {
 		Profiles     func(childComplexity int, addresses []string) int
 		Tx           func(childComplexity int, hash string) int
 		Txs          func(childComplexity int, hashes []string) int
+	}
+
+	SetName struct {
+		Lock   func(childComplexity int) int
+		Name   func(childComplexity int) int
+		Tx     func(childComplexity int) int
+		TxHash func(childComplexity int) int
+	}
+
+	SetPic struct {
+		Lock   func(childComplexity int) int
+		Pic    func(childComplexity int) int
+		Tx     func(childComplexity int) int
+		TxHash func(childComplexity int) int
+	}
+
+	SetProfile struct {
+		Lock   func(childComplexity int) int
+		Text   func(childComplexity int) int
+		Tx     func(childComplexity int) int
+		TxHash func(childComplexity int) int
 	}
 
 	Subscription struct {
@@ -352,13 +373,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Broadcast(childComplexity, args["raw"].(string)), true
 
-	case "Profile.image":
-		if e.complexity.Profile.Image == nil {
-			break
-		}
-
-		return e.complexity.Profile.Image(childComplexity), true
-
 	case "Profile.lock":
 		if e.complexity.Profile.Lock == nil {
 			break
@@ -372,6 +386,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Profile.Name(childComplexity), true
+
+	case "Profile.pic":
+		if e.complexity.Profile.Pic == nil {
+			break
+		}
+
+		return e.complexity.Profile.Pic(childComplexity), true
 
 	case "Profile.profile":
 		if e.complexity.Profile.Profile == nil {
@@ -482,6 +503,90 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Txs(childComplexity, args["hashes"].([]string)), true
+
+	case "SetName.lock":
+		if e.complexity.SetName.Lock == nil {
+			break
+		}
+
+		return e.complexity.SetName.Lock(childComplexity), true
+
+	case "SetName.name":
+		if e.complexity.SetName.Name == nil {
+			break
+		}
+
+		return e.complexity.SetName.Name(childComplexity), true
+
+	case "SetName.tx":
+		if e.complexity.SetName.Tx == nil {
+			break
+		}
+
+		return e.complexity.SetName.Tx(childComplexity), true
+
+	case "SetName.tx_hash":
+		if e.complexity.SetName.TxHash == nil {
+			break
+		}
+
+		return e.complexity.SetName.TxHash(childComplexity), true
+
+	case "SetPic.lock":
+		if e.complexity.SetPic.Lock == nil {
+			break
+		}
+
+		return e.complexity.SetPic.Lock(childComplexity), true
+
+	case "SetPic.pic":
+		if e.complexity.SetPic.Pic == nil {
+			break
+		}
+
+		return e.complexity.SetPic.Pic(childComplexity), true
+
+	case "SetPic.tx":
+		if e.complexity.SetPic.Tx == nil {
+			break
+		}
+
+		return e.complexity.SetPic.Tx(childComplexity), true
+
+	case "SetPic.tx_hash":
+		if e.complexity.SetPic.TxHash == nil {
+			break
+		}
+
+		return e.complexity.SetPic.TxHash(childComplexity), true
+
+	case "SetProfile.lock":
+		if e.complexity.SetProfile.Lock == nil {
+			break
+		}
+
+		return e.complexity.SetProfile.Lock(childComplexity), true
+
+	case "SetProfile.text":
+		if e.complexity.SetProfile.Text == nil {
+			break
+		}
+
+		return e.complexity.SetProfile.Text(childComplexity), true
+
+	case "SetProfile.tx":
+		if e.complexity.SetProfile.Tx == nil {
+			break
+		}
+
+		return e.complexity.SetProfile.Tx(childComplexity), true
+
+	case "SetProfile.tx_hash":
+		if e.complexity.SetProfile.TxHash == nil {
+			break
+		}
+
+		return e.complexity.SetProfile.TxHash(childComplexity), true
 
 	case "Subscription.address":
 		if e.complexity.Subscription.Address == nil {
@@ -802,9 +907,30 @@ var sources = []*ast.Source{
 `, BuiltIn: false},
 	{Name: "schema/profile.graphqls", Input: `type Profile {
     lock: Lock
-    name: String
-    profile: String
-    image: String
+    name: SetName
+    profile: SetProfile
+    pic: SetPic
+}
+
+type SetName {
+    tx: Tx!
+    tx_hash: String!
+    lock: Lock
+    name: String!
+}
+
+type SetProfile {
+    tx: Tx!
+    tx_hash: String!
+    lock: Lock
+    text: String!
+}
+
+type SetPic {
+    tx: Tx!
+    tx_hash: String!
+    lock: Lock
+    pic: String!
 }
 `, BuiltIn: false},
 	{Name: "schema/query.graphqls", Input: `type Query {
@@ -1785,9 +1911,9 @@ func (ec *executionContext) _Profile_name(ctx context.Context, field graphql.Col
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*model.SetName)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOSetName2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSetName(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Profile_profile(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
@@ -1817,12 +1943,12 @@ func (ec *executionContext) _Profile_profile(ctx context.Context, field graphql.
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*model.SetProfile)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOSetProfile2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSetProfile(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Profile_image(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_pic(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1840,7 +1966,7 @@ func (ec *executionContext) _Profile_image(ctx context.Context, field graphql.Co
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Image, nil
+		return obj.Pic, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1849,9 +1975,9 @@ func (ec *executionContext) _Profile_image(ctx context.Context, field graphql.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*model.SetPic)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOSetPic2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSetPic(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_tx(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2267,6 +2393,417 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetName_tx(ctx context.Context, field graphql.CollectedField, obj *model.SetName) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetName",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tx, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tx)
+	fc.Result = res
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetName_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.SetName) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetName",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetName_lock(ctx context.Context, field graphql.CollectedField, obj *model.SetName) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetName",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Lock, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetName_name(ctx context.Context, field graphql.CollectedField, obj *model.SetName) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetName",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetPic_tx(ctx context.Context, field graphql.CollectedField, obj *model.SetPic) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetPic",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tx, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tx)
+	fc.Result = res
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetPic_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.SetPic) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetPic",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetPic_lock(ctx context.Context, field graphql.CollectedField, obj *model.SetPic) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetPic",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Lock, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetPic_pic(ctx context.Context, field graphql.CollectedField, obj *model.SetPic) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetPic",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Pic, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetProfile_tx(ctx context.Context, field graphql.CollectedField, obj *model.SetProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetProfile",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tx, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tx)
+	fc.Result = res
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetProfile_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.SetProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetProfile",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetProfile_lock(ctx context.Context, field graphql.CollectedField, obj *model.SetProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetProfile",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Lock, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetProfile_text(ctx context.Context, field graphql.CollectedField, obj *model.SetProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetProfile",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Text, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Subscription_address(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
@@ -4730,9 +5267,9 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Values[i] = innerFunc(ctx)
 
-		case "image":
+		case "pic":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Profile_image(ctx, field, obj)
+				return ec._Profile_pic(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -4961,6 +5498,180 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)
 
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var setNameImplementors = []string{"SetName"}
+
+func (ec *executionContext) _SetName(ctx context.Context, sel ast.SelectionSet, obj *model.SetName) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, setNameImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SetName")
+		case "tx":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetName_tx(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "tx_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetName_tx_hash(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "lock":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetName_lock(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+		case "name":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetName_name(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var setPicImplementors = []string{"SetPic"}
+
+func (ec *executionContext) _SetPic(ctx context.Context, sel ast.SelectionSet, obj *model.SetPic) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, setPicImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SetPic")
+		case "tx":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetPic_tx(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "tx_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetPic_tx_hash(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "lock":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetPic_lock(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+		case "pic":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetPic_pic(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var setProfileImplementors = []string{"SetProfile"}
+
+func (ec *executionContext) _SetProfile(ctx context.Context, sel ast.SelectionSet, obj *model.SetProfile) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, setProfileImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SetProfile")
+		case "tx":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetProfile_tx(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "tx_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetProfile_tx_hash(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "lock":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetProfile_lock(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+		case "text":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetProfile_text(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6695,6 +7406,27 @@ func (ec *executionContext) marshalOProfile2ᚖgithubᚗcomᚋmemocashᚋindex�
 		return graphql.Null
 	}
 	return ec._Profile(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOSetName2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSetName(ctx context.Context, sel ast.SelectionSet, v *model.SetName) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SetName(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOSetPic2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSetPic(ctx context.Context, sel ast.SelectionSet, v *model.SetPic) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SetPic(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOSetProfile2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSetProfile(ctx context.Context, sel ast.SelectionSet, v *model.SetProfile) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SetProfile(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
