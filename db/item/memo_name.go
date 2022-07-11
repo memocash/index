@@ -19,7 +19,7 @@ type MemoName struct {
 func (n MemoName) GetUid() []byte {
 	return jutil.CombineBytes(
 		n.LockHash,
-		jutil.GetInt64DataBig(n.Height),
+		jutil.ByteFlip(jutil.GetInt64DataBig(n.Height)),
 		jutil.ByteReverse(n.TxHash),
 	)
 }
@@ -41,7 +41,7 @@ func (n *MemoName) SetUid(uid []byte) {
 		return
 	}
 	n.LockHash = uid[:32]
-	n.Height = jutil.GetInt64Big(uid[32:40])
+	n.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
 	n.TxHash = jutil.ByteReverse(uid[40:72])
 }
 
@@ -55,7 +55,6 @@ func GetMemoName(ctx context.Context, lockHash []byte) (*MemoName, error) {
 	if err := db.GetWOpts(client.Opts{
 		Topic:    TopicMemoName,
 		Prefixes: [][]byte{lockHash},
-		Newest:   true,
 		Max:      1,
 		Context:  ctx,
 	}); err != nil {
