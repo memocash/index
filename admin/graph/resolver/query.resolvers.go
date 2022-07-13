@@ -114,6 +114,9 @@ func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	if err != nil {
 		return nil, jerr.Get("error getting recent height block for query", err)
 	}
+	if heightBlock == nil {
+		return nil, nil
+	}
 	block, err := item.GetBlock(heightBlock.BlockHash)
 	if err != nil {
 		return nil, jerr.Get("error getting raw block", err)
