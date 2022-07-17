@@ -348,6 +348,10 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 	return blockChan, nil
 }
 
+func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
