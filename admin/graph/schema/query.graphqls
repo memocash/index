@@ -13,4 +13,5 @@ type Query {
 type Subscription {
     address(address: String!): Tx
     blocks: Block
+    profiles(addresses: [String!]): Profile
 }
