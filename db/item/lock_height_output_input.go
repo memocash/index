@@ -64,8 +64,8 @@ func ListenMempoolLockHeightOutputInputs(ctx context.Context, lockHash []byte) (
 	var chanLockHeightOutputInput = make(chan *LockHeightOutputInput)
 	go func() {
 		for {
-			msg := <-chanMessage
-			if msg == nil {
+			msg, ok := <-chanMessage
+			if !ok {
 				chanLockHeightOutputInput <- nil
 				close(chanLockHeightOutputInput)
 				return

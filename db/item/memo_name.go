@@ -98,16 +98,12 @@ func ListenMemoNames(ctx context.Context, lockHashes [][]byte) (chan *MemoName, 
 		}
 		go func() {
 			for msg := range chanMessage {
-				if msg == nil {
-					close(chanMessage)
-					memoNameChan <- nil
-					break
-				}
 				var memoName = new(MemoName)
 				memoName.SetUid(msg.Uid)
 				memoName.Deserialize(msg.Message)
 				memoNameChan <- memoName
 			}
+			close(memoNameChan)
 		}()
 	}
 	return memoNameChan, nil

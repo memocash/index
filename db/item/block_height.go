@@ -110,17 +110,20 @@ func ListenBlockHeights(ctx context.Context) (chan *BlockHeight, error) {
 			return nil, jerr.Get("error getting block height listen message chan", err)
 		}
 		go func() {
+			defer func() {
+				close(chanBlockHeight)
+				cancel()
+			}()
 			for {
 				var msg *client.Message
+				var ok bool
 				select {
 				case <-cancelCtx.Done():
 					return
-				case msg = <-chanMessage:
-				}
-				if msg == nil {
-					chanBlockHeight <- nil
-					cancel()
-					return
+				case msg, ok = <-chanMessage:
+					if !ok {
+						return
+					}
 				}
 				var blockHeight = new(BlockHeight)
 				Set(blockHeight, *msg)

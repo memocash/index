@@ -229,16 +229,14 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 	var txChan = make(chan *model.Tx)
 	go func() {
 		defer func() {
-			txChan <- nil
-			close(lockHeightOutputsListener)
-			close(lockHeightInputsListener)
+			close(txChan)
 			cancel()
 		}()
 		for {
 			select {
-			case lockHeightOutput := <-lockHeightOutputsListener:
-				if lockHeightOutput == nil {
-					jlog.Log("nil lock height output, closing address subscription")
+			case lockHeightOutput, ok := <-lockHeightOutputsListener:
+				if !ok {
+					jlog.Log("lock height output channel closed, closing address subscription")
 					return
 				}
 				txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutput.Hash)
@@ -250,9 +248,9 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 					Hash: hs.GetTxString(lockHeightOutput.Hash),
 					Raw:  hex.EncodeToString(txRaw.Raw),
 				}
-			case lockHeightOutputInput := <-lockHeightInputsListener:
-				if lockHeightOutputInput == nil {
-					jlog.Log("nil lock height output input, closing address subscription")
+			case lockHeightOutputInput, ok := <-lockHeightInputsListener:
+				if !ok {
+					jlog.Log("height output input channel closed, closing address subscription")
 					return
 				}
 				txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutputInput.Hash)
@@ -272,27 +270,30 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 }
 
 func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block, error) {
+	ctx, cancel := context.WithCancel(ctx)
 	blockHeightListener, err := item.ListenBlockHeights(ctx)
 	if err != nil {
+		cancel()
 		return nil, jerr.Get("error getting block height listener for subscription", err)
 	}
 	var blockChan = make(chan *model.Block)
 	go func() {
 		defer func() {
-			close(blockHeightListener)
-			blockChan <- nil
+			close(blockChan)
+			cancel()
 		}()
 		for {
 			var blockHeight *item.BlockHeight
+			var ok bool
 			select {
 			case <-ctx.Done():
 				jerr.Get("error blocks subscription context done", ctx.Err()).Print()
 				return
-			case blockHeight = <-blockHeightListener:
-			}
-			if blockHeight == nil {
-				jlog.Log("nil block height, closing subscription")
-				return
+			case blockHeight, ok = <-blockHeightListener:
+				if !ok {
+					jerr.Get("error block height listener closed for block subscription", err).Print()
+					return
+				}
 			}
 			block, err := item.GetBlock(blockHeight.BlockHash)
 			if err != nil {
@@ -317,12 +318,15 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 
 func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error) {
 	var lockHashes [][]byte
+	var lockHashAddressMap = make(map[string]string)
 	for _, address := range addresses {
 		lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
 		if err != nil {
 			return nil, jerr.Get("error getting lock script for profile subscription", err)
 		}
-		lockHashes = append(lockHashes, script.GetLockHash(lockScript))
+		lockHash := script.GetLockHash(lockScript)
+		lockHashes = append(lockHashes, lockHash)
+		lockHashAddressMap[hex.EncodeToString(lockHash)] = wallet.GetAddressStringFromPkScript(lockScript)
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	preloads := GetPreloads(ctx)
@@ -335,16 +339,14 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 		}
 		go func() {
 			defer func() {
-				close(memoNameListener)
-				lockHashUpdateChan <- nil
-				cancel()
+				close(lockHashUpdateChan)
 			}()
 			for {
 				select {
 				case <-ctx.Done():
 					return
-				case memoName := <-memoNameListener:
-					if memoName == nil {
+				case memoName, ok := <-memoNameListener:
+					if !ok {
 						return
 					}
 					lockHashUpdateChan <- memoName.LockHash
@@ -360,16 +362,14 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 		}
 		go func() {
 			defer func() {
-				close(memoProfileListener)
-				lockHashUpdateChan <- nil
-				cancel()
+				close(lockHashUpdateChan)
 			}()
 			for {
 				select {
 				case <-ctx.Done():
 					return
-				case memoProfile := <-memoProfileListener:
-					if memoProfile == nil {
+				case memoProfile, ok := <-memoProfileListener:
+					if !ok {
 						return
 					}
 					lockHashUpdateChan <- memoProfile.LockHash
@@ -385,16 +385,14 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 		}
 		go func() {
 			defer func() {
-				close(memoProfilePicListener)
-				lockHashUpdateChan <- nil
-				cancel()
+				close(lockHashUpdateChan)
 			}()
 			for {
 				select {
 				case <-ctx.Done():
 					return
-				case memoProfilePic := <-memoProfilePicListener:
-					if memoProfilePic == nil {
+				case memoProfilePic, ok := <-memoProfilePicListener:
+					if !ok {
 						return
 					}
 					lockHashUpdateChan <- memoProfilePic.LockHash
@@ -405,29 +403,31 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 	var profileChan = make(chan *model.Profile)
 	go func() {
 		defer func() {
-			close(lockHashUpdateChan)
-			profileChan <- nil
+			close(profileChan)
 			cancel()
 		}()
 		for {
-			var address wallet.Address
 			select {
 			case <-ctx.Done():
 				jerr.Get("error memo name subscription context done", ctx.Err()).Print()
 				return
-			case lockHash := <-lockHashUpdateChan:
-				if lockHash == nil {
-					jlog.Log("nil lock hash, closing update subscription for profiles")
+			case lockHash, ok := <-lockHashUpdateChan:
+				if !ok {
+					jlog.Log("lock hash update chan closed, closing update subscription for profiles")
 					return
 				}
-				address = wallet.GetAddressFromPkHash(lockHash)
+				address, ok := lockHashAddressMap[hex.EncodeToString(lockHash)]
+				if !ok {
+					jerr.New("Unable to find address for profile chan lock hash").Print()
+					continue
+				}
+				profile, err := dataloader.NewProfileLoader(profileLoaderConfig).Load(address)
+				if err != nil {
+					jerr.Get("error getting profile from dataloader for profile subscription resolver", err).Print()
+					return
+				}
+				profileChan <- profile
 			}
-			profile, err := dataloader.NewProfileLoader(profileLoaderConfig).Load(address.GetEncoded())
-			if err != nil {
-				jerr.Get("error getting profile from dataloader for profile subscription resolver", err).Print()
-				return
-			}
-			profileChan <- profile
 		}
 	}()
 	return profileChan, nil

@@ -22,17 +22,16 @@ func (s *Subscribe) Close() {
 }
 
 type PubSub struct {
-	Incr int64
-	Subs map[int64]*Subscribe
+	Incr  int64
+	Subs  map[int64]*Subscribe
+	Mutex sync.Mutex
 }
-
-var subscriberMutex sync.Mutex
 
 func (s *PubSub) Subscribe(shard uint, topic string, start []byte, prefixes [][]byte) *Subscribe {
 	//prefixStrings := jutil.ByteSliceStrings(prefixes)
 	//jlog.Logf("New subscribe item shard: %d, topic: %s, start: %x, prefixes: %s\n",
 	//	shard, topic, start, strings.Join(prefixStrings, " "))
-	subscriberMutex.Lock()
+	s.Mutex.Lock()
 	s.Incr++
 	var sub = &Subscribe{
 		Id:       s.Incr,
@@ -44,7 +43,7 @@ func (s *PubSub) Subscribe(shard uint, topic string, start []byte, prefixes [][]
 		PubSub:   s,
 	}
 	s.Subs[sub.Id] = sub
-	subscriberMutex.Unlock()
+	s.Mutex.Unlock()
 	return sub
 }
 
