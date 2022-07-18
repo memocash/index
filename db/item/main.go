@@ -48,6 +48,7 @@ const (
 	TopicMemoName              = "memo_name"
 	TopicMemoProfile           = "memo_profile"
 	TopicMemoProfilePic        = "memo_profile_pic"
+	TopicMemoFollow            = "memo_follow"
 )
 
 type Object interface {

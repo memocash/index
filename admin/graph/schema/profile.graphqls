@@ -3,6 +3,8 @@ type Profile {
     name: SetName
     profile: SetProfile
     pic: SetPic
+    following: [Profile]
+    followers: [Profile]
 }
 
 type SetName {
