@@ -77,3 +77,38 @@ func RemoveMemoName(memoName *MemoName) error {
 	}
 	return nil
 }
+
+func ListenMemoNames(ctx context.Context, lockHashes [][]byte) (chan *MemoName, error) {
+	if len(lockHashes) == 0 {
+		return nil, nil
+	}
+	var shardLockHashes = make(map[uint32][][]byte)
+	for _, lockHash := range lockHashes {
+		shard := client.GetByteShard32(lockHash)
+		shardLockHashes[shard] = append(shardLockHashes[shard], lockHash)
+	}
+	shardConfigs := config.GetQueueShards()
+	var memoNameChan = make(chan *MemoName)
+	for shard, lockHashPrefixes := range shardLockHashes {
+		shardConfig := config.GetShardConfig(shard, shardConfigs)
+		db := client.NewClient(shardConfig.GetHost())
+		chanMessage, err := db.Listen(ctx, TopicMemoName, lockHashPrefixes)
+		if err != nil {
+			return nil, jerr.Get("error listening to db memo names by prefix", err)
+		}
+		go func() {
+			for msg := range chanMessage {
+				if msg == nil {
+					close(chanMessage)
+					memoNameChan <- nil
+					break
+				}
+				var memoName = new(MemoName)
+				memoName.SetUid(msg.Uid)
+				memoName.Deserialize(msg.Message)
+				memoNameChan <- memoName
+			}
+		}()
+	}
+	return memoNameChan, nil
+}

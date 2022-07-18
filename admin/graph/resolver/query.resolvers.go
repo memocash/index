@@ -201,45 +201,9 @@ func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *m
 func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error) {
 	var profiles []*model.Profile
 	for _, addressString := range addresses {
-		address := wallet.GetAddressFromString(addressString)
-		lockHash := script.GetLockHashForAddress(address)
-		var lock = &model.Lock{
-			Hash:    hex.EncodeToString(lockHash),
-			Address: address.GetEncoded(),
-		}
-		var profile = &model.Profile{Lock: lock}
-		memoName, err := item.GetMemoName(ctx, lockHash)
-		if err != nil && !client.IsEntryNotFoundError(err) {
-			return nil, jerr.Get("error getting memo name", err)
-		}
-		if memoName != nil {
-			profile.Name = &model.SetName{
-				TxHash: hs.GetTxString(memoName.TxHash),
-				Name:   memoName.Name,
-				Lock:   lock,
-			}
-		}
-		memoProfile, err := item.GetMemoProfile(ctx, lockHash)
-		if err != nil && !client.IsEntryNotFoundError(err) {
-			return nil, jerr.Get("error getting memo profile", err)
-		}
-		if memoProfile != nil {
-			profile.Profile = &model.SetProfile{
-				TxHash: hs.GetTxString(memoProfile.TxHash),
-				Text:   memoProfile.Profile,
-				Lock:   lock,
-			}
-		}
-		memoProfilePic, err := item.GetMemoProfilePic(ctx, lockHash)
-		if err != nil && !client.IsEntryNotFoundError(err) {
-			return nil, jerr.Get("error getting memo profile pic", err)
-		}
-		if memoProfilePic != nil {
-			profile.Pic = &model.SetPic{
-				TxHash: hs.GetTxString(memoProfilePic.TxHash),
-				Lock:   lock,
-				Pic:    memoProfilePic.Pic,
-			}
+		profile, err := dataloader.NewProfileLoader(profileLoaderConfig).Load(addressString)
+		if err != nil {
+			return nil, jerr.Get("error getting profile from dataloader for profile query resolver", err)
 		}
 		profiles = append(profiles, profile)
 	}
@@ -314,7 +278,10 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 	}
 	var blockChan = make(chan *model.Block)
 	go func() {
-		defer func() { blockChan <- nil }()
+		defer func() {
+			close(blockHeightListener)
+			blockChan <- nil
+		}()
 		for {
 			var blockHeight *item.BlockHeight
 			select {
@@ -349,7 +316,71 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 }
 
 func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error) {
-	panic(fmt.Errorf("not implemented"))
+	var lockHashes [][]byte
+	for _, address := range addresses {
+		lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
+		if err != nil {
+			return nil, jerr.Get("error getting lock script for profile subscription", err)
+		}
+		lockHashes = append(lockHashes, script.GetLockHash(lockScript))
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	preloads := GetPreloads(ctx)
+	var lockHashUpdateChan = make(chan []byte)
+	if jutil.StringInSlice("name", preloads) {
+		memoNameListener, err := item.ListenMemoNames(ctx, lockHashes)
+		if err != nil {
+			cancel()
+			return nil, jerr.Get("error getting memo name listener for profile subscription", err)
+		}
+		go func() {
+			defer func() {
+				close(memoNameListener)
+				lockHashUpdateChan <- nil
+				cancel()
+			}()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case memoName := <-memoNameListener:
+					if memoName == nil {
+						return
+					}
+					lockHashUpdateChan <- memoName.LockHash
+				}
+			}
+		}()
+	}
+	var profileChan = make(chan *model.Profile)
+	go func() {
+		defer func() {
+			close(lockHashUpdateChan)
+			profileChan <- nil
+			cancel()
+		}()
+		for {
+			var address wallet.Address
+			select {
+			case <-ctx.Done():
+				jerr.Get("error memo name subscription context done", ctx.Err()).Print()
+				return
+			case lockHash := <-lockHashUpdateChan:
+				if lockHash == nil {
+					jlog.Log("nil lock hash, closing update subscription for profiles")
+					return
+				}
+				address = wallet.GetAddressFromPkHash(lockHash)
+			}
+			profile, err := dataloader.NewProfileLoader(profileLoaderConfig).Load(address.GetEncoded())
+			if err != nil {
+				jerr.Get("error getting profile from dataloader for profile subscription resolver", err).Print()
+				return
+			}
+			profileChan <- profile
+		}
+	}()
+	return profileChan, nil
 }
 
 // Query returns generated.QueryResolver implementation.

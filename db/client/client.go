@@ -302,16 +302,28 @@ func (s *Client) GetTopicList() error {
 }
 
 func (s *Client) Listen(ctx context.Context, topic string, prefixes [][]byte) (chan *Message, error) {
+	messageChan, err := s.ListenOpts(Opts{
+		Context:  ctx,
+		Topic:    topic,
+		Prefixes: prefixes,
+	})
+	if err != nil {
+		return nil, jerr.Get("error getting message chan with opts", err)
+	}
+	return messageChan, nil
+}
+
+func (s *Client) ListenOpts(opts Opts) (chan *Message, error) {
 	if err := s.SetConn(); err != nil {
 		return nil, jerr.Get("error setting connection", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
-	ctx2, cancel := context.WithTimeout(ctx, DefaultStreamTimeout)
+	ctx, cancel := context.WithTimeout(opts.Context, DefaultStreamTimeout)
 	var request = &queue_pb.RequestStream{
-		Topic:    topic,
-		Prefixes: prefixes,
+		Topic:    opts.Topic,
+		Prefixes: opts.Prefixes,
 	}
-	stream, err := c.GetStreamMessages(ctx2, request)
+	stream, err := c.GetStreamMessages(ctx, request)
 	if err != nil {
 		cancel()
 		return nil, jerr.Get("error getting stream messages", err)
