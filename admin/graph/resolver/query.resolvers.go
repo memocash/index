@@ -352,6 +352,56 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 			}
 		}()
 	}
+	if jutil.StringInSlice("profile", preloads) {
+		memoProfileListener, err := item.ListenMemoProfiles(ctx, lockHashes)
+		if err != nil {
+			cancel()
+			return nil, jerr.Get("error getting memo profile listener for profile subscription", err)
+		}
+		go func() {
+			defer func() {
+				close(memoProfileListener)
+				lockHashUpdateChan <- nil
+				cancel()
+			}()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case memoProfile := <-memoProfileListener:
+					if memoProfile == nil {
+						return
+					}
+					lockHashUpdateChan <- memoProfile.LockHash
+				}
+			}
+		}()
+	}
+	if jutil.StringInSlice("pic", preloads) {
+		memoProfilePicListener, err := item.ListenMemoProfilePics(ctx, lockHashes)
+		if err != nil {
+			cancel()
+			return nil, jerr.Get("error getting memo profile pic listener for profile subscription", err)
+		}
+		go func() {
+			defer func() {
+				close(memoProfilePicListener)
+				lockHashUpdateChan <- nil
+				cancel()
+			}()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case memoProfilePic := <-memoProfilePicListener:
+					if memoProfilePic == nil {
+						return
+					}
+					lockHashUpdateChan <- memoProfilePic.LockHash
+				}
+			}
+		}()
+	}
 	var profileChan = make(chan *model.Profile)
 	go func() {
 		defer func() {

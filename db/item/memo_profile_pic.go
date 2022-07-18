@@ -77,3 +77,38 @@ func RemoveMemoProfilePic(memoProfilePic *MemoProfilePic) error {
 	}
 	return nil
 }
+
+func ListenMemoProfilePics(ctx context.Context, lockHashes [][]byte) (chan *MemoProfilePic, error) {
+	if len(lockHashes) == 0 {
+		return nil, nil
+	}
+	var shardLockHashes = make(map[uint32][][]byte)
+	for _, lockHash := range lockHashes {
+		shard := client.GetByteShard32(lockHash)
+		shardLockHashes[shard] = append(shardLockHashes[shard], lockHash)
+	}
+	shardConfigs := config.GetQueueShards()
+	var memoProfilePicChan = make(chan *MemoProfilePic)
+	for shard, lockHashPrefixes := range shardLockHashes {
+		shardConfig := config.GetShardConfig(shard, shardConfigs)
+		db := client.NewClient(shardConfig.GetHost())
+		chanMessage, err := db.Listen(ctx, TopicMemoProfilePic, lockHashPrefixes)
+		if err != nil {
+			return nil, jerr.Get("error listening to db memo profile pic by prefix", err)
+		}
+		go func() {
+			for msg := range chanMessage {
+				if msg == nil {
+					close(chanMessage)
+					memoProfilePicChan <- nil
+					break
+				}
+				var memoProfilePic = new(MemoProfilePic)
+				memoProfilePic.SetUid(msg.Uid)
+				memoProfilePic.Deserialize(msg.Message)
+				memoProfilePicChan <- memoProfilePic
+			}
+		}()
+	}
+	return memoProfilePicChan, nil
+}
