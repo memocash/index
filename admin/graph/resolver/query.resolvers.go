@@ -338,9 +338,7 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 			return nil, jerr.Get("error getting memo name listener for profile subscription", err)
 		}
 		go func() {
-			defer func() {
-				close(lockHashUpdateChan)
-			}()
+			defer cancel()
 			for {
 				select {
 				case <-ctx.Done():
@@ -361,9 +359,7 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 			return nil, jerr.Get("error getting memo profile listener for profile subscription", err)
 		}
 		go func() {
-			defer func() {
-				close(lockHashUpdateChan)
-			}()
+			defer cancel()
 			for {
 				select {
 				case <-ctx.Done():
@@ -384,9 +380,7 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 			return nil, jerr.Get("error getting memo profile pic listener for profile subscription", err)
 		}
 		go func() {
-			defer func() {
-				close(lockHashUpdateChan)
-			}()
+			defer cancel()
 			for {
 				select {
 				case <-ctx.Done():
@@ -403,6 +397,7 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 	var profileChan = make(chan *model.Profile)
 	go func() {
 		defer func() {
+			close(lockHashUpdateChan)
 			close(profileChan)
 			cancel()
 		}()
