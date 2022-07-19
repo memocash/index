@@ -54,11 +54,11 @@ func (n *MemoFollow) SetUid(uid []byte) {
 }
 
 func (n *MemoFollow) Deserialize(data []byte) {
-	if len(data) < memo.PkHashLength+1 {
+	if len(data) < memo.TxHashLength+1 {
 		return
 	}
 	n.Unfollow = data[0] == 1
-	n.Follow = data[1 : memo.PkHashLength+1]
+	n.Follow = data[1 : memo.TxHashLength+1]
 }
 
 func GetMemoFollow(ctx context.Context, lockHash []byte) (*MemoFollow, error) {

@@ -178,6 +178,7 @@ func GetTopics() []Object {
 		&LockOutput{},
 		&LockUtxo{},
 		&LockUtxoLost{},
+		&MemoFollow{},
 		&MemoName{},
 		&MemoProfile{},
 		&MemoProfilePic{},
