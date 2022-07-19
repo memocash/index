@@ -333,7 +333,9 @@ func (s *Client) ListenOpts(opts Opts) (chan *Message, error) {
 		for {
 			msg, err := stream.Recv()
 			if err != nil {
-				jerr.Get("error receiving stream message", err).Print()
+				if !jerr.HasErrorPart(err, context.Canceled.Error()) {
+					jerr.Get("error receiving stream message", err).Print()
+				}
 				close(messageChan)
 				cancel()
 				return

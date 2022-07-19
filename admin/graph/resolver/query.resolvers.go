@@ -12,7 +12,6 @@ import (
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -236,7 +235,6 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 			select {
 			case lockHeightOutput, ok := <-lockHeightOutputsListener:
 				if !ok {
-					jlog.Log("lock height output channel closed, closing address subscription")
 					return
 				}
 				txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutput.Hash)
@@ -250,7 +248,6 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 				}
 			case lockHeightOutputInput, ok := <-lockHeightInputsListener:
 				if !ok {
-					jlog.Log("height output input channel closed, closing address subscription")
 					return
 				}
 				txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutputInput.Hash)
@@ -287,11 +284,9 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 			var ok bool
 			select {
 			case <-ctx.Done():
-				jerr.Get("error blocks subscription context done", ctx.Err()).Print()
 				return
 			case blockHeight, ok = <-blockHeightListener:
 				if !ok {
-					jerr.Get("error block height listener closed for block subscription", err).Print()
 					return
 				}
 			}
@@ -404,11 +399,9 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 		for {
 			select {
 			case <-ctx.Done():
-				jerr.Get("error memo name subscription context done", ctx.Err()).Print()
 				return
 			case lockHash, ok := <-lockHashUpdateChan:
 				if !ok {
-					jlog.Log("lock hash update chan closed, closing update subscription for profiles")
 					return
 				}
 				address, ok := lockHashAddressMap[hex.EncodeToString(lockHash)]

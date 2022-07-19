@@ -66,7 +66,6 @@ func ListenMempoolLockHeightOutputInputs(ctx context.Context, lockHash []byte) (
 		for {
 			msg, ok := <-chanMessage
 			if !ok {
-				chanLockHeightOutputInput <- nil
 				close(chanLockHeightOutputInput)
 				return
 			}
