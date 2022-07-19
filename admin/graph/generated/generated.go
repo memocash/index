@@ -82,10 +82,12 @@ type ComplexityRoot struct {
 	}
 
 	Profile struct {
-		Lock    func(childComplexity int) int
-		Name    func(childComplexity int) int
-		Pic     func(childComplexity int) int
-		Profile func(childComplexity int) int
+		Followers func(childComplexity int) int
+		Following func(childComplexity int) int
+		Lock      func(childComplexity int) int
+		Name      func(childComplexity int) int
+		Pic       func(childComplexity int) int
+		Profile   func(childComplexity int) int
 	}
 
 	Query struct {
@@ -374,6 +376,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Broadcast(childComplexity, args["raw"].(string)), true
+
+	case "Profile.followers":
+		if e.complexity.Profile.Followers == nil {
+			break
+		}
+
+		return e.complexity.Profile.Followers(childComplexity), true
+
+	case "Profile.following":
+		if e.complexity.Profile.Following == nil {
+			break
+		}
+
+		return e.complexity.Profile.Following(childComplexity), true
 
 	case "Profile.lock":
 		if e.complexity.Profile.Lock == nil {
@@ -924,6 +940,8 @@ var sources = []*ast.Source{
     name: SetName
     profile: SetProfile
     pic: SetPic
+    following: [Profile]
+    followers: [Profile]
 }
 
 type SetName {
@@ -2008,6 +2026,70 @@ func (ec *executionContext) _Profile_pic(ctx context.Context, field graphql.Coll
 	res := resTmp.(*model.SetPic)
 	fc.Result = res
 	return ec.marshalOSetPic2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSetPic(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Profile_following(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Following, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Profile)
+	fc.Result = res
+	return ec.marshalOProfile2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐProfile(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Profile_followers(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Followers, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Profile)
+	fc.Result = res
+	return ec.marshalOProfile2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐProfile(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_tx(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5349,6 +5431,20 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 		case "pic":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Profile_pic(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+		case "following":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Profile_following(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+		case "followers":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Profile_followers(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
