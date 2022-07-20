@@ -43,12 +43,6 @@ autobind:
 # modelgen, the others will be allowed when binding to fields. Configure them to
 # your liking
 models:
-  Profile:
-    fields:
-      following:
-        resolver: true
-      followers:
-        resolver: true
   Int64:
     model: github.com/99designs/gqlgen/graphql.Int64
   Uint32:

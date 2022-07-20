@@ -45,3 +45,10 @@ type Block struct {
 	Timestamp Date   `json:"timestamp"`
 	Height    *int   `json:"height"`
 }
+
+type Profile struct {
+	Lock      *Lock       `json:"lock"`
+	Name      *SetName    `json:"name"`
+	Profile   *SetProfile `json:"profile"`
+	Pic       *SetPic     `json:"pic"`
+}

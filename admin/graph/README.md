@@ -26,7 +26,10 @@ go generate ./...
 
 ### Adding field resolvers
 
-Add to `gqlgen.yml` (replace with desired model/fields):
+Automatic: Move model from `models_gen.go` to `models.go`.
+Remove fields from model and regenerate resolvers.
+
+Manual: Add to `gqlgen.yml` (replace with desired model/fields).
 
 ```yaml
 models:

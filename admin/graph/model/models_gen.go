@@ -2,15 +2,6 @@
 
 package model
 
-type Profile struct {
-	Lock      *Lock       `json:"lock"`
-	Name      *SetName    `json:"name"`
-	Profile   *SetProfile `json:"profile"`
-	Pic       *SetPic     `json:"pic"`
-	Following []*Profile  `json:"following"`
-	Followers []*Profile  `json:"followers"`
-}
-
 type SetName struct {
 	Tx     *Tx    `json:"tx"`
 	TxHash string `json:"tx_hash"`
