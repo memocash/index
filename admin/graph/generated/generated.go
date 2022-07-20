@@ -40,6 +40,7 @@ type ResolverRoot interface {
 	DoubleSpend() DoubleSpendResolver
 	Lock() LockResolver
 	Mutation() MutationResolver
+	Profile() ProfileResolver
 	Query() QueryResolver
 	Subscription() SubscriptionResolver
 	Tx() TxResolver
@@ -185,6 +186,10 @@ type LockResolver interface {
 }
 type MutationResolver interface {
 	Broadcast(ctx context.Context, raw string) (bool, error)
+}
+type ProfileResolver interface {
+	Following(ctx context.Context, obj *model.Profile) ([]*model.Profile, error)
+	Followers(ctx context.Context, obj *model.Profile) ([]*model.Profile, error)
 }
 type QueryResolver interface {
 	Tx(ctx context.Context, hash string) (*model.Tx, error)
@@ -2039,14 +2044,14 @@ func (ec *executionContext) _Profile_following(ctx context.Context, field graphq
 		Object:     "Profile",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Following, nil
+		return ec.resolvers.Profile().Following(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2071,14 +2076,14 @@ func (ec *executionContext) _Profile_followers(ctx context.Context, field graphq
 		Object:     "Profile",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Followers, nil
+		return ec.resolvers.Profile().Followers(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5436,19 +5441,39 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = innerFunc(ctx)
 
 		case "following":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Profile_following(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Profile_following(ctx, field, obj)
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
+			})
 		case "followers":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Profile_followers(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Profile_followers(ctx, field, obj)
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

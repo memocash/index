@@ -23,3 +23,17 @@ go mod tidy
 go get github.com/99designs/gqlgen
 go generate ./...
 ```
+
+### Adding field resolvers
+
+Add to `gqlgen.yml` (replace with desired model/fields):
+
+```yaml
+models:
+  Profile:
+    fields:
+      following:
+        resolver: true
+      followers:
+        resolver: true
+```
