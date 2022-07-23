@@ -23,6 +23,7 @@ const (
 	TopicHeightBlockShard      = "height_block_shard"
 	TopicHeightDuplicate       = "height_duplicate"
 	TopicHeightProcessed       = "height_processed"
+	TopicLockAddress           = "lock_address"
 	TopicLockBalance           = "lock_balance"
 	TopicLockOutput            = "lock_output"
 	TopicLockHeightOutput      = "lock_height_output"
@@ -173,6 +174,7 @@ func GetTopics() []Object {
 		&HeightBlockShard{},
 		&HeightDuplicate{},
 		&HeightProcessed{},
+		&LockAddress{},
 		&LockBalance{},
 		&LockHeightOutput{},
 		&LockHeightOutputInput{},

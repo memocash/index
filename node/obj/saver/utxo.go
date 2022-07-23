@@ -10,6 +10,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 	"sort"
 )
 
@@ -24,6 +25,7 @@ func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
 	var lockUtxos []*item.LockUtxo
 	var txOutputs []*item.TxOutput
 	var txInputs []*item.TxInput
+	var lockAddresses []*item.LockAddress
 	var ins []memo.Out
 	var lockHashes [][]byte
 	for _, msgTx := range block.Transactions {
@@ -68,6 +70,13 @@ func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
 				LockHash: lockUtxo.LockHash,
 			}
 			txOutputs = append(txOutputs, txOutput)
+			address, _ := wallet.GetAddressFromPkScript(txOut.PkScript)
+			if address != nil {
+				lockAddresses = append(lockAddresses, &item.LockAddress{
+					LockHash: lockUtxo.LockHash,
+					Address:  address.GetEncoded(),
+				})
+			}
 		}
 	}
 	sort.Slice(lockUtxos, func(i, j int) bool {
@@ -143,8 +152,11 @@ LockUtxoLoop:
 	for i := range txInputs {
 		objects[numLockUtxosAndTxOutputs+i] = txInputs[i]
 	}
+	for _, lockAddress := range lockAddresses {
+		objects = append(objects, lockAddress)
+	}
 	if err = item.Save(objects); err != nil {
-		return jerr.Get("error saving new lock utxos", err)
+		return jerr.Get("error saving new utxo objects", err)
 	}
 	matchingTxOutputs, err := item.GetTxOutputs(ins)
 	if err != nil {

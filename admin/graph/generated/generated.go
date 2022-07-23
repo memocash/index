@@ -75,11 +75,13 @@ type ComplexityRoot struct {
 	}
 
 	Follow struct {
-		FollowLock func(childComplexity int) int
-		Lock       func(childComplexity int) int
-		Tx         func(childComplexity int) int
-		TxHash     func(childComplexity int) int
-		Unfollow   func(childComplexity int) int
+		FollowLock     func(childComplexity int) int
+		FollowLockHash func(childComplexity int) int
+		Lock           func(childComplexity int) int
+		LockHash       func(childComplexity int) int
+		Tx             func(childComplexity int) int
+		TxHash         func(childComplexity int) int
+		Unfollow       func(childComplexity int) int
 	}
 
 	Lock struct {
@@ -99,6 +101,7 @@ type ComplexityRoot struct {
 		Followers func(childComplexity int, start *int) int
 		Following func(childComplexity int, start *int) int
 		Lock      func(childComplexity int) int
+		LockHash  func(childComplexity int) int
 		Name      func(childComplexity int) int
 		Pic       func(childComplexity int) int
 		Profile   func(childComplexity int) int
@@ -117,24 +120,27 @@ type ComplexityRoot struct {
 	}
 
 	SetName struct {
-		Lock   func(childComplexity int) int
-		Name   func(childComplexity int) int
-		Tx     func(childComplexity int) int
-		TxHash func(childComplexity int) int
+		Lock     func(childComplexity int) int
+		LockHash func(childComplexity int) int
+		Name     func(childComplexity int) int
+		Tx       func(childComplexity int) int
+		TxHash   func(childComplexity int) int
 	}
 
 	SetPic struct {
-		Lock   func(childComplexity int) int
-		Pic    func(childComplexity int) int
-		Tx     func(childComplexity int) int
-		TxHash func(childComplexity int) int
+		Lock     func(childComplexity int) int
+		LockHash func(childComplexity int) int
+		Pic      func(childComplexity int) int
+		Tx       func(childComplexity int) int
+		TxHash   func(childComplexity int) int
 	}
 
 	SetProfile struct {
-		Lock   func(childComplexity int) int
-		Text   func(childComplexity int) int
-		Tx     func(childComplexity int) int
-		TxHash func(childComplexity int) int
+		Lock     func(childComplexity int) int
+		LockHash func(childComplexity int) int
+		Text     func(childComplexity int) int
+		Tx       func(childComplexity int) int
+		TxHash   func(childComplexity int) int
 	}
 
 	Subscription struct {
@@ -195,6 +201,10 @@ type DoubleSpendResolver interface {
 }
 type FollowResolver interface {
 	Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error)
+
+	Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error)
+
+	FollowLockHash(ctx context.Context, obj *model.Follow) (string, error)
 }
 type LockResolver interface {
 	Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error)
@@ -206,6 +216,8 @@ type MutationResolver interface {
 	Broadcast(ctx context.Context, raw string) (bool, error)
 }
 type ProfileResolver interface {
+	Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error)
+
 	Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error)
 	Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error)
 }
@@ -222,12 +234,18 @@ type QueryResolver interface {
 }
 type SetNameResolver interface {
 	Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error)
+
+	Lock(ctx context.Context, obj *model.SetName) (*model.Lock, error)
 }
 type SetPicResolver interface {
 	Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error)
+
+	Lock(ctx context.Context, obj *model.SetPic) (*model.Lock, error)
 }
 type SetProfileResolver interface {
 	Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error)
+
+	Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error)
 }
 type SubscriptionResolver interface {
 	Address(ctx context.Context, address string) (<-chan *model.Tx, error)
@@ -359,12 +377,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Follow.FollowLock(childComplexity), true
 
+	case "Follow.follow_lock_hash":
+		if e.complexity.Follow.FollowLockHash == nil {
+			break
+		}
+
+		return e.complexity.Follow.FollowLockHash(childComplexity), true
+
 	case "Follow.lock":
 		if e.complexity.Follow.Lock == nil {
 			break
 		}
 
 		return e.complexity.Follow.Lock(childComplexity), true
+
+	case "Follow.lock_hash":
+		if e.complexity.Follow.LockHash == nil {
+			break
+		}
+
+		return e.complexity.Follow.LockHash(childComplexity), true
 
 	case "Follow.tx":
 		if e.complexity.Follow.Tx == nil {
@@ -481,6 +513,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Profile.Lock(childComplexity), true
+
+	case "Profile.lock_hash":
+		if e.complexity.Profile.LockHash == nil {
+			break
+		}
+
+		return e.complexity.Profile.LockHash(childComplexity), true
 
 	case "Profile.name":
 		if e.complexity.Profile.Name == nil {
@@ -613,6 +652,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SetName.Lock(childComplexity), true
 
+	case "SetName.lock_hash":
+		if e.complexity.SetName.LockHash == nil {
+			break
+		}
+
+		return e.complexity.SetName.LockHash(childComplexity), true
+
 	case "SetName.name":
 		if e.complexity.SetName.Name == nil {
 			break
@@ -641,6 +687,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SetPic.Lock(childComplexity), true
 
+	case "SetPic.lock_hash":
+		if e.complexity.SetPic.LockHash == nil {
+			break
+		}
+
+		return e.complexity.SetPic.LockHash(childComplexity), true
+
 	case "SetPic.pic":
 		if e.complexity.SetPic.Pic == nil {
 			break
@@ -668,6 +721,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.SetProfile.Lock(childComplexity), true
+
+	case "SetProfile.lock_hash":
+		if e.complexity.SetProfile.LockHash == nil {
+			break
+		}
+
+		return e.complexity.SetProfile.LockHash(childComplexity), true
 
 	case "SetProfile.text":
 		if e.complexity.SetProfile.Text == nil {
@@ -1021,7 +1081,8 @@ var sources = []*ast.Source{
 }
 `, BuiltIn: false},
 	{Name: "schema/profile.graphqls", Input: `type Profile {
-    lock: Lock
+    lock: Lock!
+    lock_hash: String!
     name: SetName
     profile: SetProfile
     pic: SetPic
@@ -1032,14 +1093,16 @@ var sources = []*ast.Source{
 type SetName {
     tx: Tx!
     tx_hash: String!
-    lock: Lock
+    lock: Lock!
+    lock_hash: String!
     name: String!
 }
 
 type SetProfile {
     tx: Tx!
     tx_hash: String!
-    lock: Lock
+    lock: Lock!
+    lock_hash: String!
     text: String!
 }
 
@@ -1047,14 +1110,17 @@ type SetPic {
     tx: Tx!
     tx_hash: String!
     lock: Lock
+    lock_hash: String!
     pic: String!
 }
 
 type Follow {
     tx: Tx!
     tx_hash: String!
-    lock: Lock
-    follow_lock: Lock
+    lock: Lock!
+    lock_hash: String!
+    follow_lock: Lock!
+    follow_lock_hash: String!
     unfollow: Boolean!
 }
 `, BuiltIn: false},
@@ -1882,6 +1948,41 @@ func (ec *executionContext) _Follow_lock(ctx context.Context, field graphql.Coll
 		Object:     "Follow",
 		Field:      field,
 		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Follow().Lock(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Follow_lock_hash(ctx context.Context, field graphql.CollectedField, obj *model.Follow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Follow",
+		Field:      field,
+		Args:       nil,
 		IsMethod:   false,
 		IsResolver: false,
 	}
@@ -1889,18 +1990,21 @@ func (ec *executionContext) _Follow_lock(ctx context.Context, field graphql.Coll
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Lock, nil
+		return obj.LockHash, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Lock)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Follow_follow_lock(ctx context.Context, field graphql.CollectedField, obj *model.Follow) (ret graphql.Marshaler) {
@@ -1928,11 +2032,49 @@ func (ec *executionContext) _Follow_follow_lock(ctx context.Context, field graph
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Lock)
 	fc.Result = res
-	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+	return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Follow_follow_lock_hash(ctx context.Context, field graphql.CollectedField, obj *model.Follow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Follow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Follow().FollowLockHash(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Follow_unfollow(ctx context.Context, field graphql.CollectedField, obj *model.Follow) (ret graphql.Marshaler) {
@@ -2235,6 +2377,41 @@ func (ec *executionContext) _Profile_lock(ctx context.Context, field graphql.Col
 		Object:     "Profile",
 		Field:      field,
 		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Profile().Lock(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Profile_lock_hash(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		Args:       nil,
 		IsMethod:   false,
 		IsResolver: false,
 	}
@@ -2242,18 +2419,21 @@ func (ec *executionContext) _Profile_lock(ctx context.Context, field graphql.Col
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Lock, nil
+		return obj.LockHash, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Lock)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Profile_name(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
@@ -2926,6 +3106,41 @@ func (ec *executionContext) _SetName_lock(ctx context.Context, field graphql.Col
 		Object:     "SetName",
 		Field:      field,
 		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SetName().Lock(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetName_lock_hash(ctx context.Context, field graphql.CollectedField, obj *model.SetName) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetName",
+		Field:      field,
+		Args:       nil,
 		IsMethod:   false,
 		IsResolver: false,
 	}
@@ -2933,18 +3148,21 @@ func (ec *executionContext) _SetName_lock(ctx context.Context, field graphql.Col
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Lock, nil
+		return obj.LockHash, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Lock)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SetName_name(ctx context.Context, field graphql.CollectedField, obj *model.SetName) (ret graphql.Marshaler) {
@@ -3063,14 +3281,14 @@ func (ec *executionContext) _SetPic_lock(ctx context.Context, field graphql.Coll
 		Object:     "SetPic",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Lock, nil
+		return ec.resolvers.SetPic().Lock(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3082,6 +3300,41 @@ func (ec *executionContext) _SetPic_lock(ctx context.Context, field graphql.Coll
 	res := resTmp.(*model.Lock)
 	fc.Result = res
 	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetPic_lock_hash(ctx context.Context, field graphql.CollectedField, obj *model.SetPic) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetPic",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LockHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SetPic_pic(ctx context.Context, field graphql.CollectedField, obj *model.SetPic) (ret graphql.Marshaler) {
@@ -3200,6 +3453,41 @@ func (ec *executionContext) _SetProfile_lock(ctx context.Context, field graphql.
 		Object:     "SetProfile",
 		Field:      field,
 		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SetProfile().Lock(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SetProfile_lock_hash(ctx context.Context, field graphql.CollectedField, obj *model.SetProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SetProfile",
+		Field:      field,
+		Args:       nil,
 		IsMethod:   false,
 		IsResolver: false,
 	}
@@ -3207,18 +3495,21 @@ func (ec *executionContext) _SetProfile_lock(ctx context.Context, field graphql.
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Lock, nil
+		return obj.LockHash, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Lock)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SetProfile_text(ctx context.Context, field graphql.CollectedField, obj *model.SetProfile) (ret graphql.Marshaler) {
@@ -5654,12 +5945,35 @@ func (ec *executionContext) _Follow(ctx context.Context, sel ast.SelectionSet, o
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "lock":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Follow_lock(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Follow_lock(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "lock_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Follow_lock_hash(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
 
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "follow_lock":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Follow_follow_lock(ctx, field, obj)
@@ -5667,6 +5981,29 @@ func (ec *executionContext) _Follow(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Values[i] = innerFunc(ctx)
 
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "follow_lock_hash":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Follow_follow_lock_hash(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "unfollow":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Follow_unfollow(ctx, field, obj)
@@ -5838,12 +6175,35 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Profile")
 		case "lock":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Profile_lock(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Profile_lock(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "lock_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Profile_lock_hash(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
 
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "name":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Profile_name(ctx, field, obj)
@@ -6175,12 +6535,35 @@ func (ec *executionContext) _SetName(ctx context.Context, sel ast.SelectionSet, 
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "lock":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._SetName_lock(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SetName_lock(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "lock_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetName_lock_hash(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
 
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "name":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._SetName_name(ctx, field, obj)
@@ -6243,12 +6626,32 @@ func (ec *executionContext) _SetPic(ctx context.Context, sel ast.SelectionSet, o
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "lock":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._SetPic_lock(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SetPic_lock(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "lock_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetPic_lock_hash(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
 
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "pic":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._SetPic_pic(ctx, field, obj)
@@ -6311,12 +6714,35 @@ func (ec *executionContext) _SetProfile(ctx context.Context, sel ast.SelectionSe
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "lock":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._SetProfile_lock(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SetProfile_lock(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "lock_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._SetProfile_lock_hash(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
 
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "text":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._SetProfile_text(ctx, field, obj)
@@ -7335,6 +7761,20 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNLock2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v model.Lock) graphql.Marshaler {
+	return ec._Lock(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v *model.Lock) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Lock(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

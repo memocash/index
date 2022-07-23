@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/memocash/index/admin/graph/dataloader"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
@@ -14,17 +15,28 @@ import (
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *followResolver) FollowLockHash(ctx context.Context, obj *model.Follow) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error) {
-	address, err := wallet.GetAddressFromStringErr(obj.Lock.Address)
+	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(obj.LockHash)
 	if err != nil {
-		return nil, jerr.Get("error getting address from string", err)
+		return nil, jerr.Get("error getting address from lock dataloader for profile resolver", err)
 	}
 	var startInt int64
 	if start != nil {
@@ -38,7 +50,7 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	for _, memoFollow := range memoFollows {
 		follows = append(follows, &model.Follow{
 			TxHash:     hs.GetTxString(memoFollow.TxHash),
-			Lock:       &model.Lock{Hash: hex.EncodeToString(memoFollow.LockHash)},
+			LockHash:   hex.EncodeToString(memoFollow.LockHash),
 			FollowLock: &model.Lock{Hash: hex.EncodeToString(memoFollow.Follow)},
 			Unfollow:   memoFollow.Unfollow,
 		})
@@ -54,11 +66,23 @@ func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.Lock, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lock, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

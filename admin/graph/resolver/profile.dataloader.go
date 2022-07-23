@@ -25,11 +25,8 @@ var profileLoaderConfig = dataloader.ProfileLoaderConfig{
 		for i, addressString := range addressStrings {
 			address := wallet.GetAddressFromString(addressString)
 			lockHash := script.GetLockHashForAddress(address)
-			var lock = &model.Lock{
-				Hash:    hex.EncodeToString(lockHash),
-				Address: address.GetEncoded(),
-			}
-			var profile = &model.Profile{Lock: lock}
+			lockHashString := hex.EncodeToString(lockHash)
+			var profile = &model.Profile{LockHash: lockHashString}
 			memoName, err := item.GetMemoName(ctx, lockHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting memo name", err)
@@ -37,9 +34,9 @@ var profileLoaderConfig = dataloader.ProfileLoaderConfig{
 			}
 			if memoName != nil {
 				profile.Name = &model.SetName{
-					TxHash: hs.GetTxString(memoName.TxHash),
-					Name:   memoName.Name,
-					Lock:   lock,
+					TxHash:   hs.GetTxString(memoName.TxHash),
+					Name:     memoName.Name,
+					LockHash: lockHashString,
 				}
 			}
 			memoProfile, err := item.GetMemoProfile(ctx, lockHash)
@@ -49,9 +46,9 @@ var profileLoaderConfig = dataloader.ProfileLoaderConfig{
 			}
 			if memoProfile != nil {
 				profile.Profile = &model.SetProfile{
-					TxHash: hs.GetTxString(memoProfile.TxHash),
-					Text:   memoProfile.Profile,
-					Lock:   lock,
+					TxHash:   hs.GetTxString(memoProfile.TxHash),
+					Text:     memoProfile.Profile,
+					LockHash: lockHashString,
 				}
 			}
 			memoProfilePic, err := item.GetMemoProfilePic(ctx, lockHash)
@@ -61,9 +58,9 @@ var profileLoaderConfig = dataloader.ProfileLoaderConfig{
 			}
 			if memoProfilePic != nil {
 				profile.Pic = &model.SetPic{
-					TxHash: hs.GetTxString(memoProfilePic.TxHash),
-					Lock:   lock,
-					Pic:    memoProfilePic.Pic,
+					TxHash:   hs.GetTxString(memoProfilePic.TxHash),
+					LockHash: lockHashString,
+					Pic:      memoProfilePic.Pic,
 				}
 			}
 			profiles[i] = profile
