@@ -54,10 +54,10 @@ type Profile struct {
 }
 
 type Follow struct {
-	TxHash     string `json:"tx_hash"`
-	LockHash   string `json:"lock_hash"`
-	FollowLock *Lock  `json:"follow_lock"`
-	Unfollow   bool   `json:"unfollow"`
+	TxHash         string `json:"tx_hash"`
+	LockHash       string `json:"lock_hash"`
+	FollowLockHash string `json:"follow_lock_hash"`
+	Unfollow       bool   `json:"unfollow"`
 }
 
 type SetName struct {

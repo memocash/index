@@ -7,9 +7,9 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/memocash/index/admin/graph/dataloader"
 
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item"
@@ -22,15 +22,27 @@ func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, 
 }
 
 func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
-	panic(fmt.Errorf("not implemented"))
+	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(obj.LockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting address from lock dataloader for profile resolver", err)
+	}
+	return &model.Lock{Hash: address.GetEncoded()}, nil
 }
 
-func (r *followResolver) FollowLockHash(ctx context.Context, obj *model.Follow) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
+	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(obj.FollowLockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting address from lock dataloader for profile resolver", err)
+	}
+	return &model.Lock{Hash: address.GetEncoded()}, nil
 }
 
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
-	panic(fmt.Errorf("not implemented"))
+	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(obj.LockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting address from lock dataloader for profile resolver", err)
+	}
+	return &model.Lock{Hash: address.GetEncoded()}, nil
 }
 
 func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error) {
@@ -49,10 +61,10 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	var follows []*model.Follow
 	for _, memoFollow := range memoFollows {
 		follows = append(follows, &model.Follow{
-			TxHash:     hs.GetTxString(memoFollow.TxHash),
-			LockHash:   hex.EncodeToString(memoFollow.LockHash),
-			FollowLock: &model.Lock{Hash: hex.EncodeToString(memoFollow.Follow)},
-			Unfollow:   memoFollow.Unfollow,
+			TxHash:         hs.GetTxString(memoFollow.TxHash),
+			LockHash:       hex.EncodeToString(memoFollow.LockHash),
+			FollowLockHash: hex.EncodeToString(memoFollow.Follow),
+			Unfollow:       memoFollow.Unfollow,
 		})
 	}
 	return follows, nil
@@ -67,7 +79,11 @@ func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx
 }
 
 func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.Lock, error) {
-	panic(fmt.Errorf("not implemented"))
+	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(obj.LockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting address from lock dataloader for profile resolver", err)
+	}
+	return &model.Lock{Hash: address.GetEncoded()}, nil
 }
 
 func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error) {
@@ -75,7 +91,11 @@ func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, 
 }
 
 func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lock, error) {
-	panic(fmt.Errorf("not implemented"))
+	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(obj.LockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting address from lock dataloader for profile resolver", err)
+	}
+	return &model.Lock{Hash: address.GetEncoded()}, nil
 }
 
 func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error) {
@@ -83,7 +103,11 @@ func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*mo
 }
 
 func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error) {
-	panic(fmt.Errorf("not implemented"))
+	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(obj.LockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting address from lock dataloader for profile resolver", err)
+	}
+	return &model.Lock{Hash: address.GetEncoded()}, nil
 }
 
 // Follow returns generated.FollowResolver implementation.

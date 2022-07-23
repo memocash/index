@@ -204,7 +204,7 @@ type FollowResolver interface {
 
 	Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error)
 
-	FollowLockHash(ctx context.Context, obj *model.Follow) (string, error)
+	FollowLock(ctx context.Context, obj *model.Follow) (*model.Lock, error)
 }
 type LockResolver interface {
 	Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error)
@@ -2018,14 +2018,14 @@ func (ec *executionContext) _Follow_follow_lock(ctx context.Context, field graph
 		Object:     "Follow",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.FollowLock, nil
+		return ec.resolvers.Follow().FollowLock(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2053,14 +2053,14 @@ func (ec *executionContext) _Follow_follow_lock_hash(ctx context.Context, field 
 		Object:     "Follow",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Follow().FollowLockHash(rctx, obj)
+		return obj.FollowLockHash, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5975,16 +5975,6 @@ func (ec *executionContext) _Follow(ctx context.Context, sel ast.SelectionSet, o
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "follow_lock":
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Follow_follow_lock(ctx, field, obj)
-			}
-
-			out.Values[i] = innerFunc(ctx)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "follow_lock_hash":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -5993,7 +5983,7 @@ func (ec *executionContext) _Follow(ctx context.Context, sel ast.SelectionSet, o
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Follow_follow_lock_hash(ctx, field, obj)
+				res = ec._Follow_follow_lock(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -6004,6 +5994,16 @@ func (ec *executionContext) _Follow(ctx context.Context, sel ast.SelectionSet, o
 				return innerFunc(ctx)
 
 			})
+		case "follow_lock_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Follow_follow_lock_hash(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "unfollow":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Follow_unfollow(ctx, field, obj)
