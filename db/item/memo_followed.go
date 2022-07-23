@@ -80,6 +80,27 @@ func GetMemoFollowed(ctx context.Context, followLockHash []byte) (*MemoFollowed,
 	return memoFollowed, nil
 }
 
+func GetMemoFolloweds(ctx context.Context, followLockHash []byte, start int64) ([]*MemoFollowed, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(followLockHash), config.GetQueueShards())
+	db := client.NewClient(shardConfig.GetHost())
+	if err := db.GetWOpts(client.Opts{
+		Topic:    TopicMemoFollowed,
+		Prefixes: [][]byte{followLockHash},
+		Start:    jutil.CombineBytes(followLockHash, jutil.ByteFlip(jutil.GetInt64DataBig(start))),
+		Max:      client.ExLargeLimit,
+		Context:  ctx,
+	}); err != nil {
+		return nil, jerr.Get("error getting db memo follow by prefix", err)
+	}
+	var memoFolloweds []*MemoFollowed
+	for _, msg := range db.Messages {
+		var memoFollow = new(MemoFollowed)
+		Set(memoFollow, msg)
+		memoFolloweds = append(memoFolloweds, memoFollow)
+	}
+	return memoFolloweds, nil
+}
+
 func RemoveMemoFollowed(memoFollow *MemoFollowed) error {
 	shardConfig := config.GetShardConfig(GetShard32(memoFollow.GetShard()), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())

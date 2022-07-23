@@ -70,7 +70,28 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 }
 
 func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error) {
-	panic(fmt.Errorf("not implemented"))
+	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(obj.LockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting address from lock dataloader for profile resolver", err)
+	}
+	var startInt int64
+	if start != nil {
+		startInt = int64(*start)
+	}
+	memoFolloweds, err := item.GetMemoFolloweds(ctx, script.GetLockHashForAddress(*address), startInt)
+	if err != nil {
+		return nil, jerr.Get("error getting memo follows for address", err)
+	}
+	var follows []*model.Follow
+	for _, memoFollowed := range memoFolloweds {
+		follows = append(follows, &model.Follow{
+			TxHash:         hs.GetTxString(memoFollowed.TxHash),
+			LockHash:       hex.EncodeToString(memoFollowed.LockHash),
+			FollowLockHash: hex.EncodeToString(memoFollowed.FollowLockHash),
+			Unfollow:       memoFollowed.Unfollow,
+		})
+	}
+	return follows, nil
 }
 
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
