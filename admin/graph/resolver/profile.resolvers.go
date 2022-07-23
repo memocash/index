@@ -7,16 +7,16 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
-
-	"github.com/memocash/index/admin/graph/generated"
-	"github.com/memocash/index/admin/graph/model"
 )
 
-func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Profile, error) {
+func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error) {
 	address, err := wallet.GetAddressFromStringErr(obj.Lock.Address)
 	if err != nil {
 		return nil, jerr.Get("error getting address from string", err)
@@ -40,7 +40,7 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	return profiles, nil
 }
 
-func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Profile, error) {
+func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

@@ -2,6 +2,14 @@
 
 package model
 
+type Follow struct {
+	Tx         *Tx    `json:"tx"`
+	TxHash     string `json:"tx_hash"`
+	Lock       *Lock  `json:"lock"`
+	FollowLock *Lock  `json:"follow_lock"`
+	Unfollow   bool   `json:"unfollow"`
+}
+
 type SetName struct {
 	Tx     *Tx    `json:"tx"`
 	TxHash string `json:"tx_hash"`
