@@ -64,10 +64,16 @@ func (n *MemoFollow) Deserialize(data []byte) {
 func GetMemoFollows(ctx context.Context, lockHash []byte, start int64) ([]*MemoFollow, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
+	var startByte []byte
+	if start != 0 {
+		startByte = jutil.CombineBytes(lockHash, jutil.ByteFlip(jutil.GetInt64DataBig(start)))
+	} else {
+		startByte = lockHash
+	}
 	if err := db.GetWOpts(client.Opts{
 		Topic:    TopicMemoFollow,
 		Prefixes: [][]byte{lockHash},
-		Start:    jutil.CombineBytes(lockHash, jutil.ByteFlip(jutil.GetInt64DataBig(start))),
+		Start:    startByte,
 		Max:      client.ExLargeLimit,
 		Context:  ctx,
 	}); err != nil {

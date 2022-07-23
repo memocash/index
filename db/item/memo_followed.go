@@ -83,10 +83,16 @@ func GetMemoFollowed(ctx context.Context, followLockHash []byte) (*MemoFollowed,
 func GetMemoFolloweds(ctx context.Context, followLockHash []byte, start int64) ([]*MemoFollowed, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(followLockHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
+	var startByte []byte
+	if start != 0 {
+		startByte = jutil.CombineBytes(followLockHash, jutil.ByteFlip(jutil.GetInt64DataBig(start)))
+	} else {
+		startByte = followLockHash
+	}
 	if err := db.GetWOpts(client.Opts{
 		Topic:    TopicMemoFollowed,
 		Prefixes: [][]byte{followLockHash},
-		Start:    jutil.CombineBytes(followLockHash, jutil.ByteFlip(jutil.GetInt64DataBig(start))),
+		Start:    startByte,
 		Max:      client.ExLargeLimit,
 		Context:  ctx,
 	}); err != nil {
