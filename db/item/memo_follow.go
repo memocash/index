@@ -61,24 +61,25 @@ func (n *MemoFollow) Deserialize(data []byte) {
 	n.Follow = data[1 : memo.TxHashLength+1]
 }
 
-func GetMemoFollow(ctx context.Context, lockHash []byte) (*MemoFollow, error) {
+func GetMemoFollows(ctx context.Context, lockHash []byte, start int64) ([]*MemoFollow, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
 	if err := db.GetWOpts(client.Opts{
 		Topic:    TopicMemoFollow,
 		Prefixes: [][]byte{lockHash},
-		Max:      1,
+		Start:    jutil.CombineBytes(lockHash, jutil.ByteFlip(jutil.GetInt64DataBig(start))),
+		Max:      client.ExLargeLimit,
 		Context:  ctx,
 	}); err != nil {
 		return nil, jerr.Get("error getting db memo follow by prefix", err)
 	}
-	if len(db.Messages) == 0 {
-		return nil, jerr.Get("error no memo follows found", client.EntryNotFoundError)
+	var memoFollows []*MemoFollow
+	for _, msg := range db.Messages {
+		var memoFollow = new(MemoFollow)
+		Set(memoFollow, msg)
+		memoFollows = append(memoFollows, memoFollow)
 	}
-	var memoFollow = new(MemoFollow)
-	memoFollow.SetUid(db.Messages[0].Uid)
-	memoFollow.Deserialize(db.Messages[0].Message)
-	return memoFollow, nil
+	return memoFollows, nil
 }
 
 func RemoveMemoFollow(memoFollow *MemoFollow) error {

@@ -3,8 +3,8 @@ type Profile {
     name: SetName
     profile: SetProfile
     pic: SetPic
-    following(start: Int): [Profile]
-    followers(start: Int): [Profile]
+    following(start: Int): [Follow]
+    followers(start: Int): [Follow]
 }
 
 type SetName {
@@ -26,4 +26,12 @@ type SetPic {
     tx_hash: String!
     lock: Lock
     pic: String!
+}
+
+type Follow {
+    tx: Tx!
+    tx_hash: String!
+    lock: Lock
+    follow_lock: Lock
+    unfollow: Boolean!
 }
