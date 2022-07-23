@@ -38,10 +38,14 @@ type Config struct {
 type ResolverRoot interface {
 	Block() BlockResolver
 	DoubleSpend() DoubleSpendResolver
+	Follow() FollowResolver
 	Lock() LockResolver
 	Mutation() MutationResolver
 	Profile() ProfileResolver
 	Query() QueryResolver
+	SetName() SetNameResolver
+	SetPic() SetPicResolver
+	SetProfile() SetProfileResolver
 	Subscription() SubscriptionResolver
 	Tx() TxResolver
 	TxInput() TxInputResolver
@@ -189,6 +193,9 @@ type DoubleSpendResolver interface {
 	Output(ctx context.Context, obj *model.DoubleSpend) (*model.TxOutput, error)
 	Inputs(ctx context.Context, obj *model.DoubleSpend) ([]*model.TxInput, error)
 }
+type FollowResolver interface {
+	Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error)
+}
 type LockResolver interface {
 	Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error)
 
@@ -212,6 +219,15 @@ type QueryResolver interface {
 	Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error)
 	DoubleSpends(ctx context.Context, newest *bool, start *model.Date) ([]*model.DoubleSpend, error)
 	Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error)
+}
+type SetNameResolver interface {
+	Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error)
+}
+type SetPicResolver interface {
+	Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error)
+}
+type SetProfileResolver interface {
+	Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error)
 }
 type SubscriptionResolver interface {
 	Address(ctx context.Context, address string) (<-chan *model.Tx, error)
@@ -1796,14 +1812,14 @@ func (ec *executionContext) _Follow_tx(ctx context.Context, field graphql.Collec
 		Object:     "Follow",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Tx, nil
+		return ec.resolvers.Follow().Tx(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2840,14 +2856,14 @@ func (ec *executionContext) _SetName_tx(ctx context.Context, field graphql.Colle
 		Object:     "SetName",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Tx, nil
+		return ec.resolvers.SetName().Tx(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2977,14 +2993,14 @@ func (ec *executionContext) _SetPic_tx(ctx context.Context, field graphql.Collec
 		Object:     "SetPic",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Tx, nil
+		return ec.resolvers.SetPic().Tx(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3114,14 +3130,14 @@ func (ec *executionContext) _SetProfile_tx(ctx context.Context, field graphql.Co
 		Object:     "SetProfile",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Tx, nil
+		return ec.resolvers.SetProfile().Tx(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5608,15 +5624,25 @@ func (ec *executionContext) _Follow(ctx context.Context, sel ast.SelectionSet, o
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Follow")
 		case "tx":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Follow_tx(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Follow_tx(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			})
 		case "tx_hash":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Follow_tx_hash(ctx, field, obj)
@@ -5625,7 +5651,7 @@ func (ec *executionContext) _Follow(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "lock":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -5649,7 +5675,7 @@ func (ec *executionContext) _Follow(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -6119,15 +6145,25 @@ func (ec *executionContext) _SetName(ctx context.Context, sel ast.SelectionSet, 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("SetName")
 		case "tx":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._SetName_tx(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SetName_tx(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			})
 		case "tx_hash":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._SetName_tx_hash(ctx, field, obj)
@@ -6136,7 +6172,7 @@ func (ec *executionContext) _SetName(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "lock":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -6153,7 +6189,7 @@ func (ec *executionContext) _SetName(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -6177,15 +6213,25 @@ func (ec *executionContext) _SetPic(ctx context.Context, sel ast.SelectionSet, o
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("SetPic")
 		case "tx":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._SetPic_tx(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SetPic_tx(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			})
 		case "tx_hash":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._SetPic_tx_hash(ctx, field, obj)
@@ -6194,7 +6240,7 @@ func (ec *executionContext) _SetPic(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "lock":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -6211,7 +6257,7 @@ func (ec *executionContext) _SetPic(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -6235,15 +6281,25 @@ func (ec *executionContext) _SetProfile(ctx context.Context, sel ast.SelectionSe
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("SetProfile")
 		case "tx":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._SetProfile_tx(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SetProfile_tx(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			})
 		case "tx_hash":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._SetProfile_tx_hash(ctx, field, obj)
@@ -6252,7 +6308,7 @@ func (ec *executionContext) _SetProfile(ctx context.Context, sel ast.SelectionSe
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "lock":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -6269,7 +6325,7 @@ func (ec *executionContext) _SetProfile(ctx context.Context, sel ast.SelectionSe
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
