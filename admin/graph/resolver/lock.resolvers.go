@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -15,6 +16,10 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
+
+func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error) {
+	panic(fmt.Errorf("not implemented"))
+}
 
 func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error) {
 	lockHash, err := hex.DecodeString(obj.Hash)
