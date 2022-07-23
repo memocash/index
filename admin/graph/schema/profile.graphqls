@@ -1,5 +1,6 @@
 type Profile {
-    lock: Lock
+    lock: Lock!
+    lock_hash: String!
     name: SetName
     profile: SetProfile
     pic: SetPic
@@ -10,14 +11,16 @@ type Profile {
 type SetName {
     tx: Tx!
     tx_hash: String!
-    lock: Lock
+    lock: Lock!
+    lock_hash: String!
     name: String!
 }
 
 type SetProfile {
     tx: Tx!
     tx_hash: String!
-    lock: Lock
+    lock: Lock!
+    lock_hash: String!
     text: String!
 }
 
@@ -25,13 +28,16 @@ type SetPic {
     tx: Tx!
     tx_hash: String!
     lock: Lock
+    lock_hash: String!
     pic: String!
 }
 
 type Follow {
     tx: Tx!
     tx_hash: String!
-    lock: Lock
-    follow_lock: Lock
+    lock: Lock!
+    lock_hash: String!
+    follow_lock: Lock!
+    follow_lock_hash: String!
     unfollow: Boolean!
 }
