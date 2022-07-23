@@ -11,11 +11,11 @@ import (
 	"github.com/memocash/index/admin/graph/model"
 )
 
-func (r *profileResolver) Following(ctx context.Context, obj *model.Profile) ([]*model.Profile, error) {
+func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Profile, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile) ([]*model.Profile, error) {
+func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Profile, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

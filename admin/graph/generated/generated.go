@@ -83,8 +83,8 @@ type ComplexityRoot struct {
 	}
 
 	Profile struct {
-		Followers func(childComplexity int) int
-		Following func(childComplexity int) int
+		Followers func(childComplexity int, start *int) int
+		Following func(childComplexity int, start *int) int
 		Lock      func(childComplexity int) int
 		Name      func(childComplexity int) int
 		Pic       func(childComplexity int) int
@@ -188,8 +188,8 @@ type MutationResolver interface {
 	Broadcast(ctx context.Context, raw string) (bool, error)
 }
 type ProfileResolver interface {
-	Following(ctx context.Context, obj *model.Profile) ([]*model.Profile, error)
-	Followers(ctx context.Context, obj *model.Profile) ([]*model.Profile, error)
+	Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Profile, error)
+	Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Profile, error)
 }
 type QueryResolver interface {
 	Tx(ctx context.Context, hash string) (*model.Tx, error)
@@ -387,14 +387,24 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Profile.Followers(childComplexity), true
+		args, err := ec.field_Profile_followers_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Profile.Followers(childComplexity, args["start"].(*int)), true
 
 	case "Profile.following":
 		if e.complexity.Profile.Following == nil {
 			break
 		}
 
-		return e.complexity.Profile.Following(childComplexity), true
+		args, err := ec.field_Profile_following_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Profile.Following(childComplexity, args["start"].(*int)), true
 
 	case "Profile.lock":
 		if e.complexity.Profile.Lock == nil {
@@ -945,8 +955,8 @@ var sources = []*ast.Source{
     name: SetName
     profile: SetProfile
     pic: SetPic
-    following: [Profile]
-    followers: [Profile]
+    following(start: Int): [Profile]
+    followers(start: Int): [Profile]
 }
 
 type SetName {
@@ -1108,6 +1118,36 @@ func (ec *executionContext) field_Mutation_broadcast_args(ctx context.Context, r
 		}
 	}
 	args["raw"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Profile_followers_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Profile_following_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg0
 	return args, nil
 }
 
@@ -2049,9 +2089,16 @@ func (ec *executionContext) _Profile_following(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Profile_following_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Profile().Following(rctx, obj)
+		return ec.resolvers.Profile().Following(rctx, obj, args["start"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2081,9 +2128,16 @@ func (ec *executionContext) _Profile_followers(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Profile_followers_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Profile().Followers(rctx, obj)
+		return ec.resolvers.Profile().Followers(rctx, obj, args["start"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
