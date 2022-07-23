@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
@@ -29,15 +30,16 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	if err != nil {
 		return nil, jerr.Get("error getting memo follows for address", err)
 	}
-	var profiles []*model.Profile
+	var follows []*model.Follow
 	for _, memoFollow := range memoFollows {
-		profiles = append(profiles, &model.Profile{
-			Lock: &model.Lock{
-				Hash: hex.EncodeToString(memoFollow.LockHash),
-			},
+		follows = append(follows, &model.Follow{
+			TxHash:     hs.GetTxString(memoFollow.TxHash),
+			Lock:       &model.Lock{Hash: hex.EncodeToString(memoFollow.LockHash)},
+			FollowLock: &model.Lock{Hash: hex.EncodeToString(memoFollow.Follow)},
+			Unfollow:   memoFollow.Unfollow,
 		})
 	}
-	return profiles, nil
+	return follows, nil
 }
 
 func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error) {

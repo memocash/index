@@ -47,8 +47,33 @@ type Block struct {
 }
 
 type Profile struct {
-	Lock      *Lock       `json:"lock"`
-	Name      *SetName    `json:"name"`
-	Profile   *SetProfile `json:"profile"`
-	Pic       *SetPic     `json:"pic"`
+	Lock    *Lock       `json:"lock"`
+	Name    *SetName    `json:"name"`
+	Profile *SetProfile `json:"profile"`
+	Pic     *SetPic     `json:"pic"`
+}
+
+type Follow struct {
+	TxHash     string `json:"tx_hash"`
+	Lock       *Lock  `json:"lock"`
+	FollowLock *Lock  `json:"follow_lock"`
+	Unfollow   bool   `json:"unfollow"`
+}
+
+type SetName struct {
+	TxHash string `json:"tx_hash"`
+	Lock   *Lock  `json:"lock"`
+	Name   string `json:"name"`
+}
+
+type SetPic struct {
+	TxHash string `json:"tx_hash"`
+	Lock   *Lock  `json:"lock"`
+	Pic    string `json:"pic"`
+}
+
+type SetProfile struct {
+	TxHash string `json:"tx_hash"`
+	Lock   *Lock  `json:"lock"`
+	Text   string `json:"text"`
 }
