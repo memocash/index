@@ -49,6 +49,7 @@ const (
 	TopicMemoProfile           = "memo_profile"
 	TopicMemoProfilePic        = "memo_profile_pic"
 	TopicMemoFollow            = "memo_follow"
+	TopicMemoFollowed          = "memo_followed"
 )
 
 type Object interface {
@@ -179,6 +180,7 @@ func GetTopics() []Object {
 		&LockUtxo{},
 		&LockUtxoLost{},
 		&MemoFollow{},
+		&MemoFollowed{},
 		&MemoName{},
 		&MemoProfile{},
 		&MemoProfilePic{},

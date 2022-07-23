@@ -3,8 +3,8 @@ type Profile {
     name: SetName
     profile: SetProfile
     pic: SetPic
-    following: [Profile]
-    followers: [Profile]
+    following(start: Int): [Profile]
+    followers(start: Int): [Profile]
 }
 
 type SetName {

@@ -21,13 +21,23 @@ var memoFollowHandler = &Handler{
 			TxHash:   info.TxHash,
 			Follow:   followLockHash,
 		}
-		if err := item.Save([]item.Object{memoFollow}); err != nil {
+		var memoFollowed = &item.MemoFollowed{
+			FollowLockHash: followLockHash,
+			Height:         info.Height,
+			TxHash:         info.TxHash,
+			LockHash:       info.LockHash,
+		}
+		if err := item.Save([]item.Object{memoFollow, memoFollowed}); err != nil {
 			return jerr.Get("error saving db memo follow object", err)
 		}
 		if info.Height != item.HeightMempool {
 			memoFollow.Height = item.HeightMempool
 			if err := item.RemoveMemoFollow(memoFollow); err != nil {
 				return jerr.Get("error removing db memo follow", err)
+			}
+			memoFollowed.Height = item.HeightMempool
+			if err := item.RemoveMemoFollowed(memoFollowed); err != nil {
+				return jerr.Get("error removing db memo followed", err)
 			}
 		}
 		return nil
