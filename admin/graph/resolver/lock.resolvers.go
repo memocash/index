@@ -6,10 +6,10 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
+	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item"
@@ -18,7 +18,11 @@ import (
 )
 
 func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error) {
-	panic(fmt.Errorf("not implemented"))
+	profile, err := dataloader.NewProfileLoader(profileLoaderConfig).Load(obj.Address)
+	if err != nil {
+		return nil, jerr.Get("error getting profile from dataloader for lock resolver", err)
+	}
+	return profile, nil
 }
 
 func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error) {

@@ -48,8 +48,10 @@ func (s *PubSub) Subscribe(shard uint, topic string, start []byte, prefixes [][]
 }
 
 func (s *PubSub) Close(id int64) {
+	s.Mutex.Lock()
 	close(s.Subs[id].UidChan)
 	delete(s.Subs, id)
+	s.Mutex.Unlock()
 }
 
 func (s *PubSub) Publish(shard uint, topic string, uid []byte) {
