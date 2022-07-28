@@ -15,143 +15,192 @@ import (
 )
 
 type Profile struct {
+	LockHashes         [][]byte
+	LockHashUpdateChan chan []byte
+	LockHashAddressMap map[string]string
+	Cancel             context.CancelFunc
 }
 
 func (p *Profile) Listen(ctx context.Context, addresses, preloads []string) (<-chan *model.Profile, error) {
-	var lockHashes [][]byte
-	var lockHashAddressMap = make(map[string]string)
+	ctx, p.Cancel = context.WithCancel(ctx)
+	if err := p.SetupLockHashes(addresses); err != nil {
+		return nil, jerr.Get("error setting up lock hashes for profile", err)
+	}
+	if jutil.StringInSlice("following", preloads) {
+		if err := p.ListenFollowing(ctx, p.LockHashes); err != nil {
+			return nil, jerr.Get("error listening following", err)
+		}
+	}
+	if jutil.StringInSlice("followers", preloads) {
+		if err := p.ListenFollowers(ctx, p.LockHashes); err != nil {
+			return nil, jerr.Get("error listening followers", err)
+		}
+	}
+	if jutil.StringInSlice("name", preloads) {
+		if err := p.ListenNames(ctx, p.LockHashes); err != nil {
+			return nil, jerr.Get("error listening names", err)
+		}
+	}
+	if jutil.StringInSlice("profile", preloads) {
+		if err := p.ListenProfiles(ctx, p.LockHashes); err != nil {
+			return nil, jerr.Get("error listening profiles", err)
+		}
+	}
+	if jutil.StringInSlice("pic", preloads) {
+		if err := p.ListenPics(ctx, p.LockHashes); err != nil {
+			return nil, jerr.Get("error listening pics", err)
+		}
+	}
+	return p.GetProfileChan(ctx), nil
+}
+
+func (p *Profile) SetupLockHashes(addresses []string) error {
+	p.LockHashAddressMap = make(map[string]string)
 	for _, address := range addresses {
 		lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
 		if err != nil {
-			return nil, jerr.Get("error getting lock script for profile subscription", err)
+			return jerr.Get("error getting lock script for profile subscription", err)
 		}
 		lockHash := script.GetLockHash(lockScript)
-		lockHashes = append(lockHashes, lockHash)
-		lockHashAddressMap[hex.EncodeToString(lockHash)] = wallet.GetAddressStringFromPkScript(lockScript)
+		p.LockHashes = append(p.LockHashes, lockHash)
+		p.LockHashAddressMap[hex.EncodeToString(lockHash)] = wallet.GetAddressStringFromPkScript(lockScript)
 	}
-	ctx, cancel := context.WithCancel(ctx)
-	var lockHashUpdateChan = make(chan []byte)
-	if jutil.StringInSlice("following", preloads) {
-		memoFollowingListener, err := item.ListenMemoFollows(ctx, lockHashes)
-		if err != nil {
-			cancel()
-			return nil, jerr.Get("error getting memo following listener for profile subscription", err)
-		}
-		go func() {
-			defer cancel()
-			for {
-				select {
-				case <-ctx.Done():
+	p.LockHashUpdateChan = make(chan []byte)
+	return nil
+}
+
+func (p *Profile) ListenFollowing(ctx context.Context, lockHashes [][]byte) error {
+	memoFollowingListener, err := item.ListenMemoFollows(ctx, lockHashes)
+	if err != nil {
+		p.Cancel()
+		return jerr.Get("error getting memo following listener for profile subscription", err)
+	}
+	go func() {
+		defer p.Cancel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case memoFollow, ok := <-memoFollowingListener:
+				if !ok {
 					return
-				case memoFollow, ok := <-memoFollowingListener:
-					if !ok {
-						return
-					}
-					lockHashUpdateChan <- memoFollow.LockHash
 				}
+				p.LockHashUpdateChan <- memoFollow.LockHash
 			}
-		}()
-	}
-	if jutil.StringInSlice("followers", preloads) {
-		memoFollowerListener, err := item.ListenMemoFolloweds(ctx, lockHashes)
-		if err != nil {
-			cancel()
-			return nil, jerr.Get("error getting memo followers listener for profile subscription", err)
 		}
-		go func() {
-			defer cancel()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case memoFollow, ok := <-memoFollowerListener:
-					if !ok {
-						return
-					}
-					lockHashUpdateChan <- memoFollow.LockHash
-				}
-			}
-		}()
+	}()
+	return nil
+}
+
+func (p *Profile) ListenFollowers(ctx context.Context, lockHashes [][]byte) error {
+	memoFollowerListener, err := item.ListenMemoFolloweds(ctx, lockHashes)
+	if err != nil {
+		p.Cancel()
+		return jerr.Get("error getting memo followers listener for profile subscription", err)
 	}
-	if jutil.StringInSlice("name", preloads) {
-		memoNameListener, err := item.ListenMemoNames(ctx, lockHashes)
-		if err != nil {
-			cancel()
-			return nil, jerr.Get("error getting memo name listener for profile subscription", err)
+	go func() {
+		defer p.Cancel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case memoFollow, ok := <-memoFollowerListener:
+				if !ok {
+					return
+				}
+				p.LockHashUpdateChan <- memoFollow.LockHash
+			}
 		}
-		go func() {
-			defer cancel()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case memoName, ok := <-memoNameListener:
-					if !ok {
-						return
-					}
-					lockHashUpdateChan <- memoName.LockHash
-				}
-			}
-		}()
+	}()
+	return nil
+}
+
+func (p *Profile) ListenNames(ctx context.Context, lockHashes [][]byte) error {
+	memoNameListener, err := item.ListenMemoNames(ctx, lockHashes)
+	if err != nil {
+		p.Cancel()
+		return jerr.Get("error getting memo name listener for profile subscription", err)
 	}
-	if jutil.StringInSlice("profile", preloads) {
-		memoProfileListener, err := item.ListenMemoProfiles(ctx, lockHashes)
-		if err != nil {
-			cancel()
-			return nil, jerr.Get("error getting memo profile listener for profile subscription", err)
+	go func() {
+		defer p.Cancel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case memoName, ok := <-memoNameListener:
+				if !ok {
+					return
+				}
+				p.LockHashUpdateChan <- memoName.LockHash
+			}
 		}
-		go func() {
-			defer cancel()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case memoProfile, ok := <-memoProfileListener:
-					if !ok {
-						return
-					}
-					lockHashUpdateChan <- memoProfile.LockHash
-				}
-			}
-		}()
+	}()
+	return nil
+}
+
+func (p *Profile) ListenProfiles(ctx context.Context, lockHashes [][]byte) error {
+	memoProfileListener, err := item.ListenMemoProfiles(ctx, lockHashes)
+	if err != nil {
+		p.Cancel()
+		return jerr.Get("error getting memo profile listener for profile subscription", err)
 	}
-	if jutil.StringInSlice("pic", preloads) {
-		memoProfilePicListener, err := item.ListenMemoProfilePics(ctx, lockHashes)
-		if err != nil {
-			cancel()
-			return nil, jerr.Get("error getting memo profile pic listener for profile subscription", err)
+	go func() {
+		defer p.Cancel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case memoProfile, ok := <-memoProfileListener:
+				if !ok {
+					return
+				}
+				p.LockHashUpdateChan <- memoProfile.LockHash
+			}
 		}
-		go func() {
-			defer cancel()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case memoProfilePic, ok := <-memoProfilePicListener:
-					if !ok {
-						return
-					}
-					lockHashUpdateChan <- memoProfilePic.LockHash
-				}
-			}
-		}()
+	}()
+	return nil
+}
+
+func (p *Profile) ListenPics(ctx context.Context, lockHashes [][]byte) error {
+	memoProfilePicListener, err := item.ListenMemoProfilePics(ctx, lockHashes)
+	if err != nil {
+		p.Cancel()
+		return jerr.Get("error getting memo profile pic listener for profile subscription", err)
 	}
+	go func() {
+		defer p.Cancel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case memoProfilePic, ok := <-memoProfilePicListener:
+				if !ok {
+					return
+				}
+				p.LockHashUpdateChan <- memoProfilePic.LockHash
+			}
+		}
+	}()
+	return nil
+}
+
+func (p *Profile) GetProfileChan(ctx context.Context) <-chan *model.Profile {
 	var profileChan = make(chan *model.Profile)
 	go func() {
 		defer func() {
-			close(lockHashUpdateChan)
+			close(p.LockHashUpdateChan)
 			close(profileChan)
-			cancel()
+			p.Cancel()
 		}()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case lockHash, ok := <-lockHashUpdateChan:
+			case lockHash, ok := <-p.LockHashUpdateChan:
 				if !ok {
 					return
 				}
-				address, ok := lockHashAddressMap[hex.EncodeToString(lockHash)]
+				address, ok := p.LockHashAddressMap[hex.EncodeToString(lockHash)]
 				if !ok {
 					jerr.New("Unable to find address for profile chan lock hash").Print()
 					continue
@@ -165,5 +214,5 @@ func (p *Profile) Listen(ctx context.Context, addresses, preloads []string) (<-c
 			}
 		}
 	}()
-	return profileChan, nil
+	return profileChan
 }
