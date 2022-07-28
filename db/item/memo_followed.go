@@ -61,23 +61,32 @@ func (n *MemoFollowed) Deserialize(data []byte) {
 	n.LockHash = data[1 : memo.TxHashLength+1]
 }
 
-func GetMemoFollowed(ctx context.Context, followLockHash []byte) (*MemoFollowed, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(followLockHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetWOpts(client.Opts{
-		Topic:    TopicMemoFollowed,
-		Prefixes: [][]byte{followLockHash},
-		Max:      1,
-		Context:  ctx,
-	}); err != nil {
-		return nil, jerr.Get("error getting db memo followed by prefix", err)
+func GetMemoFollowed(ctx context.Context, followLockHashes [][]byte) ([]*MemoFollowed, error) {
+	var shardLockHashes = make(map[uint32][][]byte)
+	for _, followLockHash := range followLockHashes {
+		shard := client.GetByteShard32(followLockHash)
+		shardLockHashes[shard] = append(shardLockHashes[shard], followLockHash)
 	}
-	if len(db.Messages) == 0 {
-		return nil, jerr.Get("error no memo followeds found", client.EntryNotFoundError)
+	shardConfigs := config.GetQueueShards()
+	var memoFolloweds []*MemoFollowed
+	for shard, lockHashPrefixes := range shardLockHashes {
+		shardConfig := config.GetShardConfig(shard, shardConfigs)
+		db := client.NewClient(shardConfig.GetHost())
+		if err := db.GetWOpts(client.Opts{
+			Topic:    TopicMemoFollowed,
+			Prefixes: lockHashPrefixes,
+			Max:      client.ExLargeLimit,
+			Context:  ctx,
+		}); err != nil {
+			return nil, jerr.Get("error getting db memo followed by prefix", err)
+		}
+		for _, msg := range db.Messages {
+			var memoFollowed = new(MemoFollowed)
+			Set(memoFollowed, msg)
+			memoFolloweds = append(memoFolloweds, memoFollowed)
+		}
 	}
-	var memoFollowed = new(MemoFollowed)
-	Set(memoFollowed, db.Messages[0])
-	return memoFollowed, nil
+	return memoFolloweds, nil
 }
 
 func GetMemoFolloweds(ctx context.Context, followLockHash []byte, start int64) ([]*MemoFollowed, error) {

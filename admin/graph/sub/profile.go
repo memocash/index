@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"github.com/jchavannes/jgo/jerr"
@@ -18,7 +19,11 @@ type Profile struct {
 	LockHashes         [][]byte
 	LockHashUpdateChan chan []byte
 	LockHashAddressMap map[string]string
+	NeedsLockHashMap   [][]byte
 	Cancel             context.CancelFunc
+	NameLockHashes     [][]byte
+	ProfileLockHashes  [][]byte
+	PicLockHashes      [][]byte
 }
 
 func (p *Profile) Listen(ctx context.Context, addresses, preloads []string) (<-chan *model.Profile, error) {
@@ -30,24 +35,42 @@ func (p *Profile) Listen(ctx context.Context, addresses, preloads []string) (<-c
 		if err := p.ListenFollowing(ctx, p.LockHashes); err != nil {
 			return nil, jerr.Get("error listening following", err)
 		}
+		if err := p.SetupFollowingLockHashes(ctx, preloads); err != nil {
+			return nil, jerr.Get("error setting up following lock hashes for profile subscription", err)
+		}
 	}
 	if jutil.StringInSlice("followers", preloads) {
 		if err := p.ListenFollowers(ctx, p.LockHashes); err != nil {
 			return nil, jerr.Get("error listening followers", err)
 		}
+		if err := p.SetupFollowersLockHashes(ctx, preloads); err != nil {
+			return nil, jerr.Get("error setting up followers lock hashes for profile subscription", err)
+		}
+	}
+	if err := p.SetupNeedsLockHashMap(); err != nil {
+		return nil, jerr.Get("error setting up needs lock hash map for profile sub", err)
 	}
 	if jutil.StringInSlice("name", preloads) {
-		if err := p.ListenNames(ctx, p.LockHashes); err != nil {
+		p.NameLockHashes = append(p.NameLockHashes, p.LockHashes...)
+	}
+	if len(p.NameLockHashes) > 0 {
+		if err := p.ListenNames(ctx, p.NameLockHashes); err != nil {
 			return nil, jerr.Get("error listening names", err)
 		}
 	}
 	if jutil.StringInSlice("profile", preloads) {
-		if err := p.ListenProfiles(ctx, p.LockHashes); err != nil {
+		p.ProfileLockHashes = append(p.ProfileLockHashes, p.LockHashes...)
+	}
+	if len(p.ProfileLockHashes) > 0 {
+		if err := p.ListenProfiles(ctx, p.ProfileLockHashes); err != nil {
 			return nil, jerr.Get("error listening profiles", err)
 		}
 	}
 	if jutil.StringInSlice("pic", preloads) {
-		if err := p.ListenPics(ctx, p.LockHashes); err != nil {
+		p.PicLockHashes = append(p.PicLockHashes, p.LockHashes...)
+	}
+	if len(p.PicLockHashes) > 0 {
+		if err := p.ListenPics(ctx, p.PicLockHashes); err != nil {
 			return nil, jerr.Get("error listening pics", err)
 		}
 	}
@@ -66,6 +89,94 @@ func (p *Profile) SetupLockHashes(addresses []string) error {
 		p.LockHashAddressMap[hex.EncodeToString(lockHash)] = wallet.GetAddressStringFromPkScript(lockScript)
 	}
 	p.LockHashUpdateChan = make(chan []byte)
+	return nil
+}
+
+func (p *Profile) SetupFollowingLockHashes(ctx context.Context, preloads []string) error {
+	if !jutil.StringsInSlice([]string{
+		"following.follow_lock.profile.name",
+		"following.follow_lock.profile.profile",
+		"following.follow_lock.profile.pic",
+	}, preloads) {
+		return nil
+	}
+	memoFollows, err := item.GetMemoFollow(ctx, p.LockHashes)
+	if err != nil {
+		return jerr.Get("error getting memo follows for profile lock hashes", err)
+	}
+	var lastMemoFollow *item.MemoFollow
+	for _, memoFollow := range memoFollows {
+		if lastMemoFollow != nil && bytes.Equal(memoFollow.Follow, lastMemoFollow.Follow) {
+			continue
+		}
+		if !memoFollow.Unfollow {
+			if jutil.StringInSlice("following.follow_lock.profile.name", preloads) {
+				p.NameLockHashes = append(p.NameLockHashes, memoFollow.Follow)
+			}
+			if jutil.StringInSlice("following.follow_lock.profile.profile", preloads) {
+				p.ProfileLockHashes = append(p.ProfileLockHashes, memoFollow.Follow)
+			}
+			if jutil.StringInSlice("following.follow_lock.profile.pic", preloads) {
+				p.PicLockHashes = append(p.PicLockHashes, memoFollow.Follow)
+			}
+			if _, ok := p.LockHashAddressMap[hex.EncodeToString(memoFollow.Follow)]; !ok &&
+				!jutil.InByteArray(memoFollow.Follow, p.NeedsLockHashMap) {
+				p.NeedsLockHashMap = append(p.NeedsLockHashMap, memoFollow.Follow)
+			}
+		}
+		lastMemoFollow = memoFollow
+	}
+	return nil
+}
+
+func (p *Profile) SetupFollowersLockHashes(ctx context.Context, preloads []string) error {
+	if !jutil.StringsInSlice([]string{
+		"followers.lock.profile.name",
+		"followers.lock.profile.profile",
+		"followers.lock.profile.pic",
+	}, preloads) {
+		return nil
+	}
+	memoFolloweds, err := item.GetMemoFollowed(ctx, p.LockHashes)
+	if err != nil {
+		return jerr.Get("error getting memo followeds for profile lock hashes", err)
+	}
+	var lastMemoFollowed *item.MemoFollowed
+	for _, memoFollowed := range memoFolloweds {
+		if lastMemoFollowed != nil && bytes.Equal(memoFollowed.LockHash, lastMemoFollowed.LockHash) {
+			continue
+		}
+		if !memoFollowed.Unfollow {
+			if jutil.StringInSlice("followers.lock.profile.name", preloads) {
+				p.NameLockHashes = append(p.NameLockHashes, memoFollowed.LockHash)
+			}
+			if jutil.StringInSlice("followers.lock.profile.profile", preloads) {
+				p.ProfileLockHashes = append(p.ProfileLockHashes, memoFollowed.LockHash)
+			}
+			if jutil.StringInSlice("followers.lock.profile.pic", preloads) {
+				p.PicLockHashes = append(p.PicLockHashes, memoFollowed.LockHash)
+			}
+			if _, ok := p.LockHashAddressMap[hex.EncodeToString(memoFollowed.LockHash)]; !ok &&
+				!jutil.InByteArray(memoFollowed.LockHash, p.NeedsLockHashMap) {
+				p.NeedsLockHashMap = append(p.NeedsLockHashMap, memoFollowed.LockHash)
+			}
+		}
+		lastMemoFollowed = memoFollowed
+	}
+	return nil
+}
+
+func (p *Profile) SetupNeedsLockHashMap() error {
+	if len(p.NeedsLockHashMap) == 0 {
+		return nil
+	}
+	lockAddresses, err := item.GetLockAddresses(p.NeedsLockHashMap)
+	if err != nil {
+		return jerr.Get("error getting lock addresses for profile following needs lock hash map", err)
+	}
+	for _, lockAddress := range lockAddresses {
+		p.LockHashAddressMap[hex.EncodeToString(lockAddress.LockHash)] = lockAddress.Address
+	}
 	return nil
 }
 

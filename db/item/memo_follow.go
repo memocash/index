@@ -61,6 +61,34 @@ func (n *MemoFollow) Deserialize(data []byte) {
 	n.Follow = data[1 : memo.TxHashLength+1]
 }
 
+func GetMemoFollow(ctx context.Context, lockHashes [][]byte) ([]*MemoFollow, error) {
+	var shardLockHashes = make(map[uint32][][]byte)
+	for _, lockHash := range lockHashes {
+		shard := client.GetByteShard32(lockHash)
+		shardLockHashes[shard] = append(shardLockHashes[shard], lockHash)
+	}
+	shardConfigs := config.GetQueueShards()
+	var memoFollows []*MemoFollow
+	for shard, lockHashPrefixes := range shardLockHashes {
+		shardConfig := config.GetShardConfig(shard, shardConfigs)
+		db := client.NewClient(shardConfig.GetHost())
+		if err := db.GetWOpts(client.Opts{
+			Topic:    TopicMemoFollow,
+			Prefixes: lockHashPrefixes,
+			Max:      client.ExLargeLimit,
+			Context:  ctx,
+		}); err != nil {
+			return nil, jerr.Get("error getting db memo follow by prefix", err)
+		}
+		for _, msg := range db.Messages {
+			var memoFollow = new(MemoFollow)
+			Set(memoFollow, msg)
+			memoFollows = append(memoFollows, memoFollow)
+		}
+	}
+	return memoFollows, nil
+}
+
 func GetMemoFollows(ctx context.Context, lockHash []byte, start int64) ([]*MemoFollow, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
