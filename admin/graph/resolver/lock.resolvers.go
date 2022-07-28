@@ -11,6 +11,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -18,7 +19,7 @@ import (
 )
 
 func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error) {
-	profile, err := dataloader.NewProfileLoader(profileLoaderConfig).Load(obj.Address)
+	profile, err := dataloader.NewProfileLoader(load.ProfileLoaderConfig).Load(obj.Address)
 	if err != nil {
 		return nil, jerr.Get("error getting profile from dataloader for lock resolver", err)
 	}

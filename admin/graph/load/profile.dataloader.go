@@ -1,4 +1,4 @@
-package resolver
+package load
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var profileLoaderConfig = dataloader.ProfileLoaderConfig{
+var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,
 	Fetch: func(addressStrings []string) ([]*model.Profile, []error) {
