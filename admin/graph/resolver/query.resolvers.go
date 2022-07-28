@@ -389,6 +389,48 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 			}
 		}()
 	}
+	if jutil.StringInSlice("following", preloads) {
+		memoFollowingListener, err := item.ListenMemoFollows(ctx, lockHashes)
+		if err != nil {
+			cancel()
+			return nil, jerr.Get("error getting memo following listener for profile subscription", err)
+		}
+		go func() {
+			defer cancel()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case memoFollow, ok := <-memoFollowingListener:
+					if !ok {
+						return
+					}
+					lockHashUpdateChan <- memoFollow.LockHash
+				}
+			}
+		}()
+	}
+	if jutil.StringInSlice("followers", preloads) {
+		memoFollowerListener, err := item.ListenMemoFolloweds(ctx, lockHashes)
+		if err != nil {
+			cancel()
+			return nil, jerr.Get("error getting memo followers listener for profile subscription", err)
+		}
+		go func() {
+			defer cancel()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case memoFollow, ok := <-memoFollowerListener:
+					if !ok {
+						return
+					}
+					lockHashUpdateChan <- memoFollow.LockHash
+				}
+			}
+		}()
+	}
 	var profileChan = make(chan *model.Profile)
 	go func() {
 		defer func() {
