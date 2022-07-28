@@ -25,6 +25,13 @@ var profileLoaderConfig = dataloader.ProfileLoaderConfig{
 		for i, addressString := range addressStrings {
 			address := wallet.GetAddressFromString(addressString)
 			lockHash := script.GetLockHashForAddress(address)
+			if err := item.Save([]item.Object{&item.LockAddress{
+				LockHash: lockHash,
+				Address:  address.GetEncoded(),
+			}}); err != nil {
+				errors[i] = jerr.Get("error saving lock address", err)
+				continue
+			}
 			lockHashString := hex.EncodeToString(lockHash)
 			var profile = &model.Profile{LockHash: lockHashString}
 			memoName, err := item.GetMemoName(ctx, lockHash)
