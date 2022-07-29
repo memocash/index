@@ -6,6 +6,7 @@ type Profile {
     pic: SetPic
     following(start: Int): [Follow]
     followers(start: Int): [Follow]
+    posts(start: Int): [Post]
 }
 
 type SetName {
@@ -40,4 +41,12 @@ type Follow {
     follow_lock: Lock!
     follow_lock_hash: String!
     unfollow: Boolean!
+}
+
+type Post {
+    tx: Tx!
+    tx_hash: String!
+    lock: Lock!
+    lock_hash: String!
+    text: String!
 }
