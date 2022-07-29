@@ -16,7 +16,8 @@ var memoFollowHandler = &Handler{
 			return jerr.Newf("invalid set follow, incorrect push data (%d)", len(info.PushData))
 		}
 		unfollow := bytes.Equal(info.PushData[0], memo.PrefixUnfollow)
-		followLockHash := script.GetLockHashForAddress(wallet.GetAddressFromPkHash(info.PushData[1]))
+		followAddress := wallet.GetAddressFromPkHash(info.PushData[1])
+		followLockHash := script.GetLockHashForAddress(followAddress)
 		var memoFollow = &item.MemoFollow{
 			LockHash: info.LockHash,
 			Height:   info.Height,
@@ -31,7 +32,11 @@ var memoFollowHandler = &Handler{
 			LockHash:       info.LockHash,
 			Unfollow:       unfollow,
 		}
-		if err := item.Save([]item.Object{memoFollow, memoFollowed}); err != nil {
+		var lockAddress = &item.LockAddress{
+			LockHash: info.LockHash,
+			Address:  followAddress.GetEncoded(),
+		}
+		if err := item.Save([]item.Object{memoFollow, memoFollowed, lockAddress}); err != nil {
 			return jerr.Get("error saving db memo follow object", err)
 		}
 		if info.Height != item.HeightMempool {
