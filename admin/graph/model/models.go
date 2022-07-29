@@ -77,3 +77,9 @@ type SetProfile struct {
 	LockHash string `json:"lock_hash"`
 	Text     string `json:"text"`
 }
+
+type Post struct {
+	TxHash   string `json:"tx_hash"`
+	LockHash string `json:"lock_hash"`
+	Text     string `json:"text"`
+}

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -34,6 +35,14 @@ func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*mo
 		return nil, jerr.Get("error getting follow lock from loader for follow resolver", err)
 	}
 	return lock, nil
+}
+
+func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
@@ -94,6 +103,10 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 	return follows, nil
 }
 
+func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *int) ([]*model.Post, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -133,6 +146,9 @@ func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*
 // Follow returns generated.FollowResolver implementation.
 func (r *Resolver) Follow() generated.FollowResolver { return &followResolver{r} }
 
+// Post returns generated.PostResolver implementation.
+func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }
+
 // Profile returns generated.ProfileResolver implementation.
 func (r *Resolver) Profile() generated.ProfileResolver { return &profileResolver{r} }
 
@@ -146,6 +162,7 @@ func (r *Resolver) SetPic() generated.SetPicResolver { return &setPicResolver{r}
 func (r *Resolver) SetProfile() generated.SetProfileResolver { return &setProfileResolver{r} }
 
 type followResolver struct{ *Resolver }
+type postResolver struct{ *Resolver }
 type profileResolver struct{ *Resolver }
 type setNameResolver struct{ *Resolver }
 type setPicResolver struct{ *Resolver }
