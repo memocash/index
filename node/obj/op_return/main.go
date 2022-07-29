@@ -41,6 +41,7 @@ func GetHandlers() ([]*Handler, error) {
 		memoProfilePicHandler,
 		memoFollowHandler,
 		memoUnfollowHandler,
+		memoPostHandler,
 	}
 	for _, opReturn := range handlers {
 		prefixScript, err := memo.GetBaseOpReturn().AddData(opReturn.prefix).Script()

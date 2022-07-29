@@ -51,6 +51,7 @@ const (
 	TopicMemoProfilePic        = "memo_profile_pic"
 	TopicMemoFollow            = "memo_follow"
 	TopicMemoFollowed          = "memo_followed"
+	TopicMemoPost              = "memo_post"
 )
 
 type Object interface {
@@ -184,6 +185,7 @@ func GetTopics() []Object {
 		&MemoFollow{},
 		&MemoFollowed{},
 		&MemoName{},
+		&MemoPost{},
 		&MemoProfile{},
 		&MemoProfilePic{},
 		&MempoolTxRaw{},
