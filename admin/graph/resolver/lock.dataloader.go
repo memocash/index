@@ -13,7 +13,7 @@ import (
 func LockLoader(ctx context.Context, lockHash string) (*model.Lock, error) {
 	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(lockHash)
 	if err != nil {
-		return nil, jerr.Get("error getting address from lock dataloader for profile resolver", err)
+		return nil, jerr.Getf(err, "error getting address from lock dataloader: %s", lockHash)
 	}
 	var lock = &model.Lock{
 		Hash:    hex.EncodeToString(script.GetLockHashForAddress(*address)),
@@ -22,7 +22,7 @@ func LockLoader(ctx context.Context, lockHash string) (*model.Lock, error) {
 	if jutil.StringInSlice("balance", GetPreloads(ctx)) {
 		balance, err := dataloader.NewAddressBalanceLoader(addressBalanceLoaderConfig).Load(address.GetEncoded())
 		if err != nil {
-			return nil, jerr.Get("error getting address from lock dataloader for profile resolver", err)
+			return nil, jerr.Getf(err, "error getting address balance from dataloader: %s", lockHash)
 		}
 		lock.Balance = balance
 	}

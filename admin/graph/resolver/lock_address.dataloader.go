@@ -21,14 +21,14 @@ var lockAddressLoaderConfig = dataloader.LockAddressLoaderConfig{
 		for i := range lockHashStrings {
 			lockHash, err := hex.DecodeString(lockHashStrings[i])
 			if err != nil {
-				errors[i] = jerr.Get("error decoding lock hash for lock hash data loader", err)
+				errors[i] = jerr.Getf(err, "error decoding lock hash for lock hash data loader: %s", lockHashStrings[i])
 				continue
 			}
 			lockHashes[i] = lockHash
 		}
 		lockAddresses, err := item.GetLockAddresses(jutil.RemoveDupesAndEmpties(lockHashes))
 		if err != nil {
-			return nil, []error{jerr.Get("error getting lock address for lock hash data loader", err)}
+			return nil, []error{jerr.Get("error getting item lock address for lock address data loader", err)}
 		}
 	LockHashesLoop:
 		for i := range lockHashes {
@@ -36,14 +36,15 @@ var lockAddressLoaderConfig = dataloader.LockAddressLoaderConfig{
 				if bytes.Equal(lockHashes[i], lockAddress.LockHash) {
 					address, err := wallet.GetAddressFromStringErr(lockAddress.Address)
 					if err != nil {
-						errors[i] = jerr.Get("error getting address from string for lock address dataloader", err)
+						errors[i] = jerr.Getf(err, "error getting address from string for lock address dataloader: %x",
+							lockHashes[i])
 						continue LockHashesLoop
 					}
 					addresses[i] = address
 					continue LockHashesLoop
 				}
 			}
-			errors[i] = jerr.New("error getting lock address for lock hash data loader")
+			errors[i] = jerr.Newf("error getting lock address for lock address data loader: %x", lockHashes[i])
 		}
 		return addresses, errors
 	},
