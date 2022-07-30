@@ -54,6 +54,15 @@ func (t *Memo) SaveTxs(block *wire.MsgBlock) error {
 				}
 				lockHash = script.GetLockHashForAddress(*address)
 				if len(lockHash) > 0 {
+					// TODO: This is only needed temporarily because lock addresses are saved in UTXO processor
+					//    	 which isn't being restarted. Remove eventually.
+					var lockAddress = &item.LockAddress{
+						LockHash: lockHash,
+						Address:  address.GetEncoded(),
+					}
+					if err := item.Save([]item.Object{lockAddress}); err != nil {
+						return jerr.Get("error saving db lock address object for op return tx", err)
+					}
 					break
 				}
 			}
