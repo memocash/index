@@ -14,10 +14,10 @@ var memoFollowHandler = &Handler{
 	prefix: memo.PrefixFollow,
 	handle: func(info Info) error {
 		if len(info.PushData) != 2 {
-			if err := item.Save([]item.Object{&item.ProcessError{
+			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
 				Error:  fmt.Sprintf("invalid set follow, incorrect push data (%d)", len(info.PushData)),
-			}}); err != nil {
+			}); err != nil {
 				return jerr.Get("error saving process error", err)
 			}
 			return nil

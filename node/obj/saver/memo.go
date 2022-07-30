@@ -78,11 +78,10 @@ func (t *Memo) SaveTxs(block *wire.MsgBlock) error {
 					return jerr.Get("error setting lock hash for op return tx", err)
 				}
 				if len(lockHash) == 0 {
-					var processError = &item.ProcessError{
+					if err := item.LogProcessError(&item.ProcessError{
 						TxHash: txHashBytes,
 						Error:  fmt.Sprintf("error could not find input pk hash for memo: %s", txHash.String()),
-					}
-					if err := item.Save([]item.Object{processError}); err != nil {
+					}); err != nil {
 						return jerr.Get("error saving process error for op return without lock hash", err)
 					}
 					break

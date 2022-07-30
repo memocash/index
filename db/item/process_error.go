@@ -1,6 +1,8 @@
 package item
 
 import (
+	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 )
@@ -32,4 +34,12 @@ func (e *ProcessError) SetUid(uid []byte) {
 
 func (e *ProcessError) Deserialize(data []byte) {
 	e.Error = string(data)
+}
+
+func LogProcessError(processError *ProcessError) error {
+	jlog.Logf("PROCESS ERROR: %s\n", processError.Error)
+	if err := Save([]Object{processError}); err != nil {
+		return jerr.Get("error saving process error", err)
+	}
+	return nil
 }
