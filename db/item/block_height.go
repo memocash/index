@@ -101,27 +101,19 @@ func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
 }
 
 func ListenBlockHeights(ctx context.Context) (chan *BlockHeight, error) {
-	cancelCtx, cancel := context.WithCancel(ctx)
 	var chanBlockHeight = make(chan *BlockHeight)
+	cancelCtx := NewCancelContext(ctx, func() {
+		close(chanBlockHeight)
+	})
 	for _, shardConfig := range config.GetQueueShards() {
 		db := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := db.Listen(ctx, TopicBlockHeight, nil)
+		chanMessage, err := db.Listen(cancelCtx.Context, TopicBlockHeight, nil)
 		if err != nil {
 			return nil, jerr.Get("error getting block height listen message chan", err)
 		}
 		go func() {
-			for {
-				var msg *client.Message
-				select {
-				case <-cancelCtx.Done():
-					return
-				case msg = <-chanMessage:
-				}
-				if msg == nil {
-					chanBlockHeight <- nil
-					cancel()
-					return
-				}
+			defer cancelCtx.Cancel()
+			for msg := range chanMessage {
 				var blockHeight = new(BlockHeight)
 				Set(blockHeight, *msg)
 				chanBlockHeight <- blockHeight

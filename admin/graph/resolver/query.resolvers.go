@@ -12,11 +12,12 @@ import (
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
+	"github.com/memocash/index/admin/graph/sub"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/obj/get"
@@ -198,6 +199,18 @@ func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *m
 	return modelDoubleSpends, nil
 }
 
+func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error) {
+	var profiles []*model.Profile
+	for _, addressString := range addresses {
+		profile, err := dataloader.NewProfileLoader(load.ProfileLoaderConfig).Load(addressString)
+		if err != nil {
+			return nil, jerr.Get("error getting profile from dataloader for profile query resolver", err)
+		}
+		profiles = append(profiles, profile)
+	}
+	return profiles, nil
+}
+
 func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
 	lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
 	if err != nil {
@@ -217,16 +230,13 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 	var txChan = make(chan *model.Tx)
 	go func() {
 		defer func() {
-			txChan <- nil
-			close(lockHeightOutputsListener)
-			close(lockHeightInputsListener)
+			close(txChan)
 			cancel()
 		}()
 		for {
 			select {
-			case lockHeightOutput := <-lockHeightOutputsListener:
-				if lockHeightOutput == nil {
-					jlog.Log("nil lock height output, closing address subscription")
+			case lockHeightOutput, ok := <-lockHeightOutputsListener:
+				if !ok {
 					return
 				}
 				txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutput.Hash)
@@ -238,9 +248,8 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 					Hash: hs.GetTxString(lockHeightOutput.Hash),
 					Raw:  hex.EncodeToString(txRaw.Raw),
 				}
-			case lockHeightOutputInput := <-lockHeightInputsListener:
-				if lockHeightOutputInput == nil {
-					jlog.Log("nil lock height output input, closing address subscription")
+			case lockHeightOutputInput, ok := <-lockHeightInputsListener:
+				if !ok {
 					return
 				}
 				txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutputInput.Hash)
@@ -260,24 +269,28 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 }
 
 func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block, error) {
+	ctx, cancel := context.WithCancel(ctx)
 	blockHeightListener, err := item.ListenBlockHeights(ctx)
 	if err != nil {
+		cancel()
 		return nil, jerr.Get("error getting block height listener for subscription", err)
 	}
 	var blockChan = make(chan *model.Block)
 	go func() {
-		defer func() { blockChan <- nil }()
+		defer func() {
+			close(blockChan)
+			cancel()
+		}()
 		for {
 			var blockHeight *item.BlockHeight
+			var ok bool
 			select {
 			case <-ctx.Done():
-				jerr.Get("error blocks subscription context done", ctx.Err()).Print()
 				return
-			case blockHeight = <-blockHeightListener:
-			}
-			if blockHeight == nil {
-				jlog.Log("nil block height, closing subscription")
-				return
+			case blockHeight, ok = <-blockHeightListener:
+				if !ok {
+					return
+				}
 			}
 			block, err := item.GetBlock(blockHeight.BlockHash)
 			if err != nil {
@@ -298,6 +311,15 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 		}
 	}()
 	return blockChan, nil
+}
+
+func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error) {
+	var profile = new(sub.Profile)
+	profileChan, err := profile.Listen(ctx, addresses, GetPreloads(ctx))
+	if err != nil {
+		return nil, jerr.Get("error getting profile listener for subscription", err)
+	}
+	return profileChan, nil
 }
 
 // Query returns generated.QueryResolver implementation.

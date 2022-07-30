@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"crypto/rand"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -23,6 +24,7 @@ const (
 	TopicHeightBlockShard      = "height_block_shard"
 	TopicHeightDuplicate       = "height_duplicate"
 	TopicHeightProcessed       = "height_processed"
+	TopicLockAddress           = "lock_address"
 	TopicLockBalance           = "lock_balance"
 	TopicLockOutput            = "lock_output"
 	TopicLockHeightOutput      = "lock_height_output"
@@ -45,6 +47,13 @@ const (
 	TopicTxSeen                = "tx_seen"
 	TopicTxSuspect             = "tx_suspect"
 	TopicDoubleSpendSeen       = "double_spend_seen"
+	TopicMemoName              = "memo_name"
+	TopicMemoProfile           = "memo_profile"
+	TopicMemoProfilePic        = "memo_profile_pic"
+	TopicMemoFollow            = "memo_follow"
+	TopicMemoFollowed          = "memo_followed"
+	TopicMemoPost              = "memo_post"
+	TopicProcessError          = "process_error"
 )
 
 type Object interface {
@@ -155,6 +164,23 @@ func NewWait(size int) *Wait {
 	return wait
 }
 
+type CancelContext struct {
+	Context context.Context
+	Cancel  func()
+}
+
+func NewCancelContext(ctx context.Context, done func()) *CancelContext {
+	var c = new(CancelContext)
+	c.Context, c.Cancel = context.WithCancel(ctx)
+	if done != nil {
+		go func() {
+			<-c.Context.Done()
+			done()
+		}()
+	}
+	return c
+}
+
 func GetTopics() []Object {
 	return []Object{
 		&Block{},
@@ -168,18 +194,26 @@ func GetTopics() []Object {
 		&HeightBlockShard{},
 		&HeightDuplicate{},
 		&HeightProcessed{},
+		&LockAddress{},
 		&LockBalance{},
 		&LockHeightOutput{},
 		&LockHeightOutputInput{},
 		&LockOutput{},
 		&LockUtxo{},
 		&LockUtxoLost{},
+		&MemoFollow{},
+		&MemoFollowed{},
+		&MemoName{},
+		&MemoPost{},
+		&MemoProfile{},
+		&MemoProfilePic{},
 		&MempoolTxRaw{},
 		&Message{},
 		&OutputInput{},
 		&Peer{},
 		&PeerConnection{},
 		&PeerFound{},
+		&ProcessError{},
 		&ProcessStatus{},
 		&Tx{},
 		&TxBlock{},

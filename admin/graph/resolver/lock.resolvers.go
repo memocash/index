@@ -9,12 +9,22 @@ import (
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
+	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
+
+func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error) {
+	profile, err := dataloader.NewProfileLoader(load.ProfileLoaderConfig).Load(obj.Address)
+	if err != nil {
+		return nil, jerr.Get("error getting profile from dataloader for lock resolver", err)
+	}
+	return profile, nil
+}
 
 func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error) {
 	lockHash, err := hex.DecodeString(obj.Hash)

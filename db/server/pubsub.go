@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/jchavannes/jgo/jerr"
+	"sync"
 )
 
 type Subscribe struct {
@@ -21,14 +22,16 @@ func (s *Subscribe) Close() {
 }
 
 type PubSub struct {
-	Incr int64
-	Subs map[int64]*Subscribe
+	Incr  int64
+	Subs  map[int64]*Subscribe
+	Mutex sync.Mutex
 }
 
 func (s *PubSub) Subscribe(shard uint, topic string, start []byte, prefixes [][]byte) *Subscribe {
 	//prefixStrings := jutil.ByteSliceStrings(prefixes)
 	//jlog.Logf("New subscribe item shard: %d, topic: %s, start: %x, prefixes: %s\n",
 	//	shard, topic, start, strings.Join(prefixStrings, " "))
+	s.Mutex.Lock()
 	s.Incr++
 	var sub = &Subscribe{
 		Id:       s.Incr,
@@ -40,12 +43,15 @@ func (s *PubSub) Subscribe(shard uint, topic string, start []byte, prefixes [][]
 		PubSub:   s,
 	}
 	s.Subs[sub.Id] = sub
+	s.Mutex.Unlock()
 	return sub
 }
 
 func (s *PubSub) Close(id int64) {
+	s.Mutex.Lock()
 	close(s.Subs[id].UidChan)
 	delete(s.Subs, id)
+	s.Mutex.Unlock()
 }
 
 func (s *PubSub) Publish(shard uint, topic string, uid []byte) {

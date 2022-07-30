@@ -40,6 +40,7 @@ var mempoolCmd = &cobra.Command{
 			saver.NewUtxo(verbose),
 			saver.NewLockHeight(verbose),
 			saver.NewDoubleSpend(verbose),
+			saver.NewMemo(verbose),
 		}), nil)
 		if err := connection.Connect(); err != nil {
 			jerr.Get("fatal error connecting to peer", err).Fatal()

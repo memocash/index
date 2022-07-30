@@ -2,9 +2,11 @@ package resolver
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
@@ -237,4 +239,19 @@ var blockLoaderConfig = dataloader.BlockLoaderConfig{
 		}
 		return modelBlocks, nil
 	},
+}
+
+func TxLoader(ctx context.Context, txHash string) (*model.Tx, error) {
+	preloads := GetPreloads(ctx)
+	var raw string
+	if jutil.StringsInSlice([]string{"raw", "inputs", "outputs"}, preloads) {
+		var err error
+		if raw, err = dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHash); err != nil {
+			return nil, jerr.Get("error getting tx raw from dataloader for post resolver", err)
+		}
+	}
+	return &model.Tx{
+		Hash: txHash,
+		Raw:  raw,
+	}, nil
 }

@@ -45,3 +45,41 @@ type Block struct {
 	Timestamp Date   `json:"timestamp"`
 	Height    *int   `json:"height"`
 }
+
+type Profile struct {
+	LockHash string      `json:"lock_hash"`
+	Name     *SetName    `json:"name"`
+	Profile  *SetProfile `json:"profile"`
+	Pic      *SetPic     `json:"pic"`
+}
+
+type Follow struct {
+	TxHash         string `json:"tx_hash"`
+	LockHash       string `json:"lock_hash"`
+	FollowLockHash string `json:"follow_lock_hash"`
+	Unfollow       bool   `json:"unfollow"`
+}
+
+type SetName struct {
+	TxHash   string `json:"tx_hash"`
+	LockHash string `json:"lock_hash"`
+	Name     string `json:"name"`
+}
+
+type SetPic struct {
+	TxHash   string `json:"tx_hash"`
+	LockHash string `json:"lock_hash"`
+	Pic      string `json:"pic"`
+}
+
+type SetProfile struct {
+	TxHash   string `json:"tx_hash"`
+	LockHash string `json:"lock_hash"`
+	Text     string `json:"text"`
+}
+
+type Post struct {
+	TxHash   string `json:"tx_hash"`
+	LockHash string `json:"lock_hash"`
+	Text     string `json:"text"`
+}

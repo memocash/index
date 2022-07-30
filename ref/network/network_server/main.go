@@ -52,6 +52,7 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 		saver.NewUtxo(false),
 		saver.NewLockHeight(false),
 		saver.NewDoubleSpend(false),
+		saver.NewMemo(false),
 	})
 	for blockHashStr, msgTxs := range blockTxs {
 		var blockHeader *wire.BlockHeader
@@ -231,6 +232,7 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 		saver.NewUtxo(false),
 		saver.NewLockHeight(false),
 		saver.NewDoubleSpend(false),
+		saver.NewMemo(false),
 	}).SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader)); err != nil {
 		return nil, jerr.Get("error saving transactions", err)
 	}
