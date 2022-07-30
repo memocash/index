@@ -2,6 +2,7 @@ package op_return
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -13,7 +14,13 @@ var memoFollowHandler = &Handler{
 	prefix: memo.PrefixFollow,
 	handle: func(info Info) error {
 		if len(info.PushData) != 2 {
-			return jerr.Newf("invalid set follow, incorrect push data (%d)", len(info.PushData))
+			if err := item.Save([]item.Object{&item.ProcessError{
+				TxHash: info.TxHash,
+				Error:  fmt.Sprintf("invalid set follow, incorrect push data (%d)", len(info.PushData)),
+			}}); err != nil {
+				return jerr.Get("error saving process error", err)
+			}
+			return nil
 		}
 		unfollow := bytes.Equal(info.PushData[0], memo.PrefixUnfollow)
 		followAddress := wallet.GetAddressFromPkHash(info.PushData[1])

@@ -53,6 +53,7 @@ const (
 	TopicMemoFollow            = "memo_follow"
 	TopicMemoFollowed          = "memo_followed"
 	TopicMemoPost              = "memo_post"
+	TopicProcessError          = "process_error"
 )
 
 type Object interface {
@@ -212,6 +213,7 @@ func GetTopics() []Object {
 		&Peer{},
 		&PeerConnection{},
 		&PeerFound{},
+		&ProcessError{},
 		&ProcessStatus{},
 		&Tx{},
 		&TxBlock{},

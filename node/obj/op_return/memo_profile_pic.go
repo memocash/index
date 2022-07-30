@@ -1,6 +1,7 @@
 package op_return
 
 import (
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
@@ -11,7 +12,13 @@ var memoProfilePicHandler = &Handler{
 	prefix: memo.PrefixSetProfilePic,
 	handle: func(info Info) error {
 		if len(info.PushData) != 2 {
-			return jerr.Newf("invalid set profile pic, incorrect push data (%d)", len(info.PushData))
+			if err := item.Save([]item.Object{&item.ProcessError{
+				TxHash: info.TxHash,
+				Error:  fmt.Sprintf("invalid set profile pic, incorrect push data (%d)", len(info.PushData)),
+			}}); err != nil {
+				return jerr.Get("error saving process error", err)
+			}
+			return nil
 		}
 		var pic = jutil.GetUtf8String(info.PushData[1])
 		var memoProfilePic = &item.MemoProfilePic{
