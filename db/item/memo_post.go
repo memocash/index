@@ -49,24 +49,32 @@ func (n *MemoPost) Deserialize(data []byte) {
 	n.Post = string(data)
 }
 
-func GetMemoPost(ctx context.Context, lockHash []byte) (*MemoPost, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetWOpts(client.Opts{
-		Topic:    TopicMemoPost,
-		Prefixes: [][]byte{lockHash},
-		Max:      1,
-		Context:  ctx,
-	}); err != nil {
-		return nil, jerr.Get("error getting db memo post by prefix", err)
+func GetMemoPost(ctx context.Context, lockHashes [][]byte) ([]*MemoPost, error) {
+	var shardLockHashes = make(map[uint32][][]byte)
+	for _, lockHash := range lockHashes {
+		shard := client.GetByteShard32(lockHash)
+		shardLockHashes[shard] = append(shardLockHashes[shard], lockHash)
 	}
-	if len(db.Messages) == 0 {
-		return nil, jerr.Get("error no memo posts found", client.EntryNotFoundError)
+	shardConfigs := config.GetQueueShards()
+	var memoPosts []*MemoPost
+	for shard, lockHashPrefixes := range shardLockHashes {
+		shardConfig := config.GetShardConfig(shard, shardConfigs)
+		db := client.NewClient(shardConfig.GetHost())
+		if err := db.GetWOpts(client.Opts{
+			Topic:    TopicMemoPost,
+			Prefixes: lockHashPrefixes,
+			Max:      client.ExLargeLimit,
+			Context:  ctx,
+		}); err != nil {
+			return nil, jerr.Get("error getting db memo post by prefix", err)
+		}
+		for _, msg := range db.Messages {
+			var memoPost = new(MemoPost)
+			Set(memoPost, msg)
+			memoPosts = append(memoPosts, memoPost)
+		}
 	}
-	var memoPost = new(MemoPost)
-	memoPost.SetUid(db.Messages[0].Uid)
-	memoPost.Deserialize(db.Messages[0].Message)
-	return memoPost, nil
+	return memoPosts, nil
 }
 
 func RemoveMemoPost(memoPost *MemoPost) error {

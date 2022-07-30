@@ -104,7 +104,23 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 }
 
 func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *int) ([]*model.Post, error) {
-	panic(fmt.Errorf("not implemented"))
+	lockHash, err := hex.DecodeString(obj.LockHash)
+	if err != nil {
+		return nil, jerr.Get("error decoding lock hash for profile resolver", err)
+	}
+	memoPosts, err := item.GetMemoPost(ctx, [][]byte{lockHash})
+	if err != nil {
+		return nil, jerr.Get("error getting memo posts for profile resolver", err)
+	}
+	var posts = make([]*model.Post, len(memoPosts))
+	for i, memoPost := range memoPosts {
+		posts[i] = &model.Post{
+			TxHash:   hs.GetTxString(memoPost.TxHash),
+			LockHash: hex.EncodeToString(memoPost.LockHash),
+			Text:     memoPost.Post,
+		}
+	}
+	return posts, nil
 }
 
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
