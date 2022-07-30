@@ -89,21 +89,23 @@ func ListenMemoNames(ctx context.Context, lockHashes [][]byte) (chan *MemoName, 
 	}
 	shardConfigs := config.GetQueueShards()
 	var memoNameChan = make(chan *MemoName)
+	cancelCtx := NewCancelContext(ctx, func() {
+		close(memoNameChan)
+	})
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		db := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := db.Listen(ctx, TopicMemoName, lockHashPrefixes)
+		chanMessage, err := db.Listen(cancelCtx.Context, TopicMemoName, lockHashPrefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db memo names by prefix", err)
 		}
 		go func() {
 			for msg := range chanMessage {
 				var memoName = new(MemoName)
-				memoName.SetUid(msg.Uid)
-				memoName.Deserialize(msg.Message)
+				Set(memoName, *msg)
 				memoNameChan <- memoName
 			}
-			close(memoNameChan)
+			cancelCtx.Cancel()
 		}()
 	}
 	return memoNameChan, nil

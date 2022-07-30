@@ -97,21 +97,23 @@ func ListenMemoPosts(ctx context.Context, lockHashes [][]byte) (chan *MemoPost, 
 	}
 	shardConfigs := config.GetQueueShards()
 	var memoPostChan = make(chan *MemoPost)
+	cancelCtx := NewCancelContext(ctx, func() {
+		close(memoPostChan)
+	})
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		db := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := db.Listen(ctx, TopicMemoPost, lockHashPrefixes)
+		chanMessage, err := db.Listen(cancelCtx.Context, TopicMemoPost, lockHashPrefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db memo posts by prefix", err)
 		}
 		go func() {
 			for msg := range chanMessage {
 				var memoPost = new(MemoPost)
-				memoPost.SetUid(msg.Uid)
-				memoPost.Deserialize(msg.Message)
+				Set(memoPost, *msg)
 				memoPostChan <- memoPost
 			}
-			close(memoPostChan)
+			cancelCtx.Cancel()
 		}()
 	}
 	return memoPostChan, nil

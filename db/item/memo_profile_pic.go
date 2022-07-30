@@ -89,25 +89,23 @@ func ListenMemoProfilePics(ctx context.Context, lockHashes [][]byte) (chan *Memo
 	}
 	shardConfigs := config.GetQueueShards()
 	var memoProfilePicChan = make(chan *MemoProfilePic)
+	cancelCtx := NewCancelContext(ctx, func() {
+		close(memoProfilePicChan)
+	})
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		db := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := db.Listen(ctx, TopicMemoProfilePic, lockHashPrefixes)
+		chanMessage, err := db.Listen(cancelCtx.Context, TopicMemoProfilePic, lockHashPrefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db memo profile pic by prefix", err)
 		}
 		go func() {
 			for msg := range chanMessage {
-				if msg == nil {
-					close(chanMessage)
-					memoProfilePicChan <- nil
-					break
-				}
 				var memoProfilePic = new(MemoProfilePic)
-				memoProfilePic.SetUid(msg.Uid)
-				memoProfilePic.Deserialize(msg.Message)
+				Set(memoProfilePic, *msg)
 				memoProfilePicChan <- memoProfilePic
 			}
+			cancelCtx.Cancel()
 		}()
 	}
 	return memoProfilePicChan, nil

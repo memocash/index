@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"crypto/rand"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -160,6 +161,23 @@ func NewWait(size int) *Wait {
 	var wait = new(Wait)
 	wait.Group.Add(size)
 	return wait
+}
+
+type CancelContext struct {
+	Context context.Context
+	Cancel  func()
+}
+
+func NewCancelContext(ctx context.Context, done func()) *CancelContext {
+	var c = new(CancelContext)
+	c.Context, c.Cancel = context.WithCancel(ctx)
+	if done != nil {
+		go func() {
+			<-c.Context.Done()
+			done()
+		}()
+	}
+	return c
 }
 
 func GetTopics() []Object {

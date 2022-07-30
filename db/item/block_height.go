@@ -8,7 +8,6 @@ import (
 	"github.com/memocash/index/ref/config"
 	"sort"
 	"strings"
-	"sync"
 )
 
 type BlockHeight struct {
@@ -102,32 +101,22 @@ func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
 }
 
 func ListenBlockHeights(ctx context.Context) (chan *BlockHeight, error) {
-	cancelCtx, cancel := context.WithCancel(ctx)
 	var chanBlockHeight = make(chan *BlockHeight)
-	var onlyOnce sync.Once
+	cancelCtx := NewCancelContext(ctx, func() {
+		close(chanBlockHeight)
+	})
 	for _, shardConfig := range config.GetQueueShards() {
 		db := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := db.Listen(cancelCtx, TopicBlockHeight, nil)
+		chanMessage, err := db.Listen(cancelCtx.Context, TopicBlockHeight, nil)
 		if err != nil {
 			return nil, jerr.Get("error getting block height listen message chan", err)
 		}
 		go func() {
-			defer onlyOnce.Do(func() {
-				close(chanBlockHeight)
-				cancel()
-			})
-			for {
-				select {
-				case <-cancelCtx.Done():
-					return
-				case msg, ok := <-chanMessage:
-					if !ok {
-						return
-					}
-					var blockHeight = new(BlockHeight)
-					Set(blockHeight, *msg)
-					chanBlockHeight <- blockHeight
-				}
+			defer cancelCtx.Cancel()
+			for msg := range chanMessage {
+				var blockHeight = new(BlockHeight)
+				Set(blockHeight, *msg)
+				chanBlockHeight <- blockHeight
 			}
 		}()
 	}

@@ -133,9 +133,13 @@ func ListenMemoFolloweds(ctx context.Context, followLockHashes [][]byte) (chan *
 	}
 	shardConfigs := config.GetQueueShards()
 	var memoFollowedChan = make(chan *MemoFollowed)
+	cancelCtx := NewCancelContext(ctx, func() {
+		close(memoFollowedChan)
+	})
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		chanMessage, err := client.NewClient(shardConfig.GetHost()).Listen(ctx, TopicMemoFollowed, lockHashPrefixes)
+		chanMessage, err := client.NewClient(shardConfig.GetHost()).
+			Listen(cancelCtx.Context, TopicMemoFollowed, lockHashPrefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db memo followeds by prefix", err)
 		}
@@ -145,7 +149,7 @@ func ListenMemoFolloweds(ctx context.Context, followLockHashes [][]byte) (chan *
 				Set(memoFollowed, *msg)
 				memoFollowedChan <- memoFollowed
 			}
-			close(memoFollowedChan)
+			cancelCtx.Cancel()
 		}()
 	}
 	return memoFollowedChan, nil
