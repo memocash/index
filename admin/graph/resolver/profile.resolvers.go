@@ -6,8 +6,6 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
-
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -18,7 +16,11 @@ import (
 )
 
 func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error) {
-	panic(fmt.Errorf("not implemented"))
+	tx, err := TxLoader(ctx, obj.TxHash)
+	if err != nil {
+		return nil, jerr.Get("error getting tx from loader for follow resolver", err)
+	}
+	return tx, nil
 }
 
 func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
@@ -38,11 +40,19 @@ func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*mo
 }
 
 func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
-	panic(fmt.Errorf("not implemented"))
+	tx, err := TxLoader(ctx, obj.TxHash)
+	if err != nil {
+		return nil, jerr.Get("error getting tx from loader for post resolver", err)
+	}
+	return tx, nil
 }
 
 func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, error) {
-	panic(fmt.Errorf("not implemented"))
+	lock, err := LockLoader(ctx, obj.LockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting lock from loader for post resolver", err)
+	}
+	return lock, nil
 }
 
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
@@ -124,7 +134,11 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 }
 
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
-	panic(fmt.Errorf("not implemented"))
+	tx, err := TxLoader(ctx, obj.TxHash)
+	if err != nil {
+		return nil, jerr.Get("error getting tx from loader for set name resolver", err)
+	}
+	return tx, nil
 }
 
 func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.Lock, error) {
@@ -136,7 +150,11 @@ func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.
 }
 
 func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error) {
-	panic(fmt.Errorf("not implemented"))
+	tx, err := TxLoader(ctx, obj.TxHash)
+	if err != nil {
+		return nil, jerr.Get("error getting tx from loader for set pic resolver", err)
+	}
+	return tx, nil
 }
 
 func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lock, error) {
@@ -148,7 +166,11 @@ func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lo
 }
 
 func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error) {
-	panic(fmt.Errorf("not implemented"))
+	tx, err := TxLoader(ctx, obj.TxHash)
+	if err != nil {
+		return nil, jerr.Get("error getting tx from loader for set profile resolver", err)
+	}
+	return tx, nil
 }
 
 func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error) {

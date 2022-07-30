@@ -5,14 +5,18 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
 )
 
 func (r *txSuspectResolver) Tx(ctx context.Context, obj *model.TxSuspect) (*model.Tx, error) {
-	panic(fmt.Errorf("not implemented"))
+	tx, err := TxLoader(ctx, obj.Hash)
+	if err != nil {
+		return nil, jerr.Get("error getting tx from loader for tx suspect resolver", err)
+	}
+	return tx, nil
 }
 
 // TxSuspect returns generated.TxSuspectResolver implementation.
