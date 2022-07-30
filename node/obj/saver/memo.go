@@ -43,23 +43,32 @@ func (t *Memo) SaveTxs(block *wire.MsgBlock) error {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}
 		var lockHash []byte
-		for j := range tx.TxIn {
-			address, err := wallet.GetAddressFromSignatureScript(tx.TxIn[j].SignatureScript)
-			if err != nil {
-				return jerr.Get("error getting address from signature script", err)
+		var SetLockHash = func() error {
+			if lockHash != nil {
+				return nil
 			}
-			lockHash = script.GetLockHashForAddress(*address)
-			if len(lockHash) > 0 {
-				break
+			for j := range tx.TxIn {
+				address, err := wallet.GetAddressFromSignatureScript(tx.TxIn[j].SignatureScript)
+				if err != nil {
+					return jerr.Get("error getting address from signature script", err)
+				}
+				lockHash = script.GetLockHashForAddress(*address)
+				if len(lockHash) > 0 {
+					break
+				}
 			}
-		}
-		if len(lockHash) == 0 {
-			return jerr.New("error could not find input pk hash for memo")
+			if len(lockHash) == 0 {
+				return jerr.New("error could not find input pk hash for memo")
+			}
+			return nil
 		}
 		for h := range tx.TxOut {
 			for _, opReturnHandler := range opReturnHandlers {
 				if !opReturnHandler.CanHandle(tx.TxOut[h].PkScript) {
 					continue
+				}
+				if err := SetLockHash(); err != nil {
+					return jerr.Get("error setting lock hash for op return tx", err)
 				}
 				pushData, err := txscript.PushedData(tx.TxOut[h].PkScript)
 				if err != nil {
