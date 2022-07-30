@@ -26,7 +26,7 @@ func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, 
 func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for follow resolver: %s", obj.LockHash)
+		return nil, jerr.Getf(err, "error getting lock from loader for follow resolver: %s", obj.TxHash)
 	}
 	return lock, nil
 }
@@ -34,7 +34,7 @@ func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lo
 func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.FollowLockHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting follow lock from loader for follow resolver: %s", obj.FollowLockHash)
+		return nil, jerr.Getf(err, "error getting follow lock from loader for follow resolver: %s", obj.TxHash)
 	}
 	return lock, nil
 }
@@ -50,7 +50,7 @@ func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, erro
 func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for post resolver: %s", obj.LockHash)
+		return nil, jerr.Getf(err, "error getting lock from loader for post resolver: %s", obj.TxHash)
 	}
 	return lock, nil
 }
@@ -144,7 +144,7 @@ func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx
 func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for set name resolver: %s", obj.LockHash)
+		return nil, jerr.Getf(err, "error getting lock from loader for set name resolver: %s", obj.TxHash)
 	}
 	return lock, nil
 }
@@ -160,7 +160,7 @@ func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, 
 func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for set pic resolver: %s", obj.LockHash)
+		return nil, jerr.Getf(err, "error getting lock from loader for set pic resolver: %s", obj.TxHash)
 	}
 	return lock, nil
 }
@@ -176,7 +176,7 @@ func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*mo
 func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for set profile resolver: %s", obj.LockHash)
+		return nil, jerr.Getf(err, "error getting lock from loader for set profile resolver: %s", obj.TxHash)
 	}
 	return lock, nil
 }
