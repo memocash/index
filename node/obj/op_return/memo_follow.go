@@ -40,7 +40,7 @@ var memoFollowHandler = &Handler{
 			Unfollow:       unfollow,
 		}
 		var lockAddress = &item.LockAddress{
-			LockHash: info.LockHash,
+			LockHash: followLockHash,
 			Address:  followAddress.GetEncoded(),
 		}
 		if err := item.Save([]item.Object{memoFollow, memoFollowed, lockAddress}); err != nil {
