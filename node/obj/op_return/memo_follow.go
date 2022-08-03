@@ -18,12 +18,21 @@ var memoFollowHandler = &Handler{
 				TxHash: info.TxHash,
 				Error:  fmt.Sprintf("invalid set follow, incorrect push data (%d)", len(info.PushData)),
 			}); err != nil {
-				return jerr.Get("error saving process error", err)
+				return jerr.Get("error saving process error memo follow incorrect push data", err)
 			}
 			return nil
 		}
 		unfollow := bytes.Equal(info.PushData[0], memo.PrefixUnfollow)
-		followAddress := wallet.GetAddressFromPkHash(info.PushData[1])
+		followAddress, err := wallet.GetAddressFromPkHashNew(info.PushData[1])
+		if err != nil {
+			if err := item.LogProcessError(&item.ProcessError{
+				TxHash: info.TxHash,
+				Error:  fmt.Sprintf("error getting address from follow pk hash: %s", err),
+			}); err != nil {
+				return jerr.Get("error saving process error memo follow address", err)
+			}
+			return nil
+		}
 		followLockHash := script.GetLockHashForAddress(followAddress)
 		var memoFollow = &item.MemoFollow{
 			LockHash: info.LockHash,
