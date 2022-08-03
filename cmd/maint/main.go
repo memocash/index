@@ -6,6 +6,7 @@ import (
 
 const (
 	FlagVerbose = "verbose"
+	FlagDelete  = "delete"
 )
 
 var maintCommand = &cobra.Command{
@@ -16,12 +17,14 @@ func GetCommand() *cobra.Command {
 	populateDoubleSpendSeenCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
 	txLostCleanupCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
 	checkLockUtxoCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
+	checkFollowsCmd.Flags().BoolP(FlagDelete, "", false, "Delete items")
 	maintCommand.AddCommand(
 		txLostCleanupCmd,
 		populateDoubleSpendSeenCmd,
 		populateHeightBlockShardCmd,
 		queueProfileCmd,
 		checkLockUtxoCmd,
+		checkFollowsCmd,
 	)
 	return maintCommand
 }
