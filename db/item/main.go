@@ -17,8 +17,9 @@ const (
 	TopicBlockHeight           = "block_height"
 	TopicBlockTx               = "block_tx"
 	TopicBlockTxRaw            = "block_tx_raw"
-	TopicDoubleSpendOutput     = "double_spend_output"
 	TopicDoubleSpendInput      = "double_spend_input"
+	TopicDoubleSpendOutput     = "double_spend_output"
+	TopicDoubleSpendSeen       = "double_spend_seen"
 	TopicFoundPeer             = "found_peer"
 	TopicHeightBlock           = "height_block"
 	TopicHeightBlockShard      = "height_block_shard"
@@ -31,12 +32,20 @@ const (
 	TopicLockHeightOutputInput = "lock_height_output_input"
 	TopicLockUtxo              = "lock_utxo"
 	TopicLockUtxoLost          = "lock_utxo_lost"
+	TopicMemoFollow            = "memo_follow"
+	TopicMemoFollowed          = "memo_followed"
+	TopicMemoLike              = "memo_like"
+	TopicMemoName              = "memo_name"
+	TopicMemoPost              = "memo_post"
+	TopicMemoProfile           = "memo_profile"
+	TopicMemoProfilePic        = "memo_profile_pic"
 	TopicMempoolTxRaw          = "mempool_tx_raw"
 	TopicMessage               = "message"
 	TopicOutputInput           = "output_input"
 	TopicPeer                  = "peer"
 	TopicPeerConnection        = "peer_connection"
 	TopicPeerFound             = "peer_found"
+	TopicProcessError          = "process_error"
 	TopicProcessStatus         = "process_status"
 	TopicTx                    = "tx"
 	TopicTxBlock               = "tx_block"
@@ -46,14 +55,6 @@ const (
 	TopicTxProcessed           = "tx_processed"
 	TopicTxSeen                = "tx_seen"
 	TopicTxSuspect             = "tx_suspect"
-	TopicDoubleSpendSeen       = "double_spend_seen"
-	TopicMemoName              = "memo_name"
-	TopicMemoProfile           = "memo_profile"
-	TopicMemoProfilePic        = "memo_profile_pic"
-	TopicMemoFollow            = "memo_follow"
-	TopicMemoFollowed          = "memo_followed"
-	TopicMemoPost              = "memo_post"
-	TopicProcessError          = "process_error"
 )
 
 type Object interface {
@@ -203,6 +204,7 @@ func GetTopics() []Object {
 		&LockUtxoLost{},
 		&MemoFollow{},
 		&MemoFollowed{},
+		&MemoLike{},
 		&MemoName{},
 		&MemoPost{},
 		&MemoProfile{},
