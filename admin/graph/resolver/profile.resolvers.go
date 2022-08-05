@@ -42,11 +42,19 @@ func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*mo
 }
 
 func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, error) {
-	panic(fmt.Errorf("not implemented"))
+	tx, err := TxLoader(ctx, obj.TxHash)
+	if err != nil {
+		return nil, jerr.Getf(err, "error getting tx from loader for like resolver: %s", obj.TxHash)
+	}
+	return tx, nil
 }
 
 func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, error) {
-	panic(fmt.Errorf("not implemented"))
+	lock, err := LockLoader(ctx, obj.LockHash)
+	if err != nil {
+		return nil, jerr.Getf(err, "error getting lock from loader for like resolver: %s", obj.TxHash)
+	}
+	return lock, nil
 }
 
 func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, error) {
