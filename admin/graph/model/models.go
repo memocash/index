@@ -88,4 +88,5 @@ type Like struct {
 	TxHash     string `json:"tx_hash"`
 	LockHash   string `json:"lock_hash"`
 	PostTxHash string `json:"post_tx_hash"`
+	Tip        int64  `json:"tip"`
 }

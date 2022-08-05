@@ -56,11 +56,12 @@ var memoLikeHandler = &Handler{
 					tip += txOut.Value
 				}
 			}
-			objects = append(objects, &item.MemoLikeTip{
-				PostTxHash: postTxHash,
-				LikeTxHash: info.TxHash,
-				Tip:        tip,
-			})
+			if tip > 0 {
+				objects = append(objects, &item.MemoLikeTip{
+					LikeTxHash: info.TxHash,
+					Tip:        tip,
+				})
+			}
 		}
 		if err := item.Save(objects); err != nil {
 			return jerr.Get("error saving db memo like object", err)

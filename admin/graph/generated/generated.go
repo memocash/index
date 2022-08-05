@@ -91,6 +91,7 @@ type ComplexityRoot struct {
 		LockHash   func(childComplexity int) int
 		Post       func(childComplexity int) int
 		PostTxHash func(childComplexity int) int
+		Tip        func(childComplexity int) int
 		Tx         func(childComplexity int) int
 		TxHash     func(childComplexity int) int
 	}
@@ -482,6 +483,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Like.PostTxHash(childComplexity), true
+
+	case "Like.tip":
+		if e.complexity.Like.Tip == nil {
+			break
+		}
+
+		return e.complexity.Like.Tip(childComplexity), true
 
 	case "Like.tx":
 		if e.complexity.Like.Tx == nil {
@@ -1273,6 +1281,7 @@ type Like {
     lock_hash: String!
     post_tx_hash: String!
     post: Post
+    tip: Int64
 }
 `, BuiltIn: false},
 	{Name: "schema/query.graphqls", Input: `type Query {
@@ -2483,6 +2492,38 @@ func (ec *executionContext) _Like_post(ctx context.Context, field graphql.Collec
 	res := resTmp.(*model.Post)
 	fc.Result = res
 	return ec.marshalOPost2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Like_tip(ctx context.Context, field graphql.CollectedField, obj *model.Like) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Like",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tip, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalOInt642int64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Lock_hash(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
@@ -6741,6 +6782,13 @@ func (ec *executionContext) _Like(ctx context.Context, sel ast.SelectionSet, obj
 				return innerFunc(ctx)
 
 			})
+		case "tip":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Like_tip(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9316,6 +9364,16 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 	res := graphql.MarshalInt(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOInt642int64(ctx context.Context, v interface{}) (int64, error) {
+	res, err := graphql.UnmarshalInt64(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt642int64(ctx context.Context, sel ast.SelectionSet, v int64) graphql.Marshaler {
+	res := graphql.MarshalInt64(v)
 	return res
 }
 

@@ -4,10 +4,10 @@ package resolver
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -91,12 +91,29 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 	if err != nil {
 		return nil, jerr.Get("error getting memo post likeds for post resolver", err)
 	}
+	var likeTxHashes = make([][]byte, len(memoLikeds))
+	for i := range memoLikeds {
+		likeTxHashes[i] = memoLikeds[i].LikeTxHash
+	}
+	memoLikeTips, err := item.GetMemoLikeTips(likeTxHashes)
+	if err != nil {
+		return nil, jerr.Get("error getting memo like tips for post resolver", err)
+	}
 	var likes = make([]*model.Like, len(memoLikeds))
 	for i := range memoLikeds {
+		var tip int64
+		for j := range memoLikeTips {
+			if bytes.Equal(memoLikeTips[j].LikeTxHash, memoLikeds[j].LikeTxHash) {
+				tip = memoLikeTips[j].Tip
+				memoLikeTips = append(memoLikeTips[:j], memoLikeTips[j+1:]...)
+				break
+			}
+		}
 		likes[i] = &model.Like{
 			TxHash:     hs.GetTxString(memoLikeds[i].LikeTxHash),
 			PostTxHash: hs.GetTxString(memoLikeds[i].PostTxHash),
 			LockHash:   hex.EncodeToString(memoLikeds[i].LockHash),
+			Tip:        tip,
 		}
 	}
 	return likes, nil

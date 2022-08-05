@@ -72,12 +72,3 @@ func GetMemoLikeds(postTxHashes [][]byte) ([]*MemoLiked, error) {
 	}
 	return memoLikeds, nil
 }
-
-func RemoveMemoLiked(memoLiked *MemoLiked) error {
-	shardConfig := config.GetShardConfig(GetShard32(memoLiked.GetShard()), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.DeleteMessages(TopicMemoLiked, [][]byte{memoLiked.GetUid()}); err != nil {
-		return jerr.Get("error deleting item topic memo liked", err)
-	}
-	return nil
-}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
@@ -60,13 +61,17 @@ var memoPostHandler = &Handler{
 					memoLikeTips[hex.EncodeToString(likeTxOut.TxHash)] += likeTxOut.Value
 				}
 			}
-			for postTxHash, tip := range memoLikeTips {
-				var memoLikeTip = &item.MemoLikeTip{
-					PostTxHash: []byte(postTxHash),
-					LikeTxHash: info.TxHash,
-					Tip:        tip,
+			for likeTxHashString, tip := range memoLikeTips {
+				likeTxHash, err := chainhash.NewHashFromStr(likeTxHashString)
+				if err != nil {
+					return jerr.Get("error parsing like tip tx hash for memo post op return handler", err)
 				}
-				objects = append(objects, memoLikeTip)
+				if tip > 0 {
+					objects = append(objects, &item.MemoLikeTip{
+						LikeTxHash: likeTxHash.CloneBytes(),
+						Tip:        tip,
+					})
+				}
 			}
 		}
 		if err := item.Save(objects); err != nil {

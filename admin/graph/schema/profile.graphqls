@@ -59,4 +59,5 @@ type Like {
     lock_hash: String!
     post_tx_hash: String!
     post: Post
+    tip: Int64
 }
