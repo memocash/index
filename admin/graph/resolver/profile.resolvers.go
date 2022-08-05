@@ -6,7 +6,7 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -83,7 +83,23 @@ func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, 
 }
 
 func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Like, error) {
-	panic(fmt.Errorf("not implemented"))
+	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
+	if err != nil {
+		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
+	}
+	memoLikeds, err := item.GetMemoLikeds([][]byte{postTxHash.CloneBytes()})
+	if err != nil {
+		return nil, jerr.Get("error getting memo post likeds for post resolver", err)
+	}
+	var likes = make([]*model.Like, len(memoLikeds))
+	for i := range memoLikeds {
+		likes[i] = &model.Like{
+			TxHash:     hs.GetTxString(memoLikeds[i].LikeTxHash),
+			PostTxHash: hs.GetTxString(memoLikeds[i].PostTxHash),
+			LockHash:   hex.EncodeToString(memoLikeds[i].LockHash),
+		}
+	}
+	return likes, nil
 }
 
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
