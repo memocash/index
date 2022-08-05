@@ -72,17 +72,17 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	if start != nil {
 		startInt = int64(*start)
 	}
-	memoFollows, err := item.GetMemoFollows(ctx, script.GetLockHashForAddress(*address), startInt)
+	lockMemoFollows, err := item.GetLockMemoFollows(ctx, script.GetLockHashForAddress(*address), startInt)
 	if err != nil {
-		return nil, jerr.Get("error getting memo follows for address", err)
+		return nil, jerr.Get("error getting lock memo follows for address", err)
 	}
 	var follows []*model.Follow
-	for _, memoFollow := range memoFollows {
+	for _, lockMemoFollow := range lockMemoFollows {
 		follows = append(follows, &model.Follow{
-			TxHash:         hs.GetTxString(memoFollow.TxHash),
-			LockHash:       hex.EncodeToString(memoFollow.LockHash),
-			FollowLockHash: hex.EncodeToString(memoFollow.Follow),
-			Unfollow:       memoFollow.Unfollow,
+			TxHash:         hs.GetTxString(lockMemoFollow.TxHash),
+			LockHash:       hex.EncodeToString(lockMemoFollow.LockHash),
+			FollowLockHash: hex.EncodeToString(lockMemoFollow.Follow),
+			Unfollow:       lockMemoFollow.Unfollow,
 		})
 	}
 	return follows, nil
@@ -97,17 +97,17 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 	if start != nil {
 		startInt = int64(*start)
 	}
-	memoFolloweds, err := item.GetMemoFolloweds(ctx, script.GetLockHashForAddress(*address), startInt)
+	lockMemoFolloweds, err := item.GetLockMemoFolloweds(ctx, script.GetLockHashForAddress(*address), startInt)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting memo follows for address: %s", obj.LockHash)
+		return nil, jerr.Getf(err, "error getting lock memo follows for address: %s", obj.LockHash)
 	}
 	var follows []*model.Follow
-	for _, memoFollowed := range memoFolloweds {
+	for _, lockMemoFollowed := range lockMemoFolloweds {
 		follows = append(follows, &model.Follow{
-			TxHash:         hs.GetTxString(memoFollowed.TxHash),
-			LockHash:       hex.EncodeToString(memoFollowed.LockHash),
-			FollowLockHash: hex.EncodeToString(memoFollowed.FollowLockHash),
-			Unfollow:       memoFollowed.Unfollow,
+			TxHash:         hs.GetTxString(lockMemoFollowed.TxHash),
+			LockHash:       hex.EncodeToString(lockMemoFollowed.LockHash),
+			FollowLockHash: hex.EncodeToString(lockMemoFollowed.FollowLockHash),
+			Unfollow:       lockMemoFollowed.Unfollow,
 		})
 	}
 	return follows, nil

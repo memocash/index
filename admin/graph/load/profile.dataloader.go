@@ -46,28 +46,28 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 					LockHash: lockHashString,
 				}
 			}
-			memoProfile, err := item.GetMemoProfile(ctx, lockHash)
+			lockMemoProfile, err := item.GetLockMemoProfile(ctx, lockHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
-				errors[i] = jerr.Get("error getting memo profile", err)
+				errors[i] = jerr.Get("error getting lock memo profile", err)
 				continue
 			}
-			if memoProfile != nil {
+			if lockMemoProfile != nil {
 				profile.Profile = &model.SetProfile{
-					TxHash:   hs.GetTxString(memoProfile.TxHash),
-					Text:     memoProfile.Profile,
+					TxHash:   hs.GetTxString(lockMemoProfile.TxHash),
+					Text:     lockMemoProfile.Profile,
 					LockHash: lockHashString,
 				}
 			}
-			memoProfilePic, err := item.GetMemoProfilePic(ctx, lockHash)
+			lockMemoProfilePic, err := item.GetLockMemoProfilePic(ctx, lockHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
-				errors[i] = jerr.Get("error getting memo profile pic", err)
+				errors[i] = jerr.Get("error getting lock memo profile pic", err)
 				continue
 			}
-			if memoProfilePic != nil {
+			if lockMemoProfilePic != nil {
 				profile.Pic = &model.SetPic{
-					TxHash:   hs.GetTxString(memoProfilePic.TxHash),
+					TxHash:   hs.GetTxString(lockMemoProfilePic.TxHash),
 					LockHash: lockHashString,
-					Pic:      memoProfilePic.Pic,
+					Pic:      lockMemoProfilePic.Pic,
 				}
 			}
 			profiles[i] = profile

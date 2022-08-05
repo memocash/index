@@ -27,21 +27,21 @@ const (
 	TopicHeightProcessed       = "height_processed"
 	TopicLockAddress           = "lock_address"
 	TopicLockBalance           = "lock_balance"
+	TopicLockMemoFollow        = "lock_memo_follow"
+	TopicLockMemoFollowed      = "lock_memo_followed"
 	TopicLockMemoLike          = "lock_memo_like"
 	TopicLockMemoName          = "lock_memo_name"
 	TopicLockMemoPost          = "lock_memo_post"
+	TopicLockMemoProfile       = "lock_memo_profile"
+	TopicLockMemoProfilePic    = "lock_memo_profile_pic"
 	TopicLockOutput            = "lock_output"
 	TopicLockHeightOutput      = "lock_height_output"
 	TopicLockHeightOutputInput = "lock_height_output_input"
 	TopicLockUtxo              = "lock_utxo"
 	TopicLockUtxoLost          = "lock_utxo_lost"
-	TopicMemoFollow            = "memo_follow"
-	TopicMemoFollowed          = "memo_followed"
 	TopicMemoLiked             = "memo_liked"
 	TopicMemoLikeTip           = "memo_like_tip"
 	TopicMemoPost              = "memo_post"
-	TopicMemoProfile           = "memo_profile"
-	TopicMemoProfilePic        = "memo_profile_pic"
 	TopicMempoolTxRaw          = "mempool_tx_raw"
 	TopicMessage               = "message"
 	TopicOutputInput           = "output_input"
@@ -205,13 +205,13 @@ func GetTopics() []Object {
 		&LockOutput{},
 		&LockUtxo{},
 		&LockUtxoLost{},
-		&MemoFollow{},
-		&MemoFollowed{},
+		&LockMemoFollow{},
+		&LockMemoFollowed{},
 		&LockMemoLike{},
 		&LockMemoName{},
 		&LockMemoPost{},
-		&MemoProfile{},
-		&MemoProfilePic{},
+		&LockMemoProfile{},
+		&LockMemoProfilePic{},
 		&MempoolTxRaw{},
 		&Message{},
 		&OutputInput{},

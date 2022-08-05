@@ -9,14 +9,14 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type MemoProfile struct {
+type LockMemoProfile struct {
 	LockHash []byte
 	Height   int64
 	TxHash   []byte
 	Profile  string
 }
 
-func (n MemoProfile) GetUid() []byte {
+func (n LockMemoProfile) GetUid() []byte {
 	return jutil.CombineBytes(
 		n.LockHash,
 		jutil.ByteFlip(jutil.GetInt64DataBig(n.Height)),
@@ -24,19 +24,19 @@ func (n MemoProfile) GetUid() []byte {
 	)
 }
 
-func (n MemoProfile) GetShard() uint {
+func (n LockMemoProfile) GetShard() uint {
 	return client.GetByteShard(n.LockHash)
 }
 
-func (n MemoProfile) GetTopic() string {
-	return TopicMemoProfile
+func (n LockMemoProfile) GetTopic() string {
+	return TopicLockMemoProfile
 }
 
-func (n MemoProfile) Serialize() []byte {
+func (n LockMemoProfile) Serialize() []byte {
 	return []byte(n.Profile)
 }
 
-func (n *MemoProfile) SetUid(uid []byte) {
+func (n *LockMemoProfile) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
@@ -45,40 +45,40 @@ func (n *MemoProfile) SetUid(uid []byte) {
 	n.TxHash = jutil.ByteReverse(uid[40:72])
 }
 
-func (n *MemoProfile) Deserialize(data []byte) {
+func (n *LockMemoProfile) Deserialize(data []byte) {
 	n.Profile = string(data)
 }
 
-func GetMemoProfile(ctx context.Context, lockHash []byte) (*MemoProfile, error) {
+func GetLockMemoProfile(ctx context.Context, lockHash []byte) (*LockMemoProfile, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
 	if err := db.GetWOpts(client.Opts{
-		Topic:    TopicMemoProfile,
+		Topic:    TopicLockMemoProfile,
 		Prefixes: [][]byte{lockHash},
 		Max:      1,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db memo profile by prefix", err)
+		return nil, jerr.Get("error getting db lock memo profile by prefix", err)
 	}
 	if len(db.Messages) == 0 {
-		return nil, jerr.Get("error no memo profiles found", client.EntryNotFoundError)
+		return nil, jerr.Get("error no lock memo profiles found", client.EntryNotFoundError)
 	}
-	var memoProfile = new(MemoProfile)
-	memoProfile.SetUid(db.Messages[0].Uid)
-	memoProfile.Deserialize(db.Messages[0].Message)
-	return memoProfile, nil
+	var lockMemoProfile = new(LockMemoProfile)
+	lockMemoProfile.SetUid(db.Messages[0].Uid)
+	lockMemoProfile.Deserialize(db.Messages[0].Message)
+	return lockMemoProfile, nil
 }
 
-func RemoveMemoProfile(memoProfile *MemoProfile) error {
-	shardConfig := config.GetShardConfig(GetShard32(memoProfile.GetShard()), config.GetQueueShards())
+func RemoveLockMemoProfile(lockMemoProfile *LockMemoProfile) error {
+	shardConfig := config.GetShardConfig(GetShard32(lockMemoProfile.GetShard()), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
-	if err := db.DeleteMessages(TopicMemoProfile, [][]byte{memoProfile.GetUid()}); err != nil {
-		return jerr.Get("error deleting item topic memo profile", err)
+	if err := db.DeleteMessages(TopicLockMemoProfile, [][]byte{lockMemoProfile.GetUid()}); err != nil {
+		return jerr.Get("error deleting item topic lock memo profile", err)
 	}
 	return nil
 }
 
-func ListenMemoProfiles(ctx context.Context, lockHashes [][]byte) (chan *MemoProfile, error) {
+func ListenLockMemoProfiles(ctx context.Context, lockHashes [][]byte) (chan *LockMemoProfile, error) {
 	if len(lockHashes) == 0 {
 		return nil, nil
 	}
@@ -88,25 +88,25 @@ func ListenMemoProfiles(ctx context.Context, lockHashes [][]byte) (chan *MemoPro
 		shardLockHashes[shard] = append(shardLockHashes[shard], lockHash)
 	}
 	shardConfigs := config.GetQueueShards()
-	var memoProfileChan = make(chan *MemoProfile)
+	var lockMemoProfileChan = make(chan *LockMemoProfile)
 	cancelCtx := NewCancelContext(ctx, func() {
-		close(memoProfileChan)
+		close(lockMemoProfileChan)
 	})
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		db := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := db.Listen(cancelCtx.Context, TopicMemoProfile, lockHashPrefixes)
+		chanMessage, err := db.Listen(cancelCtx.Context, TopicLockMemoProfile, lockHashPrefixes)
 		if err != nil {
-			return nil, jerr.Get("error listening to db memo profile by prefix", err)
+			return nil, jerr.Get("error listening to db lock memo profile by prefix", err)
 		}
 		go func() {
 			for msg := range chanMessage {
-				var memoProfile = new(MemoProfile)
-				Set(memoProfile, *msg)
-				memoProfileChan <- memoProfile
+				var lockMemoProfile = new(LockMemoProfile)
+				Set(lockMemoProfile, *msg)
+				lockMemoProfileChan <- lockMemoProfile
 			}
 			cancelCtx.Cancel()
 		}()
 	}
-	return memoProfileChan, nil
+	return lockMemoProfileChan, nil
 }

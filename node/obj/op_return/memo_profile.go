@@ -21,19 +21,19 @@ var memoProfileHandler = &Handler{
 			return nil
 		}
 		var profile = jutil.GetUtf8String(info.PushData[1])
-		var memoProfile = &item.MemoProfile{
+		var lockMemoProfile = &item.LockMemoProfile{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
 			Profile:  profile,
 		}
-		if err := item.Save([]item.Object{memoProfile}); err != nil {
-			return jerr.Get("error saving db memo profile object", err)
+		if err := item.Save([]item.Object{lockMemoProfile}); err != nil {
+			return jerr.Get("error saving db lock memo profile object", err)
 		}
 		if info.Height != item.HeightMempool {
-			memoProfile.Height = item.HeightMempool
-			if err := item.RemoveMemoProfile(memoProfile); err != nil {
-				return jerr.Get("error removing db memo profile", err)
+			lockMemoProfile.Height = item.HeightMempool
+			if err := item.RemoveLockMemoProfile(lockMemoProfile); err != nil {
+				return jerr.Get("error removing db lock memo profile", err)
 			}
 		}
 		return nil

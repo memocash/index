@@ -9,7 +9,7 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type MemoFollowed struct {
+type LockMemoFollowed struct {
 	FollowLockHash []byte
 	Height         int64
 	TxHash         []byte
@@ -17,7 +17,7 @@ type MemoFollowed struct {
 	Unfollow       bool
 }
 
-func (n MemoFollowed) GetUid() []byte {
+func (n LockMemoFollowed) GetUid() []byte {
 	return jutil.CombineBytes(
 		n.FollowLockHash,
 		jutil.ByteFlip(jutil.GetInt64DataBig(n.Height)),
@@ -25,15 +25,15 @@ func (n MemoFollowed) GetUid() []byte {
 	)
 }
 
-func (n MemoFollowed) GetShard() uint {
+func (n LockMemoFollowed) GetShard() uint {
 	return client.GetByteShard(n.FollowLockHash)
 }
 
-func (n MemoFollowed) GetTopic() string {
-	return TopicMemoFollowed
+func (n LockMemoFollowed) GetTopic() string {
+	return TopicLockMemoFollowed
 }
 
-func (n MemoFollowed) Serialize() []byte {
+func (n LockMemoFollowed) Serialize() []byte {
 	var unfollow byte
 	if n.Unfollow {
 		unfollow = 1
@@ -44,7 +44,7 @@ func (n MemoFollowed) Serialize() []byte {
 	)
 }
 
-func (n *MemoFollowed) SetUid(uid []byte) {
+func (n *LockMemoFollowed) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
@@ -53,7 +53,7 @@ func (n *MemoFollowed) SetUid(uid []byte) {
 	n.TxHash = jutil.ByteReverse(uid[40:72])
 }
 
-func (n *MemoFollowed) Deserialize(data []byte) {
+func (n *LockMemoFollowed) Deserialize(data []byte) {
 	if len(data) < memo.TxHashLength+1 {
 		return
 	}
@@ -61,35 +61,35 @@ func (n *MemoFollowed) Deserialize(data []byte) {
 	n.LockHash = data[1 : memo.TxHashLength+1]
 }
 
-func GetMemoFollowed(ctx context.Context, followLockHashes [][]byte) ([]*MemoFollowed, error) {
+func GetLockMemoFollowed(ctx context.Context, followLockHashes [][]byte) ([]*LockMemoFollowed, error) {
 	var shardLockHashes = make(map[uint32][][]byte)
 	for _, followLockHash := range followLockHashes {
 		shard := client.GetByteShard32(followLockHash)
 		shardLockHashes[shard] = append(shardLockHashes[shard], followLockHash)
 	}
 	shardConfigs := config.GetQueueShards()
-	var memoFolloweds []*MemoFollowed
+	var lockMemoFolloweds []*LockMemoFollowed
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		db := client.NewClient(shardConfig.GetHost())
 		if err := db.GetWOpts(client.Opts{
-			Topic:    TopicMemoFollowed,
+			Topic:    TopicLockMemoFollowed,
 			Prefixes: lockHashPrefixes,
 			Max:      client.ExLargeLimit,
 			Context:  ctx,
 		}); err != nil {
-			return nil, jerr.Get("error getting db memo followed by prefix", err)
+			return nil, jerr.Get("error getting db lock memo followed by prefix", err)
 		}
 		for _, msg := range db.Messages {
-			var memoFollowed = new(MemoFollowed)
-			Set(memoFollowed, msg)
-			memoFolloweds = append(memoFolloweds, memoFollowed)
+			var lockMemoFollowed = new(LockMemoFollowed)
+			Set(lockMemoFollowed, msg)
+			lockMemoFolloweds = append(lockMemoFolloweds, lockMemoFollowed)
 		}
 	}
-	return memoFolloweds, nil
+	return lockMemoFolloweds, nil
 }
 
-func GetMemoFolloweds(ctx context.Context, followLockHash []byte, start int64) ([]*MemoFollowed, error) {
+func GetLockMemoFolloweds(ctx context.Context, followLockHash []byte, start int64) ([]*LockMemoFollowed, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(followLockHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
 	var startByte []byte
@@ -99,58 +99,58 @@ func GetMemoFolloweds(ctx context.Context, followLockHash []byte, start int64) (
 		startByte = followLockHash
 	}
 	if err := db.GetWOpts(client.Opts{
-		Topic:    TopicMemoFollowed,
+		Topic:    TopicLockMemoFollowed,
 		Prefixes: [][]byte{followLockHash},
 		Start:    startByte,
 		Max:      client.ExLargeLimit,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db memo follow by prefix", err)
+		return nil, jerr.Get("error getting db lock memo follow by prefix", err)
 	}
-	var memoFolloweds []*MemoFollowed
+	var memoFolloweds []*LockMemoFollowed
 	for _, msg := range db.Messages {
-		var memoFollow = new(MemoFollowed)
-		Set(memoFollow, msg)
-		memoFolloweds = append(memoFolloweds, memoFollow)
+		var lockMemoFollow = new(LockMemoFollowed)
+		Set(lockMemoFollow, msg)
+		memoFolloweds = append(memoFolloweds, lockMemoFollow)
 	}
 	return memoFolloweds, nil
 }
 
-func RemoveMemoFollowed(memoFollow *MemoFollowed) error {
-	shardConfig := config.GetShardConfig(GetShard32(memoFollow.GetShard()), config.GetQueueShards())
+func RemoveLockMemoFollowed(lockMemoFollow *LockMemoFollowed) error {
+	shardConfig := config.GetShardConfig(GetShard32(lockMemoFollow.GetShard()), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
-	if err := db.DeleteMessages(TopicMemoFollowed, [][]byte{memoFollow.GetUid()}); err != nil {
-		return jerr.Get("error deleting item topic memo followed", err)
+	if err := db.DeleteMessages(TopicLockMemoFollowed, [][]byte{lockMemoFollow.GetUid()}); err != nil {
+		return jerr.Get("error deleting item topic lock memo followed", err)
 	}
 	return nil
 }
 
-func ListenMemoFolloweds(ctx context.Context, followLockHashes [][]byte) (chan *MemoFollowed, error) {
+func ListenLockMemoFolloweds(ctx context.Context, followLockHashes [][]byte) (chan *LockMemoFollowed, error) {
 	var shardLockHashes = make(map[uint32][][]byte)
 	for _, followLockHash := range followLockHashes {
 		shard := client.GetByteShard32(followLockHash)
 		shardLockHashes[shard] = append(shardLockHashes[shard], followLockHash)
 	}
 	shardConfigs := config.GetQueueShards()
-	var memoFollowedChan = make(chan *MemoFollowed)
+	var lockMemoFollowedChan = make(chan *LockMemoFollowed)
 	cancelCtx := NewCancelContext(ctx, func() {
-		close(memoFollowedChan)
+		close(lockMemoFollowedChan)
 	})
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		chanMessage, err := client.NewClient(shardConfig.GetHost()).
-			Listen(cancelCtx.Context, TopicMemoFollowed, lockHashPrefixes)
+			Listen(cancelCtx.Context, TopicLockMemoFollowed, lockHashPrefixes)
 		if err != nil {
-			return nil, jerr.Get("error listening to db memo followeds by prefix", err)
+			return nil, jerr.Get("error listening to db lock memo followeds by prefix", err)
 		}
 		go func() {
 			for msg := range chanMessage {
-				var memoFollowed = new(MemoFollowed)
-				Set(memoFollowed, *msg)
-				memoFollowedChan <- memoFollowed
+				var lockMemoFollowed = new(LockMemoFollowed)
+				Set(lockMemoFollowed, *msg)
+				lockMemoFollowedChan <- lockMemoFollowed
 			}
 			cancelCtx.Cancel()
 		}()
 	}
-	return memoFollowedChan, nil
+	return lockMemoFollowedChan, nil
 }

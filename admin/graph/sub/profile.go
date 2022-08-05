@@ -100,31 +100,31 @@ func (p *Profile) SetupFollowingLockHashes(ctx context.Context, preloads []strin
 	}, preloads) {
 		return nil
 	}
-	memoFollows, err := item.GetMemoFollow(ctx, p.LockHashes)
+	lockMemoFollows, err := item.GetLockMemoFollow(ctx, p.LockHashes)
 	if err != nil {
-		return jerr.Get("error getting memo follows for profile lock hashes", err)
+		return jerr.Get("error getting lock memo follows for profile lock hashes", err)
 	}
-	var lastMemoFollow *item.MemoFollow
-	for _, memoFollow := range memoFollows {
-		if lastMemoFollow != nil && bytes.Equal(memoFollow.Follow, lastMemoFollow.Follow) {
+	var lastMemoFollow *item.LockMemoFollow
+	for _, lockMemoFollow := range lockMemoFollows {
+		if lastMemoFollow != nil && bytes.Equal(lockMemoFollow.Follow, lastMemoFollow.Follow) {
 			continue
 		}
-		if !memoFollow.Unfollow {
+		if !lockMemoFollow.Unfollow {
 			if jutil.StringInSlice("following.follow_lock.profile.name", preloads) {
-				p.NameLockHashes = append(p.NameLockHashes, memoFollow.Follow)
+				p.NameLockHashes = append(p.NameLockHashes, lockMemoFollow.Follow)
 			}
 			if jutil.StringInSlice("following.follow_lock.profile.profile", preloads) {
-				p.ProfileLockHashes = append(p.ProfileLockHashes, memoFollow.Follow)
+				p.ProfileLockHashes = append(p.ProfileLockHashes, lockMemoFollow.Follow)
 			}
 			if jutil.StringInSlice("following.follow_lock.profile.pic", preloads) {
-				p.PicLockHashes = append(p.PicLockHashes, memoFollow.Follow)
+				p.PicLockHashes = append(p.PicLockHashes, lockMemoFollow.Follow)
 			}
-			if _, ok := p.LockHashAddressMap[hex.EncodeToString(memoFollow.Follow)]; !ok &&
-				!jutil.InByteArray(memoFollow.Follow, p.NeedsLockHashMap) {
-				p.NeedsLockHashMap = append(p.NeedsLockHashMap, memoFollow.Follow)
+			if _, ok := p.LockHashAddressMap[hex.EncodeToString(lockMemoFollow.Follow)]; !ok &&
+				!jutil.InByteArray(lockMemoFollow.Follow, p.NeedsLockHashMap) {
+				p.NeedsLockHashMap = append(p.NeedsLockHashMap, lockMemoFollow.Follow)
 			}
 		}
-		lastMemoFollow = memoFollow
+		lastMemoFollow = lockMemoFollow
 	}
 	return nil
 }
@@ -137,31 +137,31 @@ func (p *Profile) SetupFollowersLockHashes(ctx context.Context, preloads []strin
 	}, preloads) {
 		return nil
 	}
-	memoFolloweds, err := item.GetMemoFollowed(ctx, p.LockHashes)
+	lockMemoFolloweds, err := item.GetLockMemoFollowed(ctx, p.LockHashes)
 	if err != nil {
-		return jerr.Get("error getting memo followeds for profile lock hashes", err)
+		return jerr.Get("error getting lock memo followeds for profile lock hashes", err)
 	}
-	var lastMemoFollowed *item.MemoFollowed
-	for _, memoFollowed := range memoFolloweds {
-		if lastMemoFollowed != nil && bytes.Equal(memoFollowed.LockHash, lastMemoFollowed.LockHash) {
+	var lastLockMemoFollowed *item.LockMemoFollowed
+	for _, lockMemoFollowed := range lockMemoFolloweds {
+		if lastLockMemoFollowed != nil && bytes.Equal(lockMemoFollowed.LockHash, lastLockMemoFollowed.LockHash) {
 			continue
 		}
-		if !memoFollowed.Unfollow {
+		if !lockMemoFollowed.Unfollow {
 			if jutil.StringInSlice("followers.lock.profile.name", preloads) {
-				p.NameLockHashes = append(p.NameLockHashes, memoFollowed.LockHash)
+				p.NameLockHashes = append(p.NameLockHashes, lockMemoFollowed.LockHash)
 			}
 			if jutil.StringInSlice("followers.lock.profile.profile", preloads) {
-				p.ProfileLockHashes = append(p.ProfileLockHashes, memoFollowed.LockHash)
+				p.ProfileLockHashes = append(p.ProfileLockHashes, lockMemoFollowed.LockHash)
 			}
 			if jutil.StringInSlice("followers.lock.profile.pic", preloads) {
-				p.PicLockHashes = append(p.PicLockHashes, memoFollowed.LockHash)
+				p.PicLockHashes = append(p.PicLockHashes, lockMemoFollowed.LockHash)
 			}
-			if _, ok := p.LockHashAddressMap[hex.EncodeToString(memoFollowed.LockHash)]; !ok &&
-				!jutil.InByteArray(memoFollowed.LockHash, p.NeedsLockHashMap) {
-				p.NeedsLockHashMap = append(p.NeedsLockHashMap, memoFollowed.LockHash)
+			if _, ok := p.LockHashAddressMap[hex.EncodeToString(lockMemoFollowed.LockHash)]; !ok &&
+				!jutil.InByteArray(lockMemoFollowed.LockHash, p.NeedsLockHashMap) {
+				p.NeedsLockHashMap = append(p.NeedsLockHashMap, lockMemoFollowed.LockHash)
 			}
 		}
-		lastMemoFollowed = memoFollowed
+		lastLockMemoFollowed = lockMemoFollowed
 	}
 	return nil
 }
@@ -181,10 +181,10 @@ func (p *Profile) SetupNeedsLockHashMap() error {
 }
 
 func (p *Profile) ListenFollowing(ctx context.Context, lockHashes [][]byte) error {
-	memoFollowingListener, err := item.ListenMemoFollows(ctx, lockHashes)
+	lockMemoFollowingListener, err := item.ListenLockMemoFollows(ctx, lockHashes)
 	if err != nil {
 		p.Cancel()
-		return jerr.Get("error getting memo following listener for profile subscription", err)
+		return jerr.Get("error getting lock memo following listener for profile subscription", err)
 	}
 	go func() {
 		defer p.Cancel()
@@ -192,11 +192,11 @@ func (p *Profile) ListenFollowing(ctx context.Context, lockHashes [][]byte) erro
 			select {
 			case <-ctx.Done():
 				return
-			case memoFollow, ok := <-memoFollowingListener:
+			case lockMemoFollow, ok := <-lockMemoFollowingListener:
 				if !ok {
 					return
 				}
-				p.LockHashUpdateChan <- memoFollow.LockHash
+				p.LockHashUpdateChan <- lockMemoFollow.LockHash
 			}
 		}
 	}()
@@ -204,7 +204,7 @@ func (p *Profile) ListenFollowing(ctx context.Context, lockHashes [][]byte) erro
 }
 
 func (p *Profile) ListenFollowers(ctx context.Context, lockHashes [][]byte) error {
-	memoFollowerListener, err := item.ListenMemoFolloweds(ctx, lockHashes)
+	lockMemoFollowerListener, err := item.ListenLockMemoFolloweds(ctx, lockHashes)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting memo followers listener for profile subscription", err)
@@ -215,11 +215,11 @@ func (p *Profile) ListenFollowers(ctx context.Context, lockHashes [][]byte) erro
 			select {
 			case <-ctx.Done():
 				return
-			case memoFollow, ok := <-memoFollowerListener:
+			case lockMemoFollow, ok := <-lockMemoFollowerListener:
 				if !ok {
 					return
 				}
-				p.LockHashUpdateChan <- memoFollow.LockHash
+				p.LockHashUpdateChan <- lockMemoFollow.LockHash
 			}
 		}
 	}()
@@ -250,10 +250,10 @@ func (p *Profile) ListenNames(ctx context.Context, lockHashes [][]byte) error {
 }
 
 func (p *Profile) ListenProfiles(ctx context.Context, lockHashes [][]byte) error {
-	memoProfileListener, err := item.ListenMemoProfiles(ctx, lockHashes)
+	lockMemoProfileListener, err := item.ListenLockMemoProfiles(ctx, lockHashes)
 	if err != nil {
 		p.Cancel()
-		return jerr.Get("error getting memo profile listener for profile subscription", err)
+		return jerr.Get("error getting lock memo profile listener for profile subscription", err)
 	}
 	go func() {
 		defer p.Cancel()
@@ -261,11 +261,11 @@ func (p *Profile) ListenProfiles(ctx context.Context, lockHashes [][]byte) error
 			select {
 			case <-ctx.Done():
 				return
-			case memoProfile, ok := <-memoProfileListener:
+			case lockMemoProfile, ok := <-lockMemoProfileListener:
 				if !ok {
 					return
 				}
-				p.LockHashUpdateChan <- memoProfile.LockHash
+				p.LockHashUpdateChan <- lockMemoProfile.LockHash
 			}
 		}
 	}()
@@ -273,10 +273,10 @@ func (p *Profile) ListenProfiles(ctx context.Context, lockHashes [][]byte) error
 }
 
 func (p *Profile) ListenPics(ctx context.Context, lockHashes [][]byte) error {
-	memoProfilePicListener, err := item.ListenMemoProfilePics(ctx, lockHashes)
+	lockMemoProfilePicListener, err := item.ListenLockMemoProfilePics(ctx, lockHashes)
 	if err != nil {
 		p.Cancel()
-		return jerr.Get("error getting memo profile pic listener for profile subscription", err)
+		return jerr.Get("error getting lock memo profile pic listener for profile subscription", err)
 	}
 	go func() {
 		defer p.Cancel()
@@ -284,11 +284,11 @@ func (p *Profile) ListenPics(ctx context.Context, lockHashes [][]byte) error {
 			select {
 			case <-ctx.Done():
 				return
-			case memoProfilePic, ok := <-memoProfilePicListener:
+			case lockMemoProfilePic, ok := <-lockMemoProfilePicListener:
 				if !ok {
 					return
 				}
-				p.LockHashUpdateChan <- memoProfilePic.LockHash
+				p.LockHashUpdateChan <- lockMemoProfilePic.LockHash
 			}
 		}
 	}()

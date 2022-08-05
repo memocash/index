@@ -21,19 +21,19 @@ var memoProfilePicHandler = &Handler{
 			return nil
 		}
 		var pic = jutil.GetUtf8String(info.PushData[1])
-		var memoProfilePic = &item.MemoProfilePic{
+		var lockMemoProfilePic = &item.LockMemoProfilePic{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
 			Pic:      pic,
 		}
-		if err := item.Save([]item.Object{memoProfilePic}); err != nil {
-			return jerr.Get("error saving db memo profile pic object", err)
+		if err := item.Save([]item.Object{lockMemoProfilePic}); err != nil {
+			return jerr.Get("error saving db lock memo profile pic object", err)
 		}
 		if info.Height != item.HeightMempool {
-			memoProfilePic.Height = item.HeightMempool
-			if err := item.RemoveMemoProfilePic(memoProfilePic); err != nil {
-				return jerr.Get("error removing db memo profile pic", err)
+			lockMemoProfilePic.Height = item.HeightMempool
+			if err := item.RemoveLockMemoProfilePic(lockMemoProfilePic); err != nil {
+				return jerr.Get("error removing db lock memo profile pic", err)
 			}
 		}
 		return nil
