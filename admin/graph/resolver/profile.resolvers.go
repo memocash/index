@@ -6,6 +6,8 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
+
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -39,6 +41,18 @@ func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*mo
 	return lock, nil
 }
 
+func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
 	tx, err := TxLoader(ctx, obj.TxHash)
 	if err != nil {
@@ -53,6 +67,10 @@ func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, 
 		return nil, jerr.Getf(err, "error getting lock from loader for post resolver: %s", obj.TxHash)
 	}
 	return lock, nil
+}
+
+func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Like, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
@@ -192,6 +210,9 @@ func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*
 // Follow returns generated.FollowResolver implementation.
 func (r *Resolver) Follow() generated.FollowResolver { return &followResolver{r} }
 
+// Like returns generated.LikeResolver implementation.
+func (r *Resolver) Like() generated.LikeResolver { return &likeResolver{r} }
+
 // Post returns generated.PostResolver implementation.
 func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }
 
@@ -208,6 +229,7 @@ func (r *Resolver) SetPic() generated.SetPicResolver { return &setPicResolver{r}
 func (r *Resolver) SetProfile() generated.SetProfileResolver { return &setProfileResolver{r} }
 
 type followResolver struct{ *Resolver }
+type likeResolver struct{ *Resolver }
 type postResolver struct{ *Resolver }
 type profileResolver struct{ *Resolver }
 type setNameResolver struct{ *Resolver }

@@ -83,3 +83,9 @@ type Post struct {
 	LockHash string `json:"lock_hash"`
 	Text     string `json:"text"`
 }
+
+type Like struct {
+	TxHash     string `json:"tx_hash"`
+	LockHash   string `json:"lock_hash"`
+	PostTxHash string `json:"post_tx_hash"`
+}

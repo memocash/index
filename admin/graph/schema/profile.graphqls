@@ -49,4 +49,14 @@ type Post {
     lock: Lock!
     lock_hash: String!
     text: String!
+    likes: [Like!]
+}
+
+type Like {
+    tx: Tx!
+    tx_hash: String!
+    lock: Lock!
+    lock_hash: String!
+    post_tx_hash: String!
+    post: Post
 }
