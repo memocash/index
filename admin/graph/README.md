@@ -14,6 +14,7 @@ go run github.com/vektah/dataloaden TxRawLoader string string
 go run github.com/vektah/dataloaden ProfileLoader string *github.com/memocash/index/admin/graph/model.Profile
 go run github.com/vektah/dataloaden LockAddressLoader string *github.com/memocash/index/ref/bitcoin/wallet.Address
 go run github.com/vektah/dataloaden AddressBalanceLoader string int64
+go run github.com/vektah/dataloaden PostLoader string *github.com/memocash/index/admin/graph/model.Post
 
 go get github.com/vektah/dataloaden@none
 go mod tidy

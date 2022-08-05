@@ -11,6 +11,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
@@ -58,7 +59,11 @@ func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, 
 }
 
 func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented"))
+	post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(obj.TxHash)
+	if err != nil {
+		return nil, jerr.Getf(err, "error getting post from post dataloader for like resolver: %s", obj.LockHash)
+	}
+	return post, nil
 }
 
 func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
