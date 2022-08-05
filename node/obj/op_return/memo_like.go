@@ -1,10 +1,12 @@
 package op_return
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
 
 var memoLikeHandler = &Handler{
@@ -19,28 +21,53 @@ var memoLikeHandler = &Handler{
 			}
 			return nil
 		}
-		likeTxHash := info.PushData[1]
-		if len(likeTxHash) != memo.TxHashLength {
+		postTxHash := info.PushData[1]
+		if len(postTxHash) != memo.TxHashLength {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
-				Error:  fmt.Sprintf("error like tx hash not correct size: %d", len(likeTxHash)),
+				Error:  fmt.Sprintf("error like tx hash not correct size: %d", len(postTxHash)),
 			}); err != nil {
-				return jerr.Get("error saving process error memo like address", err)
+				return jerr.Get("error saving process error memo like post tx hash", err)
 			}
 			return nil
 		}
-		var memoLike = &item.MemoLike{
+		var memoLike = &item.LockMemoLike{
 			LockHash:   info.LockHash,
 			Height:     info.Height,
-			TxHash:     info.TxHash,
-			LikeTxHash: likeTxHash,
+			LikeTxHash: info.TxHash,
+			PostTxHash: postTxHash,
 		}
-		if err := item.Save([]item.Object{memoLike}); err != nil {
+		var memoLiked = &item.MemoLiked{
+			PostTxHash: postTxHash,
+			Height:     info.Height,
+			LikeTxHash: info.TxHash,
+			LockHash:   info.LockHash,
+		}
+		memoPost, err := item.GetMemoPost(postTxHash)
+		if err != nil {
+			return jerr.Get("error getting memo post for like op return handler", err)
+		}
+		var objects = []item.Object{memoLike, memoLiked}
+		if memoPost != nil {
+			var tip int64
+			for _, txOut := range info.Outputs {
+				outputLockHash := script.GetLockHash(txOut.PkScript)
+				if bytes.Equal(outputLockHash, memoPost.LockHash) {
+					tip += txOut.Value
+				}
+			}
+			objects = append(objects, &item.MemoLikeTip{
+				PostTxHash: postTxHash,
+				LikeTxHash: info.TxHash,
+				Tip:        tip,
+			})
+		}
+		if err := item.Save(objects); err != nil {
 			return jerr.Get("error saving db memo like object", err)
 		}
 		if info.Height != item.HeightMempool {
 			memoLike.Height = item.HeightMempool
-			if err := item.RemoveMemoLike(memoLike); err != nil {
+			if err := item.RemoveLockMemoLike(memoLike); err != nil {
 				return jerr.Get("error removing db memo like", err)
 			}
 		}

@@ -1,6 +1,8 @@
 package op_return
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -21,18 +23,58 @@ var memoPostHandler = &Handler{
 			return nil
 		}
 		var post = jutil.GetUtf8String(info.PushData[1])
-		var memoPost = &item.MemoPost{
+		var lockMemoPost = &item.LockMemoPost{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
-			Post:     post,
 		}
-		if err := item.Save([]item.Object{memoPost}); err != nil {
+		var objects = []item.Object{lockMemoPost}
+		existingMemoPost, err := item.GetMemoPost(info.TxHash)
+		if err != nil {
+			return jerr.Get("error getting existing memo post for post op return handler", err)
+		}
+		if existingMemoPost == nil {
+			var memoPost = &item.MemoPost{
+				TxHash:   info.TxHash,
+				LockHash: info.LockHash,
+				Post:     post,
+			}
+			objects = append(objects, memoPost)
+			memoLikeds, err := item.GetMemoLikeds([][]byte{info.TxHash})
+			if err != nil {
+				return jerr.Get("error getting memo likeds for post op return handler", err)
+			}
+			var likeTxHashes [][]byte
+			for _, memoLiked := range memoLikeds {
+				if !bytes.Equal(memoLiked.LockHash, memoPost.LockHash) {
+					likeTxHashes = append(likeTxHashes, memoLiked.LikeTxHash)
+				}
+			}
+			likeTxOuts, err := item.GetTxOutputsByHashes(likeTxHashes)
+			if err != nil {
+				return jerr.Get("error getting like tx outputs for post op return handler", err)
+			}
+			var memoLikeTips = make(map[string]int64)
+			for _, likeTxOut := range likeTxOuts {
+				if bytes.Equal(likeTxOut.LockHash, memoPost.LockHash) {
+					memoLikeTips[hex.EncodeToString(likeTxOut.TxHash)] += likeTxOut.Value
+				}
+			}
+			for postTxHash, tip := range memoLikeTips {
+				var memoLikeTip = &item.MemoLikeTip{
+					PostTxHash: []byte(postTxHash),
+					LikeTxHash: info.TxHash,
+					Tip:        tip,
+				}
+				objects = append(objects, memoLikeTip)
+			}
+		}
+		if err := item.Save(objects); err != nil {
 			return jerr.Get("error saving db memo post object", err)
 		}
 		if info.Height != item.HeightMempool {
-			memoPost.Height = item.HeightMempool
-			if err := item.RemoveMemoPost(memoPost); err != nil {
+			lockMemoPost.Height = item.HeightMempool
+			if err := item.RemoveLockMemoPost(lockMemoPost); err != nil {
 				return jerr.Get("error removing db memo post", err)
 			}
 		}

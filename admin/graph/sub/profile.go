@@ -227,10 +227,10 @@ func (p *Profile) ListenFollowers(ctx context.Context, lockHashes [][]byte) erro
 }
 
 func (p *Profile) ListenNames(ctx context.Context, lockHashes [][]byte) error {
-	memoNameListener, err := item.ListenMemoNames(ctx, lockHashes)
+	lockMemoNameListener, err := item.ListenLockMemoNames(ctx, lockHashes)
 	if err != nil {
 		p.Cancel()
-		return jerr.Get("error getting memo name listener for profile subscription", err)
+		return jerr.Get("error getting lock memo name listener for profile subscription", err)
 	}
 	go func() {
 		defer p.Cancel()
@@ -238,11 +238,11 @@ func (p *Profile) ListenNames(ctx context.Context, lockHashes [][]byte) error {
 			select {
 			case <-ctx.Done():
 				return
-			case memoName, ok := <-memoNameListener:
+			case lockMemoName, ok := <-lockMemoNameListener:
 				if !ok {
 					return
 				}
-				p.LockHashUpdateChan <- memoName.LockHash
+				p.LockHashUpdateChan <- lockMemoName.LockHash
 			}
 		}
 	}()

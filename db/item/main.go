@@ -27,6 +27,9 @@ const (
 	TopicHeightProcessed       = "height_processed"
 	TopicLockAddress           = "lock_address"
 	TopicLockBalance           = "lock_balance"
+	TopicLockMemoLike          = "lock_memo_like"
+	TopicLockMemoName          = "lock_memo_name"
+	TopicLockMemoPost          = "lock_memo_post"
 	TopicLockOutput            = "lock_output"
 	TopicLockHeightOutput      = "lock_height_output"
 	TopicLockHeightOutputInput = "lock_height_output_input"
@@ -34,8 +37,8 @@ const (
 	TopicLockUtxoLost          = "lock_utxo_lost"
 	TopicMemoFollow            = "memo_follow"
 	TopicMemoFollowed          = "memo_followed"
-	TopicMemoLike              = "memo_like"
-	TopicMemoName              = "memo_name"
+	TopicMemoLiked             = "memo_liked"
+	TopicMemoLikeTip           = "memo_like_tip"
 	TopicMemoPost              = "memo_post"
 	TopicMemoProfile           = "memo_profile"
 	TopicMemoProfilePic        = "memo_profile_pic"
@@ -204,9 +207,9 @@ func GetTopics() []Object {
 		&LockUtxoLost{},
 		&MemoFollow{},
 		&MemoFollowed{},
-		&MemoLike{},
-		&MemoName{},
-		&MemoPost{},
+		&LockMemoLike{},
+		&LockMemoName{},
+		&LockMemoPost{},
 		&MemoProfile{},
 		&MemoProfilePic{},
 		&MempoolTxRaw{},

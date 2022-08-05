@@ -34,15 +34,15 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 			}
 			lockHashString := hex.EncodeToString(lockHash)
 			var profile = &model.Profile{LockHash: lockHashString}
-			memoName, err := item.GetMemoName(ctx, lockHash)
+			lockMemoName, err := item.GetLockMemoName(ctx, lockHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting memo name", err)
 				continue
 			}
-			if memoName != nil {
+			if lockMemoName != nil {
 				profile.Name = &model.SetName{
-					TxHash:   hs.GetTxString(memoName.TxHash),
-					Name:     memoName.Name,
+					TxHash:   hs.GetTxString(lockMemoName.TxHash),
+					Name:     lockMemoName.Name,
 					LockHash: lockHashString,
 				}
 			}

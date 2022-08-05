@@ -21,18 +21,18 @@ var memoNameHandler = &Handler{
 			return nil
 		}
 		var name = jutil.GetUtf8String(info.PushData[1])
-		var memoName = &item.MemoName{
+		var lockMemoName = &item.LockMemoName{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
 			Name:     name,
 		}
-		if err := item.Save([]item.Object{memoName}); err != nil {
+		if err := item.Save([]item.Object{lockMemoName}); err != nil {
 			return jerr.Get("error saving db memo name object", err)
 		}
 		if info.Height != item.HeightMempool {
-			memoName.Height = item.HeightMempool
-			if err := item.RemoveMemoName(memoName); err != nil {
+			lockMemoName.Height = item.HeightMempool
+			if err := item.RemoveLockMemoName(lockMemoName); err != nil {
 				return jerr.Get("error removing db memo name", err)
 			}
 		}

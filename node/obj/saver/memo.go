@@ -95,6 +95,7 @@ func (t *Memo) SaveTxs(block *wire.MsgBlock) error {
 					TxHash:   txHashBytes,
 					LockHash: lockHash,
 					PushData: pushData,
+					Outputs:  tx.TxOut,
 				}); err != nil {
 					return jerr.Get("error handling op return", err)
 				}

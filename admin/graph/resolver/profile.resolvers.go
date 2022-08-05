@@ -118,9 +118,17 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	if err != nil {
 		return nil, jerr.Getf(err, "error decoding lock hash for profile resolver: %s", obj.LockHash)
 	}
-	memoPosts, err := item.GetMemoPost(ctx, [][]byte{lockHash})
+	lockMemoPosts, err := item.GetLockMemoPosts(ctx, [][]byte{lockHash})
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting memo posts for profile resolver: %s", obj.LockHash)
+		return nil, jerr.Getf(err, "error getting lock memo posts for profile resolver: %s", obj.LockHash)
+	}
+	var postTxHashes = make([][]byte, len(lockMemoPosts))
+	for i := range lockMemoPosts {
+		postTxHashes[i] = lockMemoPosts[i].TxHash
+	}
+	memoPosts, err := item.GetMemoPosts(postTxHashes)
+	if err != nil {
+		return nil, jerr.Get("error getting memo posts for profile resolver", err)
 	}
 	var posts = make([]*model.Post, len(memoPosts))
 	for i, memoPost := range memoPosts {

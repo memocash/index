@@ -21,6 +21,7 @@ const (
 	ScriptHashLength = 20
 	TxHashLength     = 32
 	PubKeyLength     = 64
+	LockHashLength   = TxHashLength
 
 	AddressStringLength = 35
 	TxStringLength      = 64
@@ -50,9 +51,9 @@ const (
 )
 
 const (
-	Int2Size = 2
-	Int4Size = 4
-	Int8Size = 8
+	Int2Size = 2 // int16
+	Int4Size = 4 // int32
+	Int8Size = 8 // int64
 )
 
 const MaxAncestors = 25

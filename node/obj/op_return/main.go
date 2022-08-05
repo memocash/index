@@ -2,6 +2,7 @@ package op_return
 
 import (
 	"bytes"
+	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
@@ -11,6 +12,7 @@ type Info struct {
 	TxHash   []byte
 	LockHash []byte
 	PushData [][]byte
+	Outputs  []*wire.TxOut
 }
 
 type Handler struct {
