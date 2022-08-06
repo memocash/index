@@ -48,7 +48,7 @@ var memoLikeHandler = &Handler{
 			return jerr.Get("error getting memo post for like op return handler", err)
 		}
 		var objects = []item.Object{memoLike, memoLiked}
-		if memoPost != nil {
+		if memoPost != nil && !bytes.Equal(memoLike.LockHash, memoPost.LockHash) {
 			var tip int64
 			for _, txOut := range info.Outputs {
 				outputLockHash := script.GetLockHash(txOut.PkScript)

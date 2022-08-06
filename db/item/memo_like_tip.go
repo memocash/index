@@ -55,8 +55,8 @@ func GetMemoLikeTips(likeTxHashes [][]byte) ([]*MemoLikeTip, error) {
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		db := client.NewClient(shardConfig.GetHost())
-		if err := db.GetByPrefixes(TopicMemoLiked, prefixes); err != nil {
-			return nil, jerr.Get("error getting client message memo likeds", err)
+		if err := db.GetByPrefixes(TopicMemoLikeTip, prefixes); err != nil {
+			return nil, jerr.Get("error getting client message memo like tips", err)
 		}
 		for _, msg := range db.Messages {
 			var memoLikeTip = new(MemoLikeTip)
