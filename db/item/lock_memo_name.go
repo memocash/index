@@ -64,8 +64,7 @@ func GetLockMemoName(ctx context.Context, lockHash []byte) (*LockMemoName, error
 		return nil, jerr.Get("error no lock memo names found", client.EntryNotFoundError)
 	}
 	var lockMemoName = new(LockMemoName)
-	lockMemoName.SetUid(db.Messages[0].Uid)
-	lockMemoName.Deserialize(db.Messages[0].Message)
+	Set(lockMemoName, db.Messages[0])
 	return lockMemoName, nil
 }
 

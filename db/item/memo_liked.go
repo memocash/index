@@ -66,7 +66,7 @@ func GetMemoLikeds(postTxHashes [][]byte) ([]*MemoLiked, error) {
 		}
 		for _, msg := range db.Messages {
 			var memoLiked = new(MemoLiked)
-			memoLiked.SetUid(msg.Uid)
+			Set(memoLiked, msg)
 			memoLikeds = append(memoLikeds, memoLiked)
 		}
 	}

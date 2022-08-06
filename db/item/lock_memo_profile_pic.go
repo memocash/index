@@ -64,8 +64,7 @@ func GetLockMemoProfilePic(ctx context.Context, lockHash []byte) (*LockMemoProfi
 		return nil, jerr.Get("error no lock memo profile pics found", client.EntryNotFoundError)
 	}
 	var lockMemoProfilePic = new(LockMemoProfilePic)
-	lockMemoProfilePic.SetUid(db.Messages[0].Uid)
-	lockMemoProfilePic.Deserialize(db.Messages[0].Message)
+	Set(lockMemoProfilePic, db.Messages[0])
 	return lockMemoProfilePic, nil
 }
 

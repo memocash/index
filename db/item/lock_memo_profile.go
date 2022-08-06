@@ -64,8 +64,7 @@ func GetLockMemoProfile(ctx context.Context, lockHash []byte) (*LockMemoProfile,
 		return nil, jerr.Get("error no lock memo profiles found", client.EntryNotFoundError)
 	}
 	var lockMemoProfile = new(LockMemoProfile)
-	lockMemoProfile.SetUid(db.Messages[0].Uid)
-	lockMemoProfile.Deserialize(db.Messages[0].Message)
+	Set(lockMemoProfile, db.Messages[0])
 	return lockMemoProfile, nil
 }
 

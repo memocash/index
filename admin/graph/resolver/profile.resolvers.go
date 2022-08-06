@@ -53,7 +53,7 @@ func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, erro
 func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for like resolver: %s", obj.TxHash)
+		return nil, jerr.Getf(err, "error getting lock from loader for like resolver: %s %x", obj.TxHash, obj.LockHash)
 	}
 	return lock, nil
 }

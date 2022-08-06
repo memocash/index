@@ -60,7 +60,7 @@ func GetMemoLikeTips(likeTxHashes [][]byte) ([]*MemoLikeTip, error) {
 		}
 		for _, msg := range db.Messages {
 			var memoLikeTip = new(MemoLikeTip)
-			memoLikeTip.SetUid(msg.Uid)
+			Set(memoLikeTip, msg)
 			memoLikeTips = append(memoLikeTips, memoLikeTip)
 		}
 	}

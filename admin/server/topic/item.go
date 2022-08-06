@@ -4,12 +4,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/config"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,7 +27,7 @@ var itemRoute = admin.Route{
 		}
 		uid, err := hex.DecodeString(topicItemRequest.Uid)
 		if err != nil {
-			jerr.Get("error parsing uid for topic item", err)
+			jerr.Get("error parsing uid for topic item", err).Print()
 		}
 		var topicItemResponse = new(admin.TopicItemResponse)
 		shardConfig := config.GetShardConfig(uint32(topicItemRequest.Shard), config.GetQueueShards())
@@ -35,7 +37,7 @@ var itemRoute = admin.Route{
 			return
 		}
 		if len(db.Messages) != 1 {
-			jerr.Newf("error unexpected message count: %d", len(db.Messages))
+			jerr.Newf("error unexpected message count: %d", len(db.Messages)).Print()
 			return
 		}
 		var props = make(map[string]interface{})
@@ -58,7 +60,11 @@ var itemRoute = admin.Route{
 					props[fieldName] = strconv.FormatUint(fieldValue.Uint(), 10)
 				case reflect.Slice:
 					if fieldValue.Type() == typeOfBytes {
-						props[fieldName] = hex.EncodeToString(fieldValue.Bytes())
+						if strings.Contains(strings.ToLower(fieldName), "txhash") {
+							props[fieldName] = hex.EncodeToString(jutil.ByteReverse(fieldValue.Bytes()))
+						} else {
+							props[fieldName] = hex.EncodeToString(fieldValue.Bytes())
+						}
 					} else {
 						props[fieldName] = fieldValue.String()
 					}

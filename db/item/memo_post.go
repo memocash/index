@@ -19,7 +19,7 @@ func (p MemoPost) GetUid() []byte {
 }
 
 func (p MemoPost) GetShard() uint {
-	return client.GetByteShard(p.LockHash)
+	return client.GetByteShard(p.TxHash)
 }
 
 func (p MemoPost) GetTopic() string {
@@ -37,11 +37,11 @@ func (p *MemoPost) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength {
 		return
 	}
-	p.TxHash = uid
+	p.TxHash = jutil.ByteReverse(uid)
 }
 
 func (p *MemoPost) Deserialize(data []byte) {
-	if len(data) >= memo.LockHashLength {
+	if len(data) < memo.LockHashLength {
 		return
 	}
 	p.LockHash = data[:32]
@@ -74,7 +74,7 @@ func GetMemoPosts(txHashes [][]byte) ([]*MemoPost, error) {
 		}
 		for _, msg := range db.Messages {
 			var memoPost = new(MemoPost)
-			memoPost.SetUid(msg.Uid)
+			Set(memoPost, msg)
 			memoPosts = append(memoPosts, memoPost)
 		}
 	}
