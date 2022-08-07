@@ -110,15 +110,14 @@ type ComplexityRoot struct {
 	}
 
 	Post struct {
-		Likes        func(childComplexity int) int
-		Lock         func(childComplexity int) int
-		LockHash     func(childComplexity int) int
-		Parent       func(childComplexity int) int
-		ParentTxHash func(childComplexity int) int
-		Replies      func(childComplexity int) int
-		Text         func(childComplexity int) int
-		Tx           func(childComplexity int) int
-		TxHash       func(childComplexity int) int
+		Likes    func(childComplexity int) int
+		Lock     func(childComplexity int) int
+		LockHash func(childComplexity int) int
+		Parent   func(childComplexity int) int
+		Replies  func(childComplexity int) int
+		Text     func(childComplexity int) int
+		Tx       func(childComplexity int) int
+		TxHash   func(childComplexity int) int
 	}
 
 	Profile struct {
@@ -254,7 +253,6 @@ type PostResolver interface {
 
 	Likes(ctx context.Context, obj *model.Post) ([]*model.Like, error)
 	Parent(ctx context.Context, obj *model.Post) (*model.Post, error)
-
 	Replies(ctx context.Context, obj *model.Post) ([]*model.Post, error)
 }
 type ProfileResolver interface {
@@ -602,13 +600,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Post.Parent(childComplexity), true
-
-	case "Post.parent_tx_hash":
-		if e.complexity.Post.ParentTxHash == nil {
-			break
-		}
-
-		return e.complexity.Post.ParentTxHash(childComplexity), true
 
 	case "Post.replies":
 		if e.complexity.Post.Replies == nil {
@@ -1300,7 +1291,6 @@ type Post {
     text: String!
     likes: [Like!]
     parent: Post
-    parent_tx_hash: String
     replies: [Post!]
 }
 
@@ -3047,38 +3037,6 @@ func (ec *executionContext) _Post_parent(ctx context.Context, field graphql.Coll
 	res := resTmp.(*model.Post)
 	fc.Result = res
 	return ec.marshalOPost2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Post_parent_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Post",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ParentTxHash, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_replies(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -7179,13 +7137,6 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				return innerFunc(ctx)
 
 			})
-		case "parent_tx_hash":
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Post_parent_tx_hash(ctx, field, obj)
-			}
-
-			out.Values[i] = innerFunc(ctx)
-
 		case "replies":
 			field := field
 

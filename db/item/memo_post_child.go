@@ -12,7 +12,10 @@ type MemoPostChild struct {
 }
 
 func (p MemoPostChild) GetUid() []byte {
-	return jutil.ByteReverse(p.PostTxHash)
+	return jutil.CombineBytes(
+		jutil.ByteReverse(p.PostTxHash),
+		jutil.ByteReverse(p.ChildTxHash),
+	)
 }
 
 func (p MemoPostChild) GetShard() uint {
@@ -24,19 +27,15 @@ func (p MemoPostChild) GetTopic() string {
 }
 
 func (p MemoPostChild) Serialize() []byte {
-	return jutil.ByteReverse(p.ChildTxHash)
+	return nil
 }
 
 func (p *MemoPostChild) SetUid(uid []byte) {
-	if len(uid) != memo.TxHashLength {
+	if len(uid) != memo.TxHashLength*2 {
 		return
 	}
-	p.PostTxHash = jutil.ByteReverse(uid)
+	p.PostTxHash = jutil.ByteReverse(uid[:32])
+	p.ChildTxHash = jutil.ByteReverse(uid[32:])
 }
 
-func (p *MemoPostChild) Deserialize(data []byte) {
-	if len(data) != memo.TxHashLength {
-		return
-	}
-	p.ChildTxHash = jutil.ByteReverse(data)
-}
+func (p *MemoPostChild) Deserialize([]byte) {}

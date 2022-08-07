@@ -51,7 +51,6 @@ type Post {
     text: String!
     likes: [Like!]
     parent: Post
-    parent_tx_hash: String
     replies: [Post!]
 }
 

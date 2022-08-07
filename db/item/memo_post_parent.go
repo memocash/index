@@ -1,9 +1,12 @@
 package item
 
 import (
+	"context"
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/config"
 )
 
 type MemoPostParent struct {
@@ -39,4 +42,22 @@ func (p *MemoPostParent) Deserialize(data []byte) {
 		return
 	}
 	p.ParentTxHash = jutil.ByteReverse(data)
+}
+
+func GetMemoPostParent(ctx context.Context, postTxHash []byte) (*MemoPostParent, error) {
+	shardConfig := config.GetShardConfig(GetShardByte32(postTxHash), config.GetQueueShards())
+	db := client.NewClient(shardConfig.GetHost())
+	if err := db.GetWOpts(client.Opts{
+		Context:  ctx,
+		Topic:    TopicMemoPostParent,
+		Prefixes: [][]byte{jutil.ByteReverse(postTxHash)},
+	}); err != nil {
+		return nil, jerr.Get("error getting client message memo post parents", err)
+	}
+	if len(db.Messages) == 0 {
+		return nil, nil
+	}
+	var memoPostParent = new(MemoPostParent)
+	Set(memoPostParent, db.Messages[0])
+	return memoPostParent, nil
 }

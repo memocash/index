@@ -122,7 +122,22 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 }
 
 func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented"))
+	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
+	if err != nil {
+		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
+	}
+	postParent, err := item.GetMemoPostParent(ctx, postTxHash.CloneBytes())
+	if err != nil {
+		return nil, jerr.Get("error getting memo post parent for post resolver", err)
+	}
+	if postParent == nil {
+		return nil, nil
+	}
+	post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(hs.GetTxString(postParent.ParentTxHash))
+	if err != nil {
+		return nil, jerr.Getf(err, "error getting from post dataloader for post parent resolver: %s", obj.LockHash)
+	}
+	return post, nil
 }
 
 func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.Post, error) {
