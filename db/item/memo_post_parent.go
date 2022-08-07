@@ -48,9 +48,9 @@ func GetMemoPostParent(ctx context.Context, postTxHash []byte) (*MemoPostParent,
 	shardConfig := config.GetShardConfig(GetShardByte32(postTxHash), config.GetQueueShards())
 	db := client.NewClient(shardConfig.GetHost())
 	if err := db.GetWOpts(client.Opts{
-		Context:  ctx,
-		Topic:    TopicMemoPostParent,
-		Prefixes: [][]byte{jutil.ByteReverse(postTxHash)},
+		Context: ctx,
+		Topic:   TopicMemoPostParent,
+		Uids:    [][]byte{jutil.ByteReverse(postTxHash)},
 	}); err != nil {
 		return nil, jerr.Get("error getting client message memo post parents", err)
 	}

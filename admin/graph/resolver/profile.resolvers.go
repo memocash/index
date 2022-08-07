@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"fmt"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -141,7 +139,25 @@ func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post
 }
 
 func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.Post, error) {
-	panic(fmt.Errorf("not implemented"))
+	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
+	if err != nil {
+		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
+	}
+	postChildren, err := item.GetMemoPostChildren(ctx, postTxHash.CloneBytes())
+	if err != nil {
+		return nil, jerr.Get("error getting memo post children for post resolver", err)
+	}
+	var childrenTxHashes = make([]string, len(postChildren))
+	for i := range postChildren {
+		childrenTxHashes[i] = hs.GetTxString(postChildren[i].ChildTxHash)
+	}
+	replies, errs := dataloader.NewPostLoader(load.PostLoaderConfig).LoadAll(childrenTxHashes)
+	for _, err := range errs {
+		if err != nil {
+			return nil, jerr.Getf(err, "error getting from post dataloader for post reply resolver: %s", obj.TxHash)
+		}
+	}
+	return replies, nil
 }
 
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
