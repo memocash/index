@@ -6,11 +6,12 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/parse"
 )
 
 var memoProfileHandler = &Handler{
 	prefix: memo.PrefixSetProfile,
-	handle: func(info Info) error {
+	handle: func(info parse.OpReturn) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,

@@ -42,6 +42,8 @@ const (
 	TopicMemoLiked             = "memo_liked"
 	TopicMemoLikeTip           = "memo_like_tip"
 	TopicMemoPost              = "memo_post"
+	TopicMemoPostChild         = "memo_post_child"
+	TopicMemoPostParent        = "memo_post_parent"
 	TopicMempoolTxRaw          = "mempool_tx_raw"
 	TopicMessage               = "message"
 	TopicOutputInput           = "output_input"
@@ -215,6 +217,8 @@ func GetTopics() []Object {
 		&MemoLiked{},
 		&MemoLikeTip{},
 		&MemoPost{},
+		&MemoPostChild{},
+		&MemoPostParent{},
 		&MempoolTxRaw{},
 		&Message{},
 		&OutputInput{},

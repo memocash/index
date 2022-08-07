@@ -2,23 +2,15 @@ package op_return
 
 import (
 	"bytes"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/parse"
 )
-
-type Info struct {
-	Height   int64
-	TxHash   []byte
-	LockHash []byte
-	PushData [][]byte
-	Outputs  []*wire.TxOut
-}
 
 type Handler struct {
 	prefix       []byte
 	prefixScript []byte
-	handle       func(Info) error
+	handle       func(parse.OpReturn) error
 }
 
 func (h *Handler) CanHandle(pkScript []byte) bool {
@@ -26,7 +18,7 @@ func (h *Handler) CanHandle(pkScript []byte) bool {
 		bytes.Equal(pkScript[:len(h.prefixScript)], h.prefixScript)
 }
 
-func (h *Handler) Handle(info Info) error {
+func (h *Handler) Handle(info parse.OpReturn) error {
 	if h.handle == nil {
 		return jerr.Newf("error handler not set (prefix: %x)", h.prefix)
 	}
@@ -45,6 +37,7 @@ func GetHandlers() ([]*Handler, error) {
 		memoUnfollowHandler,
 		memoPostHandler,
 		memoLikeHandler,
+		memoReplyHandler,
 	}
 	for _, opReturn := range handlers {
 		prefixScript, err := memo.GetBaseOpReturn().AddData(opReturn.prefix).Script()

@@ -8,6 +8,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/obj/op_return"
+	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
@@ -90,7 +91,7 @@ func (t *Memo) SaveTxs(block *wire.MsgBlock) error {
 				if err != nil {
 					return jerr.Get("error getting pushed data", err)
 				}
-				if err := opReturnHandler.Handle(op_return.Info{
+				if err := opReturnHandler.Handle(parse.OpReturn{
 					Height:   height,
 					TxHash:   txHashBytes,
 					LockHash: lockHash,
