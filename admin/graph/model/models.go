@@ -79,9 +79,10 @@ type SetProfile struct {
 }
 
 type Post struct {
-	TxHash   string `json:"tx_hash"`
-	LockHash string `json:"lock_hash"`
-	Text     string `json:"text"`
+	TxHash       string `json:"tx_hash"`
+	LockHash     string `json:"lock_hash"`
+	Text         string `json:"text"`
+	ParentTxHash string `json:"parent_tx_hash"`
 }
 
 type Like struct {

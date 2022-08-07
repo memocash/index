@@ -50,6 +50,9 @@ type Post {
     lock_hash: String!
     text: String!
     likes: [Like!]
+    parent: Post
+    parent_tx_hash: String
+    replies: [Post!]
 }
 
 type Like {

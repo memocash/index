@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"fmt"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -117,6 +119,14 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 		}
 	}
 	return likes, nil
+}
+
+func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.Post, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
