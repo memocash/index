@@ -138,6 +138,7 @@ type ComplexityRoot struct {
 		BlockNewest  func(childComplexity int) int
 		Blocks       func(childComplexity int, newest *bool, start *uint32) int
 		DoubleSpends func(childComplexity int, newest *bool, start *model.Date) int
+		Posts        func(childComplexity int, txHashes []string) int
 		Profiles     func(childComplexity int, addresses []string) int
 		Tx           func(childComplexity int, hash string) int
 		Txs          func(childComplexity int, hashes []string) int
@@ -272,6 +273,7 @@ type QueryResolver interface {
 	Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error)
 	DoubleSpends(ctx context.Context, newest *bool, start *model.Date) ([]*model.DoubleSpend, error)
 	Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error)
+	Posts(ctx context.Context, txHashes []string) ([]*model.Post, error)
 }
 type SetNameResolver interface {
 	Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error)
@@ -766,6 +768,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.DoubleSpends(childComplexity, args["newest"].(*bool), args["start"].(*model.Date)), true
+
+	case "Query.posts":
+		if e.complexity.Query.Posts == nil {
+			break
+		}
+
+		args, err := ec.field_Query_posts_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Posts(childComplexity, args["txHashes"].([]string)), true
 
 	case "Query.profiles":
 		if e.complexity.Query.Profiles == nil {
@@ -1314,6 +1328,7 @@ type Like {
     blocks(newest: Boolean, start: Uint32): [Block!]
     double_spends(newest: Boolean, start: Date): [DoubleSpend!]
     profiles(addresses: [String!]): [Profile]
+    posts(txHashes: [String!]): [Post]
 }
 
 type Subscription {
@@ -1595,6 +1610,21 @@ func (ec *executionContext) field_Query_double_spends_args(ctx context.Context, 
 		}
 	}
 	args["start"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_posts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []string
+	if tmp, ok := rawArgs["txHashes"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("txHashes"))
+		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["txHashes"] = arg0
 	return args, nil
 }
 
@@ -3696,6 +3726,45 @@ func (ec *executionContext) _Query_profiles(ctx context.Context, field graphql.C
 	res := resTmp.([]*model.Profile)
 	fc.Result = res
 	return ec.marshalOProfile2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐProfile(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_posts_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Posts(rctx, args["txHashes"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Post)
+	fc.Result = res
+	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7477,6 +7546,26 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_profiles(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "posts":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_posts(ctx, field)
 				return res
 			}
 

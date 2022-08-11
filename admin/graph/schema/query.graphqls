@@ -8,6 +8,7 @@ type Query {
     blocks(newest: Boolean, start: Uint32): [Block!]
     double_spends(newest: Boolean, start: Date): [DoubleSpend!]
     profiles(addresses: [String!]): [Profile]
+    posts(txHashes: [String!]): [Post]
 }
 
 type Subscription {

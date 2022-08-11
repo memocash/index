@@ -211,6 +211,16 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*mo
 	return profiles, nil
 }
 
+func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.Post, error) {
+	posts, errs := dataloader.NewPostLoader(load.PostLoaderConfig).LoadAll(txHashes)
+	for i, err := range errs {
+		if err != nil {
+			return nil, jerr.Getf(err, "error getting post from post dataloader for query resolver: %s", txHashes[i])
+		}
+	}
+	return posts, nil
+}
+
 func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
 	lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
 	if err != nil {
