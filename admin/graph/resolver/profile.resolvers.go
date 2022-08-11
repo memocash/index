@@ -103,7 +103,7 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 	for i := range memoLikeds {
 		var tip int64
 		for j := range memoLikeTips {
-			if bytes.Equal(memoLikeTips[j].LikeTxHash, memoLikeds[j].LikeTxHash) {
+			if bytes.Equal(memoLikeTips[j].LikeTxHash, memoLikeds[i].LikeTxHash) {
 				tip = memoLikeTips[j].Tip
 				memoLikeTips = append(memoLikeTips[:j], memoLikeTips[j+1:]...)
 				break
