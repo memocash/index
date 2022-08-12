@@ -44,6 +44,8 @@ const (
 	TopicMemoPost              = "memo_post"
 	TopicMemoPostChild         = "memo_post_child"
 	TopicMemoPostParent        = "memo_post_parent"
+	TopicMemoPostRoom          = "memo_post_room"
+	TopicMemoRoomHeightPost    = "memo_room_height_post"
 	TopicMempoolTxRaw          = "mempool_tx_raw"
 	TopicMessage               = "message"
 	TopicOutputInput           = "output_input"
@@ -141,6 +143,28 @@ func Save(objects []Object) error {
 	wg.Wait()
 	if len(errs) > 0 {
 		return jerr.Get("error saving messages", jerr.Combine(errs...))
+	}
+	return nil
+}
+
+func Remove(objects []Object) error {
+	var shardTopicUids = make(map[uint]map[string][][]byte)
+	for _, obj := range objects {
+		if shardTopicUids[obj.GetShard()] == nil {
+			shardTopicUids[obj.GetShard()] = make(map[string][][]byte)
+		}
+		shardTopicUids[obj.GetShard()][obj.GetTopic()] =
+			append(shardTopicUids[obj.GetShard()][obj.GetTopic()], obj.GetUid())
+	}
+	queueShards := config.GetQueueShards()
+	for shard, topicObjects := range shardTopicUids {
+		shardConfig := config.GetShardConfig(GetShard32(shard), queueShards)
+		db := client.NewClient(shardConfig.GetHost())
+		for topic, uids := range topicObjects {
+			if err := db.DeleteMessages(topic, uids); err != nil {
+				return jerr.Getf(err, "error deleting shard topic items: %d %s", shard, topic)
+			}
+		}
 	}
 	return nil
 }
