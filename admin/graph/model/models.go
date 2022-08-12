@@ -90,3 +90,7 @@ type Like struct {
 	PostTxHash string `json:"post_tx_hash"`
 	Tip        int64  `json:"tip"`
 }
+
+type Room struct {
+	Name string `json:"name"`
+}

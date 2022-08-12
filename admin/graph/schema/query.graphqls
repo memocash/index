@@ -9,6 +9,7 @@ type Query {
     double_spends(newest: Boolean, start: Date): [DoubleSpend!]
     profiles(addresses: [String!]): [Profile]
     posts(txHashes: [String!]): [Post]
+    room(name: String!): Room!
 }
 
 type Subscription {

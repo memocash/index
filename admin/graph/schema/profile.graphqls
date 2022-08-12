@@ -7,6 +7,7 @@ type Profile {
     following(start: Int): [Follow]
     followers(start: Int): [Follow]
     posts(start: Int): [Post]
+    rooms(start: Int): [Room]
 }
 
 type SetName {
@@ -52,6 +53,7 @@ type Post {
     likes: [Like!]
     parent: Post
     replies: [Post!]
+    room: Room
 }
 
 type Like {

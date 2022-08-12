@@ -221,6 +221,10 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.
 	return posts, nil
 }
 
+func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
 	lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
 	if err != nil {

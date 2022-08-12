@@ -1,0 +1,5 @@
+type Room {
+    name: String!
+    posts(start: Int): [Post!]
+    followers(start: Int): [Profile!]
+}

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
@@ -161,6 +162,10 @@ func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.P
 	return replies, nil
 }
 
+func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
@@ -245,6 +250,10 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 		}
 	}
 	return posts, nil
+}
+
+func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *int) ([]*model.Room, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
