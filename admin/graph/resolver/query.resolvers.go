@@ -222,7 +222,7 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.
 }
 
 func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, error) {
-	panic(fmt.Errorf("not implemented"))
+	return &model.Room{Name: name}, nil
 }
 
 func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
