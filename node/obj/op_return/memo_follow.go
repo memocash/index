@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
+	dbMemo "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -36,14 +37,14 @@ var memoFollowHandler = &Handler{
 			return nil
 		}
 		followLockHash := script.GetLockHashForAddress(followAddress)
-		var lockMemoFollow = &item.LockMemoFollow{
+		var lockMemoFollow = &dbMemo.LockFollow{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
 			Follow:   followLockHash,
 			Unfollow: unfollow,
 		}
-		var lockMemoFollowed = &item.LockMemoFollowed{
+		var lockMemoFollowed = &dbMemo.LockFollowed{
 			FollowLockHash: followLockHash,
 			Height:         info.Height,
 			TxHash:         info.TxHash,
@@ -59,11 +60,11 @@ var memoFollowHandler = &Handler{
 		}
 		if info.Height != item.HeightMempool {
 			lockMemoFollow.Height = item.HeightMempool
-			if err := item.RemoveLockMemoFollow(lockMemoFollow); err != nil {
+			if err := dbMemo.RemoveLockFollow(lockMemoFollow); err != nil {
 				return jerr.Get("error removing db lock memo follow", err)
 			}
 			lockMemoFollowed.Height = item.HeightMempool
-			if err := item.RemoveLockMemoFollowed(lockMemoFollowed); err != nil {
+			if err := dbMemo.RemoveLockFollowed(lockMemoFollowed); err != nil {
 				return jerr.Get("error removing db lock memo followed", err)
 			}
 		}

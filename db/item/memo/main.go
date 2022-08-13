@@ -6,8 +6,17 @@ func GetTopics() []db.Object {
 	return []db.Object{
 		&Liked{},
 		&LikeTip{},
+		&LockFollow{},
+		&LockFollowed{},
+		&LockLike{},
+		&LockName{},
+		&LockPost{},
+		&LockProfile{},
+		&LockProfilePic{},
 		&Post{},
 		&PostChild{},
 		&PostParent{},
+		&PostRoom{},
+		&RoomHeightPost{},
 	}
 }

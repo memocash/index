@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
+	dbMemo "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 )
@@ -23,7 +24,7 @@ var memoProfilePicHandler = &Handler{
 			return nil
 		}
 		var pic = jutil.GetUtf8String(info.PushData[1])
-		var lockMemoProfilePic = &item.LockMemoProfilePic{
+		var lockMemoProfilePic = &dbMemo.LockProfilePic{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
@@ -34,7 +35,7 @@ var memoProfilePicHandler = &Handler{
 		}
 		if info.Height != item.HeightMempool {
 			lockMemoProfilePic.Height = item.HeightMempool
-			if err := item.RemoveLockMemoProfilePic(lockMemoProfilePic); err != nil {
+			if err := dbMemo.RemoveLockProfilePic(lockMemoProfilePic); err != nil {
 				return jerr.Get("error removing db lock memo profile pic", err)
 			}
 		}

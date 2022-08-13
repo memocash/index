@@ -10,6 +10,7 @@ import (
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/node/obj/get"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -100,11 +101,11 @@ func (p *Profile) SetupFollowingLockHashes(ctx context.Context, preloads []strin
 	}, preloads) {
 		return nil
 	}
-	lockMemoFollows, err := item.GetLockMemoFollow(ctx, p.LockHashes)
+	lockMemoFollows, err := memo.GetLockFollows(ctx, p.LockHashes)
 	if err != nil {
 		return jerr.Get("error getting lock memo follows for profile lock hashes", err)
 	}
-	var lastMemoFollow *item.LockMemoFollow
+	var lastMemoFollow *memo.LockFollow
 	for _, lockMemoFollow := range lockMemoFollows {
 		if lastMemoFollow != nil && bytes.Equal(lockMemoFollow.Follow, lastMemoFollow.Follow) {
 			continue
@@ -137,11 +138,11 @@ func (p *Profile) SetupFollowersLockHashes(ctx context.Context, preloads []strin
 	}, preloads) {
 		return nil
 	}
-	lockMemoFolloweds, err := item.GetLockMemoFollowed(ctx, p.LockHashes)
+	lockMemoFolloweds, err := memo.GetLockFolloweds(ctx, p.LockHashes)
 	if err != nil {
 		return jerr.Get("error getting lock memo followeds for profile lock hashes", err)
 	}
-	var lastLockMemoFollowed *item.LockMemoFollowed
+	var lastLockMemoFollowed *memo.LockFollowed
 	for _, lockMemoFollowed := range lockMemoFolloweds {
 		if lastLockMemoFollowed != nil && bytes.Equal(lockMemoFollowed.LockHash, lastLockMemoFollowed.LockHash) {
 			continue
@@ -181,7 +182,7 @@ func (p *Profile) SetupNeedsLockHashMap() error {
 }
 
 func (p *Profile) ListenFollowing(ctx context.Context, lockHashes [][]byte) error {
-	lockMemoFollowingListener, err := item.ListenLockMemoFollows(ctx, lockHashes)
+	lockMemoFollowingListener, err := memo.ListenLockFollows(ctx, lockHashes)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting lock memo following listener for profile subscription", err)
@@ -204,7 +205,7 @@ func (p *Profile) ListenFollowing(ctx context.Context, lockHashes [][]byte) erro
 }
 
 func (p *Profile) ListenFollowers(ctx context.Context, lockHashes [][]byte) error {
-	lockMemoFollowerListener, err := item.ListenLockMemoFolloweds(ctx, lockHashes)
+	lockMemoFollowerListener, err := memo.ListenLockFolloweds(ctx, lockHashes)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting memo followers listener for profile subscription", err)
@@ -227,7 +228,7 @@ func (p *Profile) ListenFollowers(ctx context.Context, lockHashes [][]byte) erro
 }
 
 func (p *Profile) ListenNames(ctx context.Context, lockHashes [][]byte) error {
-	lockMemoNameListener, err := item.ListenLockMemoNames(ctx, lockHashes)
+	lockMemoNameListener, err := memo.ListenLockNames(ctx, lockHashes)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting lock memo name listener for profile subscription", err)
@@ -250,7 +251,7 @@ func (p *Profile) ListenNames(ctx context.Context, lockHashes [][]byte) error {
 }
 
 func (p *Profile) ListenProfiles(ctx context.Context, lockHashes [][]byte) error {
-	lockMemoProfileListener, err := item.ListenLockMemoProfiles(ctx, lockHashes)
+	lockMemoProfileListener, err := memo.ListenLockProfiles(ctx, lockHashes)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting lock memo profile listener for profile subscription", err)
@@ -273,7 +274,7 @@ func (p *Profile) ListenProfiles(ctx context.Context, lockHashes [][]byte) error
 }
 
 func (p *Profile) ListenPics(ctx context.Context, lockHashes [][]byte) error {
-	lockMemoProfilePicListener, err := item.ListenLockMemoProfilePics(ctx, lockHashes)
+	lockMemoProfilePicListener, err := memo.ListenLockProfilePics(ctx, lockHashes)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting lock memo profile pic listener for profile subscription", err)

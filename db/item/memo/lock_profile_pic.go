@@ -1,4 +1,4 @@
-package item
+package memo
 
 import (
 	"context"
@@ -10,47 +10,47 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type LockMemoProfilePic struct {
+type LockProfilePic struct {
 	LockHash []byte
 	Height   int64
 	TxHash   []byte
 	Pic      string
 }
 
-func (n LockMemoProfilePic) GetUid() []byte {
+func (p LockProfilePic) GetUid() []byte {
 	return jutil.CombineBytes(
-		n.LockHash,
-		jutil.ByteFlip(jutil.GetInt64DataBig(n.Height)),
-		jutil.ByteReverse(n.TxHash),
+		p.LockHash,
+		jutil.ByteFlip(jutil.GetInt64DataBig(p.Height)),
+		jutil.ByteReverse(p.TxHash),
 	)
 }
 
-func (n LockMemoProfilePic) GetShard() uint {
-	return client.GetByteShard(n.LockHash)
+func (p LockProfilePic) GetShard() uint {
+	return client.GetByteShard(p.LockHash)
 }
 
-func (n LockMemoProfilePic) GetTopic() string {
+func (p LockProfilePic) GetTopic() string {
 	return db.TopicLockMemoProfilePic
 }
 
-func (n LockMemoProfilePic) Serialize() []byte {
-	return []byte(n.Pic)
+func (p LockProfilePic) Serialize() []byte {
+	return []byte(p.Pic)
 }
 
-func (n *LockMemoProfilePic) SetUid(uid []byte) {
+func (p *LockProfilePic) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
-	n.LockHash = uid[:32]
-	n.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
-	n.TxHash = jutil.ByteReverse(uid[40:72])
+	p.LockHash = uid[:32]
+	p.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
+	p.TxHash = jutil.ByteReverse(uid[40:72])
 }
 
-func (n *LockMemoProfilePic) Deserialize(data []byte) {
-	n.Pic = string(data)
+func (p *LockProfilePic) Deserialize(data []byte) {
+	p.Pic = string(data)
 }
 
-func GetLockMemoProfilePic(ctx context.Context, lockHash []byte) (*LockMemoProfilePic, error) {
+func GetLockProfilePic(ctx context.Context, lockHash []byte) (*LockProfilePic, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
@@ -64,21 +64,21 @@ func GetLockMemoProfilePic(ctx context.Context, lockHash []byte) (*LockMemoProfi
 	if len(dbClient.Messages) == 0 {
 		return nil, jerr.Get("error no lock memo profile pics found", client.EntryNotFoundError)
 	}
-	var lockMemoProfilePic = new(LockMemoProfilePic)
-	db.Set(lockMemoProfilePic, dbClient.Messages[0])
-	return lockMemoProfilePic, nil
+	var lockProfilePic = new(LockProfilePic)
+	db.Set(lockProfilePic, dbClient.Messages[0])
+	return lockProfilePic, nil
 }
 
-func RemoveLockMemoProfilePic(lockMemoProfilePic *LockMemoProfilePic) error {
-	shardConfig := config.GetShardConfig(db.GetShard32(lockMemoProfilePic.GetShard()), config.GetQueueShards())
+func RemoveLockProfilePic(lockProfilePic *LockProfilePic) error {
+	shardConfig := config.GetShardConfig(db.GetShard32(lockProfilePic.GetShard()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.DeleteMessages(db.TopicLockMemoProfilePic, [][]byte{lockMemoProfilePic.GetUid()}); err != nil {
+	if err := dbClient.DeleteMessages(db.TopicLockMemoProfilePic, [][]byte{lockProfilePic.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo profile pic", err)
 	}
 	return nil
 }
 
-func ListenLockMemoProfilePics(ctx context.Context, lockHashes [][]byte) (chan *LockMemoProfilePic, error) {
+func ListenLockProfilePics(ctx context.Context, lockHashes [][]byte) (chan *LockProfilePic, error) {
 	if len(lockHashes) == 0 {
 		return nil, nil
 	}
@@ -88,9 +88,9 @@ func ListenLockMemoProfilePics(ctx context.Context, lockHashes [][]byte) (chan *
 		shardLockHashes[shard] = append(shardLockHashes[shard], lockHash)
 	}
 	shardConfigs := config.GetQueueShards()
-	var lockMemoProfilePicChan = make(chan *LockMemoProfilePic)
+	var lockProfilePicChan = make(chan *LockProfilePic)
 	cancelCtx := db.NewCancelContext(ctx, func() {
-		close(lockMemoProfilePicChan)
+		close(lockProfilePicChan)
 	})
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
@@ -101,12 +101,12 @@ func ListenLockMemoProfilePics(ctx context.Context, lockHashes [][]byte) (chan *
 		}
 		go func() {
 			for msg := range chanMessage {
-				var lockMemoProfilePic = new(LockMemoProfilePic)
-				db.Set(lockMemoProfilePic, *msg)
-				lockMemoProfilePicChan <- lockMemoProfilePic
+				var lockProfilePic = new(LockProfilePic)
+				db.Set(lockProfilePic, *msg)
+				lockProfilePicChan <- lockProfilePic
 			}
 			cancelCtx.Cancel()
 		}()
 	}
-	return lockMemoProfilePicChan, nil
+	return lockProfilePicChan, nil
 }

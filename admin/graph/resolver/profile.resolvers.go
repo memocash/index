@@ -15,7 +15,6 @@ import (
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
-	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -184,7 +183,7 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	if start != nil {
 		startInt = int64(*start)
 	}
-	lockMemoFollows, err := item.GetLockMemoFollows(ctx, script.GetLockHashForAddress(*address), startInt)
+	lockMemoFollows, err := memo.GetLockFollowsSingle(ctx, script.GetLockHashForAddress(*address), startInt)
 	if err != nil {
 		return nil, jerr.Get("error getting lock memo follows for address", err)
 	}
@@ -209,7 +208,7 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 	if start != nil {
 		startInt = int64(*start)
 	}
-	lockMemoFolloweds, err := item.GetLockMemoFolloweds(ctx, script.GetLockHashForAddress(*address), startInt)
+	lockMemoFolloweds, err := memo.GetLockFollowedsSingle(ctx, script.GetLockHashForAddress(*address), startInt)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock memo follows for address: %s", obj.LockHash)
 	}
@@ -230,7 +229,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	if err != nil {
 		return nil, jerr.Getf(err, "error decoding lock hash for profile resolver: %s", obj.LockHash)
 	}
-	lockMemoPosts, err := item.GetLockMemoPosts(ctx, [][]byte{lockHash})
+	lockMemoPosts, err := memo.GetLockPosts(ctx, [][]byte{lockHash})
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock memo posts for profile resolver: %s", obj.LockHash)
 	}

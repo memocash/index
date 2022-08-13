@@ -12,7 +12,7 @@ import (
 )
 
 func MemoPost(info parse.OpReturn, post string) error {
-	var lockMemoPost = &item.LockMemoPost{
+	var lockMemoPost = &memo.LockPost{
 		LockHash: info.LockHash,
 		Height:   info.Height,
 		TxHash:   info.TxHash,
@@ -67,7 +67,7 @@ func MemoPost(info parse.OpReturn, post string) error {
 	}
 	if info.Height != item.HeightMempool {
 		lockMemoPost.Height = item.HeightMempool
-		if err := item.RemoveLockMemoPost(lockMemoPost); err != nil {
+		if err := memo.RemoveLockPost(lockMemoPost); err != nil {
 			return jerr.Get("error removing db memo post", err)
 		}
 	}

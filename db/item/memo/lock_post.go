@@ -1,4 +1,4 @@
-package item
+package memo
 
 import (
 	"context"
@@ -10,13 +10,13 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type LockMemoPost struct {
+type LockPost struct {
 	LockHash []byte
 	Height   int64
 	TxHash   []byte
 }
 
-func (p LockMemoPost) GetUid() []byte {
+func (p LockPost) GetUid() []byte {
 	return jutil.CombineBytes(
 		p.LockHash,
 		jutil.ByteFlip(jutil.GetInt64DataBig(p.Height)),
@@ -24,19 +24,19 @@ func (p LockMemoPost) GetUid() []byte {
 	)
 }
 
-func (p LockMemoPost) GetShard() uint {
+func (p LockPost) GetShard() uint {
 	return client.GetByteShard(p.LockHash)
 }
 
-func (p LockMemoPost) GetTopic() string {
+func (p LockPost) GetTopic() string {
 	return db.TopicLockMemoPost
 }
 
-func (p LockMemoPost) Serialize() []byte {
+func (p LockPost) Serialize() []byte {
 	return nil
 }
 
-func (p *LockMemoPost) SetUid(uid []byte) {
+func (p *LockPost) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
@@ -45,16 +45,16 @@ func (p *LockMemoPost) SetUid(uid []byte) {
 	p.TxHash = jutil.ByteReverse(uid[40:72])
 }
 
-func (p *LockMemoPost) Deserialize([]byte) {}
+func (p *LockPost) Deserialize([]byte) {}
 
-func GetLockMemoPosts(ctx context.Context, lockHashes [][]byte) ([]*LockMemoPost, error) {
+func GetLockPosts(ctx context.Context, lockHashes [][]byte) ([]*LockPost, error) {
 	var shardLockHashes = make(map[uint32][][]byte)
 	for _, lockHash := range lockHashes {
 		shard := client.GetByteShard32(lockHash)
 		shardLockHashes[shard] = append(shardLockHashes[shard], lockHash)
 	}
 	shardConfigs := config.GetQueueShards()
-	var lockMemoPosts []*LockMemoPost
+	var lockPosts []*LockPost
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
@@ -67,18 +67,18 @@ func GetLockMemoPosts(ctx context.Context, lockHashes [][]byte) ([]*LockMemoPost
 			return nil, jerr.Get("error getting db lock memo post by prefix", err)
 		}
 		for _, msg := range dbClient.Messages {
-			var lockMemoPost = new(LockMemoPost)
-			db.Set(lockMemoPost, msg)
-			lockMemoPosts = append(lockMemoPosts, lockMemoPost)
+			var lockPost = new(LockPost)
+			db.Set(lockPost, msg)
+			lockPosts = append(lockPosts, lockPost)
 		}
 	}
-	return lockMemoPosts, nil
+	return lockPosts, nil
 }
 
-func RemoveLockMemoPost(lockMemoPost *LockMemoPost) error {
-	shardConfig := config.GetShardConfig(db.GetShard32(lockMemoPost.GetShard()), config.GetQueueShards())
+func RemoveLockPost(lockPost *LockPost) error {
+	shardConfig := config.GetShardConfig(db.GetShard32(lockPost.GetShard()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.DeleteMessages(db.TopicLockMemoPost, [][]byte{lockMemoPost.GetUid()}); err != nil {
+	if err := dbClient.DeleteMessages(db.TopicLockMemoPost, [][]byte{lockPost.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo post", err)
 	}
 	return nil

@@ -9,6 +9,7 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -35,7 +36,7 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 			}
 			lockHashString := hex.EncodeToString(lockHash)
 			var profile = &model.Profile{LockHash: lockHashString}
-			lockMemoName, err := item.GetLockMemoName(ctx, lockHash)
+			lockMemoName, err := memo.GetLockName(ctx, lockHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting memo name", err)
 				continue
@@ -47,7 +48,7 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 					LockHash: lockHashString,
 				}
 			}
-			lockMemoProfile, err := item.GetLockMemoProfile(ctx, lockHash)
+			lockMemoProfile, err := memo.GetLockProfile(ctx, lockHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting lock memo profile", err)
 				continue
@@ -59,7 +60,7 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 					LockHash: lockHashString,
 				}
 			}
-			lockMemoProfilePic, err := item.GetLockMemoProfilePic(ctx, lockHash)
+			lockMemoProfilePic, err := memo.GetLockProfilePic(ctx, lockHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting lock memo profile pic", err)
 				continue

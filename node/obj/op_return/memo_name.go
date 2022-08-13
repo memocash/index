@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
+	dbMemo "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 )
@@ -23,7 +24,7 @@ var memoNameHandler = &Handler{
 			return nil
 		}
 		var name = jutil.GetUtf8String(info.PushData[1])
-		var lockMemoName = &item.LockMemoName{
+		var lockMemoName = &dbMemo.LockName{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
@@ -34,7 +35,7 @@ var memoNameHandler = &Handler{
 		}
 		if info.Height != item.HeightMempool {
 			lockMemoName.Height = item.HeightMempool
-			if err := item.RemoveLockMemoName(lockMemoName); err != nil {
+			if err := dbMemo.RemoveLockName(lockMemoName); err != nil {
 				return jerr.Get("error removing db memo name", err)
 			}
 		}
