@@ -16,6 +16,7 @@ import (
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
@@ -89,7 +90,7 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 	if err != nil {
 		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
 	}
-	memoLikeds, err := item.GetMemoLikeds([][]byte{postTxHash.CloneBytes()})
+	memoLikeds, err := memo.GetLikeds([][]byte{postTxHash.CloneBytes()})
 	if err != nil {
 		return nil, jerr.Get("error getting memo post likeds for post resolver", err)
 	}
@@ -97,7 +98,7 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 	for i := range memoLikeds {
 		likeTxHashes[i] = memoLikeds[i].LikeTxHash
 	}
-	memoLikeTips, err := item.GetMemoLikeTips(likeTxHashes)
+	memoLikeTips, err := memo.GetLikeTips(likeTxHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting memo like tips for post resolver", err)
 	}
@@ -126,7 +127,7 @@ func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post
 	if err != nil {
 		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
 	}
-	postParent, err := item.GetMemoPostParent(ctx, postTxHash.CloneBytes())
+	postParent, err := memo.GetPostParent(ctx, postTxHash.CloneBytes())
 	if err != nil {
 		return nil, jerr.Get("error getting memo post parent for post resolver", err)
 	}
@@ -145,7 +146,7 @@ func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.P
 	if err != nil {
 		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
 	}
-	postChildren, err := item.GetMemoPostChildren(ctx, postTxHash.CloneBytes())
+	postChildren, err := memo.GetPostChildren(ctx, postTxHash.CloneBytes())
 	if err != nil {
 		return nil, jerr.Get("error getting memo post children for post resolver", err)
 	}
@@ -237,7 +238,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	for i := range lockMemoPosts {
 		postTxHashes[i] = lockMemoPosts[i].TxHash
 	}
-	memoPosts, err := item.GetMemoPosts(postTxHashes)
+	memoPosts, err := memo.GetPosts(postTxHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting memo posts for profile resolver", err)
 	}

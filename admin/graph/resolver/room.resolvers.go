@@ -11,12 +11,12 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
-	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
 func (r *roomResolver) Posts(ctx context.Context, obj *model.Room, start *int) ([]*model.Post, error) {
-	roomHeightPosts, err := item.GetMemoRoomHeightPosts(ctx, obj.Name)
+	roomHeightPosts, err := memo.GetRoomHeightPosts(ctx, obj.Name)
 	if err != nil {
 		return nil, jerr.Get("error getting room height posts for room resolver", err)
 	}
@@ -24,7 +24,7 @@ func (r *roomResolver) Posts(ctx context.Context, obj *model.Room, start *int) (
 	for i := range roomHeightPosts {
 		txHashes[i] = roomHeightPosts[i].TxHash
 	}
-	memoPosts, err := item.GetMemoPosts(txHashes)
+	memoPosts, err := memo.GetPosts(txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting posts for room resolver", err)
 	}

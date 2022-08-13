@@ -1,4 +1,4 @@
-package item
+package memo
 
 import (
 	"github.com/jchavannes/jgo/jerr"
@@ -9,39 +9,39 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type MemoPost struct {
+type Post struct {
 	TxHash   []byte
 	LockHash []byte
 	Post     string
 }
 
-func (p MemoPost) GetUid() []byte {
+func (p Post) GetUid() []byte {
 	return jutil.ByteReverse(p.TxHash)
 }
 
-func (p MemoPost) GetShard() uint {
+func (p Post) GetShard() uint {
 	return client.GetByteShard(p.TxHash)
 }
 
-func (p MemoPost) GetTopic() string {
+func (p Post) GetTopic() string {
 	return db.TopicMemoPost
 }
 
-func (p MemoPost) Serialize() []byte {
+func (p Post) Serialize() []byte {
 	return jutil.CombineBytes(
 		p.LockHash,
 		[]byte(p.Post),
 	)
 }
 
-func (p *MemoPost) SetUid(uid []byte) {
+func (p *Post) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength {
 		return
 	}
 	p.TxHash = jutil.ByteReverse(uid)
 }
 
-func (p *MemoPost) Deserialize(data []byte) {
+func (p *Post) Deserialize(data []byte) {
 	if len(data) < memo.LockHashLength {
 		return
 	}
@@ -49,24 +49,24 @@ func (p *MemoPost) Deserialize(data []byte) {
 	p.Post = string(data[32:])
 }
 
-func GetMemoPost(txHash []byte) (*MemoPost, error) {
-	memoPosts, err := GetMemoPosts([][]byte{txHash})
+func GetPost(txHash []byte) (*Post, error) {
+	posts, err := GetPosts([][]byte{txHash})
 	if err != nil {
 		return nil, jerr.Get("error getting memo posts for single", err)
 	}
-	if len(memoPosts) == 0 {
+	if len(posts) == 0 {
 		return nil, nil
 	}
-	return memoPosts[0], nil
+	return posts[0], nil
 }
 
-func GetMemoPosts(txHashes [][]byte) ([]*MemoPost, error) {
+func GetPosts(txHashes [][]byte) ([]*Post, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
 		shard := db.GetShardByte32(txHash)
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash))
 	}
-	var memoPosts []*MemoPost
+	var posts []*Post
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
@@ -74,10 +74,10 @@ func GetMemoPosts(txHashes [][]byte) ([]*MemoPost, error) {
 			return nil, jerr.Get("error getting client message memo posts", err)
 		}
 		for _, msg := range dbClient.Messages {
-			var memoPost = new(MemoPost)
-			db.Set(memoPost, msg)
-			memoPosts = append(memoPosts, memoPost)
+			var post = new(Post)
+			db.Set(post, msg)
+			posts = append(posts, post)
 		}
 	}
-	return memoPosts, nil
+	return posts, nil
 }

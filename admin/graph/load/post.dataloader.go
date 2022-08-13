@@ -7,7 +7,7 @@ import (
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/memo"
 	"time"
 )
 
@@ -23,7 +23,7 @@ var PostLoaderConfig = dataloader.PostLoaderConfig{
 				errors[i] = jerr.Get("error getting tx hash from string", err)
 				continue
 			}
-			memoPost, err := item.GetMemoPost(txHash.CloneBytes())
+			memoPost, err := memo.GetPost(txHash.CloneBytes())
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting lock memo post", err)
 				continue

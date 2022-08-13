@@ -7,6 +7,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
+	dbMemo "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/node/obj/op_return/save"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
@@ -34,11 +35,11 @@ var memoReplyHandler = &Handler{
 			}
 		}
 		parentTxHashBytes := parentTxHash.CloneBytes()
-		var memoPostParent = &item.MemoPostParent{
+		var memoPostParent = &dbMemo.PostParent{
 			PostTxHash:   info.TxHash,
 			ParentTxHash: parentTxHashBytes,
 		}
-		var memoPostChild = &item.MemoPostChild{
+		var memoPostChild = &dbMemo.PostChild{
 			PostTxHash:  parentTxHashBytes,
 			ChildTxHash: info.TxHash,
 		}

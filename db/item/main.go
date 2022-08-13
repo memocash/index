@@ -1,9 +1,12 @@
 package item
 
-import "github.com/memocash/index/db/item/db"
+import (
+	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/db/item/memo"
+)
 
 func GetTopics() []db.Object {
-	return []db.Object{
+	return append([]db.Object{
 		&Block{},
 		&BlockHeight{},
 		&BlockTx{},
@@ -29,11 +32,6 @@ func GetTopics() []db.Object {
 		&LockMemoPost{},
 		&LockMemoProfile{},
 		&LockMemoProfilePic{},
-		&MemoLiked{},
-		&MemoLikeTip{},
-		&MemoPost{},
-		&MemoPostChild{},
-		&MemoPostParent{},
 		&MempoolTxRaw{},
 		&Message{},
 		&OutputInput{},
@@ -50,5 +48,7 @@ func GetTopics() []db.Object {
 		&TxProcessed{},
 		&TxSeen{},
 		&TxSuspect{},
-	}
+	},
+		memo.GetTopics()...,
+	)
 }

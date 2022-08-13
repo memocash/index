@@ -1,4 +1,4 @@
-package item
+package memo
 
 import (
 	"github.com/jchavannes/jgo/jerr"
@@ -9,56 +9,56 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type MemoLiked struct {
+type Liked struct {
 	PostTxHash []byte
 	Height     int64
 	LikeTxHash []byte
 	LockHash   []byte
 }
 
-func (n MemoLiked) GetUid() []byte {
+func (l Liked) GetUid() []byte {
 	return jutil.CombineBytes(
-		jutil.ByteReverse(n.PostTxHash),
-		jutil.ByteFlip(jutil.GetInt64DataBig(n.Height)),
-		jutil.ByteReverse(n.LikeTxHash),
+		jutil.ByteReverse(l.PostTxHash),
+		jutil.ByteFlip(jutil.GetInt64DataBig(l.Height)),
+		jutil.ByteReverse(l.LikeTxHash),
 	)
 }
 
-func (n MemoLiked) GetShard() uint {
-	return client.GetByteShard(n.PostTxHash)
+func (l Liked) GetShard() uint {
+	return client.GetByteShard(l.PostTxHash)
 }
 
-func (n MemoLiked) GetTopic() string {
+func (l Liked) GetTopic() string {
 	return db.TopicMemoLiked
 }
 
-func (n MemoLiked) Serialize() []byte {
-	return n.LockHash
+func (l Liked) Serialize() []byte {
+	return l.LockHash
 }
 
-func (n *MemoLiked) SetUid(uid []byte) {
+func (l *Liked) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		panic("invalid uid size for memo liked")
 	}
-	n.PostTxHash = jutil.ByteReverse(uid[:32])
-	n.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
-	n.LikeTxHash = jutil.ByteReverse(uid[40:72])
+	l.PostTxHash = jutil.ByteReverse(uid[:32])
+	l.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
+	l.LikeTxHash = jutil.ByteReverse(uid[40:72])
 }
 
-func (n *MemoLiked) Deserialize(data []byte) {
+func (l *Liked) Deserialize(data []byte) {
 	if len(data) != memo.LockHashLength {
 		panic("invalid data size for memo liked")
 	}
-	n.LockHash = data
+	l.LockHash = data
 }
 
-func GetMemoLikeds(postTxHashes [][]byte) ([]*MemoLiked, error) {
+func GetLikeds(postTxHashes [][]byte) ([]*Liked, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, postTxHash := range postTxHashes {
 		shard := db.GetShardByte32(postTxHash)
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash))
 	}
-	var memoLikeds []*MemoLiked
+	var likeds []*Liked
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
@@ -66,10 +66,10 @@ func GetMemoLikeds(postTxHashes [][]byte) ([]*MemoLiked, error) {
 			return nil, jerr.Get("error getting client message memo likeds", err)
 		}
 		for _, msg := range dbClient.Messages {
-			var memoLiked = new(MemoLiked)
-			db.Set(memoLiked, msg)
-			memoLikeds = append(memoLikeds, memoLiked)
+			var liked = new(Liked)
+			db.Set(liked, msg)
+			likeds = append(likeds, liked)
 		}
 	}
-	return memoLikeds, nil
+	return likeds, nil
 }

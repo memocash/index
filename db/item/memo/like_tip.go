@@ -1,4 +1,4 @@
-package item
+package memo
 
 import (
 	"github.com/jchavannes/jgo/jerr"
@@ -9,50 +9,50 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type MemoLikeTip struct {
+type LikeTip struct {
 	LikeTxHash []byte
 	Tip        int64
 }
 
-func (n MemoLikeTip) GetUid() []byte {
+func (t LikeTip) GetUid() []byte {
 	return jutil.CombineBytes(
-		jutil.ByteReverse(n.LikeTxHash),
+		jutil.ByteReverse(t.LikeTxHash),
 	)
 }
 
-func (n MemoLikeTip) GetShard() uint {
-	return client.GetByteShard(n.LikeTxHash)
+func (t LikeTip) GetShard() uint {
+	return client.GetByteShard(t.LikeTxHash)
 }
 
-func (n MemoLikeTip) GetTopic() string {
+func (t LikeTip) GetTopic() string {
 	return db.TopicMemoLikeTip
 }
 
-func (n MemoLikeTip) Serialize() []byte {
-	return jutil.GetInt64Data(n.Tip)
+func (t LikeTip) Serialize() []byte {
+	return jutil.GetInt64Data(t.Tip)
 }
 
-func (n *MemoLikeTip) SetUid(uid []byte) {
+func (t *LikeTip) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength {
 		panic("invalid uid size for memo like tip")
 	}
-	n.LikeTxHash = jutil.ByteReverse(uid[:32])
+	t.LikeTxHash = jutil.ByteReverse(uid[:32])
 }
 
-func (n *MemoLikeTip) Deserialize(data []byte) {
+func (t *LikeTip) Deserialize(data []byte) {
 	if len(data) != memo.Int8Size {
 		panic("invalid data size for memo like tip")
 	}
-	n.Tip = jutil.GetInt64(data)
+	t.Tip = jutil.GetInt64(data)
 }
 
-func GetMemoLikeTips(likeTxHashes [][]byte) ([]*MemoLikeTip, error) {
+func GetLikeTips(likeTxHashes [][]byte) ([]*LikeTip, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, likeTxHash := range likeTxHashes {
 		shard := db.GetShardByte32(likeTxHash)
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(likeTxHash))
 	}
-	var memoLikeTips []*MemoLikeTip
+	var likeTips []*LikeTip
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
@@ -60,10 +60,10 @@ func GetMemoLikeTips(likeTxHashes [][]byte) ([]*MemoLikeTip, error) {
 			return nil, jerr.Get("error getting client message memo like tips", err)
 		}
 		for _, msg := range dbClient.Messages {
-			var memoLikeTip = new(MemoLikeTip)
-			db.Set(memoLikeTip, msg)
-			memoLikeTips = append(memoLikeTips, memoLikeTip)
+			var likeTip = new(LikeTip)
+			db.Set(likeTip, msg)
+			likeTips = append(likeTips, likeTip)
 		}
 	}
-	return memoLikeTips, nil
+	return likeTips, nil
 }

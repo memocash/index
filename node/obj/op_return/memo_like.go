@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
+	dbMemo "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -39,13 +40,13 @@ var memoLikeHandler = &Handler{
 			LikeTxHash: info.TxHash,
 			PostTxHash: postTxHash,
 		}
-		var memoLiked = &item.MemoLiked{
+		var memoLiked = &dbMemo.Liked{
 			PostTxHash: postTxHash,
 			Height:     info.Height,
 			LikeTxHash: info.TxHash,
 			LockHash:   info.LockHash,
 		}
-		memoPost, err := item.GetMemoPost(postTxHash)
+		memoPost, err := dbMemo.GetPost(postTxHash)
 		if err != nil {
 			return jerr.Get("error getting memo post for like op return handler", err)
 		}
@@ -59,7 +60,7 @@ var memoLikeHandler = &Handler{
 				}
 			}
 			if tip > 0 {
-				objects = append(objects, &item.MemoLikeTip{
+				objects = append(objects, &dbMemo.LikeTip{
 					LikeTxHash: info.TxHash,
 					Tip:        tip,
 				})

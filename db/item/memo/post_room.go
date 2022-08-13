@@ -1,4 +1,4 @@
-package item
+package memo
 
 import (
 	"github.com/jchavannes/jgo/jutil"
@@ -7,34 +7,34 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
-type MemoPostRoom struct {
+type PostRoom struct {
 	TxHash []byte
 	Room   string
 }
 
-func (r MemoPostRoom) GetUid() []byte {
+func (r PostRoom) GetUid() []byte {
 	return jutil.ByteReverse(r.TxHash)
 }
 
-func (r MemoPostRoom) GetShard() uint {
+func (r PostRoom) GetShard() uint {
 	return client.GetByteShard(r.TxHash)
 }
 
-func (r MemoPostRoom) GetTopic() string {
+func (r PostRoom) GetTopic() string {
 	return db.TopicMemoPostRoom
 }
 
-func (r MemoPostRoom) Serialize() []byte {
+func (r PostRoom) Serialize() []byte {
 	return []byte(r.Room)
 }
 
-func (r *MemoPostRoom) SetUid(uid []byte) {
+func (r *PostRoom) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength {
 		return
 	}
 	r.TxHash = jutil.ByteReverse(uid)
 }
 
-func (r *MemoPostRoom) Deserialize(data []byte) {
+func (r *PostRoom) Deserialize(data []byte) {
 	r.Room = string(data)
 }

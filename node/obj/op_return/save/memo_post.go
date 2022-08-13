@@ -7,6 +7,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 )
 
@@ -17,18 +18,18 @@ func MemoPost(info parse.OpReturn, post string) error {
 		TxHash:   info.TxHash,
 	}
 	var objects = []db.Object{lockMemoPost}
-	existingMemoPost, err := item.GetMemoPost(info.TxHash)
+	existingMemoPost, err := memo.GetPost(info.TxHash)
 	if err != nil {
 		return jerr.Get("error getting existing memo post for post op return handler", err)
 	}
 	if existingMemoPost == nil {
-		var memoPost = &item.MemoPost{
+		var memoPost = &memo.Post{
 			TxHash:   info.TxHash,
 			LockHash: info.LockHash,
 			Post:     post,
 		}
 		objects = append(objects, memoPost)
-		memoLikeds, err := item.GetMemoLikeds([][]byte{info.TxHash})
+		memoLikeds, err := memo.GetLikeds([][]byte{info.TxHash})
 		if err != nil {
 			return jerr.Get("error getting memo likeds for post op return handler", err)
 		}
@@ -54,7 +55,7 @@ func MemoPost(info parse.OpReturn, post string) error {
 				return jerr.Get("error parsing like tip tx hash for memo post op return handler", err)
 			}
 			if tip > 0 {
-				objects = append(objects, &item.MemoLikeTip{
+				objects = append(objects, &memo.LikeTip{
 					LikeTxHash: likeTxHash.CloneBytes(),
 					Tip:        tip,
 				})
