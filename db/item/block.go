@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -22,7 +23,7 @@ func (b Block) GetShard() uint {
 }
 
 func (b Block) GetTopic() string {
-	return TopicBlock
+	return db.TopicBlock
 }
 
 func (b Block) Serialize() []byte {
@@ -41,8 +42,7 @@ func (b *Block) Deserialize(data []byte) {
 func GetBlock(blockHash []byte) (*Block, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(blockHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	err := dbClient.GetSingle(TopicBlock, jutil.ByteReverse(blockHash))
-	if err != nil {
+	if err := dbClient.GetSingle(db.TopicBlock, jutil.ByteReverse(blockHash)); err != nil {
 		return nil, jerr.Get("error getting client message block", err)
 	}
 	if len(dbClient.Messages) != 1 {
@@ -57,15 +57,14 @@ func GetBlock(blockHash []byte) (*Block, error) {
 func GetBlocks(blockHashes [][]byte) ([]*Block, error) {
 	var shardBlockHashGroups = make(map[uint32][][]byte)
 	for _, blockHash := range blockHashes {
-		shard := GetShardByte32(blockHash)
+		shard := db.GetShardByte32(blockHash)
 		shardBlockHashGroups[shard] = append(shardBlockHashGroups[shard], jutil.ByteReverse(blockHash))
 	}
 	var blocks []*Block
 	for shard, blockHashGroup := range shardBlockHashGroups {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		err := dbClient.GetSpecific(TopicBlock, blockHashGroup)
-		if err != nil {
+		if err := dbClient.GetSpecific(db.TopicBlock, blockHashGroup); err != nil {
 			return nil, jerr.Get("error getting client message blocks", err)
 		}
 		for _, msg := range dbClient.Messages {

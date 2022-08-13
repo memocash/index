@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"time"
 )
@@ -23,7 +24,7 @@ func (s TxProcessed) GetShard() uint {
 }
 
 func (s TxProcessed) GetTopic() string {
-	return TopicTxProcessed
+	return db.TopicTxProcessed
 }
 
 func (s TxProcessed) Serialize() []byte {
@@ -45,23 +46,20 @@ func GetTxProcessedUid(txHash []byte, timestamp time.Time) []byte {
 }
 
 func WaitForTxProcessed(ctx context.Context, txHash []byte) (*TxProcessed, error) {
-	shardConfig := config.GetShardConfig(GetShardByte32(txHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	err := db.GetWOpts(client.Opts{
+	shardConfig := config.GetShardConfig(db.GetShardByte32(txHash), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
 		Context:  ctx,
-		Topic:    TopicTxProcessed,
+		Topic:    db.TopicTxProcessed,
 		Prefixes: [][]byte{jutil.ByteReverse(txHash)},
 		Wait:     true,
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, jerr.Get("error getting tx processed with wait db message", err)
 	}
-	if len(db.Messages) == 0 {
+	if len(dbClient.Messages) == 0 {
 		return nil, jerr.Get("error with tx processed wait, empty message", client.EntryNotFoundError)
 	}
-
 	var txProcessed = new(TxProcessed)
-	txProcessed.SetUid(db.Messages[0].Uid)
-	txProcessed.Deserialize(db.Messages[0].Message)
+	db.Set(txProcessed, dbClient.Messages[0])
 	return txProcessed, nil
 }

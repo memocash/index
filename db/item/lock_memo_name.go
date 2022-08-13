@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -29,7 +30,7 @@ func (n LockMemoName) GetShard() uint {
 }
 
 func (n LockMemoName) GetTopic() string {
-	return TopicLockMemoName
+	return db.TopicLockMemoName
 }
 
 func (n LockMemoName) Serialize() []byte {
@@ -51,27 +52,27 @@ func (n *LockMemoName) Deserialize(data []byte) {
 
 func GetLockMemoName(ctx context.Context, lockHash []byte) (*LockMemoName, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetWOpts(client.Opts{
-		Topic:    TopicLockMemoName,
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicLockMemoName,
 		Prefixes: [][]byte{lockHash},
 		Max:      1,
 		Context:  ctx,
 	}); err != nil {
 		return nil, jerr.Get("error getting db lock memo name by prefix", err)
 	}
-	if len(db.Messages) == 0 {
+	if len(dbClient.Messages) == 0 {
 		return nil, jerr.Get("error no lock memo names found", client.EntryNotFoundError)
 	}
 	var lockMemoName = new(LockMemoName)
-	Set(lockMemoName, db.Messages[0])
+	db.Set(lockMemoName, dbClient.Messages[0])
 	return lockMemoName, nil
 }
 
 func RemoveLockMemoName(lockMemoName *LockMemoName) error {
-	shardConfig := config.GetShardConfig(GetShard32(lockMemoName.GetShard()), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.DeleteMessages(TopicLockMemoName, [][]byte{lockMemoName.GetUid()}); err != nil {
+	shardConfig := config.GetShardConfig(db.GetShard32(lockMemoName.GetShard()), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.DeleteMessages(db.TopicLockMemoName, [][]byte{lockMemoName.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo name", err)
 	}
 	return nil
@@ -88,20 +89,20 @@ func ListenLockMemoNames(ctx context.Context, lockHashes [][]byte) (chan *LockMe
 	}
 	shardConfigs := config.GetQueueShards()
 	var lockMemoNameChan = make(chan *LockMemoName)
-	cancelCtx := NewCancelContext(ctx, func() {
+	cancelCtx := db.NewCancelContext(ctx, func() {
 		close(lockMemoNameChan)
 	})
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		db := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := db.Listen(cancelCtx.Context, TopicLockMemoName, lockHashPrefixes)
+		dbClient := client.NewClient(shardConfig.GetHost())
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicLockMemoName, lockHashPrefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db lock memo names by prefix", err)
 		}
 		go func() {
 			for msg := range chanMessage {
 				var lockMemoName = new(LockMemoName)
-				Set(lockMemoName, *msg)
+				db.Set(lockMemoName, *msg)
 				lockMemoNameChan <- lockMemoName
 			}
 			cancelCtx.Cancel()

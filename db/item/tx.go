@@ -3,6 +3,7 @@ package item
 import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 )
 
 type Tx struct {
@@ -20,7 +21,7 @@ func (t Tx) GetShard() uint {
 }
 
 func (t Tx) GetTopic() string {
-	return TopicTx
+	return db.TopicTx
 }
 
 func (t Tx) Serialize() []byte {

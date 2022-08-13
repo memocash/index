@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -21,7 +22,7 @@ func (d HeightDuplicate) GetShard() uint {
 }
 
 func (d HeightDuplicate) GetTopic() string {
-	return TopicHeightDuplicate
+	return db.TopicHeightDuplicate
 }
 
 func (d HeightDuplicate) Serialize() []byte {
@@ -42,7 +43,7 @@ func GetHeightDuplicatesAll(startHeight int64) ([]*HeightDuplicate, error) {
 	var heightDuplicates []*HeightDuplicate
 	for _, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
-		err := dbClient.GetLarge(TopicHeightDuplicate, jutil.GetInt64DataBig(startHeight), false, false)
+		err := dbClient.GetLarge(db.TopicHeightDuplicate, jutil.GetInt64DataBig(startHeight), false, false)
 		if err != nil {
 			return nil, jerr.Get("error getting height duplicates from queue client", err)
 		}

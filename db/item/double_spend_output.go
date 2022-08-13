@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -14,7 +15,7 @@ type DoubleSpendOutput struct {
 }
 
 func (o DoubleSpendOutput) GetUid() []byte {
-	return GetTxHashIndexUid(o.TxHash, o.Index)
+	return db.GetTxHashIndexUid(o.TxHash, o.Index)
 }
 
 func (o DoubleSpendOutput) GetShard() uint {
@@ -22,7 +23,7 @@ func (o DoubleSpendOutput) GetShard() uint {
 }
 
 func (o DoubleSpendOutput) GetTopic() string {
-	return TopicDoubleSpendOutput
+	return db.TopicDoubleSpendOutput
 }
 
 func (o DoubleSpendOutput) Serialize() []byte {
@@ -62,21 +63,21 @@ func GetDoubleSpendOutputs(start *DoubleSpendOutput, limit uint32) ([]*DoubleSpe
 			startUid = nil
 		}
 		shardConfig := config.GetShardConfig(shard, configQueueShards)
-		db := client.NewClient(shardConfig.GetHost())
-		err := db.GetWOpts(client.Opts{
-			Topic: TopicDoubleSpendOutput,
+		dbClient := client.NewClient(shardConfig.GetHost())
+		err := dbClient.GetWOpts(client.Opts{
+			Topic: db.TopicDoubleSpendOutput,
 			Start: startUid,
 			Max:   limit,
 		})
 		if err != nil {
 			return nil, jerr.Get("error getting db message for double spend outputs", err)
 		}
-		for _, msg := range db.Messages {
+		for _, msg := range dbClient.Messages {
 			doubleSpendOutput := new(DoubleSpendOutput)
 			doubleSpendOutput.SetUid(msg.Uid)
 			doubleSpendOutputs = append(doubleSpendOutputs, doubleSpendOutput)
 		}
-		limit -= uint32(len(db.Messages))
+		limit -= uint32(len(dbClient.Messages))
 		if limit <= 0 {
 			break
 		}
@@ -87,24 +88,24 @@ func GetDoubleSpendOutputs(start *DoubleSpendOutput, limit uint32) ([]*DoubleSpe
 func GetDoubleSpendsByOuts(outs []memo.Out) ([]*DoubleSpendOutput, error) {
 	var shardOutGroups = make(map[uint32][]memo.Out)
 	for _, out := range outs {
-		shard := GetShardByte32(out.TxHash)
+		shard := db.GetShardByte32(out.TxHash)
 		shardOutGroups[shard] = append(shardOutGroups[shard], out)
 	}
 	var doubleSpendOutputs []*DoubleSpendOutput
 	for shard, outGroup := range shardOutGroups {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
+		dbClient := client.NewClient(shardConfig.GetHost())
 		var prefixes = make([][]byte, len(outGroup))
 		for i := range outGroup {
-			prefixes[i] = GetTxHashIndexUid(outGroup[i].TxHash, outGroup[i].Index)
+			prefixes[i] = db.GetTxHashIndexUid(outGroup[i].TxHash, outGroup[i].Index)
 		}
-		if err := db.GetByPrefixes(TopicDoubleSpendOutput, prefixes); err != nil {
+		if err := dbClient.GetByPrefixes(db.TopicDoubleSpendOutput, prefixes); err != nil {
 			return nil, jerr.Get("error getting by prefixes for double spend outputs", err)
 		}
-		for i := range db.Messages {
+		for i := range dbClient.Messages {
 			var doubleSpendOutput = new(DoubleSpendOutput)
-			doubleSpendOutput.SetUid(db.Messages[i].Uid)
-			doubleSpendOutput.Deserialize(db.Messages[i].Message)
+			doubleSpendOutput.SetUid(dbClient.Messages[i].Uid)
+			doubleSpendOutput.Deserialize(dbClient.Messages[i].Message)
 			doubleSpendOutputs = append(doubleSpendOutputs, doubleSpendOutput)
 		}
 	}

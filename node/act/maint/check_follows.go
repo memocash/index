@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -15,20 +16,20 @@ type CheckFollows struct {
 
 func (c *CheckFollows) Check() error {
 	for _, shardConfig := range config.GetQueueShards() {
-		db := client.NewClient(shardConfig.GetHost())
+		dbClient := client.NewClient(shardConfig.GetHost())
 		var startUid []byte
 		for {
-			if err := db.GetWOpts(client.Opts{
-				Topic: item.TopicLockMemoFollow,
+			if err := dbClient.GetWOpts(client.Opts{
+				Topic: db.TopicLockMemoFollow,
 				Start: startUid,
 				Max:   client.ExLargeLimit,
 			}); err != nil {
 				return jerr.Get("error getting db memo follow by prefix", err)
 			}
-			for _, msg := range db.Messages {
+			for _, msg := range dbClient.Messages {
 				c.Processed++
 				var lockMemoFollow = new(item.LockMemoFollow)
-				item.Set(lockMemoFollow, msg)
+				db.Set(lockMemoFollow, msg)
 				startUid = lockMemoFollow.GetUid()
 				if len(lockMemoFollow.Follow) == 0 {
 					c.BadFollows++
@@ -50,7 +51,7 @@ func (c *CheckFollows) Check() error {
 					}
 				}
 			}
-			if len(db.Messages) < client.ExLargeLimit {
+			if len(dbClient.Messages) < client.ExLargeLimit {
 				break
 			}
 		}

@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
 	"sort"
@@ -25,7 +26,7 @@ func (b HeightBlock) GetShard() uint {
 }
 
 func (b HeightBlock) GetTopic() string {
-	return TopicHeightBlock
+	return db.TopicHeightBlock
 }
 
 func (b HeightBlock) Serialize() []byte {
@@ -46,8 +47,7 @@ func GetRecentHeightBlock() (*HeightBlock, error) {
 	var heightBlocks []*HeightBlock
 	for i, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
-		err := dbClient.Get(TopicHeightBlock, client.GetMaxStart(), false)
-		if err != nil {
+		if err := dbClient.Get(db.TopicHeightBlock, client.GetMaxStart(), false); err != nil {
 			return nil, jerr.Getf(err, "error getting recent height block for shard: %d", i)
 		}
 		for i := range dbClient.Messages {
@@ -93,8 +93,7 @@ func GetHeightBlockSingle(height int64) (*HeightBlock, error) {
 func GetHeightBlock(height int64) ([]*HeightBlock, error) {
 	shardConfig := config.GetShardConfig(uint32(height), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	err := dbClient.GetByPrefix(TopicHeightBlock, jutil.GetInt64DataBig(height))
-	if err != nil {
+	if err := dbClient.GetByPrefix(db.TopicHeightBlock, jutil.GetInt64DataBig(height)); err != nil {
 		return nil, jerr.Get("error getting height blocks for height from queue client", err)
 	}
 	var heightBlocks = make([]*HeightBlock, len(dbClient.Messages))
@@ -113,8 +112,7 @@ func GetHeightBlocks(shard uint32, startHeight int64, newest bool) ([]*HeightBlo
 	if startHeight > 0 || !newest {
 		startHeightBytes = jutil.GetInt64DataBig(startHeight)
 	}
-	err := dbClient.GetLarge(TopicHeightBlock, startHeightBytes, false, newest)
-	if err != nil {
+	if err := dbClient.GetLarge(db.TopicHeightBlock, startHeightBytes, false, newest); err != nil {
 		return nil, jerr.Get("error getting height blocks from queue client", err)
 	}
 	var heightBlocks = make([]*HeightBlock, len(dbClient.Messages))
@@ -147,7 +145,7 @@ func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32, n
 	shardConfigs := config.GetQueueShards()
 	shardLimit := limit / uint32(len(shardConfigs))
 	for _, shardConfig := range shardConfigs {
-		if waitSingle && GetShard32(uint(startHeight)) != shardConfig.Min {
+		if waitSingle && db.GetShard32(uint(startHeight)) != shardConfig.Min {
 			continue
 		}
 		dbClient := client.NewClient(shardConfig.GetHost())
@@ -159,15 +157,14 @@ func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32, n
 		if startHeight != 0 {
 			start = jutil.GetInt64DataBig(startHeight)
 		}
-		err := dbClient.GetWOpts(client.Opts{
-			Topic:   TopicHeightBlock,
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:   db.TopicHeightBlock,
 			Start:   start,
 			Wait:    waitSingle,
 			Max:     shardLimit,
 			Newest:  newest,
 			Timeout: timeout,
-		})
-		if err != nil {
+		}); err != nil {
 			return nil, jerr.Get("error getting height blocks from queue client all", err)
 		}
 		for i := range dbClient.Messages {

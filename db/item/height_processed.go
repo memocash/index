@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -18,11 +19,11 @@ func (p HeightProcessed) GetUid() []byte {
 }
 
 func (p HeightProcessed) GetShard() uint {
-	return GetShardByte(p.GetUid())
+	return db.GetShardByte(p.GetUid())
 }
 
 func (p HeightProcessed) GetTopic() string {
-	return TopicHeightProcessed
+	return db.TopicHeightProcessed
 }
 
 func (p HeightProcessed) Serialize() []byte {
@@ -42,24 +43,23 @@ func (p *HeightProcessed) Deserialize(data []byte) {
 }
 
 func (p *HeightProcessed) Save() error {
-	var objs = []Object{p}
-	err := Save(objs)
-	if err != nil {
+	var objs = []db.Object{p}
+	if err := db.Save(objs); err != nil {
 		return jerr.Get("error saving height processed", err)
 	}
 	return nil
 }
 
 func GetRecentHeightProcessed(name string) (*HeightProcessed, error) {
-	cfg := config.GetShardConfig(GetShardByte32([]byte(name)), config.GetQueueShards())
-	db := client.NewClient(cfg.GetHost())
-	if err := db.GetSingle(TopicHeightProcessed, []byte(name)); err != nil {
+	cfg := config.GetShardConfig(db.GetShardByte32([]byte(name)), config.GetQueueShards())
+	dbClient := client.NewClient(cfg.GetHost())
+	if err := dbClient.GetSingle(db.TopicHeightProcessed, []byte(name)); err != nil {
 		return nil, jerr.Getf(err, "error getting recent height block")
-	} else if len(db.Messages) > 1 {
-		return nil, jerr.Newf("error unexpected number of height processed messages: %d", len(db.Messages))
+	} else if len(dbClient.Messages) > 1 {
+		return nil, jerr.Newf("error unexpected number of height processed messages: %d", len(dbClient.Messages))
 	}
 	var heightProcessed = new(HeightProcessed)
-	heightProcessed.SetUid(db.Messages[0].Uid)
-	heightProcessed.Deserialize(db.Messages[0].Message)
+	heightProcessed.SetUid(dbClient.Messages[0].Uid)
+	heightProcessed.Deserialize(dbClient.Messages[0].Message)
 	return heightProcessed, nil
 }

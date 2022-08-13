@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 )
 
@@ -15,7 +16,7 @@ func MemoPost(info parse.OpReturn, post string) error {
 		Height:   info.Height,
 		TxHash:   info.TxHash,
 	}
-	var objects = []item.Object{lockMemoPost}
+	var objects = []db.Object{lockMemoPost}
 	existingMemoPost, err := item.GetMemoPost(info.TxHash)
 	if err != nil {
 		return jerr.Get("error getting existing memo post for post op return handler", err)
@@ -60,7 +61,7 @@ func MemoPost(info parse.OpReturn, post string) error {
 			}
 		}
 	}
-	if err := item.Save(objects); err != nil {
+	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving db memo post object", err)
 	}
 	if info.Height != item.HeightMempool {
@@ -71,4 +72,3 @@ func MemoPost(info parse.OpReturn, post string) error {
 	}
 	return nil
 }
-

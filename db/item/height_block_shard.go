@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
 	"strings"
@@ -29,7 +30,7 @@ func (s HeightBlockShard) GetShard() uint {
 }
 
 func (s HeightBlockShard) GetTopic() string {
-	return TopicHeightBlockShard
+	return db.TopicHeightBlockShard
 }
 
 func (s HeightBlockShard) Serialize() []byte {
@@ -49,7 +50,7 @@ func (s *HeightBlockShard) Deserialize([]byte) {}
 
 func GetRecentHeightBlockShard(shard uint) (*HeightBlockShard, error) {
 	dbClient := client.NewClient(config.GetShardConfig(uint32(shard), config.GetQueueShards()).GetHost())
-	if err := dbClient.Get(TopicHeightBlockShard, client.GetMaxStart(), false); err != nil {
+	if err := dbClient.Get(db.TopicHeightBlockShard, client.GetMaxStart(), false); err != nil {
 		return nil, jerr.Getf(err, "error getting recent height block shard for shard: %d", shard)
 	} else if len(dbClient.Messages) == 0 {
 		return nil, nil
@@ -58,7 +59,7 @@ func GetRecentHeightBlockShard(shard uint) (*HeightBlockShard, error) {
 			len(dbClient.Messages), shard)
 	}
 	var heightBlockShard = new(HeightBlockShard)
-	Set(heightBlockShard, dbClient.Messages[0])
+	db.Set(heightBlockShard, dbClient.Messages[0])
 	return heightBlockShard, nil
 }
 
@@ -82,13 +83,13 @@ func GetHeightBlockShardSingle(shard uint, height int64) (*HeightBlockShard, err
 func GetHeightBlockShard(shard uint, height int64) ([]*HeightBlockShard, error) {
 	dbClient := client.NewClient(config.GetShardConfig(uint32(shard), config.GetQueueShards()).GetHost())
 	prefix := jutil.CombineBytes(jutil.GetUintData(shard), jutil.GetInt64DataBig(height))
-	if err := dbClient.GetByPrefix(TopicHeightBlockShard, prefix); err != nil {
+	if err := dbClient.GetByPrefix(db.TopicHeightBlockShard, prefix); err != nil {
 		return nil, jerr.Get("error getting height block shards for height from queue client", err)
 	}
 	var heightBlockShards = make([]*HeightBlockShard, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		heightBlockShards[i] = new(HeightBlockShard)
-		Set(heightBlockShards[i], dbClient.Messages[i])
+		db.Set(heightBlockShards[i], dbClient.Messages[i])
 	}
 	return heightBlockShards, nil
 }
@@ -112,7 +113,7 @@ func GetHeightBlockShardsAllLimit(shard uint, startHeight int64, wait bool, limi
 	}
 	dbClient := client.NewClient(config.GetShardConfig(uint32(shard), config.GetQueueShards()).GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
-		Topic:   TopicHeightBlockShard,
+		Topic:   db.TopicHeightBlockShard,
 		Start:   start,
 		Wait:    wait,
 		Max:     limit,
@@ -124,7 +125,7 @@ func GetHeightBlockShardsAllLimit(shard uint, startHeight int64, wait bool, limi
 	var heightBlockShards []*HeightBlockShard
 	for i := range dbClient.Messages {
 		var heightBlockShard = new(HeightBlockShard)
-		Set(heightBlockShard, dbClient.Messages[i])
+		db.Set(heightBlockShard, dbClient.Messages[i])
 		heightBlockShards = append(heightBlockShards, heightBlockShard)
 	}
 	return heightBlockShards, nil

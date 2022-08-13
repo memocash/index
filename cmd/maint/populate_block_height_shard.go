@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"github.com/spf13/cobra"
 )
@@ -20,7 +21,7 @@ var populateHeightBlockShardCmd = &cobra.Command{
 			if err != nil {
 				jerr.Get("fatal error getting height blocks all for populate shards", err).Fatal()
 			}
-			var newHeightBlockShards []item.Object
+			var newHeightBlockShards []db.Object
 			for _, heightBlock := range heightBlocks {
 				if heightBlock.Height > maxHeight {
 					maxHeight = heightBlock.Height
@@ -33,7 +34,7 @@ var populateHeightBlockShardCmd = &cobra.Command{
 					})
 				}
 			}
-			if err := item.Save(newHeightBlockShards); err != nil {
+			if err := db.Save(newHeightBlockShards); err != nil {
 				jerr.Get("fatal error saving new block height shards", err)
 			}
 			jlog.Logf("Saved %d height block shards, max height: %d\n", len(newHeightBlockShards), maxHeight)

@@ -8,6 +8,7 @@ import (
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"reflect"
 	"strconv"
@@ -31,13 +32,13 @@ var itemRoute = admin.Route{
 		}
 		var topicItemResponse = new(admin.TopicItemResponse)
 		shardConfig := config.GetShardConfig(uint32(topicItemRequest.Shard), config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.GetSingle(topicItemRequest.Topic, uid); err != nil {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetSingle(topicItemRequest.Topic, uid); err != nil {
 			jerr.Get("error getting topic item for admin view", err).Print()
 			return
 		}
-		if len(db.Messages) != 1 {
-			jerr.Newf("error unexpected message count: %d", len(db.Messages)).Print()
+		if len(dbClient.Messages) != 1 {
+			jerr.Newf("error unexpected message count: %d", len(dbClient.Messages)).Print()
 			return
 		}
 		var props = make(map[string]interface{})
@@ -46,9 +47,9 @@ var itemRoute = admin.Route{
 				continue
 			}
 			objType := reflect.ValueOf(topic).Elem().Type()
-			obj := reflect.New(objType).Interface().(item.Object)
-			obj.SetUid(db.Messages[0].Uid)
-			obj.Deserialize(db.Messages[0].Message)
+			obj := reflect.New(objType).Interface().(db.Object)
+			obj.SetUid(dbClient.Messages[0].Uid)
+			obj.Deserialize(dbClient.Messages[0].Message)
 			elem := reflect.ValueOf(obj).Elem()
 			for i := 0; i < objType.NumField(); i++ {
 				fieldValue := elem.Field(i)
@@ -85,8 +86,8 @@ var itemRoute = admin.Route{
 		topicItemResponse.Item = admin.TopicItem{
 			Topic:   topicItemRequest.Topic,
 			Shard:   topicItemRequest.Shard,
-			Uid:     hex.EncodeToString(db.Messages[0].Uid),
-			Message: hex.EncodeToString(db.Messages[0].Message),
+			Uid:     hex.EncodeToString(dbClient.Messages[0].Uid),
+			Message: hex.EncodeToString(dbClient.Messages[0].Message),
 			Props:   props,
 		}
 		if err := json.NewEncoder(r.Writer).Encode(topicItemResponse); err != nil {

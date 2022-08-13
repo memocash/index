@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"github.com/spf13/cobra"
 	"time"
@@ -27,7 +28,7 @@ var queueProfileCmd = &cobra.Command{
 		start := time.Now()
 		jlog.Log("starting queue profile...")
 		for _, heightBlock := range heightBlocks {
-			if item.GetShardByte(heightBlock.BlockHash) != Shard {
+			if db.GetShardByte(heightBlock.BlockHash) != Shard {
 				continue
 			}
 			blockTxs, err := item.GetBlockTxes(item.BlockTxesRequest{
@@ -39,17 +40,17 @@ var queueProfileCmd = &cobra.Command{
 			}
 			var uids [][]byte
 			for _, blockTx := range blockTxs {
-				if item.GetShardByte(blockTx.TxHash) == Shard {
+				if db.GetShardByte(blockTx.TxHash) == Shard {
 					uids = append(uids, jutil.ByteReverse(blockTx.TxHash))
 				}
 			}
-			db := client.NewClient(config.GetShardConfig(Shard, config.GetQueueShards()).GetHost())
-			if err := db.GetByPrefixes(item.TopicTxOutput, uids); err != nil {
+			dbClient := client.NewClient(config.GetShardConfig(Shard, config.GetQueueShards()).GetHost())
+			if err := dbClient.GetByPrefixes(db.TopicTxOutput, uids); err != nil {
 				jerr.Get("fatal error getting db message tx outputs", err).Fatal()
 			}
 			jlog.Logf("%d outputs retrieved for shard 0 (height: %d, txs: %d)\n",
-				len(db.Messages), heightBlock.Height, len(blockTxs))
-			outputs += len(db.Messages)
+				len(dbClient.Messages), heightBlock.Height, len(blockTxs))
+			outputs += len(dbClient.Messages)
 		}
 		jlog.Logf("done. (height blocks: %d, outputs: %d, time: %s)\n",
 			len(heightBlocks), outputs, time.Now().Sub(start))

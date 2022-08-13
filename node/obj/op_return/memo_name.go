@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 )
@@ -28,7 +29,7 @@ var memoNameHandler = &Handler{
 			TxHash:   info.TxHash,
 			Name:     name,
 		}
-		if err := item.Save([]item.Object{lockMemoName}); err != nil {
+		if err := db.Save([]db.Object{lockMemoName}); err != nil {
 			return jerr.Get("error saving db memo name object", err)
 		}
 		if info.Height != item.HeightMempool {

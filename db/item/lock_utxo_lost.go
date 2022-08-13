@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -25,7 +26,7 @@ func (o LockUtxoLost) GetShard() uint {
 }
 
 func (o LockUtxoLost) GetTopic() string {
-	return TopicLockUtxoLost
+	return db.TopicLockUtxoLost
 }
 
 func (o LockUtxoLost) Serialize() []byte {
@@ -59,23 +60,22 @@ func (o *LockUtxoLost) Deserialize(data []byte) {
 func GetLockUtxoLosts(outs []memo.Out) ([]*LockUtxoLost, error) {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, out := range outs {
-		shard := uint32(GetShard(GetShardByte(out.LockHash)))
+		shard := uint32(db.GetShard(db.GetShardByte(out.LockHash)))
 		shardUidsMap[shard] = append(shardUidsMap[shard], GetLockOutputUid(out.LockHash, out.TxHash, out.Index))
 	}
 	var lockUtxoLosts []*LockUtxoLost
 	for shard, shardUids := range shardUidsMap {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.GetWOpts(client.Opts{
-			Topic: TopicLockUtxoLost,
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic: db.TopicLockUtxoLost,
 			Uids:  shardUids,
 		}); err != nil {
 			return nil, jerr.Get("error getting db lock utxo losts by outs", err)
 		}
-		for i := range db.Messages {
+		for i := range dbClient.Messages {
 			var lockUtxoLost = new(LockUtxoLost)
-			lockUtxoLost.SetUid(db.Messages[i].Uid)
-			lockUtxoLost.Deserialize(db.Messages[i].Message)
+			db.Set(lockUtxoLost, dbClient.Messages[i])
 			lockUtxoLosts = append(lockUtxoLosts, lockUtxoLost)
 		}
 	}
@@ -85,13 +85,13 @@ func GetLockUtxoLosts(outs []memo.Out) ([]*LockUtxoLost, error) {
 func RemoveLockUtxoLosts(lockUtxos []*LockUtxoLost) error {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, lockUtxo := range lockUtxos {
-		shard := uint32(GetShard(lockUtxo.GetShard()))
+		shard := uint32(db.GetShard(lockUtxo.GetShard()))
 		shardUidsMap[shard] = append(shardUidsMap[shard], lockUtxo.GetUid())
 	}
 	for shard, shardUids := range shardUidsMap {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.DeleteMessages(TopicLockUtxoLost, shardUids); err != nil {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.DeleteMessages(db.TopicLockUtxoLost, shardUids); err != nil {
 			return jerr.Get("error deleting topic lock utxos", err)
 		}
 	}

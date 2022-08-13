@@ -7,6 +7,7 @@ import (
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"runtime"
 	"time"
@@ -42,7 +43,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 			jfmt.AddCommasInt(block.SerializeSize()))
 	}
 	seenTime := time.Now()
-	var objects []item.Object
+	var objects []db.Object
 	var txsSize int
 	for i := range block.Transactions {
 		raw := memo.GetRaw(block.Transactions[i])
@@ -69,7 +70,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 		})
 		txsSize += block.Transactions[i].SerializeSize()
 		if len(objects) >= 25000 || txsSize > 250000000 {
-			if err := item.Save(objects); err != nil {
+			if err := db.Save(objects); err != nil {
 				return jerr.Get("error saving db tx objects (at limit)", err)
 			}
 			objects = nil
@@ -77,7 +78,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 			runtime.GC()
 		}
 	}
-	if err := item.Save(objects); err != nil {
+	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving db tx objects", err)
 	}
 	return nil

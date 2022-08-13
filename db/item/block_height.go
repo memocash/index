@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"sort"
 	"strings"
@@ -24,7 +25,7 @@ func (b BlockHeight) GetShard() uint {
 }
 
 func (b BlockHeight) GetTopic() string {
-	return TopicBlockHeight
+	return db.TopicBlockHeight
 }
 
 func (b BlockHeight) Serialize() []byte {
@@ -44,8 +45,7 @@ func (b *BlockHeight) Deserialize([]byte) {}
 func GetBlockHeight(blockHash []byte) (*BlockHeight, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(blockHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	err := dbClient.GetByPrefix(TopicBlockHeight, jutil.ByteReverse(blockHash))
-	if err != nil {
+	if err := dbClient.GetByPrefix(db.TopicBlockHeight, jutil.ByteReverse(blockHash)); err != nil {
 		return nil, jerr.Get("error getting client message for block height", err)
 	}
 	if len(dbClient.Messages) == 0 {
@@ -67,10 +67,10 @@ func GetBlockHeight(blockHash []byte) (*BlockHeight, error) {
 func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, blockHash := range blockHashes {
-		shard := GetShardByte32(blockHash)
+		shard := db.GetShardByte32(blockHash)
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(blockHash))
 	}
-	wait := NewWait(len(shardPrefixes))
+	wait := db.NewWait(len(shardPrefixes))
 	var blockHeights []*BlockHeight
 	for shardT, prefixesT := range shardPrefixes {
 		go func(shard uint32, prefixes [][]byte) {
@@ -78,13 +78,13 @@ func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
 			sort.Slice(prefixes, func(i, j int) bool {
 				return jutil.ByteLT(prefixes[i], prefixes[j])
 			})
-			db := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
-			if err := db.GetByPrefixes(TopicBlockHeight, prefixes); err != nil {
+			dbClient := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
+			if err := dbClient.GetByPrefixes(db.TopicBlockHeight, prefixes); err != nil {
 				wait.AddError(jerr.Get("error getting client message block heights", err))
 				return
 			}
 			wait.Lock.Lock()
-			for _, msg := range db.Messages {
+			for _, msg := range dbClient.Messages {
 				var blockHeight = new(BlockHeight)
 				blockHeight.SetUid(msg.Uid)
 				blockHeight.Deserialize(msg.Message)
@@ -102,12 +102,12 @@ func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
 
 func ListenBlockHeights(ctx context.Context) (chan *BlockHeight, error) {
 	var chanBlockHeight = make(chan *BlockHeight)
-	cancelCtx := NewCancelContext(ctx, func() {
+	cancelCtx := db.NewCancelContext(ctx, func() {
 		close(chanBlockHeight)
 	})
 	for _, shardConfig := range config.GetQueueShards() {
-		db := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := db.Listen(cancelCtx.Context, TopicBlockHeight, nil)
+		dbClient := client.NewClient(shardConfig.GetHost())
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicBlockHeight, nil)
 		if err != nil {
 			return nil, jerr.Get("error getting block height listen message chan", err)
 		}
@@ -115,7 +115,7 @@ func ListenBlockHeights(ctx context.Context) (chan *BlockHeight, error) {
 			defer cancelCtx.Cancel()
 			for msg := range chanMessage {
 				var blockHeight = new(BlockHeight)
-				Set(blockHeight, *msg)
+				db.Set(blockHeight, *msg)
 				chanBlockHeight <- blockHeight
 			}
 		}()

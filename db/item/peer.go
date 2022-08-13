@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -22,7 +23,7 @@ func (p Peer) GetShard() uint {
 }
 
 func (p Peer) GetTopic() string {
-	return TopicPeer
+	return db.TopicPeer
 }
 
 func (p Peer) Serialize() []byte {
@@ -48,15 +49,13 @@ func GetPeers(shard uint32, startId []byte) ([]*Peer, error) {
 	if len(startId) > 0 {
 		startIdBytes = startId
 	}
-	err := dbClient.GetLarge(TopicPeer, startIdBytes, false, false)
-	if err != nil {
+	if err := dbClient.GetLarge(db.TopicPeer, startIdBytes, false, false); err != nil {
 		return nil, jerr.Get("error getting peers from queue client", err)
 	}
 	var peers = make([]*Peer, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		peers[i] = new(Peer)
-		peers[i].SetUid(dbClient.Messages[i].Uid)
-		peers[i].Deserialize(dbClient.Messages[i].Message)
+		db.Set(peers[i], dbClient.Messages[i])
 	}
 	return peers, nil
 }
@@ -64,8 +63,7 @@ func GetPeers(shard uint32, startId []byte) ([]*Peer, error) {
 func GetNextPeer(shard uint32, startId []byte) (*Peer, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	err := dbClient.GetNext(TopicPeer, startId, false, false)
-	if err != nil {
+	if err := dbClient.GetNext(db.TopicPeer, startId, false, false); err != nil {
 		return nil, jerr.Get("error getting peers from queue client", err)
 	} else if len(dbClient.Messages) == 0 {
 		return nil, jerr.Get("error next peer not found", client.EntryNotFoundError)
@@ -73,8 +71,7 @@ func GetNextPeer(shard uint32, startId []byte) (*Peer, error) {
 		return nil, jerr.Newf("error unexpected next peer message len (%d)", len(dbClient.Messages))
 	}
 	var peer = new(Peer)
-	peer.SetUid(dbClient.Messages[0].Uid)
-	peer.Deserialize(dbClient.Messages[0].Message)
+	db.Set(peer, dbClient.Messages[0])
 	return peer, nil
 }
 
@@ -82,7 +79,7 @@ func GetCountPeers() (uint64, error) {
 	var totalCount uint64
 	for _, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
-		count, err := dbClient.GetTopicCount(TopicPeer, nil)
+		count, err := dbClient.GetTopicCount(db.TopicPeer, nil)
 		if err != nil {
 			return 0, jerr.Getf(err, "error getting peer topic count for shard: %d", shardConfig.Min)
 		}

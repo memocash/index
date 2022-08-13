@@ -11,6 +11,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"net"
 	"time"
 )
@@ -49,10 +50,10 @@ func (s *Server) SaveConnectionResult(success bool) error {
 	} else {
 		peerConnection.Status = item.PeerConnectionStatusFail
 	}
-	var objects = []item.Object{
+	var objects = []db.Object{
 		peerConnection,
 	}
-	if err := item.Save(objects); err != nil {
+	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving connection result object", err)
 	}
 	return nil
@@ -73,7 +74,7 @@ func (s *Server) Run() error {
 		Listeners: peer.MessageListeners{
 			OnAddr: func(p *peer.Peer, msg *wire.MsgAddr) {
 				log("on addr: %d\n", len(msg.AddrList))
-				var objects = make([]item.Object, len(msg.AddrList)*3)
+				var objects = make([]db.Object, len(msg.AddrList)*3)
 				for i := range msg.AddrList {
 					objects[i*3] = &item.Peer{
 						Ip:       msg.AddrList[i].IP,
@@ -93,7 +94,7 @@ func (s *Server) Run() error {
 						FoundPort: msg.AddrList[i].Port,
 					}
 				}
-				if err := item.Save(objects); err != nil {
+				if err := db.Save(objects); err != nil {
 					jerr.Get("error saving peers", err).Print()
 				}
 			},

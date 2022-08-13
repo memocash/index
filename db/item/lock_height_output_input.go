@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -45,7 +46,7 @@ func (t LockHeightOutputInput) GetShard() uint {
 }
 
 func (t LockHeightOutputInput) GetTopic() string {
-	return TopicLockHeightOutputInput
+	return db.TopicLockHeightOutputInput
 }
 
 func (t LockHeightOutputInput) Serialize() []byte {
@@ -56,8 +57,8 @@ func (t *LockHeightOutputInput) Deserialize([]byte) {}
 
 func ListenMempoolLockHeightOutputInputs(ctx context.Context, lockHash []byte) (chan *LockHeightOutputInput, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	chanMessage, err := db.Listen(ctx, TopicLockHeightOutputInput, [][]byte{lockHash})
+	dbClient := client.NewClient(shardConfig.GetHost())
+	chanMessage, err := dbClient.Listen(ctx, db.TopicLockHeightOutputInput, [][]byte{lockHash})
 	if err != nil {
 		return nil, jerr.Get("error getting lock height output input listen message chan", err)
 	}
@@ -81,14 +82,14 @@ func ListenMempoolLockHeightOutputInputs(ctx context.Context, lockHash []byte) (
 func RemoveLockHeightOutputInputs(lockHeightOutputInputs []*LockHeightOutputInput) error {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, lockHeightOutputInput := range lockHeightOutputInputs {
-		shard := GetShard32(lockHeightOutputInput.GetShard())
+		shard := db.GetShard32(lockHeightOutputInput.GetShard())
 		shardUidsMap[shard] = append(shardUidsMap[shard], lockHeightOutputInput.GetUid())
 	}
 	for shard, shardUids := range shardUidsMap {
 		shardUids = jutil.RemoveDupesAndEmpties(shardUids)
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.DeleteMessages(TopicLockHeightOutputInput, shardUids); err != nil {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.DeleteMessages(db.TopicLockHeightOutputInput, shardUids); err != nil {
 			return jerr.Get("error deleting items topic lock height output input", err)
 		}
 	}

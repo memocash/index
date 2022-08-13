@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"sort"
 	"time"
@@ -25,7 +26,7 @@ func (s DoubleSpendSeen) GetShard() uint {
 }
 
 func (s DoubleSpendSeen) GetTopic() string {
-	return TopicDoubleSpendSeen
+	return db.TopicDoubleSpendSeen
 }
 
 func (s DoubleSpendSeen) Serialize() []byte {
@@ -59,13 +60,12 @@ func GetDoubleSpendSeensAllLimit(startTime time.Time, limit uint32, newest bool)
 		if !startTime.IsZero() {
 			start = jutil.ByteReverse(jutil.GetTimeByteNano(startTime))
 		}
-		err := dbClient.GetWOpts(client.Opts{
-			Topic:  TopicDoubleSpendSeen,
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:  db.TopicDoubleSpendSeen,
 			Start:  start,
 			Max:    shardLimit,
 			Newest: newest,
-		})
-		if err != nil {
+		}); err != nil {
 			return nil, jerr.Get("error getting double spend seens from queue client all", err)
 		}
 		for i := range dbClient.Messages {
@@ -88,22 +88,22 @@ func GetDoubleSpendSeensAllLimit(startTime time.Time, limit uint32, newest bool)
 func GetDoubleSpendSeensByTxHashesScanAll(txHashes [][]byte) ([]*DoubleSpendSeen, error) {
 	var shardTxHashGroups = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := GetShardByte32(txHash)
+		shard := db.GetShardByte32(txHash)
 		shardTxHashGroups[shard] = append(shardTxHashGroups[shard], txHash)
 	}
 	var doubleSpendSeens []*DoubleSpendSeen
 	for shard, txHashGroup := range shardTxHashGroups {
 		txHashGroup = jutil.RemoveDupesAndEmpties(txHashGroup)
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
+		dbClient := client.NewClient(shardConfig.GetHost())
 		var startUid []byte
 		for {
-			if err := db.Get(TopicDoubleSpendSeen, startUid, false); err != nil {
+			if err := dbClient.Get(db.TopicDoubleSpendSeen, startUid, false); err != nil {
 				return nil, jerr.Get("error getting by double spend seens for scan all", err)
 			}
-			for i := range db.Messages {
+			for i := range dbClient.Messages {
 				var doubleSpendSeen = new(DoubleSpendSeen)
-				doubleSpendSeen.SetUid(db.Messages[i].Uid)
+				doubleSpendSeen.SetUid(dbClient.Messages[i].Uid)
 				for _, txHash := range txHashGroup {
 					if bytes.Equal(doubleSpendSeen.TxHash, txHash) {
 						doubleSpendSeens = append(doubleSpendSeens, doubleSpendSeen)
@@ -112,7 +112,7 @@ func GetDoubleSpendSeensByTxHashesScanAll(txHashes [][]byte) ([]*DoubleSpendSeen
 				}
 				startUid = doubleSpendSeen.GetUid()
 			}
-			if len(db.Messages) < client.DefaultLimit {
+			if len(dbClient.Messages) < client.DefaultLimit {
 				break
 			}
 		}

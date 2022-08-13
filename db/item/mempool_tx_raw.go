@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"sync"
 )
@@ -22,7 +23,7 @@ func (t MempoolTxRaw) GetShard() uint {
 }
 
 func (t MempoolTxRaw) GetTopic() string {
-	return TopicMempoolTxRaw
+	return db.TopicMempoolTxRaw
 }
 
 func (t MempoolTxRaw) Serialize() []byte {
@@ -41,26 +42,24 @@ func (t *MempoolTxRaw) Deserialize(data []byte) {
 }
 
 func GetMempoolTxRawByHash(txHash []byte) (*MempoolTxRaw, error) {
-	shardConfig := config.GetShardConfig(GetShardByte32(txHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	err := db.GetSingle(TopicMempoolTxRaw, jutil.ByteReverse(txHash))
-	if err != nil {
+	shardConfig := config.GetShardConfig(db.GetShardByte32(txHash), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetSingle(db.TopicMempoolTxRaw, jutil.ByteReverse(txHash)); err != nil {
 		return nil, jerr.Get("error getting client message raw tx by hash", err)
 	}
-	if len(db.Messages) != 1 {
+	if len(dbClient.Messages) != 1 {
 		return nil, jerr.Newf("error unexpected number of client messages raw tx by hash returned (%d)",
-			len(db.Messages))
+			len(dbClient.Messages))
 	}
 	var tx = new(MempoolTxRaw)
-	tx.SetUid(db.Messages[0].Uid)
-	tx.Deserialize(db.Messages[0].Message)
+	db.Set(tx, dbClient.Messages[0])
 	return tx, nil
 }
 
 func GetMempoolTxRawByHashes(txHashes [][]byte) ([]*MempoolTxRaw, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := GetShardByte32(txHash)
+		shard := db.GetShardByte32(txHash)
 		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(txHash))
 	}
 	var shardMempoolTxRaw = make(map[uint32][]*MempoolTxRaw)
@@ -72,16 +71,14 @@ func GetMempoolTxRawByHashes(txHashes [][]byte) ([]*MempoolTxRaw, error) {
 		go func(shard uint32, uids [][]byte) {
 			defer wg.Done()
 			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-			db := client.NewClient(shardConfig.GetHost())
-			err := db.GetSpecific(TopicMempoolTxRaw, uids)
-			if err != nil {
+			dbClient := client.NewClient(shardConfig.GetHost())
+			if err := dbClient.GetSpecific(db.TopicMempoolTxRaw, uids); err != nil {
 				errs = append(errs, jerr.Get("error getting client raw tx message", err))
 				return
 			}
-			for _, msg := range db.Messages {
+			for _, msg := range dbClient.Messages {
 				var mempoolTxRaw = new(MempoolTxRaw)
-				mempoolTxRaw.SetUid(msg.Uid)
-				mempoolTxRaw.Deserialize(msg.Message)
+				db.Set(mempoolTxRaw, msg)
 				lock.Lock()
 				shardMempoolTxRaw[shard] = append(shardMempoolTxRaw[shard], mempoolTxRaw)
 				lock.Unlock()
@@ -115,21 +112,20 @@ func GetMempoolTxs(startTx []byte, limit uint32) ([]*MempoolTxRaw, error) {
 	var txs []*MempoolTxRaw
 	for shard := startShardConfig.Min; shard < startShardConfig.Total; shard++ {
 		shardConfig := config.GetShardConfig(shard, configQueueShards)
-		db := client.NewClient(shardConfig.GetHost())
-		err := db.GetWOpts(client.Opts{
-			Topic: TopicMempoolTxRaw,
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic: db.TopicMempoolTxRaw,
 			Start: startTx,
 			Max:   limit,
-		})
-		if err != nil {
+		}); err != nil {
 			return nil, jerr.Get("error getting client message for mempool tx raw", err)
 		}
-		for _, msg := range db.Messages {
+		for _, msg := range dbClient.Messages {
 			tx := new(MempoolTxRaw)
-			tx.SetUid(msg.Uid)
+			db.Set(tx, msg)
 			txs = append(txs, tx)
 		}
-		limit -= uint32(len(db.Messages))
+		limit -= uint32(len(dbClient.Messages))
 		if limit <= 0 {
 			break
 		}
@@ -140,14 +136,14 @@ func GetMempoolTxs(startTx []byte, limit uint32) ([]*MempoolTxRaw, error) {
 func RemoveMempoolTxRaws(mempoolTxRaws []*MempoolTxRaw) error {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, mempoolTxRaw := range mempoolTxRaws {
-		shard := GetShard32(mempoolTxRaw.GetShard())
+		shard := db.GetShard32(mempoolTxRaw.GetShard())
 		shardUidsMap[shard] = append(shardUidsMap[shard], mempoolTxRaw.GetUid())
 	}
 	for shard, shardUids := range shardUidsMap {
 		shardUids = jutil.RemoveDupesAndEmpties(shardUids)
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.DeleteMessages(TopicMempoolTxRaw, shardUids); err != nil {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.DeleteMessages(db.TopicMempoolTxRaw, shardUids); err != nil {
 			return jerr.Get("error deleting items topic mempool tx raw", err)
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -28,7 +29,7 @@ func (p LockMemoPost) GetShard() uint {
 }
 
 func (p LockMemoPost) GetTopic() string {
-	return TopicLockMemoPost
+	return db.TopicLockMemoPost
 }
 
 func (p LockMemoPost) Serialize() []byte {
@@ -56,18 +57,18 @@ func GetLockMemoPosts(ctx context.Context, lockHashes [][]byte) ([]*LockMemoPost
 	var lockMemoPosts []*LockMemoPost
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.GetWOpts(client.Opts{
-			Topic:    TopicLockMemoPost,
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:    db.TopicLockMemoPost,
 			Prefixes: lockHashPrefixes,
 			Max:      client.ExLargeLimit,
 			Context:  ctx,
 		}); err != nil {
 			return nil, jerr.Get("error getting db lock memo post by prefix", err)
 		}
-		for _, msg := range db.Messages {
+		for _, msg := range dbClient.Messages {
 			var lockMemoPost = new(LockMemoPost)
-			Set(lockMemoPost, msg)
+			db.Set(lockMemoPost, msg)
 			lockMemoPosts = append(lockMemoPosts, lockMemoPost)
 		}
 	}
@@ -75,9 +76,9 @@ func GetLockMemoPosts(ctx context.Context, lockHashes [][]byte) ([]*LockMemoPost
 }
 
 func RemoveLockMemoPost(lockMemoPost *LockMemoPost) error {
-	shardConfig := config.GetShardConfig(GetShard32(lockMemoPost.GetShard()), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.DeleteMessages(TopicLockMemoPost, [][]byte{lockMemoPost.GetUid()}); err != nil {
+	shardConfig := config.GetShardConfig(db.GetShard32(lockMemoPost.GetShard()), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.DeleteMessages(db.TopicLockMemoPost, [][]byte{lockMemoPost.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo post", err)
 	}
 	return nil

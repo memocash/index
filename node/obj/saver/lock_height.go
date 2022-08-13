@@ -8,6 +8,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -108,7 +109,7 @@ func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
 }
 
 func (t *LockHeightSaveRun) SaveOutputs() error {
-	var objects []item.Object
+	var objects []db.Object
 	var lockHeightOutputsToRemove []*item.LockHeightOutput
 	for _, lockOut := range t.LockOuts {
 		var lockHeightOutput = &item.LockHeightOutput{
@@ -131,7 +132,7 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 			})
 		}
 		if len(objects) >= 10000 {
-			if err := item.Save(objects); err != nil {
+			if err := db.Save(objects); err != nil {
 				return jerr.Get("error saving db lock height objects (at limit)", err)
 			}
 			t.ObjectCount += len(objects)
@@ -139,7 +140,7 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 			runtime.GC()
 		}
 	}
-	if err := item.Save(objects); err != nil {
+	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving db lock height outputs", err)
 	}
 	t.ObjectCount += len(objects)
@@ -150,7 +151,7 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 }
 
 func (t *LockHeightSaveRun) SaveOutputInputsForInputs() error {
-	var objects []item.Object
+	var objects []db.Object
 	var inputOuts []memo.Out
 	var lockHeightOutputInputsToRemove []*item.LockHeightOutputInput
 TxInLoop:
@@ -221,7 +222,7 @@ TxInLoop:
 			})
 		}
 	}
-	if err := item.Save(objects); err != nil {
+	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving db lock height output inputs for inputs", err)
 	}
 	if err := item.RemoveLockHeightOutputInputs(lockHeightOutputInputsToRemove); err != nil {
@@ -232,7 +233,7 @@ TxInLoop:
 }
 
 func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
-	var objects []item.Object
+	var objects []db.Object
 	var lockHeightOutputInputsToRemove []*item.LockHeightOutputInput
 	var lockOuts = t.LockOuts
 	for _, in := range t.Ins {
@@ -318,7 +319,7 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 			})
 		}
 	}
-	if err := item.Save(objects); err != nil {
+	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving db lock height output inputs for outputs", err)
 	}
 	if err := item.RemoveLockHeightOutputInputs(lockHeightOutputInputsToRemove); err != nil {

@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 	"sort"
@@ -25,7 +26,7 @@ func (t TxOutput) GetShard() uint {
 }
 
 func (t TxOutput) GetTopic() string {
-	return TopicTxOutput
+	return db.TopicTxOutput
 }
 
 func (t TxOutput) Serialize() []byte {
@@ -52,27 +53,26 @@ func (t *TxOutput) Deserialize(data []byte) {
 }
 
 func GetTxOutputUid(txHash []byte, index uint32) []byte {
-	return GetTxHashIndexUid(txHash, index)
+	return db.GetTxHashIndexUid(txHash, index)
 }
 
 func GetTxOutputsByHashes(txHashes [][]byte) ([]*TxOutput, error) {
 	var shardTxHashes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := uint32(GetShardByte(txHash))
+		shard := uint32(db.GetShardByte(txHash))
 		shardTxHashes[shard] = append(shardTxHashes[shard], jutil.ByteReverse(txHash))
 	}
 	var txOutputs []*TxOutput
 	for shard, txHashes := range shardTxHashes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		err := db.GetByPrefixes(TopicTxOutput, txHashes)
+		dbClient := client.NewClient(shardConfig.GetHost())
+		err := dbClient.GetByPrefixes(db.TopicTxOutput, txHashes)
 		if err != nil {
 			return nil, jerr.Get("error getting db message tx outputs", err)
 		}
-		for _, msg := range db.Messages {
+		for _, msg := range dbClient.Messages {
 			var txOutput = new(TxOutput)
-			txOutput.SetUid(msg.Uid)
-			txOutput.Deserialize(msg.Message)
+			db.Set(txOutput, msg)
 			txOutputs = append(txOutputs, txOutput)
 		}
 	}
@@ -82,16 +82,16 @@ func GetTxOutputsByHashes(txHashes [][]byte) ([]*TxOutput, error) {
 func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
 	var shardOutGroups = make(map[uint32][]memo.Out)
 	for _, out := range outs {
-		shard := GetShardByte32(out.TxHash)
+		shard := db.GetShardByte32(out.TxHash)
 		shardOutGroups[shard] = append(shardOutGroups[shard], out)
 	}
-	wait := NewWait(len(shardOutGroups))
+	wait := db.NewWait(len(shardOutGroups))
 	var txOutputs []*TxOutput
 	for shardT, outGroupT := range shardOutGroups {
 		go func(shard uint32, outGroup []memo.Out) {
 			defer wait.Group.Done()
 			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-			db := client.NewClient(shardConfig.GetHost())
+			dbClient := client.NewClient(shardConfig.GetHost())
 			var uids = make([][]byte, len(outGroup))
 			for i := range outGroup {
 				uids[i] = GetTxOutputUid(outGroup[i].TxHash, outGroup[i].Index)
@@ -99,15 +99,14 @@ func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
 			sort.Slice(uids, func(i, j int) bool {
 				return jutil.ByteLT(uids[i], uids[j])
 			})
-			if err := db.GetSpecific(TopicTxOutput, uids); err != nil {
+			if err := dbClient.GetSpecific(db.TopicTxOutput, uids); err != nil {
 				wait.AddError(jerr.Get("error getting db", err))
 				return
 			}
 			wait.Lock.Lock()
-			for i := range db.Messages {
+			for i := range dbClient.Messages {
 				var txOutput = new(TxOutput)
-				txOutput.SetUid(db.Messages[i].Uid)
-				txOutput.Deserialize(db.Messages[i].Message)
+				db.Set(txOutput, dbClient.Messages[i])
 				txOutputs = append(txOutputs, txOutput)
 			}
 			wait.Lock.Unlock()
@@ -121,18 +120,17 @@ func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
 }
 
 func GetTxOutput(hash []byte, index uint32) (*TxOutput, error) {
-	shard := GetShardByte32(hash)
+	shard := db.GetShardByte32(hash)
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
+	dbClient := client.NewClient(shardConfig.GetHost())
 	uid := GetTxOutputUid(hash, index)
-	if err := db.GetSingle(TopicTxOutput, uid); err != nil {
+	if err := dbClient.GetSingle(db.TopicTxOutput, uid); err != nil {
 		return nil, jerr.Get("error getting db", err)
 	}
-	if len(db.Messages) != 1 {
+	if len(dbClient.Messages) != 1 {
 		return nil, nil
 	}
 	var txOutput = new(TxOutput)
-	txOutput.SetUid(db.Messages[0].Uid)
-	txOutput.Deserialize(db.Messages[0].Message)
+	db.Set(txOutput, dbClient.Messages[0])
 	return txOutput, nil
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/status"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -37,7 +38,7 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 	if !block.Header.Timestamp.IsZero() {
 		blockHashBytes = blockHash.CloneBytes()
 	}
-	var objects []item.Object
+	var objects []db.Object
 	for _, tx := range block.Transactions {
 		txHash := tx.TxHash()
 		txHashBytes := txHash.CloneBytes()
@@ -72,7 +73,7 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 				Index:    uint32(h),
 			})
 			if len(objects) >= 10000 {
-				if err := item.Save(objects); err != nil {
+				if err := db.Save(objects); err != nil {
 					return jerr.Get("error saving db tx objects (at limit)", err)
 				}
 				objects = nil
@@ -97,7 +98,7 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 			})
 		}
 	}
-	if err := item.Save(objects); err != nil {
+	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving db tx objects", err)
 	}
 	return nil

@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -30,7 +31,7 @@ func (o LockHeightOutput) GetShard() uint {
 }
 
 func (o LockHeightOutput) GetTopic() string {
-	return TopicLockHeightOutput
+	return db.TopicLockHeightOutput
 }
 
 func (o LockHeightOutput) Serialize() []byte {
@@ -51,8 +52,8 @@ func (o *LockHeightOutput) Deserialize([]byte) {}
 
 func ListenMempoolLockHeightOutputs(ctx context.Context, lockHash []byte) (chan *LockHeightOutput, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	chanMessage, err := db.Listen(ctx, TopicLockHeightOutput, [][]byte{lockHash})
+	dbClient := client.NewClient(shardConfig.GetHost())
+	chanMessage, err := dbClient.Listen(ctx, db.TopicLockHeightOutput, [][]byte{lockHash})
 	if err != nil {
 		return nil, jerr.Get("error getting lock height output listen message chan", err)
 	}
@@ -75,20 +76,20 @@ func ListenMempoolLockHeightOutputs(ctx context.Context, lockHash []byte) (chan 
 
 func GetLockHeightOutputs(lockHash, start []byte) ([]*LockHeightOutput, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetWOpts(client.Opts{
-		Topic:    TopicLockHeightOutput,
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicLockHeightOutput,
 		Start:    start,
 		Prefixes: [][]byte{lockHash},
 		Max:      client.ExLargeLimit,
 	}); err != nil {
 		return nil, jerr.Get("error getting db lock outputs by prefix", err)
 	}
-	var lockHeightOutputs = make([]*LockHeightOutput, len(db.Messages))
-	for i := range db.Messages {
+	var lockHeightOutputs = make([]*LockHeightOutput, len(dbClient.Messages))
+	for i := range dbClient.Messages {
 		lockHeightOutputs[i] = new(LockHeightOutput)
-		lockHeightOutputs[i].SetUid(db.Messages[i].Uid)
-		lockHeightOutputs[i].Deserialize(db.Messages[i].Message)
+		lockHeightOutputs[i].SetUid(dbClient.Messages[i].Uid)
+		lockHeightOutputs[i].Deserialize(dbClient.Messages[i].Message)
 	}
 	return lockHeightOutputs, nil
 }
@@ -105,14 +106,14 @@ func GetLockHeightOutputUid(lockHash []byte, height int64, hash []byte, index ui
 func RemoveLockHeightOutputs(lockHeightOutputs []*LockHeightOutput) error {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, lockHeightOutput := range lockHeightOutputs {
-		shard := GetShard32(lockHeightOutput.GetShard())
+		shard := db.GetShard32(lockHeightOutput.GetShard())
 		shardUidsMap[shard] = append(shardUidsMap[shard], lockHeightOutput.GetUid())
 	}
 	for shard, shardUids := range shardUidsMap {
 		shardUids = jutil.RemoveDupesAndEmpties(shardUids)
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.DeleteMessages(TopicLockHeightOutput, shardUids); err != nil {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.DeleteMessages(db.TopicLockHeightOutput, shardUids); err != nil {
 			return jerr.Get("error deleting items topic lock height output", err)
 		}
 	}

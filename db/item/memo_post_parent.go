@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -23,7 +24,7 @@ func (p MemoPostParent) GetShard() uint {
 }
 
 func (p MemoPostParent) GetTopic() string {
-	return TopicMemoPostParent
+	return db.TopicMemoPostParent
 }
 
 func (p MemoPostParent) Serialize() []byte {
@@ -45,19 +46,19 @@ func (p *MemoPostParent) Deserialize(data []byte) {
 }
 
 func GetMemoPostParent(ctx context.Context, postTxHash []byte) (*MemoPostParent, error) {
-	shardConfig := config.GetShardConfig(GetShardByte32(postTxHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetWOpts(client.Opts{
+	shardConfig := config.GetShardConfig(db.GetShardByte32(postTxHash), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
 		Context: ctx,
-		Topic:   TopicMemoPostParent,
+		Topic:   db.TopicMemoPostParent,
 		Uids:    [][]byte{jutil.ByteReverse(postTxHash)},
 	}); err != nil {
 		return nil, jerr.Get("error getting client message memo post parents", err)
 	}
-	if len(db.Messages) == 0 {
+	if len(dbClient.Messages) == 0 {
 		return nil, nil
 	}
 	var memoPostParent = new(MemoPostParent)
-	Set(memoPostParent, db.Messages[0])
+	db.Set(memoPostParent, dbClient.Messages[0])
 	return memoPostParent, nil
 }

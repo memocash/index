@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -29,7 +30,7 @@ func (n LockMemoProfile) GetShard() uint {
 }
 
 func (n LockMemoProfile) GetTopic() string {
-	return TopicLockMemoProfile
+	return db.TopicLockMemoProfile
 }
 
 func (n LockMemoProfile) Serialize() []byte {
@@ -51,27 +52,27 @@ func (n *LockMemoProfile) Deserialize(data []byte) {
 
 func GetLockMemoProfile(ctx context.Context, lockHash []byte) (*LockMemoProfile, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetWOpts(client.Opts{
-		Topic:    TopicLockMemoProfile,
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicLockMemoProfile,
 		Prefixes: [][]byte{lockHash},
 		Max:      1,
 		Context:  ctx,
 	}); err != nil {
 		return nil, jerr.Get("error getting db lock memo profile by prefix", err)
 	}
-	if len(db.Messages) == 0 {
+	if len(dbClient.Messages) == 0 {
 		return nil, jerr.Get("error no lock memo profiles found", client.EntryNotFoundError)
 	}
 	var lockMemoProfile = new(LockMemoProfile)
-	Set(lockMemoProfile, db.Messages[0])
+	db.Set(lockMemoProfile, dbClient.Messages[0])
 	return lockMemoProfile, nil
 }
 
 func RemoveLockMemoProfile(lockMemoProfile *LockMemoProfile) error {
-	shardConfig := config.GetShardConfig(GetShard32(lockMemoProfile.GetShard()), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.DeleteMessages(TopicLockMemoProfile, [][]byte{lockMemoProfile.GetUid()}); err != nil {
+	shardConfig := config.GetShardConfig(db.GetShard32(lockMemoProfile.GetShard()), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.DeleteMessages(db.TopicLockMemoProfile, [][]byte{lockMemoProfile.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo profile", err)
 	}
 	return nil
@@ -88,20 +89,20 @@ func ListenLockMemoProfiles(ctx context.Context, lockHashes [][]byte) (chan *Loc
 	}
 	shardConfigs := config.GetQueueShards()
 	var lockMemoProfileChan = make(chan *LockMemoProfile)
-	cancelCtx := NewCancelContext(ctx, func() {
+	cancelCtx := db.NewCancelContext(ctx, func() {
 		close(lockMemoProfileChan)
 	})
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		db := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := db.Listen(cancelCtx.Context, TopicLockMemoProfile, lockHashPrefixes)
+		dbClient := client.NewClient(shardConfig.GetHost())
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicLockMemoProfile, lockHashPrefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db lock memo profile by prefix", err)
 		}
 		go func() {
 			for msg := range chanMessage {
 				var lockMemoProfile = new(LockMemoProfile)
-				Set(lockMemoProfile, *msg)
+				db.Set(lockMemoProfile, *msg)
 				lockMemoProfileChan <- lockMemoProfile
 			}
 			cancelCtx.Cancel()

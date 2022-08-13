@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -29,7 +30,7 @@ func (r MemoRoomHeightPost) GetShard() uint {
 }
 
 func (r MemoRoomHeightPost) GetTopic() string {
-	return TopicMemoRoomHeightPost
+	return db.TopicMemoRoomHeightPost
 }
 
 func (r MemoRoomHeightPost) Serialize() []byte {
@@ -56,9 +57,9 @@ func GetMemoRoomHeightPosts(ctx context.Context, room string) ([]*MemoRoomHeight
 	roomHash := GetMemoRoomHash(room)
 	shard := client.GetByteShard32(roomHash)
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetWOpts(client.Opts{
-		Topic:    TopicMemoRoomHeightPost,
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicMemoRoomHeightPost,
 		Prefixes: [][]byte{roomHash},
 		Max:      client.ExLargeLimit,
 		Context:  ctx,
@@ -66,9 +67,9 @@ func GetMemoRoomHeightPosts(ctx context.Context, room string) ([]*MemoRoomHeight
 		return nil, jerr.Get("error getting db memo room height posts", err)
 	}
 	var memoRoomHeightPosts []*MemoRoomHeightPost
-	for _, msg := range db.Messages {
+	for _, msg := range dbClient.Messages {
 		var memoRoomHeightPost = new(MemoRoomHeightPost)
-		Set(memoRoomHeightPost, msg)
+		db.Set(memoRoomHeightPost, msg)
 		memoRoomHeightPosts = append(memoRoomHeightPosts, memoRoomHeightPost)
 	}
 	return memoRoomHeightPosts, nil

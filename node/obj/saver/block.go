@@ -8,6 +8,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -31,7 +32,7 @@ func (t *Block) SaveBlock(header wire.BlockHeader) error {
 }
 
 func (t *Block) saveBlockObjects(header wire.BlockHeader) error {
-	var objects = make([]item.Object, 1)
+	var objects = make([]db.Object, 1)
 	if t.Verbose {
 		jlog.Logf("saving block: %s\n", t.BlockHash.String())
 	}
@@ -92,12 +93,12 @@ func (t *Block) saveBlockObjects(header wire.BlockHeader) error {
 		t.PrevBlockHeight = newBlockHeight
 		t.PrevBlockHash = t.BlockHashBytes
 	}
-	if err := item.Save(objects); err != nil {
+	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving new db block objects", err)
 	}
 	if heightBlock != nil {
 		// Save height block afterward to avoid race conditions with listeners not being able to find block info
-		if err := item.Save([]item.Object{heightBlock}); err != nil {
+		if err := db.Save([]db.Object{heightBlock}); err != nil {
 			return jerr.Get("error saving height block", err)
 		}
 	}

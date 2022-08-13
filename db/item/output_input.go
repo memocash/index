@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 	"sort"
@@ -40,7 +41,7 @@ func (t OutputInput) GetShard() uint {
 }
 
 func (t OutputInput) GetTopic() string {
-	return TopicOutputInput
+	return db.TopicOutputInput
 }
 
 func (t OutputInput) Serialize() []byte {
@@ -50,18 +51,17 @@ func (t OutputInput) Serialize() []byte {
 func (t *OutputInput) Deserialize([]byte) {}
 
 func GetOutputInput(out memo.Out) ([]*OutputInput, error) {
-	shard := GetShardByte32(out.TxHash)
+	shard := db.GetShardByte32(out.TxHash)
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
+	dbClient := client.NewClient(shardConfig.GetHost())
 	prefix := jutil.CombineBytes(jutil.ByteReverse(out.TxHash), jutil.GetUint32Data(out.Index))
-	if err := db.GetByPrefix(TopicOutputInput, prefix); err != nil {
+	if err := dbClient.GetByPrefix(db.TopicOutputInput, prefix); err != nil {
 		return nil, jerr.Get("error getting by prefix for output input", err)
 	}
-	var outputInputs = make([]*OutputInput, len(db.Messages))
-	for i := range db.Messages {
+	var outputInputs = make([]*OutputInput, len(dbClient.Messages))
+	for i := range dbClient.Messages {
 		outputInputs[i] = new(OutputInput)
-		outputInputs[i].SetUid(db.Messages[i].Uid)
-		outputInputs[i].Deserialize(db.Messages[i].Message)
+		db.Set(outputInputs[i], dbClient.Messages[i])
 	}
 	return outputInputs, nil
 }
@@ -69,16 +69,16 @@ func GetOutputInput(out memo.Out) ([]*OutputInput, error) {
 func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 	var shardOutGroups = make(map[uint32][]memo.Out)
 	for _, out := range outs {
-		shard := GetShardByte32(out.TxHash)
+		shard := db.GetShardByte32(out.TxHash)
 		shardOutGroups[shard] = append(shardOutGroups[shard], out)
 	}
-	wait := NewWait(len(shardOutGroups))
+	wait := db.NewWait(len(shardOutGroups))
 	var outputInputs []*OutputInput
 	for shardT, outGroupT := range shardOutGroups {
 		go func(shard uint32, outGroup []memo.Out) {
 			defer wait.Group.Done()
 			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-			db := client.NewClient(shardConfig.GetHost())
+			dbClient := client.NewClient(shardConfig.GetHost())
 			var prefixes = make([][]byte, len(outGroup))
 			for i := range outGroup {
 				prefixes[i] = jutil.CombineBytes(
@@ -96,15 +96,14 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 				} else {
 					prefixesToUse, prefixes = prefixes, nil
 				}
-				if err := db.GetByPrefixes(TopicOutputInput, prefixesToUse); err != nil {
+				if err := dbClient.GetByPrefixes(db.TopicOutputInput, prefixesToUse); err != nil {
 					wait.AddError(jerr.Get("error getting by prefixes for output inputs", err))
 					return
 				}
 				wait.Lock.Lock()
-				for i := range db.Messages {
+				for i := range dbClient.Messages {
 					var outputInput = new(OutputInput)
-					outputInput.SetUid(db.Messages[i].Uid)
-					outputInput.Deserialize(db.Messages[i].Message)
+					db.Set(outputInput, dbClient.Messages[i])
 					outputInputs = append(outputInputs, outputInput)
 				}
 				wait.Lock.Unlock()
@@ -121,24 +120,23 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 func GetOutputInputsForTxHashes(txHashes [][]byte) ([]*OutputInput, error) {
 	var shardOutGroups = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := GetShardByte32(txHash)
+		shard := db.GetShardByte32(txHash)
 		shardOutGroups[shard] = append(shardOutGroups[shard], txHash)
 	}
 	var outputInputs []*OutputInput
 	for shard, outGroup := range shardOutGroups {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
+		dbClient := client.NewClient(shardConfig.GetHost())
 		var prefixes = make([][]byte, len(outGroup))
 		for i := range outGroup {
 			prefixes[i] = jutil.ByteReverse(outGroup[i])
 		}
-		if err := db.GetByPrefixes(TopicOutputInput, prefixes); err != nil {
+		if err := dbClient.GetByPrefixes(db.TopicOutputInput, prefixes); err != nil {
 			return nil, jerr.Get("error getting by prefixes for output inputs by tx hashes", err)
 		}
-		for i := range db.Messages {
+		for i := range dbClient.Messages {
 			var outputInput = new(OutputInput)
-			outputInput.SetUid(db.Messages[i].Uid)
-			outputInput.Deserialize(db.Messages[i].Message)
+			db.Set(outputInput, dbClient.Messages[i])
 			outputInputs = append(outputInputs, outputInput)
 		}
 	}

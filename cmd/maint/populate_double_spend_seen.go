@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/spf13/cobra"
 )
@@ -37,7 +38,7 @@ var populateDoubleSpendSeenCmd = &cobra.Command{
 						if verbose {
 							jlog.Logf("Existing Double Spend Seen: %s:%-3d - %s (shard: %d)\n",
 								hs.GetTxString(existingDoubleSpendSeen.TxHash), existingDoubleSpendSeen.Index,
-								existingDoubleSpendSeen.Timestamp, item.GetShard(existingDoubleSpendSeen.GetShard()))
+								existingDoubleSpendSeen.Timestamp, db.GetShard(existingDoubleSpendSeen.GetShard()))
 						}
 						continue DoubleSpendOutputsLoop
 					}
@@ -52,7 +53,7 @@ var populateDoubleSpendSeenCmd = &cobra.Command{
 			if err != nil {
 				jerr.Get("fatal error getting tx seens for populate double spend seens", err).Fatal()
 			}
-			var objects []item.Object
+			var objects []db.Object
 			for _, newDoubleSpendSeen := range newDoubleSpendSeens {
 				for i := range txSeens {
 					if bytes.Equal(txSeens[i].TxHash, newDoubleSpendSeen.TxHash) {
@@ -60,7 +61,7 @@ var populateDoubleSpendSeenCmd = &cobra.Command{
 						if verbose {
 							jlog.Logf("New Double Spend Seen: %s:%-3d - %s (shard: %d)\n",
 								hs.GetTxString(newDoubleSpendSeen.TxHash), newDoubleSpendSeen.Index,
-								newDoubleSpendSeen.Timestamp, item.GetShard(newDoubleSpendSeen.GetShard()))
+								newDoubleSpendSeen.Timestamp, db.GetShard(newDoubleSpendSeen.GetShard()))
 						}
 						objects = append(objects, newDoubleSpendSeen)
 						break
@@ -68,7 +69,7 @@ var populateDoubleSpendSeenCmd = &cobra.Command{
 				}
 			}
 			jlog.Logf("Saving %d new double spend seens\n", len(objects))
-			if err := item.Save(objects); err != nil {
+			if err := db.Save(objects); err != nil {
 				jerr.Get("fatal error saving new double spend seens for population", err).Fatal()
 			}
 			if len(doubleSpendOutputs) < client.DefaultLimit {

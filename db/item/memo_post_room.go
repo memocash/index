@@ -3,6 +3,7 @@ package item
 import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -20,7 +21,7 @@ func (r MemoPostRoom) GetShard() uint {
 }
 
 func (r MemoPostRoom) GetTopic() string {
-	return TopicMemoPostRoom
+	return db.TopicMemoPostRoom
 }
 
 func (r MemoPostRoom) Serialize() []byte {

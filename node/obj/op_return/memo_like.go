@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -48,7 +49,7 @@ var memoLikeHandler = &Handler{
 		if err != nil {
 			return jerr.Get("error getting memo post for like op return handler", err)
 		}
-		var objects = []item.Object{memoLike, memoLiked}
+		var objects = []db.Object{memoLike, memoLiked}
 		if memoPost != nil && !bytes.Equal(memoLike.LockHash, memoPost.LockHash) {
 			var tip int64
 			for _, txOut := range info.Outputs {
@@ -64,7 +65,7 @@ var memoLikeHandler = &Handler{
 				})
 			}
 		}
-		if err := item.Save(objects); err != nil {
+		if err := db.Save(objects); err != nil {
 			return jerr.Get("error saving db memo like object", err)
 		}
 		if info.Height != item.HeightMempool {

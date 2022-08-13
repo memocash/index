@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/op_return/save"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
@@ -41,7 +42,7 @@ var memoReplyHandler = &Handler{
 			PostTxHash:  parentTxHashBytes,
 			ChildTxHash: info.TxHash,
 		}
-		if err := item.Save([]item.Object{memoPostParent, memoPostChild}); err != nil {
+		if err := db.Save([]db.Object{memoPostParent, memoPostChild}); err != nil {
 			return jerr.Get("error saving memo post parent and child for memo reply handler", err)
 		}
 		var post = jutil.GetUtf8String(info.PushData[2])

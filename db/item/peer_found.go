@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -32,7 +33,7 @@ func (p PeerFound) GetShard() uint {
 }
 
 func (p PeerFound) GetTopic() string {
-	return TopicPeerFound
+	return db.TopicPeerFound
 }
 
 func (p PeerFound) Serialize() []byte {
@@ -58,8 +59,7 @@ func GetPeerFounds(shard uint32, startId []byte) ([]*PeerFound, error) {
 	if len(startId) > 0 {
 		startIdBytes = startId
 	}
-	err := dbClient.GetLarge(TopicPeerFound, startIdBytes, false, false)
-	if err != nil {
+	if err := dbClient.GetLarge(db.TopicPeerFound, startIdBytes, false, false); err != nil {
 		return nil, jerr.Get("error getting peer founds from queue client", err)
 	}
 	var peerFounds = make([]*PeerFound, len(dbClient.Messages))

@@ -8,6 +8,7 @@ import (
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -25,7 +26,7 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 		for i, addressString := range addressStrings {
 			address := wallet.GetAddressFromString(addressString)
 			lockHash := script.GetLockHashForAddress(address)
-			if err := item.Save([]item.Object{&item.LockAddress{
+			if err := db.Save([]db.Object{&item.LockAddress{
 				LockHash: lockHash,
 				Address:  address.GetEncoded(),
 			}}); err != nil {

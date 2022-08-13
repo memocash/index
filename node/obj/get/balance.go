@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -132,7 +133,7 @@ func (b *Balance) CalculateWithUtxos() error {
 		UtxoCount: b.UtxoCount,
 		Spends:    b.Spends,
 	}
-	err := item.Save([]item.Object{
+	err := db.Save([]db.Object{
 		lockBalance,
 	})
 	if err != nil {

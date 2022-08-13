@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"sort"
 )
@@ -23,7 +24,7 @@ func (b BlockTx) GetShard() uint {
 }
 
 func (b BlockTx) GetTopic() string {
-	return TopicBlockTx
+	return db.TopicBlockTx
 }
 
 func (b BlockTx) Serialize() []byte {
@@ -48,8 +49,7 @@ func GetBlockTx(blockHash, txHash []byte) (*BlockTx, error) {
 	shard := client.GetByteShard32(blockHash)
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	err := dbClient.GetSingle(TopicBlockTx, GetBlockTxUid(blockHash, txHash))
-	if err != nil {
+	if err := dbClient.GetSingle(db.TopicBlockTx, GetBlockTxUid(blockHash, txHash)); err != nil {
 		return nil, jerr.Get("error getting client message block tx single", err)
 	}
 	if len(dbClient.Messages) != 1 {
@@ -76,13 +76,12 @@ func GetBlockTxes(request BlockTxesRequest) ([]*BlockTx, error) {
 	} else {
 		limit = client.LargeLimit
 	}
-	err := dbClient.GetWOpts(client.Opts{
-		Topic:    TopicBlockTx,
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicBlockTx,
 		Prefixes: [][]byte{jutil.ByteReverse(request.BlockHash)},
 		Start:    request.StartUid,
 		Max:      limit,
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, jerr.Get("error getting client message", err)
 	}
 	var blocks = make([]*BlockTx, len(dbClient.Messages))
@@ -100,7 +99,7 @@ func GetBlockTxCount(blockHash []byte) (uint64, error) {
 	shard := client.GetByteShard32(blockHash)
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	count, err := dbClient.GetTopicCount(TopicBlockTx, blockHash)
+	count, err := dbClient.GetTopicCount(db.TopicBlockTx, blockHash)
 	if err != nil {
 		return 0, jerr.Get("error getting block tx count", err)
 	}

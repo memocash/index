@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"time"
 )
@@ -46,7 +47,7 @@ func (p PeerConnection) GetShard() uint {
 }
 
 func (p PeerConnection) GetTopic() string {
-	return TopicPeerConnection
+	return db.TopicPeerConnection
 }
 
 func (p PeerConnection) Serialize() []byte {
@@ -91,13 +92,12 @@ func GetPeerConnections(request PeerConnectionsRequest) ([]*PeerConnection, erro
 			jutil.GetUintData(uint(request.Port)),
 		)}
 	}
-	err := dbClient.GetWOpts(client.Opts{
-		Topic:    TopicPeerConnection,
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicPeerConnection,
 		Start:    request.StartId,
 		Prefixes: prefixes,
 		Max:      request.Max,
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, jerr.Get("error getting peer connections from queue client", err)
 	}
 	var peerConnections = make([]*PeerConnection, len(dbClient.Messages))
@@ -133,7 +133,7 @@ func GetPeerConnectionLasts(ipPorts []IpPort) ([]*PeerConnection, error) {
 	}
 	var shardIpPorts = make(map[uint32][]IpPort)
 	for _, ipPort := range ipPorts {
-		shard := GetShardByte32(ipPort.Ip)
+		shard := db.GetShardByte32(ipPort.Ip)
 		shardIpPorts[shard] = append(shardIpPorts[shard], ipPort)
 	}
 	var peerConnections []*PeerConnection
@@ -144,12 +144,11 @@ func GetPeerConnectionLasts(ipPorts []IpPort) ([]*PeerConnection, error) {
 		for i := range ipPorts {
 			prefixes[i] = jutil.CombineBytes(jutil.BytePadPrefix(ipPorts[i].Ip, IpBytePadSize), jutil.GetUintData(uint(ipPorts[i].Port)))
 		}
-		err := dbClient.GetWOpts(client.Opts{
-			Topic:    TopicPeerConnection,
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:    db.TopicPeerConnection,
 			Max:      1,
 			Prefixes: prefixes,
-		})
-		if err != nil {
+		}); err != nil {
 			return nil, jerr.Getf(err, "error getting peer connection lasts: %d %d", shard, len(ipPorts))
 		}
 		if len(dbClient.Messages) == 0 {
@@ -169,7 +168,7 @@ func GetCountPeerConnections() (uint64, error) {
 	var totalCount uint64
 	for _, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
-		count, err := dbClient.GetTopicCount(TopicPeerConnection, nil)
+		count, err := dbClient.GetTopicCount(db.TopicPeerConnection, nil)
 		if err != nil {
 			return 0, jerr.Getf(err, "error getting peer connections topic count for shard: %d", shardConfig.Min)
 		}

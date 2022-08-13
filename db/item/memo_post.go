@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -23,7 +24,7 @@ func (p MemoPost) GetShard() uint {
 }
 
 func (p MemoPost) GetTopic() string {
-	return TopicMemoPost
+	return db.TopicMemoPost
 }
 
 func (p MemoPost) Serialize() []byte {
@@ -62,19 +63,19 @@ func GetMemoPost(txHash []byte) (*MemoPost, error) {
 func GetMemoPosts(txHashes [][]byte) ([]*MemoPost, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := GetShardByte32(txHash)
+		shard := db.GetShardByte32(txHash)
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash))
 	}
 	var memoPosts []*MemoPost
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.GetByPrefixes(TopicMemoPost, prefixes); err != nil {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetByPrefixes(db.TopicMemoPost, prefixes); err != nil {
 			return nil, jerr.Get("error getting client message memo posts", err)
 		}
-		for _, msg := range db.Messages {
+		for _, msg := range dbClient.Messages {
 			var memoPost = new(MemoPost)
-			Set(memoPost, msg)
+			db.Set(memoPost, msg)
 			memoPosts = append(memoPosts, memoPost)
 		}
 	}

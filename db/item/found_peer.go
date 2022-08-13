@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -28,7 +29,7 @@ func (p FoundPeer) GetShard() uint {
 }
 
 func (p FoundPeer) GetTopic() string {
-	return TopicFoundPeer
+	return db.TopicFoundPeer
 }
 
 func (p FoundPeer) Serialize() []byte {
@@ -62,9 +63,9 @@ func GetFoundPeers(shard uint32, startId []byte, ip []byte, port uint16) ([]*Fou
 		startIdBytes = startId
 	}
 	opts := client.Opts{
-		Topic: TopicFoundPeer,
-		Start: startIdBytes,
-		Max:   client.LargeLimit,
+		Topic:    db.TopicFoundPeer,
+		Start:    startIdBytes,
+		Max:      client.LargeLimit,
 		Prefixes: [][]byte{prefix},
 	}
 	if err := dbClient.GetWOpts(opts); err != nil {

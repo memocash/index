@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -21,7 +22,7 @@ func (l TxLost) GetShard() uint {
 }
 
 func (l TxLost) GetTopic() string {
-	return TopicTxLost
+	return db.TopicTxLost
 }
 
 func (l TxLost) Serialize() []byte {
@@ -44,23 +45,23 @@ func (l *TxLost) Deserialize([]byte) {}
 func GetTxLosts(txHashes [][]byte) ([]*TxLost, error) {
 	var shardTxHashGroups = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := GetShardByte32(txHash)
+		shard := db.GetShardByte32(txHash)
 		shardTxHashGroups[shard] = append(shardTxHashGroups[shard], txHash)
 	}
 	var txLosts []*TxLost
 	for shard, groupTxHashes := range shardTxHashGroups {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
+		dbClient := client.NewClient(shardConfig.GetHost())
 		var prefixes = make([][]byte, len(groupTxHashes))
 		for i := range groupTxHashes {
 			prefixes[i] = jutil.ByteReverse(groupTxHashes[i])
 		}
-		if err := db.GetByPrefixes(TopicTxLost, prefixes); err != nil {
+		if err := dbClient.GetByPrefixes(db.TopicTxLost, prefixes); err != nil {
 			return nil, jerr.Get("error getting by prefixes for tx losts", err)
 		}
-		for i := range db.Messages {
+		for i := range dbClient.Messages {
 			var txLost = new(TxLost)
-			txLost.SetUid(db.Messages[i].Uid)
+			db.Set(txLost, dbClient.Messages[i])
 			txLosts = append(txLosts, txLost)
 		}
 	}
@@ -69,18 +70,18 @@ func GetTxLosts(txHashes [][]byte) ([]*TxLost, error) {
 
 func GetAllTxLosts(shard uint32, lastUid []byte) ([]*TxLost, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
+	dbClient := client.NewClient(shardConfig.GetHost())
 	var txLosts []*TxLost
-	if err := db.GetWOpts(client.Opts{
-		Topic: TopicTxLost,
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic: db.TopicTxLost,
 		Start: lastUid,
 		Max:   client.HugeLimit,
 	}); err != nil {
 		return nil, jerr.Get("error getting all tx losts", err)
 	}
-	for i := range db.Messages {
+	for i := range dbClient.Messages {
 		var txLost = new(TxLost)
-		txLost.SetUid(db.Messages[i].Uid)
+		db.Set(txLost, dbClient.Messages[i])
 		txLosts = append(txLosts, txLost)
 	}
 	return txLosts, nil
@@ -89,13 +90,13 @@ func GetAllTxLosts(shard uint32, lastUid []byte) ([]*TxLost, error) {
 func RemoveTxLosts(txLosts []*TxLost) error {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, txLost := range txLosts {
-		shard := uint32(GetShard(txLost.GetShard()))
+		shard := uint32(db.GetShard(txLost.GetShard()))
 		shardUidsMap[shard] = append(shardUidsMap[shard], txLost.GetUid())
 	}
 	for shard, shardUids := range shardUidsMap {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.DeleteMessages(TopicTxLost, shardUids); err != nil {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.DeleteMessages(db.TopicTxLost, shardUids); err != nil {
 			return jerr.Get("error deleting topic tx losts", err)
 		}
 	}

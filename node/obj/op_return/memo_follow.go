@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -53,7 +54,7 @@ var memoFollowHandler = &Handler{
 			LockHash: followLockHash,
 			Address:  followAddress.GetEncoded(),
 		}
-		if err := item.Save([]item.Object{lockMemoFollow, lockMemoFollowed, lockAddress}); err != nil {
+		if err := db.Save([]db.Object{lockMemoFollow, lockMemoFollowed, lockAddress}); err != nil {
 			return jerr.Get("error saving db lock memo follow object", err)
 		}
 		if info.Height != item.HeightMempool {

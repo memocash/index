@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -26,7 +27,7 @@ func (p MemoPostChild) GetShard() uint {
 }
 
 func (p MemoPostChild) GetTopic() string {
-	return TopicMemoPostChild
+	return db.TopicMemoPostChild
 }
 
 func (p MemoPostChild) Serialize() []byte {
@@ -44,19 +45,19 @@ func (p *MemoPostChild) SetUid(uid []byte) {
 func (p *MemoPostChild) Deserialize([]byte) {}
 
 func GetMemoPostChildren(ctx context.Context, postTxHash []byte) ([]*MemoPostChild, error) {
-	shardConfig := config.GetShardConfig(GetShardByte32(postTxHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.GetWOpts(client.Opts{
+	shardConfig := config.GetShardConfig(db.GetShardByte32(postTxHash), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
 		Context:  ctx,
-		Topic:    TopicMemoPostChild,
+		Topic:    db.TopicMemoPostChild,
 		Prefixes: [][]byte{jutil.ByteReverse(postTxHash)},
 	}); err != nil {
 		return nil, jerr.Get("error getting client message memo post children", err)
 	}
-	var memoPostChildren = make([]*MemoPostChild, len(db.Messages))
-	for i := range db.Messages {
+	var memoPostChildren = make([]*MemoPostChild, len(dbClient.Messages))
+	for i := range dbClient.Messages {
 		memoPostChildren[i] = new(MemoPostChild)
-		Set(memoPostChildren[i], db.Messages[i])
+		db.Set(memoPostChildren[i], dbClient.Messages[i])
 	}
 	return memoPostChildren, nil
 }

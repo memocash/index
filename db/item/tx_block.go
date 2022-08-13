@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"sort"
 )
@@ -22,7 +23,7 @@ func (b TxBlock) GetShard() uint {
 }
 
 func (b TxBlock) GetTopic() string {
-	return TopicTxBlock
+	return db.TopicTxBlock
 }
 
 func (b TxBlock) Serialize() []byte {
@@ -45,31 +46,28 @@ func GetTxBlockUid(txHash []byte, blockHash []byte) []byte {
 
 func GetSingleTxBlock(txHash, blockHash []byte) (*TxBlock, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	err := db.GetSingle(TopicTxBlock, GetTxBlockUid(txHash, blockHash))
-	if err != nil {
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetSingle(db.TopicTxBlock, GetTxBlockUid(txHash, blockHash)); err != nil {
 		return nil, jerr.Get("error getting client message single tx block", err)
 	}
-	if len(db.Messages) != 1 {
-		return nil, jerr.Newf("error unexpected number of single tx block client messages: %d", len(db.Messages))
+	if len(dbClient.Messages) != 1 {
+		return nil, jerr.Newf("error unexpected number of single tx block client messages: %d", len(dbClient.Messages))
 	}
 	var txBlock = new(TxBlock)
-	txBlock.SetUid(db.Messages[0].Uid)
-	txBlock.Deserialize(db.Messages[0].Message)
+	db.Set(txBlock, dbClient.Messages[0])
 	return txBlock, nil
 }
 
 func GetSingleTxBlocks(txHash []byte) ([]*TxBlock, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	err := db.GetByPrefix(TopicTxBlock, jutil.ByteReverse(txHash))
-	if err != nil {
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetByPrefix(db.TopicTxBlock, jutil.ByteReverse(txHash)); err != nil {
 		return nil, jerr.Get("error getting client message tx block by prefix", err)
 	}
 	var txBlocks []*TxBlock
-	for _, msg := range db.Messages {
+	for _, msg := range dbClient.Messages {
 		var txBlock = new(TxBlock)
-		txBlock.SetUid(msg.Uid)
+		db.Set(txBlock, msg)
 		txBlocks = append(txBlocks, txBlock)
 	}
 	return txBlocks, nil
@@ -78,10 +76,10 @@ func GetSingleTxBlocks(txHash []byte) ([]*TxBlock, error) {
 func GetTxBlocks(txHashes [][]byte) ([]*TxBlock, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := GetShardByte32(txHash)
+		shard := db.GetShardByte32(txHash)
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash))
 	}
-	wait := NewWait(len(shardPrefixes))
+	wait := db.NewWait(len(shardPrefixes))
 	var txBlocks []*TxBlock
 	for shardT, prefixesT := range shardPrefixes {
 		go func(shard uint32, prefixes [][]byte) {
@@ -89,16 +87,15 @@ func GetTxBlocks(txHashes [][]byte) ([]*TxBlock, error) {
 			sort.Slice(prefixes, func(i, j int) bool {
 				return jutil.ByteLT(prefixes[i], prefixes[j])
 			})
-			db := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
-			if err := db.GetByPrefixes(TopicTxBlock, prefixes); err != nil {
+			dbClient := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
+			if err := dbClient.GetByPrefixes(db.TopicTxBlock, prefixes); err != nil {
 				wait.AddError(jerr.Get("error getting client message tx blocks", err))
 				return
 			}
 			wait.Lock.Lock()
-			for _, msg := range db.Messages {
+			for _, msg := range dbClient.Messages {
 				var txBlock = new(TxBlock)
-				txBlock.SetUid(msg.Uid)
-				txBlock.Deserialize(msg.Message)
+				db.Set(txBlock, msg)
 				txBlocks = append(txBlocks, txBlock)
 			}
 			wait.Lock.Unlock()

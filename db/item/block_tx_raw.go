@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 	"sort"
 	"sync"
@@ -25,7 +26,7 @@ func (t BlockTxRaw) GetShard() uint {
 }
 
 func (t BlockTxRaw) GetTopic() string {
-	return TopicBlockTxRaw
+	return db.TopicBlockTxRaw
 }
 
 func (t BlockTxRaw) Serialize() []byte {
@@ -49,10 +50,9 @@ func GetBlockTxRawUid(blockHash, txHash []byte) []byte {
 }
 
 func GetRawBlockTxByHash(blockHash, txHash []byte) (*BlockTxRaw, error) {
-	shardConfig := config.GetShardConfig(GetShardByte32(txHash), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(db.GetShardByte32(txHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	err := dbClient.GetSingle(TopicBlockTxRaw, GetBlockTxRawUid(blockHash, txHash))
-	if err != nil {
+	if err := dbClient.GetSingle(db.TopicBlockTxRaw, GetBlockTxRawUid(blockHash, txHash)); err != nil {
 		return nil, jerr.Get("error getting client message raw tx by hash", err)
 	}
 	if len(dbClient.Messages) != 1 {
@@ -98,7 +98,7 @@ func GetRawBlockTxsByTxHashes(blockHash []byte, txHashes [][]byte) ([]*BlockTxRa
 func GetRawBlockTxsByHashes(blockTxs []*BlockTx) ([]*BlockTxRaw, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, blockTx := range blockTxs {
-		shard := GetShardByte32(blockTx.TxHash)
+		shard := db.GetShardByte32(blockTx.TxHash)
 		shardUids[shard] = append(shardUids[shard], GetBlockTxRawUid(blockTx.BlockHash, blockTx.TxHash))
 	}
 	var shardTxs = make(map[uint32][]*BlockTxRaw)
@@ -111,8 +111,7 @@ func GetRawBlockTxsByHashes(blockTxs []*BlockTx) ([]*BlockTxRaw, error) {
 			defer wg.Done()
 			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 			dbClient := client.NewClient(shardConfig.GetHost())
-			err := dbClient.GetSpecific(TopicBlockTxRaw, uids)
-			if err != nil {
+			if err := dbClient.GetSpecific(db.TopicBlockTxRaw, uids); err != nil {
 				errs = append(errs, jerr.Get("error getting client raw tx message", err))
 				return
 			}
@@ -140,8 +139,7 @@ func GetRawBlockTxsByHashes(blockTxs []*BlockTx) ([]*BlockTxRaw, error) {
 func GetRawBlockTxs(shard uint32, offset uint64) ([]*BlockTxRaw, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	err := dbClient.GetLarge(TopicTx, nil, true, false)
-	if err != nil {
+	if err := dbClient.GetLarge(db.TopicTx, nil, true, false); err != nil {
 		return nil, jerr.Get("error getting client message", err)
 	}
 	var txs = make([]*BlockTxRaw, len(dbClient.Messages))
@@ -176,14 +174,13 @@ func GetBlockTxesRaw(request BlockTxesRawRequest) ([]*BlockTxRaw, error) {
 	}
 	shardConfig := config.GetShardConfig(request.Shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	err := dbClient.GetWOpts(client.Opts{
-		Topic:    TopicBlockTxRaw,
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicBlockTxRaw,
 		Prefixes: [][]byte{jutil.ByteReverse(request.BlockHash)},
 		Start:    request.GetStartUid(),
 		Max:      limit,
 		Wait:     request.Wait,
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, jerr.Get("error getting block txes raw client message", err)
 	}
 	var blockTxRaws = make([]*BlockTxRaw, len(dbClient.Messages))

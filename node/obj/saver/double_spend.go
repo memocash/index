@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/act/double_spend"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
@@ -101,7 +102,7 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 	}
 	var numDoubleSpendInputs = len(doubleSpendInputs)
 	if numDoubleSpendInputs > 0 {
-		var objects = make([]item.Object, numDoubleSpendInputs+len(doubleSpendOutputs))
+		var objects = make([]db.Object, numDoubleSpendInputs+len(doubleSpendOutputs))
 		for i := range doubleSpendInputs {
 			objects[i] = doubleSpendInputs[i]
 		}
@@ -118,7 +119,7 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 			}
 			objects = append(objects, doubleSpendSeen)
 		}
-		if err = item.Save(objects); err != nil {
+		if err = db.Save(objects); err != nil {
 			return jerr.Get("error saving double spend objects", err)
 		}
 	}
@@ -146,7 +147,7 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 	blocksToConfirm := int64(config.GetBlocksToConfirm())
 	var lostTxsToRemove []*item.TxLost
 	var suspectTxsToRemove [][]byte
-	var newItems []item.Object
+	var newItems []db.Object
 	var lockHashes [][]byte
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		lockHashes = append(lockHashes, doubleSpendCheck.LockHash)
@@ -328,7 +329,7 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 			lockHashes = append(lockHashes, descendantLockHashes...)
 		}
 	}
-	if err := item.Save(newItems); err != nil {
+	if err := db.Save(newItems); err != nil {
 		return jerr.Get("error saving new item tx suspects and tx losts", err)
 	}
 	if err := item.RemoveTxLosts(lostTxsToRemove); err != nil {
@@ -354,7 +355,7 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 	if err != nil {
 		return jerr.Get("error getting tx losts for double spend check txs", err)
 	}
-	var newItemObjects []item.Object
+	var newItemObjects []db.Object
 	var newTxLosts []item.TxLost
 	for _, txLost := range parentTxLosts {
 	LostTxLoop:
@@ -463,7 +464,7 @@ TxLoop:
 			continue TxLoop
 		}
 	}
-	if err := item.Save(newItemObjects); err != nil {
+	if err := db.Save(newItemObjects); err != nil {
 		return jerr.Get("error saving new tx losts", err)
 	}
 	return nil

@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -24,7 +25,7 @@ func (b LockBalance) GetShard() uint {
 }
 
 func (b LockBalance) GetTopic() string {
-	return TopicLockBalance
+	return db.TopicLockBalance
 }
 
 func (b LockBalance) Serialize() []byte {
@@ -55,17 +56,16 @@ func (b *LockBalance) Deserialize(data []byte) {
 
 func GetLockBalance(lockHash []byte) (*LockBalance, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	err := db.GetSingle(TopicLockBalance, lockHash)
-	if err != nil && !client.IsMessageNotSetError(err) {
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetSingle(db.TopicLockBalance, lockHash); err != nil && !client.IsMessageNotSetError(err) {
 		return nil, jerr.Get("error getting db lock balance single", err)
 	}
-	if len(db.Messages) != 1 {
+	if len(dbClient.Messages) != 1 {
 		return nil, jerr.Get("error lock balance not found", client.EntryNotFoundError)
 	}
 	var lockBalance = new(LockBalance)
-	lockBalance.SetUid(db.Messages[0].Uid)
-	lockBalance.Deserialize(db.Messages[0].Message)
+	lockBalance.SetUid(dbClient.Messages[0].Uid)
+	lockBalance.Deserialize(dbClient.Messages[0].Message)
 	return lockBalance, nil
 }
 
@@ -73,13 +73,13 @@ func RemoveLockBalances(lockHashes [][]byte) error {
 	lockHashes = jutil.RemoveDupesAndEmpties(lockHashes)
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, lockHash := range lockHashes {
-		shard := GetShardByte32(lockHash)
+		shard := db.GetShardByte32(lockHash)
 		shardUidsMap[shard] = append(shardUidsMap[shard], lockHash)
 	}
 	for shard, shardUids := range shardUidsMap {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.DeleteMessages(TopicLockBalance, shardUids); err != nil {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.DeleteMessages(db.TopicLockBalance, shardUids); err != nil {
 			return jerr.Get("error deleting topic lock balances", err)
 		}
 	}

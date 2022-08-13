@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 )
 
 type ProcessError struct {
@@ -21,7 +22,7 @@ func (e ProcessError) GetShard() uint {
 }
 
 func (e ProcessError) GetTopic() string {
-	return TopicProcessError
+	return db.TopicProcessError
 }
 
 func (e ProcessError) Serialize() []byte {
@@ -38,7 +39,7 @@ func (e *ProcessError) Deserialize(data []byte) {
 
 func LogProcessError(processError *ProcessError) error {
 	jlog.Logf("PROCESS ERROR: %s\n", processError.Error)
-	if err := Save([]Object{processError}); err != nil {
+	if err := db.Save([]db.Object{processError}); err != nil {
 		return jerr.Get("error saving process error", err)
 	}
 	return nil

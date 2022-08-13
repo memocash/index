@@ -7,6 +7,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/op_return"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -62,7 +63,7 @@ func (t *Memo) SaveTxs(block *wire.MsgBlock) error {
 						LockHash: lockHash,
 						Address:  address.GetEncoded(),
 					}
-					if err := item.Save([]item.Object{lockAddress}); err != nil {
+					if err := db.Save([]db.Object{lockAddress}); err != nil {
 						return jerr.Get("error saving db lock address object for op return tx", err)
 					}
 					break

@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -20,7 +21,7 @@ func (s TxSuspect) GetShard() uint {
 }
 
 func (s TxSuspect) GetTopic() string {
-	return TopicTxSuspect
+	return db.TopicTxSuspect
 }
 
 func (s TxSuspect) Serialize() []byte {
@@ -39,23 +40,23 @@ func (s *TxSuspect) Deserialize([]byte) {}
 func GetTxSuspects(txHashes [][]byte) ([]*TxSuspect, error) {
 	var shardTxHashGroups = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := GetShardByte32(txHash)
+		shard := db.GetShardByte32(txHash)
 		shardTxHashGroups[shard] = append(shardTxHashGroups[shard], txHash)
 	}
 	var txSuspects []*TxSuspect
 	for shard, outGroup := range shardTxHashGroups {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
+		dbClient := client.NewClient(shardConfig.GetHost())
 		var uids = make([][]byte, len(outGroup))
 		for i := range outGroup {
 			uids[i] = jutil.ByteReverse(outGroup[i])
 		}
-		if err := db.GetSpecific(TopicTxSuspect, uids); err != nil {
+		if err := dbClient.GetSpecific(db.TopicTxSuspect, uids); err != nil {
 			return nil, jerr.Get("error getting by uids for tx suspects", err)
 		}
-		for i := range db.Messages {
+		for i := range dbClient.Messages {
 			var txSuspect = new(TxSuspect)
-			txSuspect.SetUid(db.Messages[i].Uid)
+			db.Set(txSuspect, dbClient.Messages[i])
 			txSuspects = append(txSuspects, txSuspect)
 		}
 	}
@@ -65,13 +66,13 @@ func GetTxSuspects(txHashes [][]byte) ([]*TxSuspect, error) {
 func RemoveTxSuspects(txHashes [][]byte) error {
 	var shardUidsMap = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := uint32(GetShard(client.GetByteShard(txHash)))
+		shard := uint32(db.GetShard(client.GetByteShard(txHash)))
 		shardUidsMap[shard] = append(shardUidsMap[shard], jutil.ByteReverse(txHash))
 	}
 	for shard, shardUids := range shardUidsMap {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		db := client.NewClient(shardConfig.GetHost())
-		if err := db.DeleteMessages(TopicTxSuspect, shardUids); err != nil {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.DeleteMessages(db.TopicTxSuspect, shardUids); err != nil {
 			return jerr.Get("error deleting topic tx suspects", err)
 		}
 	}

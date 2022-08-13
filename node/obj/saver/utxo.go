@@ -7,6 +7,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -142,7 +143,7 @@ LockUtxoLoop:
 	}
 	var numLockUtxos = len(lockUtxos)
 	var numLockUtxosAndTxOutputs = numLockUtxos + len(txOutputs)
-	var objects = make([]item.Object, numLockUtxosAndTxOutputs+len(txInputs))
+	var objects = make([]db.Object, numLockUtxosAndTxOutputs+len(txInputs))
 	for i := range lockUtxos {
 		objects[i] = lockUtxos[i]
 	}
@@ -155,7 +156,7 @@ LockUtxoLoop:
 	for _, lockAddress := range lockAddresses {
 		objects = append(objects, lockAddress)
 	}
-	if err = item.Save(objects); err != nil {
+	if err = db.Save(objects); err != nil {
 		return jerr.Get("error saving new utxo objects", err)
 	}
 	matchingTxOutputs, err := item.GetTxOutputs(ins)

@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
@@ -28,7 +29,7 @@ func (n LockMemoLike) GetShard() uint {
 }
 
 func (n LockMemoLike) GetTopic() string {
-	return TopicLockMemoLike
+	return db.TopicLockMemoLike
 }
 
 func (n LockMemoLike) Serialize() []byte {
@@ -52,9 +53,9 @@ func (n *LockMemoLike) Deserialize(data []byte) {
 }
 
 func RemoveLockMemoLike(lockMemoLike *LockMemoLike) error {
-	shardConfig := config.GetShardConfig(GetShard32(lockMemoLike.GetShard()), config.GetQueueShards())
-	db := client.NewClient(shardConfig.GetHost())
-	if err := db.DeleteMessages(TopicLockMemoLike, [][]byte{lockMemoLike.GetUid()}); err != nil {
+	shardConfig := config.GetShardConfig(db.GetShard32(lockMemoLike.GetShard()), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.DeleteMessages(db.TopicLockMemoLike, [][]byte{lockMemoLike.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo like", err)
 	}
 	return nil
