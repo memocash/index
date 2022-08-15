@@ -16,4 +16,5 @@ type Subscription {
     address(address: String!): Tx
     blocks: Block
     profiles(addresses: [String!]): Profile
+    room(name: String!): Post
 }
