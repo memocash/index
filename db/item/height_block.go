@@ -52,8 +52,7 @@ func GetRecentHeightBlock() (*HeightBlock, error) {
 		}
 		for i := range dbClient.Messages {
 			var heightBlock = new(HeightBlock)
-			heightBlock.SetUid(dbClient.Messages[i].Uid)
-			heightBlock.Deserialize(dbClient.Messages[i].Message)
+			db.Set(heightBlock, dbClient.Messages[i])
 			heightBlocks = append(heightBlocks, heightBlock)
 		}
 	}
@@ -99,8 +98,7 @@ func GetHeightBlock(height int64) ([]*HeightBlock, error) {
 	var heightBlocks = make([]*HeightBlock, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		heightBlocks[i] = new(HeightBlock)
-		heightBlocks[i].SetUid(dbClient.Messages[i].Uid)
-		heightBlocks[i].Deserialize(dbClient.Messages[i].Message)
+		db.Set(heightBlocks[i], dbClient.Messages[i])
 	}
 	return heightBlocks, nil
 }
@@ -118,8 +116,7 @@ func GetHeightBlocks(shard uint32, startHeight int64, newest bool) ([]*HeightBlo
 	var heightBlocks = make([]*HeightBlock, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		heightBlocks[i] = new(HeightBlock)
-		heightBlocks[i].SetUid(dbClient.Messages[i].Uid)
-		heightBlocks[i].Deserialize(dbClient.Messages[i].Message)
+		db.Set(heightBlocks[i], dbClient.Messages[i])
 	}
 	return heightBlocks, nil
 }
@@ -169,8 +166,7 @@ func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32, n
 		}
 		for i := range dbClient.Messages {
 			var heightBlock = new(HeightBlock)
-			heightBlock.SetUid(dbClient.Messages[i].Uid)
-			heightBlock.Deserialize(dbClient.Messages[i].Message)
+			db.Set(heightBlock, dbClient.Messages[i])
 			heightBlocks = append(heightBlocks, heightBlock)
 		}
 	}

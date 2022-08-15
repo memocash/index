@@ -49,8 +49,7 @@ func GetBlock(blockHash []byte) (*Block, error) {
 		return nil, jerr.Newf("error unexpected number of messages: %d", len(dbClient.Messages))
 	}
 	var block = new(Block)
-	block.SetUid(dbClient.Messages[0].Uid)
-	block.Deserialize(dbClient.Messages[0].Message)
+	db.Set(block, dbClient.Messages[0])
 	return block, nil
 }
 
@@ -69,8 +68,7 @@ func GetBlocks(blockHashes [][]byte) ([]*Block, error) {
 		}
 		for _, msg := range dbClient.Messages {
 			var block = new(Block)
-			block.SetUid(msg.Uid)
-			block.Deserialize(msg.Message)
+			db.Set(block, msg)
 			blocks = append(blocks, block)
 		}
 	}

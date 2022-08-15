@@ -29,17 +29,21 @@ var memoRoomPostHandler = &Handler{
 		if err := save.MemoPost(info, post); err != nil {
 			return jerr.Get("error saving memo post for memo chat room post handler", err)
 		}
+		var memoPostRoom = &dbMemo.PostRoom{
+			TxHash: info.TxHash,
+			Room:   room,
+		}
+		// Save first to prevent race condition
+		if err := db.Save([]db.Object{memoPostRoom}); err != nil {
+			return jerr.Get("error saving db memo room post object", err)
+		}
 		var memoRoomHeightPost = &dbMemo.RoomHeightPost{
 			RoomHash: dbMemo.GetRoomHash(room),
 			Height:   info.Height,
 			TxHash:   info.TxHash,
 		}
-		var memoPostRoom = &dbMemo.PostRoom{
-			TxHash: info.TxHash,
-			Room:   room,
-		}
-		if err := db.Save([]db.Object{memoRoomHeightPost, memoPostRoom}); err != nil {
-			return jerr.Get("error saving db memo room post objects", err)
+		if err := db.Save([]db.Object{memoRoomHeightPost}); err != nil {
+			return jerr.Get("error saving db memo room height post object", err)
 		}
 		if info.Height != item.HeightMempool {
 			memoRoomHeightPost.Height = item.HeightMempool

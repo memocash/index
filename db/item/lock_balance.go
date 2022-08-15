@@ -64,8 +64,7 @@ func GetLockBalance(lockHash []byte) (*LockBalance, error) {
 		return nil, jerr.Get("error lock balance not found", client.EntryNotFoundError)
 	}
 	var lockBalance = new(LockBalance)
-	lockBalance.SetUid(dbClient.Messages[0].Uid)
-	lockBalance.Deserialize(dbClient.Messages[0].Message)
+	db.Set(lockBalance, dbClient.Messages[0])
 	return lockBalance, nil
 }
 

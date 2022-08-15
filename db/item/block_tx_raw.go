@@ -60,8 +60,7 @@ func GetRawBlockTxByHash(blockHash, txHash []byte) (*BlockTxRaw, error) {
 			len(dbClient.Messages))
 	}
 	var tx = new(BlockTxRaw)
-	tx.SetUid(dbClient.Messages[0].Uid)
-	tx.Deserialize(dbClient.Messages[0].Message)
+	db.Set(tx, dbClient.Messages[0])
 	return tx, nil
 }
 
@@ -117,8 +116,7 @@ func GetRawBlockTxsByHashes(blockTxs []*BlockTx) ([]*BlockTxRaw, error) {
 			}
 			for _, msg := range dbClient.Messages {
 				var tx = new(BlockTxRaw)
-				tx.SetUid(msg.Uid)
-				tx.Deserialize(msg.Message)
+				db.Set(tx, msg)
 				lock.Lock()
 				shardTxs[shard] = append(shardTxs[shard], tx)
 				lock.Unlock()
@@ -145,8 +143,7 @@ func GetRawBlockTxs(shard uint32, offset uint64) ([]*BlockTxRaw, error) {
 	var txs = make([]*BlockTxRaw, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		txs[i] = new(BlockTxRaw)
-		txs[i].SetUid(dbClient.Messages[i].Uid)
-		txs[i].Deserialize(dbClient.Messages[i].Message)
+		db.Set(txs[i], dbClient.Messages[i])
 	}
 	return txs, nil
 }
@@ -186,8 +183,7 @@ func GetBlockTxesRaw(request BlockTxesRawRequest) ([]*BlockTxRaw, error) {
 	var blockTxRaws = make([]*BlockTxRaw, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		blockTxRaws[i] = new(BlockTxRaw)
-		blockTxRaws[i].SetUid(dbClient.Messages[i].Uid)
-		blockTxRaws[i].Deserialize(dbClient.Messages[i].Message)
+		db.Set(blockTxRaws[i], dbClient.Messages[i])
 	}
 	sort.Slice(blockTxRaws, func(i, j int) bool {
 		return bytes.Compare(blockTxRaws[i].BlockHash, blockTxRaws[j].BlockHash) == -1

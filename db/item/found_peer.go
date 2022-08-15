@@ -74,8 +74,7 @@ func GetFoundPeers(shard uint32, startId []byte, ip []byte, port uint16) ([]*Fou
 	var foundPeers = make([]*FoundPeer, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		foundPeers[i] = new(FoundPeer)
-		foundPeers[i].SetUid(dbClient.Messages[i].Uid)
-		foundPeers[i].Deserialize(dbClient.Messages[i].Message)
+		db.Set(foundPeers[i], dbClient.Messages[i])
 	}
 	return foundPeers, nil
 }

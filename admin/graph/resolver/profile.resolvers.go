@@ -163,7 +163,18 @@ func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.P
 }
 
 func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, error) {
-	panic(fmt.Errorf("not implemented"))
+	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
+	if err != nil {
+		return nil, jerr.Get("error parsing tx hash for room for post resolver", err)
+	}
+
+	postRoom, err := memo.GetPostRoom(ctx, postTxHash.CloneBytes())
+	if err != nil {
+		return nil, jerr.Get("error getting memo post room for post resolver", err)
+	}
+	return &model.Room{
+		Name: postRoom.Room,
+	}, nil
 }
 
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {

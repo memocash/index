@@ -59,7 +59,6 @@ func GetRecentHeightProcessed(name string) (*HeightProcessed, error) {
 		return nil, jerr.Newf("error unexpected number of height processed messages: %d", len(dbClient.Messages))
 	}
 	var heightProcessed = new(HeightProcessed)
-	heightProcessed.SetUid(dbClient.Messages[0].Uid)
-	heightProcessed.Deserialize(dbClient.Messages[0].Message)
+	db.Set(heightProcessed, dbClient.Messages[0])
 	return heightProcessed, nil
 }

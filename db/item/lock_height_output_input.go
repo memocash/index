@@ -71,8 +71,7 @@ func ListenMempoolLockHeightOutputInputs(ctx context.Context, lockHash []byte) (
 				return
 			}
 			var lockHeightOutputInput = new(LockHeightOutputInput)
-			lockHeightOutputInput.SetUid(msg.Uid)
-			lockHeightOutputInput.Deserialize(msg.Message)
+			db.Set(lockHeightOutputInput, *msg)
 			chanLockHeightOutputInput <- lockHeightOutputInput
 		}
 	}()

@@ -59,8 +59,7 @@ func GetBlockHeight(blockHash []byte) (*BlockHeight, error) {
 			len(dbClient.Messages), strings.Join(hashStrings, ", "))
 	}
 	var blockHeight = new(BlockHeight)
-	blockHeight.SetUid(dbClient.Messages[0].Uid)
-	blockHeight.Deserialize(dbClient.Messages[0].Message)
+	db.Set(blockHeight, dbClient.Messages[0])
 	return blockHeight, nil
 }
 
@@ -86,8 +85,7 @@ func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
 			wait.Lock.Lock()
 			for _, msg := range dbClient.Messages {
 				var blockHeight = new(BlockHeight)
-				blockHeight.SetUid(msg.Uid)
-				blockHeight.Deserialize(msg.Message)
+				db.Set(blockHeight, msg)
 				blockHeights = append(blockHeights, blockHeight)
 			}
 			wait.Lock.Unlock()

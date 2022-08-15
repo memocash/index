@@ -56,7 +56,7 @@ func GetBlockTx(blockHash, txHash []byte) (*BlockTx, error) {
 		return nil, jerr.Newf("error unexpected number of block tx client messages: %d", len(dbClient.Messages))
 	}
 	var block = new(BlockTx)
-	block.SetUid(dbClient.Messages[0].Uid)
+	db.Set(block, dbClient.Messages[0])
 	return block, nil
 }
 
@@ -87,7 +87,7 @@ func GetBlockTxes(request BlockTxesRequest) ([]*BlockTx, error) {
 	var blocks = make([]*BlockTx, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		blocks[i] = new(BlockTx)
-		blocks[i].SetUid(dbClient.Messages[i].Uid)
+		db.Set(blocks[i], dbClient.Messages[i])
 	}
 	sort.Slice(blocks, func(i, j int) bool {
 		return bytes.Compare(blocks[i].BlockHash, blocks[j].BlockHash) == -1

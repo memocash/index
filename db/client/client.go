@@ -133,11 +133,18 @@ func (s *Client) GetByPrefix(topic string, prefix []byte) error {
 }
 
 func (s *Client) GetSingle(topic string, uid []byte) error {
+	if err := s.GetSingleContext(context.Background(), topic, uid); err != nil {
+		return jerr.Getf(err, "error getting single for topic / uid: %s, %x", topic, uid)
+	}
+	return nil
+}
+
+func (s *Client) GetSingleContext(ctx context.Context, topic string, uid []byte) error {
 	if err := s.SetConn(); err != nil {
 		return jerr.Get("error setting connection", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultGetTimeout)
+	ctx, cancel := context.WithTimeout(ctx, DefaultGetTimeout)
 	defer cancel()
 	message, err := c.GetMessage(ctx, &queue_pb.RequestSingle{
 		Topic: topic,

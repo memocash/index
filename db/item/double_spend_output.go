@@ -74,7 +74,7 @@ func GetDoubleSpendOutputs(start *DoubleSpendOutput, limit uint32) ([]*DoubleSpe
 		}
 		for _, msg := range dbClient.Messages {
 			doubleSpendOutput := new(DoubleSpendOutput)
-			doubleSpendOutput.SetUid(msg.Uid)
+			db.Set(doubleSpendOutput, msg)
 			doubleSpendOutputs = append(doubleSpendOutputs, doubleSpendOutput)
 		}
 		limit -= uint32(len(dbClient.Messages))
@@ -104,8 +104,7 @@ func GetDoubleSpendsByOuts(outs []memo.Out) ([]*DoubleSpendOutput, error) {
 		}
 		for i := range dbClient.Messages {
 			var doubleSpendOutput = new(DoubleSpendOutput)
-			doubleSpendOutput.SetUid(dbClient.Messages[i].Uid)
-			doubleSpendOutput.Deserialize(dbClient.Messages[i].Message)
+			db.Set(doubleSpendOutput, dbClient.Messages[i])
 			doubleSpendOutputs = append(doubleSpendOutputs, doubleSpendOutput)
 		}
 	}

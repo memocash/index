@@ -65,8 +65,7 @@ func GetPeerFounds(shard uint32, startId []byte) ([]*PeerFound, error) {
 	var peerFounds = make([]*PeerFound, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		peerFounds[i] = new(PeerFound)
-		peerFounds[i].SetUid(dbClient.Messages[i].Uid)
-		peerFounds[i].Deserialize(dbClient.Messages[i].Message)
+		db.Set(peerFounds[i], dbClient.Messages[i])
 	}
 	return peerFounds, nil
 }

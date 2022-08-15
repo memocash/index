@@ -66,8 +66,7 @@ func ListenMempoolLockHeightOutputs(ctx context.Context, lockHash []byte) (chan 
 				return
 			}
 			var lockHeightOutput = new(LockHeightOutput)
-			lockHeightOutput.SetUid(msg.Uid)
-			lockHeightOutput.Deserialize(msg.Message)
+			db.Set(lockHeightOutput, *msg)
 			chanLockHeightOutput <- lockHeightOutput
 		}
 	}()
@@ -88,8 +87,7 @@ func GetLockHeightOutputs(lockHash, start []byte) ([]*LockHeightOutput, error) {
 	var lockHeightOutputs = make([]*LockHeightOutput, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		lockHeightOutputs[i] = new(LockHeightOutput)
-		lockHeightOutputs[i].SetUid(dbClient.Messages[i].Uid)
-		lockHeightOutputs[i].Deserialize(dbClient.Messages[i].Message)
+		db.Set(lockHeightOutputs[i], dbClient.Messages[i])
 	}
 	return lockHeightOutputs, nil
 }

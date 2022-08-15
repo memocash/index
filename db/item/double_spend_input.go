@@ -60,8 +60,7 @@ func GetDoubleSpendInputsByTxHashes(txHashes [][]byte) ([]*DoubleSpendInput, err
 		}
 		for i := range dbClient.Messages {
 			var doubleSpendInput = new(DoubleSpendInput)
-			doubleSpendInput.SetUid(dbClient.Messages[i].Uid)
-			doubleSpendInput.Deserialize(dbClient.Messages[i].Message)
+			db.Set(doubleSpendInput, dbClient.Messages[i])
 			doubleSpendInputs = append(doubleSpendInputs, doubleSpendInput)
 		}
 	}

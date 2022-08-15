@@ -103,8 +103,7 @@ func GetPeerConnections(request PeerConnectionsRequest) ([]*PeerConnection, erro
 	var peerConnections = make([]*PeerConnection, len(dbClient.Messages))
 	for i := range dbClient.Messages {
 		peerConnections[i] = new(PeerConnection)
-		peerConnections[i].SetUid(dbClient.Messages[i].Uid)
-		peerConnections[i].Deserialize(dbClient.Messages[i].Message)
+		db.Set(peerConnections[i], dbClient.Messages[i])
 	}
 	return peerConnections, nil
 }
@@ -156,8 +155,7 @@ func GetPeerConnectionLasts(ipPorts []IpPort) ([]*PeerConnection, error) {
 		}
 		for _, message := range dbClient.Messages {
 			var peerConnection = new(PeerConnection)
-			peerConnection.SetUid(message.Uid)
-			peerConnection.Deserialize(message.Message)
+			db.Set(peerConnection, message)
 			peerConnections = append(peerConnections, peerConnection)
 		}
 	}

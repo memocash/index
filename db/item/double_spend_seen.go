@@ -70,8 +70,7 @@ func GetDoubleSpendSeensAllLimit(startTime time.Time, limit uint32, newest bool)
 		}
 		for i := range dbClient.Messages {
 			var doubleSpendSeen = new(DoubleSpendSeen)
-			doubleSpendSeen.SetUid(dbClient.Messages[i].Uid)
-			doubleSpendSeen.Deserialize(dbClient.Messages[i].Message)
+			db.Set(doubleSpendSeen, dbClient.Messages[i])
 			doubleSpendSeens = append(doubleSpendSeens, doubleSpendSeen)
 		}
 	}
@@ -103,7 +102,7 @@ func GetDoubleSpendSeensByTxHashesScanAll(txHashes [][]byte) ([]*DoubleSpendSeen
 			}
 			for i := range dbClient.Messages {
 				var doubleSpendSeen = new(DoubleSpendSeen)
-				doubleSpendSeen.SetUid(dbClient.Messages[i].Uid)
+				db.Set(doubleSpendSeen, dbClient.Messages[i])
 				for _, txHash := range txHashGroup {
 					if bytes.Equal(doubleSpendSeen.TxHash, txHash) {
 						doubleSpendSeens = append(doubleSpendSeens, doubleSpendSeen)

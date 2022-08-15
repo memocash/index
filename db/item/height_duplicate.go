@@ -49,8 +49,7 @@ func GetHeightDuplicatesAll(startHeight int64) ([]*HeightDuplicate, error) {
 		}
 		for i := range dbClient.Messages {
 			var heightDuplicate = new(HeightDuplicate)
-			heightDuplicate.SetUid(dbClient.Messages[i].Uid)
-			heightDuplicate.Deserialize(dbClient.Messages[i].Message)
+			db.Set(heightDuplicate, dbClient.Messages[i])
 			heightDuplicates = append(heightDuplicates, heightDuplicate)
 		}
 	}
