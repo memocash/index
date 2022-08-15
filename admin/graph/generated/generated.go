@@ -182,7 +182,7 @@ type ComplexityRoot struct {
 		Address  func(childComplexity int, address string) int
 		Blocks   func(childComplexity int) int
 		Profiles func(childComplexity int, addresses []string) int
-		Room     func(childComplexity int, name string) int
+		Rooms    func(childComplexity int, names []string) int
 	}
 
 	Tx struct {
@@ -312,7 +312,7 @@ type SubscriptionResolver interface {
 	Address(ctx context.Context, address string) (<-chan *model.Tx, error)
 	Blocks(ctx context.Context) (<-chan *model.Block, error)
 	Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error)
-	Room(ctx context.Context, name string) (<-chan *model.Post, error)
+	Rooms(ctx context.Context, names []string) (<-chan *model.Post, error)
 }
 type TxResolver interface {
 	Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInput, error)
@@ -1034,17 +1034,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.Profiles(childComplexity, args["addresses"].([]string)), true
 
-	case "Subscription.room":
-		if e.complexity.Subscription.Room == nil {
+	case "Subscription.rooms":
+		if e.complexity.Subscription.Rooms == nil {
 			break
 		}
 
-		args, err := ec.field_Subscription_room_args(context.TODO(), rawArgs)
+		args, err := ec.field_Subscription_rooms_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Subscription.Room(childComplexity, args["name"].(string)), true
+		return e.complexity.Subscription.Rooms(childComplexity, args["names"].([]string)), true
 
 	case "Tx.blocks":
 		if e.complexity.Tx.Blocks == nil {
@@ -1431,7 +1431,7 @@ type Subscription {
     address(address: String!): Tx
     blocks: Block
     profiles(addresses: [String!]): Profile
-    room(name: String!): Post
+    rooms(names: [String!]): Post
 }
 `, BuiltIn: false},
 	{Name: "schema/room.graphqls", Input: `type Room {
@@ -1866,18 +1866,18 @@ func (ec *executionContext) field_Subscription_profiles_args(ctx context.Context
 	return args, nil
 }
 
-func (ec *executionContext) field_Subscription_room_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Subscription_rooms_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["name"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+	var arg0 []string
+	if tmp, ok := rawArgs["names"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("names"))
+		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["name"] = arg0
+	args["names"] = arg0
 	return args, nil
 }
 
@@ -4904,7 +4904,7 @@ func (ec *executionContext) _Subscription_profiles(ctx context.Context, field gr
 	}
 }
 
-func (ec *executionContext) _Subscription_room(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+func (ec *executionContext) _Subscription_rooms(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -4921,7 +4921,7 @@ func (ec *executionContext) _Subscription_room(ctx context.Context, field graphq
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Subscription_room_args(ctx, rawArgs)
+	args, err := ec.field_Subscription_rooms_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return nil
@@ -4929,7 +4929,7 @@ func (ec *executionContext) _Subscription_room(ctx context.Context, field graphq
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().Room(rctx, args["name"].(string))
+		return ec.resolvers.Subscription().Rooms(rctx, args["names"].([]string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8465,8 +8465,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_blocks(ctx, fields[0])
 	case "profiles":
 		return ec._Subscription_profiles(ctx, fields[0])
-	case "room":
-		return ec._Subscription_room(ctx, fields[0])
+	case "rooms":
+		return ec._Subscription_rooms(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
