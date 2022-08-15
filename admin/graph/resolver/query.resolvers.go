@@ -337,7 +337,12 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 }
 
 func (r *subscriptionResolver) Rooms(ctx context.Context, names []string) (<-chan *model.Post, error) {
-	panic(fmt.Errorf("not implemented"))
+	var room = new(sub.Room)
+	roomPostsChan, err := room.Listen(ctx, names)
+	if err != nil {
+		return nil, jerr.Get("error getting room listener for subscription", err)
+	}
+	return roomPostsChan, nil
 }
 
 // Query returns generated.QueryResolver implementation.

@@ -73,3 +73,36 @@ func GetRoomHeightPosts(ctx context.Context, room string) ([]*RoomHeightPost, er
 	}
 	return roomHeightPosts, nil
 }
+
+func ListenRoomPosts(ctx context.Context, rooms []string) (chan *RoomHeightPost, error) {
+	if len(rooms) == 0 {
+		return nil, nil
+	}
+	var shardPrefixes = make(map[uint32][][]byte)
+	for _, room := range rooms {
+		roomHash := GetRoomHash(room)
+		shard := client.GetByteShard32(roomHash)
+		shardPrefixes[shard] = append(shardPrefixes[shard], roomHash)
+	}
+	shardConfigs := config.GetQueueShards()
+	var roomHeightPostChan = make(chan *RoomHeightPost)
+	cancelCtx := db.NewCancelContext(ctx, func() {
+		close(roomHeightPostChan)
+	})
+	for shard, prefixes := range shardPrefixes {
+		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoRoomHeightPost, prefixes)
+		if err != nil {
+			return nil, jerr.Get("error listening to db memo room height post by prefix", err)
+		}
+		go func() {
+			for msg := range chanMessage {
+				var roomHeightPost = new(RoomHeightPost)
+				db.Set(roomHeightPost, *msg)
+				roomHeightPostChan <- roomHeightPost
+			}
+			cancelCtx.Cancel()
+		}()
+	}
+	return roomHeightPostChan, nil
+}
