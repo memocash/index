@@ -13,10 +13,12 @@ func GetTopics() []db.Object {
 		&LockPost{},
 		&LockProfile{},
 		&LockProfilePic{},
+		&LockRoomFollow{},
 		&Post{},
 		&PostChild{},
 		&PostParent{},
 		&PostRoom{},
+		&RoomFollow{},
 		&RoomHeightPost{},
 	}
 }
