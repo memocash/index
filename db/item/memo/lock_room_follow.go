@@ -106,7 +106,7 @@ func ListenLockRoomFollows(ctx context.Context, lockHashes [][]byte) (chan *Lock
 	})
 	for shard, prefixes := range shardPrefixes {
 		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoRoomHeightFollow, prefixes)
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicLockMemoRoomFollow, prefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db memo lock room follow by prefix", err)
 		}
