@@ -1,10 +1,13 @@
 package memo
 
 import (
+	"context"
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/config"
 )
 
 type LockRoomFollow struct {
@@ -57,4 +60,32 @@ func (f *LockRoomFollow) Deserialize(data []byte) {
 	}
 	f.Unfollow = data[0] == 1
 	f.Room = string(data[1:])
+}
+
+func GetLockRoomFollows(ctx context.Context, lockHashes [][]byte) ([]*LockRoomFollow, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
+	for _, lockHash := range lockHashes {
+		shard := client.GetByteShard32(lockHash)
+		shardPrefixes[shard] = append(shardPrefixes[shard], lockHash)
+	}
+	shardConfigs := config.GetQueueShards()
+	var lockFollows []*LockRoomFollow
+	for shard, prefixes := range shardPrefixes {
+		shardConfig := config.GetShardConfig(shard, shardConfigs)
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:    db.TopicLockMemoRoomFollow,
+			Prefixes: prefixes,
+			Max:      client.ExLargeLimit,
+			Context:  ctx,
+		}); err != nil {
+			return nil, jerr.Get("error getting db memo lock room follow by prefix", err)
+		}
+		for _, msg := range dbClient.Messages {
+			var lockFollow = new(LockRoomFollow)
+			db.Set(lockFollow, msg)
+			lockFollows = append(lockFollows, lockFollow)
+		}
+	}
+	return lockFollows, nil
 }

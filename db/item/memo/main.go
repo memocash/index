@@ -18,7 +18,7 @@ func GetTopics() []db.Object {
 		&PostChild{},
 		&PostParent{},
 		&PostRoom{},
-		&RoomFollow{},
+		&RoomHeightFollow{},
 		&RoomHeightPost{},
 	}
 }

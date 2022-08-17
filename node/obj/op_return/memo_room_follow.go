@@ -31,7 +31,7 @@ var memoRoomFollowHandler = &Handler{
 			TxHash:   info.TxHash,
 			Room:     room,
 		}
-		var roomFollow = &dbMemo.RoomFollow{
+		var roomFollow = &dbMemo.RoomHeightFollow{
 			RoomHash: roomHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,

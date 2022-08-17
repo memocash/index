@@ -46,7 +46,7 @@ const (
 	TopicMemoPostChild         = "memo_post_child"
 	TopicMemoPostParent        = "memo_post_parent"
 	TopicMemoPostRoom          = "memo_post_room"
-	TopicMemoRoomFollow        = "memo_room_follow"
+	TopicMemoRoomHeightFollow  = "memo_room_follow"
 	TopicMemoRoomHeightPost    = "memo_room_height_post"
 	TopicMempoolTxRaw          = "mempool_tx_raw"
 	TopicMessage               = "message"
