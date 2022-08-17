@@ -89,3 +89,35 @@ func GetLockRoomFollows(ctx context.Context, lockHashes [][]byte) ([]*LockRoomFo
 	}
 	return lockFollows, nil
 }
+
+func ListenLockRoomFollows(ctx context.Context, lockHashes [][]byte) (chan *LockRoomFollow, error) {
+	if len(lockHashes) == 0 {
+		return nil, nil
+	}
+	var shardPrefixes = make(map[uint32][][]byte)
+	for _, lockHash := range lockHashes {
+		shard := client.GetByteShard32(lockHash)
+		shardPrefixes[shard] = append(shardPrefixes[shard], lockHash)
+	}
+	shardConfigs := config.GetQueueShards()
+	var lockRoomFollowChan = make(chan *LockRoomFollow)
+	cancelCtx := db.NewCancelContext(ctx, func() {
+		close(lockRoomFollowChan)
+	})
+	for shard, prefixes := range shardPrefixes {
+		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoRoomHeightFollow, prefixes)
+		if err != nil {
+			return nil, jerr.Get("error listening to db memo lock room follow by prefix", err)
+		}
+		go func() {
+			for msg := range chanMessage {
+				var lockRoomFollow = new(LockRoomFollow)
+				db.Set(lockRoomFollow, *msg)
+				lockRoomFollowChan <- lockRoomFollow
+			}
+			cancelCtx.Cancel()
+		}()
+	}
+	return lockRoomFollowChan, nil
+}
