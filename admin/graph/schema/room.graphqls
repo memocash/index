@@ -1,5 +1,15 @@
 type Room {
     name: String!
     posts(start: Int): [Post!]
-    followers(start: Int): [Profile!]
+    followers(start: Int): [RoomFollow!]
+}
+
+type RoomFollow {
+    name: String!
+    room: Room!
+    lock_hash: String!
+    lock: Lock
+    unfollow: Boolean!
+    tx_hash: String!
+    tx: Tx!
 }

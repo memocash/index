@@ -46,6 +46,7 @@ type ResolverRoot interface {
 	Profile() ProfileResolver
 	Query() QueryResolver
 	Room() RoomResolver
+	RoomFollow() RoomFollowResolver
 	SetName() SetNameResolver
 	SetPic() SetPicResolver
 	SetProfile() SetProfileResolver
@@ -152,6 +153,16 @@ type ComplexityRoot struct {
 		Followers func(childComplexity int, start *int) int
 		Name      func(childComplexity int) int
 		Posts     func(childComplexity int, start *int) int
+	}
+
+	RoomFollow struct {
+		Lock     func(childComplexity int) int
+		LockHash func(childComplexity int) int
+		Name     func(childComplexity int) int
+		Room     func(childComplexity int) int
+		Tx       func(childComplexity int) int
+		TxHash   func(childComplexity int) int
+		Unfollow func(childComplexity int) int
 	}
 
 	SetName struct {
@@ -274,7 +285,7 @@ type ProfileResolver interface {
 	Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error)
 	Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error)
 	Posts(ctx context.Context, obj *model.Profile, start *int) ([]*model.Post, error)
-	Rooms(ctx context.Context, obj *model.Profile, start *int) ([]*model.Room, error)
+	Rooms(ctx context.Context, obj *model.Profile, start *int) ([]*model.RoomFollow, error)
 }
 type QueryResolver interface {
 	Tx(ctx context.Context, hash string) (*model.Tx, error)
@@ -291,7 +302,14 @@ type QueryResolver interface {
 }
 type RoomResolver interface {
 	Posts(ctx context.Context, obj *model.Room, start *int) ([]*model.Post, error)
-	Followers(ctx context.Context, obj *model.Room, start *int) ([]*model.Profile, error)
+	Followers(ctx context.Context, obj *model.Room, start *int) ([]*model.RoomFollow, error)
+}
+type RoomFollowResolver interface {
+	Room(ctx context.Context, obj *model.RoomFollow) (*model.Room, error)
+
+	Lock(ctx context.Context, obj *model.RoomFollow) (*model.Lock, error)
+
+	Tx(ctx context.Context, obj *model.RoomFollow) (*model.Tx, error)
 }
 type SetNameResolver interface {
 	Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error)
@@ -898,6 +916,55 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Room.Posts(childComplexity, args["start"].(*int)), true
 
+	case "RoomFollow.lock":
+		if e.complexity.RoomFollow.Lock == nil {
+			break
+		}
+
+		return e.complexity.RoomFollow.Lock(childComplexity), true
+
+	case "RoomFollow.lock_hash":
+		if e.complexity.RoomFollow.LockHash == nil {
+			break
+		}
+
+		return e.complexity.RoomFollow.LockHash(childComplexity), true
+
+	case "RoomFollow.name":
+		if e.complexity.RoomFollow.Name == nil {
+			break
+		}
+
+		return e.complexity.RoomFollow.Name(childComplexity), true
+
+	case "RoomFollow.room":
+		if e.complexity.RoomFollow.Room == nil {
+			break
+		}
+
+		return e.complexity.RoomFollow.Room(childComplexity), true
+
+	case "RoomFollow.tx":
+		if e.complexity.RoomFollow.Tx == nil {
+			break
+		}
+
+		return e.complexity.RoomFollow.Tx(childComplexity), true
+
+	case "RoomFollow.tx_hash":
+		if e.complexity.RoomFollow.TxHash == nil {
+			break
+		}
+
+		return e.complexity.RoomFollow.TxHash(childComplexity), true
+
+	case "RoomFollow.unfollow":
+		if e.complexity.RoomFollow.Unfollow == nil {
+			break
+		}
+
+		return e.complexity.RoomFollow.Unfollow(childComplexity), true
+
 	case "SetName.lock":
 		if e.complexity.SetName.Lock == nil {
 			break
@@ -1354,7 +1421,7 @@ var sources = []*ast.Source{
     following(start: Int): [Follow]
     followers(start: Int): [Follow]
     posts(start: Int): [Post]
-    rooms(start: Int): [Room]
+    rooms(start: Int): [RoomFollow!]
 }
 
 type SetName {
@@ -1437,7 +1504,17 @@ type Subscription {
 	{Name: "schema/room.graphqls", Input: `type Room {
     name: String!
     posts(start: Int): [Post!]
-    followers(start: Int): [Profile!]
+    followers(start: Int): [RoomFollow!]
+}
+
+type RoomFollow {
+    name: String!
+    room: Room!
+    lock_hash: String!
+    lock: Lock
+    unfollow: Boolean!
+    tx_hash: String!
+    tx: Tx!
 }
 `, BuiltIn: false},
 	{Name: "schema/scalar.graphqls", Input: `scalar Int64
@@ -3628,9 +3705,9 @@ func (ec *executionContext) _Profile_rooms(ctx context.Context, field graphql.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Room)
+	res := resTmp.([]*model.RoomFollow)
 	fc.Result = res
-	return ec.marshalORoom2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoom(ctx, field.Selections, res)
+	return ec.marshalORoomFollow2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoomFollowᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_tx(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4237,9 +4314,251 @@ func (ec *executionContext) _Room_followers(ctx context.Context, field graphql.C
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Profile)
+	res := resTmp.([]*model.RoomFollow)
 	fc.Result = res
-	return ec.marshalOProfile2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐProfileᚄ(ctx, field.Selections, res)
+	return ec.marshalORoomFollow2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoomFollowᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RoomFollow_name(ctx context.Context, field graphql.CollectedField, obj *model.RoomFollow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RoomFollow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RoomFollow_room(ctx context.Context, field graphql.CollectedField, obj *model.RoomFollow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RoomFollow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.RoomFollow().Room(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Room)
+	fc.Result = res
+	return ec.marshalNRoom2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoom(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RoomFollow_lock_hash(ctx context.Context, field graphql.CollectedField, obj *model.RoomFollow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RoomFollow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LockHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RoomFollow_lock(ctx context.Context, field graphql.CollectedField, obj *model.RoomFollow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RoomFollow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.RoomFollow().Lock(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RoomFollow_unfollow(ctx context.Context, field graphql.CollectedField, obj *model.RoomFollow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RoomFollow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Unfollow, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RoomFollow_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.RoomFollow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RoomFollow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RoomFollow_tx(ctx context.Context, field graphql.CollectedField, obj *model.RoomFollow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RoomFollow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.RoomFollow().Tx(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tx)
+	fc.Result = res
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SetName_tx(ctx context.Context, field graphql.CollectedField, obj *model.SetName) (ret graphql.Marshaler) {
@@ -8176,6 +8495,124 @@ func (ec *executionContext) _Room(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var roomFollowImplementors = []string{"RoomFollow"}
+
+func (ec *executionContext) _RoomFollow(ctx context.Context, sel ast.SelectionSet, obj *model.RoomFollow) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, roomFollowImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RoomFollow")
+		case "name":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._RoomFollow_name(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "room":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._RoomFollow_room(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "lock_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._RoomFollow_lock_hash(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "lock":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._RoomFollow_lock(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "unfollow":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._RoomFollow_unfollow(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "tx_hash":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._RoomFollow_tx_hash(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "tx":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._RoomFollow_tx(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var setNameImplementors = []string{"SetName"}
 
 func (ec *executionContext) _SetName(ctx context.Context, sel ast.SelectionSet, obj *model.SetName) graphql.Marshaler {
@@ -9481,16 +9918,6 @@ func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋmemocashᚋindexᚋad
 	return ec._Post(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNProfile2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v *model.Profile) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Profile(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNRoom2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoom(ctx context.Context, sel ast.SelectionSet, v model.Room) graphql.Marshaler {
 	return ec._Room(ctx, sel, &v)
 }
@@ -9503,6 +9930,16 @@ func (ec *executionContext) marshalNRoom2ᚖgithubᚗcomᚋmemocashᚋindexᚋad
 		return graphql.Null
 	}
 	return ec._Room(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRoomFollow2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoomFollow(ctx context.Context, sel ast.SelectionSet, v *model.RoomFollow) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._RoomFollow(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -10426,7 +10863,21 @@ func (ec *executionContext) marshalOProfile2ᚕᚖgithubᚗcomᚋmemocashᚋinde
 	return ret
 }
 
-func (ec *executionContext) marshalOProfile2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐProfileᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalOProfile2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v *model.Profile) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Profile(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalORoom2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoom(ctx context.Context, sel ast.SelectionSet, v *model.Room) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Room(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalORoomFollow2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoomFollowᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.RoomFollow) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -10453,7 +10904,7 @@ func (ec *executionContext) marshalOProfile2ᚕᚖgithubᚗcomᚋmemocashᚋinde
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNProfile2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐProfile(ctx, sel, v[i])
+			ret[i] = ec.marshalNRoomFollow2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoomFollow(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -10471,61 +10922,6 @@ func (ec *executionContext) marshalOProfile2ᚕᚖgithubᚗcomᚋmemocashᚋinde
 	}
 
 	return ret
-}
-
-func (ec *executionContext) marshalOProfile2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v *model.Profile) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Profile(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalORoom2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoom(ctx context.Context, sel ast.SelectionSet, v []*model.Room) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalORoom2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoom(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	return ret
-}
-
-func (ec *executionContext) marshalORoom2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoom(ctx context.Context, sel ast.SelectionSet, v *model.Room) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Room(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOSetName2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSetName(ctx context.Context, sel ast.SelectionSet, v *model.SetName) graphql.Marshaler {

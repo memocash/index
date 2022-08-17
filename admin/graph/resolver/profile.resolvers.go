@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -261,17 +262,22 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	return posts, nil
 }
 
-func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *int) ([]*model.Room, error) {
+func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *int) ([]*model.RoomFollow, error) {
 	lockHash, err := hex.DecodeString(obj.LockHash)
 	if err != nil {
-		return nil, jerr.Get("error decoding lock hash for rooms in profile resolver", err)
+		return nil, jerr.Get("error decoding lock hash for room follows in profile resolver", err)
 	}
 	lockRoomFollows, err := memo.GetLockRoomFollows(ctx, [][]byte{lockHash})
-	var rooms = make([]*model.Room, len(lockRoomFollows))
+	var roomFollows = make([]*model.RoomFollow, len(lockRoomFollows))
 	for i := range lockRoomFollows {
-		rooms[i] = &model.Room{Name: lockRoomFollows[i].Room}
+		roomFollows[i] = &model.RoomFollow{
+			Name:     lockRoomFollows[i].Room,
+			LockHash: hex.EncodeToString(lockRoomFollows[i].LockHash),
+			Unfollow: lockRoomFollows[i].Unfollow,
+			TxHash:   hs.GetTxString(lockRoomFollows[i].TxHash),
+		}
 	}
-	return rooms, nil
+	return roomFollows, nil
 }
 
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {

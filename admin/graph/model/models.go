@@ -94,3 +94,10 @@ type Like struct {
 type Room struct {
 	Name string `json:"name"`
 }
+
+type RoomFollow struct {
+	Name     string `json:"name"`
+	LockHash string `json:"lock_hash"`
+	Unfollow bool   `json:"unfollow"`
+	TxHash   string `json:"tx_hash"`
+}

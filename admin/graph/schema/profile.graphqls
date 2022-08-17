@@ -7,7 +7,7 @@ type Profile {
     following(start: Int): [Follow]
     followers(start: Int): [Follow]
     posts(start: Int): [Post]
-    rooms(start: Int): [Room]
+    rooms(start: Int): [RoomFollow!]
 }
 
 type SetName {
