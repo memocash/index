@@ -345,6 +345,10 @@ func (r *subscriptionResolver) Rooms(ctx context.Context, names []string) (<-cha
 	return roomPostsChan, nil
 }
 
+func (r *subscriptionResolver) RoomFollows(ctx context.Context, addresses []string) (<-chan *model.RoomFollow, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 

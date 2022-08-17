@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"

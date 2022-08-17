@@ -190,10 +190,11 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		Address  func(childComplexity int, address string) int
-		Blocks   func(childComplexity int) int
-		Profiles func(childComplexity int, addresses []string) int
-		Rooms    func(childComplexity int, names []string) int
+		Address     func(childComplexity int, address string) int
+		Blocks      func(childComplexity int) int
+		Profiles    func(childComplexity int, addresses []string) int
+		RoomFollows func(childComplexity int, addresses []string) int
+		Rooms       func(childComplexity int, names []string) int
 	}
 
 	Tx struct {
@@ -331,6 +332,7 @@ type SubscriptionResolver interface {
 	Blocks(ctx context.Context) (<-chan *model.Block, error)
 	Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error)
 	Rooms(ctx context.Context, names []string) (<-chan *model.Post, error)
+	RoomFollows(ctx context.Context, addresses []string) (<-chan *model.RoomFollow, error)
 }
 type TxResolver interface {
 	Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInput, error)
@@ -1101,6 +1103,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.Profiles(childComplexity, args["addresses"].([]string)), true
 
+	case "Subscription.room_follows":
+		if e.complexity.Subscription.RoomFollows == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_room_follows_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.RoomFollows(childComplexity, args["addresses"].([]string)), true
+
 	case "Subscription.rooms":
 		if e.complexity.Subscription.Rooms == nil {
 			break
@@ -1499,6 +1513,7 @@ type Subscription {
     blocks: Block
     profiles(addresses: [String!]): Profile
     rooms(names: [String!]): Post
+    room_follows(addresses: [String!]): RoomFollow
 }
 `, BuiltIn: false},
 	{Name: "schema/room.graphqls", Input: `type Room {
@@ -1929,6 +1944,21 @@ func (ec *executionContext) field_Subscription_address_args(ctx context.Context,
 }
 
 func (ec *executionContext) field_Subscription_profiles_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []string
+	if tmp, ok := rawArgs["addresses"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("addresses"))
+		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["addresses"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_room_follows_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 []string
@@ -5267,6 +5297,55 @@ func (ec *executionContext) _Subscription_rooms(ctx context.Context, field graph
 			graphql.MarshalString(field.Alias).MarshalGQL(w)
 			w.Write([]byte{':'})
 			ec.marshalOPost2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐPost(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
+func (ec *executionContext) _Subscription_room_follows(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Subscription_room_follows_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().RoomFollows(rctx, args["addresses"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.RoomFollow)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalORoomFollow2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoomFollow(ctx, field.Selections, res).MarshalGQL(w)
 			w.Write([]byte{'}'})
 		})
 	}
@@ -8904,6 +8983,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_profiles(ctx, fields[0])
 	case "rooms":
 		return ec._Subscription_rooms(ctx, fields[0])
+	case "room_follows":
+		return ec._Subscription_room_follows(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -10922,6 +11003,13 @@ func (ec *executionContext) marshalORoomFollow2ᚕᚖgithubᚗcomᚋmemocashᚋi
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalORoomFollow2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐRoomFollow(ctx context.Context, sel ast.SelectionSet, v *model.RoomFollow) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RoomFollow(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOSetName2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSetName(ctx context.Context, sel ast.SelectionSet, v *model.SetName) graphql.Marshaler {

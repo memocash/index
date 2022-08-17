@@ -17,4 +17,5 @@ type Subscription {
     blocks: Block
     profiles(addresses: [String!]): Profile
     rooms(names: [String!]): Post
+    room_follows(addresses: [String!]): RoomFollow
 }
