@@ -10,11 +10,18 @@ type SendTx struct {
 }
 
 func (t *SendTx) Send(txs [][]byte) error {
+	if err := t.SendWithBlock(txs, nil); err != nil {
+		return jerr.Get("error sending without block", err)
+	}
+	return nil
+}
+
+func (t *SendTx) SendWithBlock(txs [][]byte, block []byte) error {
 	var networkTxs = new(network_pb.Txs)
 	for i := range txs {
 		networkTxs.Txs = append(networkTxs.Txs, &network_pb.Tx{
 			Raw:   txs[i],
-			Block: nil,
+			Block: block,
 		})
 	}
 	connection, err := NewConnection()
