@@ -1,6 +1,7 @@
 package op_return
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -23,6 +24,7 @@ var memoRoomFollowHandler = &Handler{
 			}
 			return nil
 		}
+		unfollow := bytes.Equal(info.PushData[0], memo.PrefixTopicUnfollow)
 		var room = jutil.GetUtf8String(info.PushData[1])
 		roomHash := dbMemo.GetRoomHash(room)
 		var lockRoomFollow = &dbMemo.LockRoomFollow{
@@ -30,12 +32,14 @@ var memoRoomFollowHandler = &Handler{
 			Height:   info.Height,
 			TxHash:   info.TxHash,
 			Room:     room,
+			Unfollow: unfollow,
 		}
 		var roomFollow = &dbMemo.RoomHeightFollow{
 			RoomHash: roomHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
 			LockHash: info.LockHash,
+			Unfollow: unfollow,
 		}
 		if err := db.Save([]db.Object{lockRoomFollow, roomFollow}); err != nil {
 			return jerr.Get("error saving db memo room height follow objects", err)
@@ -49,4 +53,9 @@ var memoRoomFollowHandler = &Handler{
 		}
 		return nil
 	},
+}
+
+var memoRoomUnfollowHandler = &Handler{
+	prefix: memo.PrefixTopicUnfollow,
+	handle: memoRoomFollowHandler.handle,
 }
