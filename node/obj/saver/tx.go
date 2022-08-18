@@ -8,6 +8,7 @@ import (
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/status"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"runtime"
 	"time"
@@ -88,7 +89,7 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 	if len(blockHashBytes) > 0 {
 		blockHeight, err := item.GetBlockHeight(blockHashBytes)
 		if err != nil {
-			return jerr.Get("error getting block height for tx save", err)
+			return jerr.Getf(err, "error getting block height for tx save block: %s", hs.GetTxString(blockHashBytes))
 		}
 		if t.Shard != status.NoShard {
 			objects = append(objects, &item.HeightBlockShard{

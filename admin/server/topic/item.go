@@ -61,7 +61,8 @@ var itemRoute = admin.Route{
 					props[fieldName] = strconv.FormatUint(fieldValue.Uint(), 10)
 				case reflect.Slice:
 					if fieldValue.Type() == typeOfBytes {
-						if strings.Contains(strings.ToLower(fieldName), "txhash") {
+						if strings.Contains(strings.ToLower(fieldName), "txhash") ||
+							strings.Contains(strings.ToLower(fieldName), "blockhash") {
 							props[fieldName] = hex.EncodeToString(jutil.ByteReverse(fieldValue.Bytes()))
 						} else {
 							props[fieldName] = hex.EncodeToString(fieldValue.Bytes())
