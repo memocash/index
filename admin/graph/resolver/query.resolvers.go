@@ -328,7 +328,11 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 }
 
 func (r *subscriptionResolver) Posts(ctx context.Context, hashes []string) (<-chan *model.Post, error) {
-	panic(fmt.Errorf("not implemented"))
+	postChan, err := new(sub.Post).Listen(ctx, hashes)
+	if err != nil {
+		return nil, jerr.Get("error getting post listener for subscription", err)
+	}
+	return postChan, nil
 }
 
 func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error) {

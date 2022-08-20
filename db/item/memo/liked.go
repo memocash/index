@@ -1,6 +1,7 @@
 package memo
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -72,4 +73,36 @@ func GetLikeds(postTxHashes [][]byte) ([]*Liked, error) {
 		}
 	}
 	return likeds, nil
+}
+
+func ListenLikeds(ctx context.Context, postTxHashes [][]byte) (chan *Liked, error) {
+	if len(postTxHashes) == 0 {
+		return nil, nil
+	}
+	var shardPrefixes = make(map[uint32][][]byte)
+	for _, postTxHash := range postTxHashes {
+		shard := client.GetByteShard32(postTxHash)
+		shardPrefixes[shard] = append(shardPrefixes[shard], postTxHash)
+	}
+	shardConfigs := config.GetQueueShards()
+	var likedChan = make(chan *Liked)
+	cancelCtx := db.NewCancelContext(ctx, func() {
+		close(likedChan)
+	})
+	for shard, prefixes := range shardPrefixes {
+		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoLiked, prefixes)
+		if err != nil {
+			return nil, jerr.Get("error listening to db memo post liked by prefix", err)
+		}
+		go func() {
+			for msg := range chanMessage {
+				var liked = new(Liked)
+				db.Set(liked, *msg)
+				likedChan <- liked
+			}
+			cancelCtx.Cancel()
+		}()
+	}
+	return likedChan, nil
 }

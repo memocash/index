@@ -61,3 +61,35 @@ func GetPostChildren(ctx context.Context, postTxHash []byte) ([]*PostChild, erro
 	}
 	return postChildren, nil
 }
+
+func ListenPostChildren(ctx context.Context, postTxHashes [][]byte) (chan *PostChild, error) {
+	if len(postTxHashes) == 0 {
+		return nil, nil
+	}
+	var shardPrefixes = make(map[uint32][][]byte)
+	for _, postTxHash := range postTxHashes {
+		shard := client.GetByteShard32(postTxHash)
+		shardPrefixes[shard] = append(shardPrefixes[shard], postTxHash)
+	}
+	shardConfigs := config.GetQueueShards()
+	var postChildChan = make(chan *PostChild)
+	cancelCtx := db.NewCancelContext(ctx, func() {
+		close(postChildChan)
+	})
+	for shard, prefixes := range shardPrefixes {
+		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoPostChild, prefixes)
+		if err != nil {
+			return nil, jerr.Get("error listening to db memo post child by prefix", err)
+		}
+		go func() {
+			for msg := range chanMessage {
+				var postChild = new(PostChild)
+				db.Set(postChild, *msg)
+				postChildChan <- postChild
+			}
+			cancelCtx.Cancel()
+		}()
+	}
+	return postChildChan, nil
+}
