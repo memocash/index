@@ -31,10 +31,7 @@ func (s *PubSub) Subscribe(shard uint, topic string, start []byte, prefixes [][]
 	//prefixStrings := jutil.ByteSliceStrings(prefixes)
 	//jlog.Logf("New subscribe item shard: %d, topic: %s, start: %x, prefixes: %s\n",
 	//	shard, topic, start, strings.Join(prefixStrings, " "))
-	s.Mutex.Lock()
-	s.Incr++
 	var sub = &Subscribe{
-		Id:       s.Incr,
 		Shard:    shard,
 		Topic:    topic,
 		Start:    start,
@@ -42,6 +39,9 @@ func (s *PubSub) Subscribe(shard uint, topic string, start []byte, prefixes [][]
 		UidChan:  make(chan []byte),
 		PubSub:   s,
 	}
+	s.Mutex.Lock()
+	s.Incr++
+	sub.Id = s.Incr
 	s.Subs[sub.Id] = sub
 	s.Mutex.Unlock()
 	return sub
@@ -56,10 +56,12 @@ func (s *PubSub) Close(id int64) {
 
 func (s *PubSub) Publish(shard uint, topic string, uid []byte) {
 	//jlog.Logf("New published item shard: %d, topic: %s, uid: %x\n", shard, topic, uid)
+	s.Mutex.Lock()
 	for id := range s.Subs {
 		var sub = s.Subs[id]
+		s.Mutex.Unlock()
 		if sub.Shard != shard || sub.Topic != topic {
-			continue
+			goto End
 		} else if len(sub.Start) > 0 {
 			if bytes.Compare(uid, sub.Start) == 1 {
 				sub.UidChan <- uid
@@ -70,13 +72,16 @@ func (s *PubSub) Publish(shard uint, topic string, uid []byte) {
 				lenPrefix := len(prefix)
 				if lenPrefix <= lenUid && bytes.Equal(prefix, uid[:lenPrefix]) {
 					sub.UidChan <- uid
-					continue
+					goto End
 				}
 			}
 		} else {
 			sub.UidChan <- uid
 		}
+	End:
+		s.Mutex.Lock()
 	}
+	s.Mutex.Unlock()
 }
 
 var _globalPubSub *PubSub
