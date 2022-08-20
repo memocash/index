@@ -327,6 +327,10 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 	return blockChan, nil
 }
 
+func (r *subscriptionResolver) Posts(ctx context.Context, hashes []string) (<-chan *model.Post, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error) {
 	var profile = new(sub.Profile)
 	profileChan, err := profile.Listen(ctx, addresses, GetPreloads(ctx))

@@ -192,6 +192,7 @@ type ComplexityRoot struct {
 	Subscription struct {
 		Address     func(childComplexity int, address string) int
 		Blocks      func(childComplexity int) int
+		Posts       func(childComplexity int, hashes []string) int
 		Profiles    func(childComplexity int, addresses []string) int
 		RoomFollows func(childComplexity int, addresses []string) int
 		Rooms       func(childComplexity int, names []string) int
@@ -330,6 +331,7 @@ type SetProfileResolver interface {
 type SubscriptionResolver interface {
 	Address(ctx context.Context, address string) (<-chan *model.Tx, error)
 	Blocks(ctx context.Context) (<-chan *model.Block, error)
+	Posts(ctx context.Context, hashes []string) (<-chan *model.Post, error)
 	Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error)
 	Rooms(ctx context.Context, names []string) (<-chan *model.Post, error)
 	RoomFollows(ctx context.Context, addresses []string) (<-chan *model.RoomFollow, error)
@@ -1091,6 +1093,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.Blocks(childComplexity), true
 
+	case "Subscription.posts":
+		if e.complexity.Subscription.Posts == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_posts_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.Posts(childComplexity, args["hashes"].([]string)), true
+
 	case "Subscription.profiles":
 		if e.complexity.Subscription.Profiles == nil {
 			break
@@ -1511,6 +1525,7 @@ type Like {
 type Subscription {
     address(address: String!): Tx
     blocks: Block
+    posts(hashes: [String!]): Post
     profiles(addresses: [String!]): Profile
     rooms(names: [String!]): Post
     room_follows(addresses: [String!]): RoomFollow
@@ -1940,6 +1955,21 @@ func (ec *executionContext) field_Subscription_address_args(ctx context.Context,
 		}
 	}
 	args["address"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_posts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []string
+	if tmp, ok := rawArgs["hashes"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hashes"))
+		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["hashes"] = arg0
 	return args, nil
 }
 
@@ -5199,6 +5229,55 @@ func (ec *executionContext) _Subscription_blocks(ctx context.Context, field grap
 			graphql.MarshalString(field.Alias).MarshalGQL(w)
 			w.Write([]byte{':'})
 			ec.marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
+func (ec *executionContext) _Subscription_posts(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Subscription_posts_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().Posts(rctx, args["hashes"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.Post)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalOPost2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐPost(ctx, field.Selections, res).MarshalGQL(w)
 			w.Write([]byte{'}'})
 		})
 	}
@@ -8979,6 +9058,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_address(ctx, fields[0])
 	case "blocks":
 		return ec._Subscription_blocks(ctx, fields[0])
+	case "posts":
+		return ec._Subscription_posts(ctx, fields[0])
 	case "profiles":
 		return ec._Subscription_profiles(ctx, fields[0])
 	case "rooms":

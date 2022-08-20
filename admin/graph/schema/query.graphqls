@@ -15,6 +15,7 @@ type Query {
 type Subscription {
     address(address: String!): Tx
     blocks: Block
+    posts(hashes: [String!]): Post
     profiles(addresses: [String!]): Profile
     rooms(names: [String!]): Post
     room_follows(addresses: [String!]): RoomFollow
