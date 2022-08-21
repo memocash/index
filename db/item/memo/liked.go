@@ -82,7 +82,7 @@ func ListenLikeds(ctx context.Context, postTxHashes [][]byte) (chan *Liked, erro
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, postTxHash := range postTxHashes {
 		shard := client.GetByteShard32(postTxHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], postTxHash)
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash))
 	}
 	shardConfigs := config.GetQueueShards()
 	var likedChan = make(chan *Liked)

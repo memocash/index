@@ -69,7 +69,7 @@ func ListenPostChildren(ctx context.Context, postTxHashes [][]byte) (chan *PostC
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, postTxHash := range postTxHashes {
 		shard := client.GetByteShard32(postTxHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], postTxHash)
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash))
 	}
 	shardConfigs := config.GetQueueShards()
 	var postChildChan = make(chan *PostChild)
