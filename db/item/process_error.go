@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
 type ProcessError struct {
@@ -13,19 +14,19 @@ type ProcessError struct {
 	Error  string
 }
 
-func (e ProcessError) GetUid() []byte {
+func (e *ProcessError) GetUid() []byte {
 	return jutil.ByteReverse(e.TxHash)
 }
 
-func (e ProcessError) GetShard() uint {
+func (e *ProcessError) GetShard() uint {
 	return client.GetByteShard(e.TxHash)
 }
 
-func (e ProcessError) GetTopic() string {
+func (e *ProcessError) GetTopic() string {
 	return db.TopicProcessError
 }
 
-func (e ProcessError) Serialize() []byte {
+func (e *ProcessError) Serialize() []byte {
 	return []byte(e.Error)
 }
 
@@ -38,7 +39,7 @@ func (e *ProcessError) Deserialize(data []byte) {
 }
 
 func LogProcessError(processError *ProcessError) error {
-	jlog.Logf("PROCESS ERROR: %s\n", processError.Error)
+	jlog.Logf("PROCESS ERROR (%s): %s\n", hs.GetTxString(processError.TxHash), processError.Error)
 	if err := db.Save([]db.Object{processError}); err != nil {
 		return jerr.Get("error saving process error", err)
 	}

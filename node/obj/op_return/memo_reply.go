@@ -33,6 +33,7 @@ var memoReplyHandler = &Handler{
 			}); err != nil {
 				return jerr.Get("error saving process error for memo reply invalid parent tx hash", err)
 			}
+			return nil
 		}
 		parentTxHashBytes := parentTxHash.CloneBytes()
 		var memoPostParent = &dbMemo.PostParent{
