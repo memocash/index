@@ -134,6 +134,9 @@ func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post
 	}
 	post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(hs.GetTxString(postParent.ParentTxHash))
 	if err != nil {
+		if load.IsPostNotFoundError(err) {
+			return nil, nil
+		}
 		return nil, jerr.Getf(err, "error getting from post dataloader for post parent resolver: %s", obj.LockHash)
 	}
 	return post, nil

@@ -11,6 +11,14 @@ import (
 	"time"
 )
 
+const postNotFoundErrorMessage = "error post not found in loader"
+
+var postNotFoundError = jerr.New(postNotFoundErrorMessage)
+
+func IsPostNotFoundError(err error) bool {
+	return jerr.HasError(err, postNotFoundErrorMessage)
+}
+
 var PostLoaderConfig = dataloader.PostLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,
@@ -29,7 +37,7 @@ var PostLoaderConfig = dataloader.PostLoaderConfig{
 				continue
 			}
 			if memoPost == nil {
-				errors[i] = jerr.New("error post not found: " + txHashString)
+				errors[i] = jerr.Getf(postNotFoundError, "error post not found: "+txHashString)
 				continue
 			}
 			posts[i] = &model.Post{
