@@ -20,7 +20,7 @@ type RoomHeightPost struct {
 func (p RoomHeightPost) GetUid() []byte {
 	return jutil.CombineBytes(
 		p.RoomHash,
-		jutil.GetInt64Data(p.Height),
+		jutil.ByteFlip(jutil.GetInt64DataBig(p.Height)),
 		jutil.ByteReverse(p.TxHash),
 	)
 }
@@ -42,7 +42,7 @@ func (p *RoomHeightPost) SetUid(uid []byte) {
 		return
 	}
 	p.RoomHash = uid[:32]
-	p.Height = jutil.GetInt64(uid[32:40])
+	p.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
 	p.TxHash = jutil.ByteReverse(uid[40:72])
 }
 
