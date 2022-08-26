@@ -37,8 +37,10 @@ func getDb(topic string, shard uint) (*leveldb.DB, error) {
 		if openFilesCacheCapacity == 0 {
 			openFilesCacheCapacity = DefaultOpenFilesCacheCapacity
 		}
+		compactionDataSize := config.GetCompactionDataSize()
 		db, err := leveldb.OpenFile(filename, &opt.Options{
 			OpenFilesCacheCapacity: openFilesCacheCapacity,
+			CompactionTableSize:    compactionDataSize * opt.MiB,
 		})
 		if err != nil {
 			return nil, jerr.Get("error opening level db", err)

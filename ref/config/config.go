@@ -49,7 +49,8 @@ type Config struct {
 	DataDir string `mapstructure:"DATA_DIR"`
 
 	DataPrefix             string `mapstructure:"DATA_PREFIX"`
-	OpenFilesCacheCapacity int    `mapstructure:"OPEN_FILES_CACHE_CAPACITY"`
+	OpenFilesCacheCapacity int    `mapstructure:"OPEN_FILES_CACHE_CAPACITY"` // In MB
+	CompactionDataSize     int    `mapstructure:"COMPACTION_DATA_SIZE"`
 
 	ProcessLimit struct {
 		Utxos int `mapstructure:"UTXOS"`
@@ -173,6 +174,10 @@ func GetDataPrefix() string {
 }
 
 func GetOpenFilesCacheCapacity() int {
+	return _config.OpenFilesCacheCapacity
+}
+
+func GetCompactionDataSize() int {
 	return _config.OpenFilesCacheCapacity
 }
 
