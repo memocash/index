@@ -30,7 +30,7 @@ func (n LockHeightName) GetShard() uint {
 }
 
 func (n LockHeightName) GetTopic() string {
-	return db.TopicLockMemoName
+	return db.TopicMemoLockHeightName
 }
 
 func (n LockHeightName) Serialize() []byte {
@@ -54,7 +54,7 @@ func GetLockHeightName(ctx context.Context, lockHash []byte) (*LockHeightName, e
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicLockMemoName,
+		Topic:    db.TopicMemoLockHeightName,
 		Prefixes: [][]byte{lockHash},
 		Max:      1,
 		Context:  ctx,
@@ -72,7 +72,7 @@ func GetLockHeightName(ctx context.Context, lockHash []byte) (*LockHeightName, e
 func RemoveLockHeightName(lockName *LockHeightName) error {
 	shardConfig := config.GetShardConfig(db.GetShard32(lockName.GetShard()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.DeleteMessages(db.TopicLockMemoName, [][]byte{lockName.GetUid()}); err != nil {
+	if err := dbClient.DeleteMessages(db.TopicMemoLockHeightName, [][]byte{lockName.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo name", err)
 	}
 	return nil
@@ -95,7 +95,7 @@ func ListenLockHeightNames(ctx context.Context, lockHashes [][]byte) (chan *Lock
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicLockMemoName, lockHashPrefixes)
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoLockHeightName, lockHashPrefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db lock memo names by prefix", err)
 		}

@@ -30,7 +30,7 @@ func (p LockHeightProfilePic) GetShard() uint {
 }
 
 func (p LockHeightProfilePic) GetTopic() string {
-	return db.TopicLockMemoProfilePic
+	return db.TopicMemoLockHeightProfilePic
 }
 
 func (p LockHeightProfilePic) Serialize() []byte {
@@ -54,7 +54,7 @@ func GetLockHeightProfilePic(ctx context.Context, lockHash []byte) (*LockHeightP
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicLockMemoProfilePic,
+		Topic:    db.TopicMemoLockHeightProfilePic,
 		Prefixes: [][]byte{lockHash},
 		Max:      1,
 		Context:  ctx,
@@ -72,7 +72,7 @@ func GetLockHeightProfilePic(ctx context.Context, lockHash []byte) (*LockHeightP
 func RemoveLockHeightProfilePic(lockProfilePic *LockHeightProfilePic) error {
 	shardConfig := config.GetShardConfig(db.GetShard32(lockProfilePic.GetShard()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.DeleteMessages(db.TopicLockMemoProfilePic, [][]byte{lockProfilePic.GetUid()}); err != nil {
+	if err := dbClient.DeleteMessages(db.TopicMemoLockHeightProfilePic, [][]byte{lockProfilePic.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo profile pic", err)
 	}
 	return nil
@@ -95,7 +95,7 @@ func ListenLockHeightProfilePics(ctx context.Context, lockHashes [][]byte) (chan
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicLockMemoProfilePic, lockHashPrefixes)
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoLockHeightProfilePic, lockHashPrefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db lock memo profile pic by prefix", err)
 		}

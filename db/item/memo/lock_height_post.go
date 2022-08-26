@@ -29,7 +29,7 @@ func (p LockHeightPost) GetShard() uint {
 }
 
 func (p LockHeightPost) GetTopic() string {
-	return db.TopicLockMemoPost
+	return db.TopicMemoLockHeightPost
 }
 
 func (p LockHeightPost) Serialize() []byte {
@@ -59,7 +59,7 @@ func GetLockHeightPosts(ctx context.Context, lockHashes [][]byte) ([]*LockHeight
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicLockMemoPost,
+			Topic:    db.TopicMemoLockHeightPost,
 			Prefixes: lockHashPrefixes,
 			Max:      client.ExLargeLimit,
 			Context:  ctx,
@@ -78,7 +78,7 @@ func GetLockHeightPosts(ctx context.Context, lockHashes [][]byte) ([]*LockHeight
 func RemoveLockHeightPost(lockPost *LockHeightPost) error {
 	shardConfig := config.GetShardConfig(db.GetShard32(lockPost.GetShard()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.DeleteMessages(db.TopicLockMemoPost, [][]byte{lockPost.GetUid()}); err != nil {
+	if err := dbClient.DeleteMessages(db.TopicMemoLockHeightPost, [][]byte{lockPost.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo post", err)
 	}
 	return nil

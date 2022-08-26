@@ -31,7 +31,7 @@ func (f LockHeightRoomFollow) GetShard() uint {
 }
 
 func (f LockHeightRoomFollow) GetTopic() string {
-	return db.TopicLockMemoRoomFollow
+	return db.TopicMemoLockHeightRoomFollow
 }
 
 func (f LockHeightRoomFollow) Serialize() []byte {
@@ -74,7 +74,7 @@ func GetLockHeightRoomFollows(ctx context.Context, lockHashes [][]byte) ([]*Lock
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicLockMemoRoomFollow,
+			Topic:    db.TopicMemoLockHeightRoomFollow,
 			Prefixes: prefixes,
 			Max:      client.ExLargeLimit,
 			Context:  ctx,
@@ -106,7 +106,7 @@ func ListenLockHeightRoomFollows(ctx context.Context, lockHashes [][]byte) (chan
 	})
 	for shard, prefixes := range shardPrefixes {
 		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicLockMemoRoomFollow, prefixes)
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoLockHeightRoomFollow, prefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db memo lock room follow by prefix", err)
 		}

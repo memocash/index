@@ -29,7 +29,7 @@ func (l LockHeightLike) GetShard() uint {
 }
 
 func (l LockHeightLike) GetTopic() string {
-	return db.TopicLockMemoLike
+	return db.TopicMemoLockHeightLike
 }
 
 func (l LockHeightLike) Serialize() []byte {
@@ -55,7 +55,7 @@ func (l *LockHeightLike) Deserialize(data []byte) {
 func RemoveLockHeightLike(lockLike *LockHeightLike) error {
 	shardConfig := config.GetShardConfig(db.GetShard32(lockLike.GetShard()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.DeleteMessages(db.TopicLockMemoLike, [][]byte{lockLike.GetUid()}); err != nil {
+	if err := dbClient.DeleteMessages(db.TopicMemoLockHeightLike, [][]byte{lockLike.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo like", err)
 	}
 	return nil

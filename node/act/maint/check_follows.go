@@ -20,7 +20,7 @@ func (c *CheckFollows) Check() error {
 		var startUid []byte
 		for {
 			if err := dbClient.GetWOpts(client.Opts{
-				Topic: db.TopicLockMemoFollow,
+				Topic: db.TopicMemoLockHeightFollow,
 				Start: startUid,
 				Max:   client.ExLargeLimit,
 			}); err != nil {

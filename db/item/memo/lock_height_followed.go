@@ -31,7 +31,7 @@ func (f LockHeightFollowed) GetShard() uint {
 }
 
 func (f LockHeightFollowed) GetTopic() string {
-	return db.TopicLockMemoFollowed
+	return db.TopicMemoLockHeightFollowed
 }
 
 func (f LockHeightFollowed) Serialize() []byte {
@@ -74,7 +74,7 @@ func GetLockHeightFolloweds(ctx context.Context, followLockHashes [][]byte) ([]*
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicLockMemoFollowed,
+			Topic:    db.TopicMemoLockHeightFollowed,
 			Prefixes: lockHashPrefixes,
 			Max:      client.ExLargeLimit,
 			Context:  ctx,
@@ -100,7 +100,7 @@ func GetLockHeightFollowedsSingle(ctx context.Context, followLockHash []byte, st
 		startByte = followLockHash
 	}
 	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicLockMemoFollowed,
+		Topic:    db.TopicMemoLockHeightFollowed,
 		Prefixes: [][]byte{followLockHash},
 		Start:    startByte,
 		Max:      client.ExLargeLimit,
@@ -119,7 +119,7 @@ func GetLockHeightFollowedsSingle(ctx context.Context, followLockHash []byte, st
 func RemoveLockHeightFollowed(lockFollow *LockHeightFollowed) error {
 	shardConfig := config.GetShardConfig(db.GetShard32(lockFollow.GetShard()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.DeleteMessages(db.TopicLockMemoFollowed, [][]byte{lockFollow.GetUid()}); err != nil {
+	if err := dbClient.DeleteMessages(db.TopicMemoLockHeightFollowed, [][]byte{lockFollow.GetUid()}); err != nil {
 		return jerr.Get("error deleting item topic lock memo followed", err)
 	}
 	return nil
@@ -139,7 +139,7 @@ func ListenLockHeightFolloweds(ctx context.Context, followLockHashes [][]byte) (
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		chanMessage, err := client.NewClient(shardConfig.GetHost()).
-			Listen(cancelCtx.Context, db.TopicLockMemoFollowed, lockHashPrefixes)
+			Listen(cancelCtx.Context, db.TopicMemoLockHeightFollowed, lockHashPrefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db lock memo followeds by prefix", err)
 		}

@@ -30,7 +30,7 @@ func (l PostHeightLike) GetShard() uint {
 }
 
 func (l PostHeightLike) GetTopic() string {
-	return db.TopicMemoLiked
+	return db.TopicMemoPostHeightLike
 }
 
 func (l PostHeightLike) Serialize() []byte {
@@ -63,7 +63,7 @@ func GetPostHeightLikes(postTxHashes [][]byte) ([]*PostHeightLike, error) {
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetByPrefixes(db.TopicMemoLiked, prefixes); err != nil {
+		if err := dbClient.GetByPrefixes(db.TopicMemoPostHeightLike, prefixes); err != nil {
 			return nil, jerr.Get("error getting client message memo likeds", err)
 		}
 		for _, msg := range dbClient.Messages {
@@ -91,7 +91,7 @@ func ListenPostHeightLikes(ctx context.Context, postTxHashes [][]byte) (chan *Po
 	})
 	for shard, prefixes := range shardPrefixes {
 		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoLiked, prefixes)
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoPostHeightLike, prefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db memo post liked by prefix", err)
 		}
