@@ -10,7 +10,7 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type LockFollow struct {
+type LockHeightFollow struct {
 	LockHash []byte
 	Height   int64
 	TxHash   []byte
@@ -18,7 +18,7 @@ type LockFollow struct {
 	Follow   []byte
 }
 
-func (f LockFollow) GetUid() []byte {
+func (f LockHeightFollow) GetUid() []byte {
 	return jutil.CombineBytes(
 		f.LockHash,
 		jutil.ByteFlip(jutil.GetInt64DataBig(f.Height)),
@@ -26,15 +26,15 @@ func (f LockFollow) GetUid() []byte {
 	)
 }
 
-func (f LockFollow) GetShard() uint {
+func (f LockHeightFollow) GetShard() uint {
 	return client.GetByteShard(f.LockHash)
 }
 
-func (f LockFollow) GetTopic() string {
+func (f LockHeightFollow) GetTopic() string {
 	return db.TopicLockMemoFollow
 }
 
-func (f LockFollow) Serialize() []byte {
+func (f LockHeightFollow) Serialize() []byte {
 	var unfollow byte
 	if f.Unfollow {
 		unfollow = 1
@@ -45,7 +45,7 @@ func (f LockFollow) Serialize() []byte {
 	)
 }
 
-func (f *LockFollow) SetUid(uid []byte) {
+func (f *LockHeightFollow) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
@@ -54,7 +54,7 @@ func (f *LockFollow) SetUid(uid []byte) {
 	f.TxHash = jutil.ByteReverse(uid[40:72])
 }
 
-func (f *LockFollow) Deserialize(data []byte) {
+func (f *LockHeightFollow) Deserialize(data []byte) {
 	if len(data) < memo.TxHashLength+1 {
 		return
 	}
@@ -62,14 +62,14 @@ func (f *LockFollow) Deserialize(data []byte) {
 	f.Follow = data[1 : memo.TxHashLength+1]
 }
 
-func GetLockFollows(ctx context.Context, lockHashes [][]byte) ([]*LockFollow, error) {
+func GetLockHeightFollows(ctx context.Context, lockHashes [][]byte) ([]*LockHeightFollow, error) {
 	var shardLockHashes = make(map[uint32][][]byte)
 	for _, lockHash := range lockHashes {
 		shard := client.GetByteShard32(lockHash)
 		shardLockHashes[shard] = append(shardLockHashes[shard], lockHash)
 	}
 	shardConfigs := config.GetQueueShards()
-	var lockFollows []*LockFollow
+	var lockFollows []*LockHeightFollow
 	for shard, lockHashPrefixes := range shardLockHashes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
@@ -82,7 +82,7 @@ func GetLockFollows(ctx context.Context, lockHashes [][]byte) ([]*LockFollow, er
 			return nil, jerr.Get("error getting db lock memo follow by prefix", err)
 		}
 		for _, msg := range dbClient.Messages {
-			var lockFollow = new(LockFollow)
+			var lockFollow = new(LockHeightFollow)
 			db.Set(lockFollow, msg)
 			lockFollows = append(lockFollows, lockFollow)
 		}
@@ -90,7 +90,7 @@ func GetLockFollows(ctx context.Context, lockHashes [][]byte) ([]*LockFollow, er
 	return lockFollows, nil
 }
 
-func GetLockFollowsSingle(ctx context.Context, lockHash []byte, start int64) ([]*LockFollow, error) {
+func GetLockHeightFollowsSingle(ctx context.Context, lockHash []byte, start int64) ([]*LockHeightFollow, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var startByte []byte
@@ -108,15 +108,15 @@ func GetLockFollowsSingle(ctx context.Context, lockHash []byte, start int64) ([]
 	}); err != nil {
 		return nil, jerr.Get("error getting db lock memo follow by prefix", err)
 	}
-	var lockFollows = make([]*LockFollow, len(dbClient.Messages))
+	var lockFollows = make([]*LockHeightFollow, len(dbClient.Messages))
 	for i := range dbClient.Messages {
-		lockFollows[i] = new(LockFollow)
+		lockFollows[i] = new(LockHeightFollow)
 		db.Set(lockFollows[i], dbClient.Messages[i])
 	}
 	return lockFollows, nil
 }
 
-func RemoveLockFollow(lockFollow *LockFollow) error {
+func RemoveLockHeightFollow(lockFollow *LockHeightFollow) error {
 	shardConfig := config.GetShardConfig(db.GetShard32(lockFollow.GetShard()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.DeleteMessages(db.TopicLockMemoFollow, [][]byte{lockFollow.GetUid()}); err != nil {
@@ -125,7 +125,7 @@ func RemoveLockFollow(lockFollow *LockFollow) error {
 	return nil
 }
 
-func ListenLockFollows(ctx context.Context, lockHashes [][]byte) (chan *LockFollow, error) {
+func ListenLockHeightFollows(ctx context.Context, lockHashes [][]byte) (chan *LockHeightFollow, error) {
 	if len(lockHashes) == 0 {
 		return nil, nil
 	}
@@ -135,7 +135,7 @@ func ListenLockFollows(ctx context.Context, lockHashes [][]byte) (chan *LockFoll
 		shardLockHashes[shard] = append(shardLockHashes[shard], lockHash)
 	}
 	shardConfigs := config.GetQueueShards()
-	var lockFollowChan = make(chan *LockFollow)
+	var lockFollowChan = make(chan *LockHeightFollow)
 	cancelCtx := db.NewCancelContext(ctx, func() {
 		close(lockFollowChan)
 	})
@@ -148,7 +148,7 @@ func ListenLockFollows(ctx context.Context, lockHashes [][]byte) (chan *LockFoll
 		}
 		go func() {
 			for msg := range chanMessage {
-				var lockFollow = new(LockFollow)
+				var lockFollow = new(LockHeightFollow)
 				db.Set(lockFollow, *msg)
 				lockFollowChan <- lockFollow
 			}

@@ -88,32 +88,32 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 	if err != nil {
 		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
 	}
-	memoLikeds, err := memo.GetLikeds([][]byte{postTxHash.CloneBytes()})
+	memoPostLikes, err := memo.GetPostHeightLikes([][]byte{postTxHash.CloneBytes()})
 	if err != nil {
 		return nil, jerr.Get("error getting memo post likeds for post resolver", err)
 	}
-	var likeTxHashes = make([][]byte, len(memoLikeds))
-	for i := range memoLikeds {
-		likeTxHashes[i] = memoLikeds[i].LikeTxHash
+	var likeTxHashes = make([][]byte, len(memoPostLikes))
+	for i := range memoPostLikes {
+		likeTxHashes[i] = memoPostLikes[i].LikeTxHash
 	}
 	memoLikeTips, err := memo.GetLikeTips(likeTxHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting memo like tips for post resolver", err)
 	}
-	var likes = make([]*model.Like, len(memoLikeds))
-	for i := range memoLikeds {
+	var likes = make([]*model.Like, len(memoPostLikes))
+	for i := range memoPostLikes {
 		var tip int64
 		for j := range memoLikeTips {
-			if bytes.Equal(memoLikeTips[j].LikeTxHash, memoLikeds[i].LikeTxHash) {
+			if bytes.Equal(memoLikeTips[j].LikeTxHash, memoPostLikes[i].LikeTxHash) {
 				tip = memoLikeTips[j].Tip
 				memoLikeTips = append(memoLikeTips[:j], memoLikeTips[j+1:]...)
 				break
 			}
 		}
 		likes[i] = &model.Like{
-			TxHash:     hs.GetTxString(memoLikeds[i].LikeTxHash),
-			PostTxHash: hs.GetTxString(memoLikeds[i].PostTxHash),
-			LockHash:   hex.EncodeToString(memoLikeds[i].LockHash),
+			TxHash:     hs.GetTxString(memoPostLikes[i].LikeTxHash),
+			PostTxHash: hs.GetTxString(memoPostLikes[i].PostTxHash),
+			LockHash:   hex.EncodeToString(memoPostLikes[i].LockHash),
 			Tip:        tip,
 		}
 	}
@@ -196,7 +196,7 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	if start != nil {
 		startInt = int64(*start)
 	}
-	lockMemoFollows, err := memo.GetLockFollowsSingle(ctx, script.GetLockHashForAddress(*address), startInt)
+	lockMemoFollows, err := memo.GetLockHeightFollowsSingle(ctx, script.GetLockHashForAddress(*address), startInt)
 	if err != nil {
 		return nil, jerr.Get("error getting lock memo follows for address", err)
 	}
@@ -221,7 +221,7 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 	if start != nil {
 		startInt = int64(*start)
 	}
-	lockMemoFolloweds, err := memo.GetLockFollowedsSingle(ctx, script.GetLockHashForAddress(*address), startInt)
+	lockMemoFolloweds, err := memo.GetLockHeightFollowedsSingle(ctx, script.GetLockHashForAddress(*address), startInt)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock memo follows for address: %s", obj.LockHash)
 	}
@@ -242,7 +242,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	if err != nil {
 		return nil, jerr.Getf(err, "error decoding lock hash for profile resolver: %s", obj.LockHash)
 	}
-	lockMemoPosts, err := memo.GetLockPosts(ctx, [][]byte{lockHash})
+	lockMemoPosts, err := memo.GetLockHeightPosts(ctx, [][]byte{lockHash})
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock memo posts for profile resolver: %s", obj.LockHash)
 	}
@@ -270,7 +270,7 @@ func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *
 	if err != nil {
 		return nil, jerr.Get("error decoding lock hash for room follows in profile resolver", err)
 	}
-	lockRoomFollows, err := memo.GetLockRoomFollows(ctx, [][]byte{lockHash})
+	lockRoomFollows, err := memo.GetLockHeightRoomFollows(ctx, [][]byte{lockHash})
 	var roomFollows = make([]*model.RoomFollow, len(lockRoomFollows))
 	for i := range lockRoomFollows {
 		roomFollows[i] = &model.RoomFollow{

@@ -24,7 +24,7 @@ var memoProfileHandler = &Handler{
 			return nil
 		}
 		var profile = jutil.GetUtf8String(info.PushData[1])
-		var lockMemoProfile = &dbMemo.LockProfile{
+		var lockMemoProfile = &dbMemo.LockHeightProfile{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
@@ -35,7 +35,7 @@ var memoProfileHandler = &Handler{
 		}
 		if info.Height != item.HeightMempool {
 			lockMemoProfile.Height = item.HeightMempool
-			if err := dbMemo.RemoveLockProfile(lockMemoProfile); err != nil {
+			if err := dbMemo.RemoveLockHeightProfile(lockMemoProfile); err != nil {
 				return jerr.Get("error removing db lock memo profile", err)
 			}
 		}

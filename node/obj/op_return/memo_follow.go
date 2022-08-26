@@ -37,14 +37,14 @@ var memoFollowHandler = &Handler{
 			return nil
 		}
 		followLockHash := script.GetLockHashForAddress(followAddress)
-		var lockMemoFollow = &dbMemo.LockFollow{
+		var lockMemoFollow = &dbMemo.LockHeightFollow{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
 			Follow:   followLockHash,
 			Unfollow: unfollow,
 		}
-		var lockMemoFollowed = &dbMemo.LockFollowed{
+		var lockMemoFollowed = &dbMemo.LockHeightFollowed{
 			FollowLockHash: followLockHash,
 			Height:         info.Height,
 			TxHash:         info.TxHash,
@@ -60,11 +60,11 @@ var memoFollowHandler = &Handler{
 		}
 		if info.Height != item.HeightMempool {
 			lockMemoFollow.Height = item.HeightMempool
-			if err := dbMemo.RemoveLockFollow(lockMemoFollow); err != nil {
+			if err := dbMemo.RemoveLockHeightFollow(lockMemoFollow); err != nil {
 				return jerr.Get("error removing db lock memo follow", err)
 			}
 			lockMemoFollowed.Height = item.HeightMempool
-			if err := dbMemo.RemoveLockFollowed(lockMemoFollowed); err != nil {
+			if err := dbMemo.RemoveLockHeightFollowed(lockMemoFollowed); err != nil {
 				return jerr.Get("error removing db lock memo followed", err)
 			}
 		}

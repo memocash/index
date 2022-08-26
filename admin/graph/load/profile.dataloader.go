@@ -36,7 +36,7 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 			}
 			lockHashString := hex.EncodeToString(lockHash)
 			var profile = &model.Profile{LockHash: lockHashString}
-			lockMemoName, err := memo.GetLockName(ctx, lockHash)
+			lockMemoName, err := memo.GetLockHeightName(ctx, lockHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting memo name", err)
 				continue
@@ -48,7 +48,7 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 					LockHash: lockHashString,
 				}
 			}
-			lockMemoProfile, err := memo.GetLockProfile(ctx, lockHash)
+			lockMemoProfile, err := memo.GetLockHeightProfile(ctx, lockHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting lock memo profile", err)
 				continue
@@ -60,7 +60,7 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 					LockHash: lockHashString,
 				}
 			}
-			lockMemoProfilePic, err := memo.GetLockProfilePic(ctx, lockHash)
+			lockMemoProfilePic, err := memo.GetLockHeightProfilePic(ctx, lockHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting lock memo profile pic", err)
 				continue

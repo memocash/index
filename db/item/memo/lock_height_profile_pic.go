@@ -10,14 +10,14 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type LockProfilePic struct {
+type LockHeightProfilePic struct {
 	LockHash []byte
 	Height   int64
 	TxHash   []byte
 	Pic      string
 }
 
-func (p LockProfilePic) GetUid() []byte {
+func (p LockHeightProfilePic) GetUid() []byte {
 	return jutil.CombineBytes(
 		p.LockHash,
 		jutil.ByteFlip(jutil.GetInt64DataBig(p.Height)),
@@ -25,19 +25,19 @@ func (p LockProfilePic) GetUid() []byte {
 	)
 }
 
-func (p LockProfilePic) GetShard() uint {
+func (p LockHeightProfilePic) GetShard() uint {
 	return client.GetByteShard(p.LockHash)
 }
 
-func (p LockProfilePic) GetTopic() string {
+func (p LockHeightProfilePic) GetTopic() string {
 	return db.TopicLockMemoProfilePic
 }
 
-func (p LockProfilePic) Serialize() []byte {
+func (p LockHeightProfilePic) Serialize() []byte {
 	return []byte(p.Pic)
 }
 
-func (p *LockProfilePic) SetUid(uid []byte) {
+func (p *LockHeightProfilePic) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
@@ -46,11 +46,11 @@ func (p *LockProfilePic) SetUid(uid []byte) {
 	p.TxHash = jutil.ByteReverse(uid[40:72])
 }
 
-func (p *LockProfilePic) Deserialize(data []byte) {
+func (p *LockHeightProfilePic) Deserialize(data []byte) {
 	p.Pic = string(data)
 }
 
-func GetLockProfilePic(ctx context.Context, lockHash []byte) (*LockProfilePic, error) {
+func GetLockHeightProfilePic(ctx context.Context, lockHash []byte) (*LockHeightProfilePic, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
@@ -64,12 +64,12 @@ func GetLockProfilePic(ctx context.Context, lockHash []byte) (*LockProfilePic, e
 	if len(dbClient.Messages) == 0 {
 		return nil, jerr.Get("error no lock memo profile pics found", client.EntryNotFoundError)
 	}
-	var lockProfilePic = new(LockProfilePic)
+	var lockProfilePic = new(LockHeightProfilePic)
 	db.Set(lockProfilePic, dbClient.Messages[0])
 	return lockProfilePic, nil
 }
 
-func RemoveLockProfilePic(lockProfilePic *LockProfilePic) error {
+func RemoveLockHeightProfilePic(lockProfilePic *LockHeightProfilePic) error {
 	shardConfig := config.GetShardConfig(db.GetShard32(lockProfilePic.GetShard()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.DeleteMessages(db.TopicLockMemoProfilePic, [][]byte{lockProfilePic.GetUid()}); err != nil {
@@ -78,7 +78,7 @@ func RemoveLockProfilePic(lockProfilePic *LockProfilePic) error {
 	return nil
 }
 
-func ListenLockProfilePics(ctx context.Context, lockHashes [][]byte) (chan *LockProfilePic, error) {
+func ListenLockHeightProfilePics(ctx context.Context, lockHashes [][]byte) (chan *LockHeightProfilePic, error) {
 	if len(lockHashes) == 0 {
 		return nil, nil
 	}
@@ -88,7 +88,7 @@ func ListenLockProfilePics(ctx context.Context, lockHashes [][]byte) (chan *Lock
 		shardLockHashes[shard] = append(shardLockHashes[shard], lockHash)
 	}
 	shardConfigs := config.GetQueueShards()
-	var lockProfilePicChan = make(chan *LockProfilePic)
+	var lockProfilePicChan = make(chan *LockHeightProfilePic)
 	cancelCtx := db.NewCancelContext(ctx, func() {
 		close(lockProfilePicChan)
 	})
@@ -101,7 +101,7 @@ func ListenLockProfilePics(ctx context.Context, lockHashes [][]byte) (chan *Lock
 		}
 		go func() {
 			for msg := range chanMessage {
-				var lockProfilePic = new(LockProfilePic)
+				var lockProfilePic = new(LockHeightProfilePic)
 				db.Set(lockProfilePic, *msg)
 				lockProfilePicChan <- lockProfilePic
 			}

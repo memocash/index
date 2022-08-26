@@ -24,7 +24,7 @@ var memoProfilePicHandler = &Handler{
 			return nil
 		}
 		var pic = jutil.GetUtf8String(info.PushData[1])
-		var lockMemoProfilePic = &dbMemo.LockProfilePic{
+		var lockMemoProfilePic = &dbMemo.LockHeightProfilePic{
 			LockHash: info.LockHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
@@ -35,7 +35,7 @@ var memoProfilePicHandler = &Handler{
 		}
 		if info.Height != item.HeightMempool {
 			lockMemoProfilePic.Height = item.HeightMempool
-			if err := dbMemo.RemoveLockProfilePic(lockMemoProfilePic); err != nil {
+			if err := dbMemo.RemoveLockHeightProfilePic(lockMemoProfilePic); err != nil {
 				return jerr.Get("error removing db lock memo profile pic", err)
 			}
 		}

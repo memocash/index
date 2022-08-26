@@ -34,13 +34,13 @@ var memoLikeHandler = &Handler{
 			}
 			return nil
 		}
-		var memoLike = &dbMemo.LockLike{
+		var memoLike = &dbMemo.LockHeightLike{
 			LockHash:   info.LockHash,
 			Height:     info.Height,
 			LikeTxHash: info.TxHash,
 			PostTxHash: postTxHash,
 		}
-		var memoLiked = &dbMemo.Liked{
+		var memoLiked = &dbMemo.PostHeightLike{
 			PostTxHash: postTxHash,
 			Height:     info.Height,
 			LikeTxHash: info.TxHash,
@@ -71,7 +71,7 @@ var memoLikeHandler = &Handler{
 		}
 		if info.Height != item.HeightMempool {
 			memoLike.Height = item.HeightMempool
-			if err := dbMemo.RemoveLockMemoLike(memoLike); err != nil {
+			if err := dbMemo.RemoveLockHeightLike(memoLike); err != nil {
 				return jerr.Get("error removing db memo like", err)
 			}
 		}

@@ -10,14 +10,14 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type Liked struct {
+type PostHeightLike struct {
 	PostTxHash []byte
 	Height     int64
 	LikeTxHash []byte
 	LockHash   []byte
 }
 
-func (l Liked) GetUid() []byte {
+func (l PostHeightLike) GetUid() []byte {
 	return jutil.CombineBytes(
 		jutil.ByteReverse(l.PostTxHash),
 		jutil.ByteFlip(jutil.GetInt64DataBig(l.Height)),
@@ -25,19 +25,19 @@ func (l Liked) GetUid() []byte {
 	)
 }
 
-func (l Liked) GetShard() uint {
+func (l PostHeightLike) GetShard() uint {
 	return client.GetByteShard(l.PostTxHash)
 }
 
-func (l Liked) GetTopic() string {
+func (l PostHeightLike) GetTopic() string {
 	return db.TopicMemoLiked
 }
 
-func (l Liked) Serialize() []byte {
+func (l PostHeightLike) Serialize() []byte {
 	return l.LockHash
 }
 
-func (l *Liked) SetUid(uid []byte) {
+func (l *PostHeightLike) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		panic("invalid uid size for memo liked")
 	}
@@ -46,20 +46,20 @@ func (l *Liked) SetUid(uid []byte) {
 	l.LikeTxHash = jutil.ByteReverse(uid[40:72])
 }
 
-func (l *Liked) Deserialize(data []byte) {
+func (l *PostHeightLike) Deserialize(data []byte) {
 	if len(data) != memo.LockHashLength {
 		panic("invalid data size for memo liked")
 	}
 	l.LockHash = data
 }
 
-func GetLikeds(postTxHashes [][]byte) ([]*Liked, error) {
+func GetPostHeightLikes(postTxHashes [][]byte) ([]*PostHeightLike, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, postTxHash := range postTxHashes {
 		shard := db.GetShardByte32(postTxHash)
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash))
 	}
-	var likeds []*Liked
+	var likeds []*PostHeightLike
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
@@ -67,7 +67,7 @@ func GetLikeds(postTxHashes [][]byte) ([]*Liked, error) {
 			return nil, jerr.Get("error getting client message memo likeds", err)
 		}
 		for _, msg := range dbClient.Messages {
-			var liked = new(Liked)
+			var liked = new(PostHeightLike)
 			db.Set(liked, msg)
 			likeds = append(likeds, liked)
 		}
@@ -75,7 +75,7 @@ func GetLikeds(postTxHashes [][]byte) ([]*Liked, error) {
 	return likeds, nil
 }
 
-func ListenLikeds(ctx context.Context, postTxHashes [][]byte) (chan *Liked, error) {
+func ListenPostHeightLikes(ctx context.Context, postTxHashes [][]byte) (chan *PostHeightLike, error) {
 	if len(postTxHashes) == 0 {
 		return nil, nil
 	}
@@ -85,7 +85,7 @@ func ListenLikeds(ctx context.Context, postTxHashes [][]byte) (chan *Liked, erro
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash))
 	}
 	shardConfigs := config.GetQueueShards()
-	var likedChan = make(chan *Liked)
+	var likedChan = make(chan *PostHeightLike)
 	cancelCtx := db.NewCancelContext(ctx, func() {
 		close(likedChan)
 	})
@@ -97,7 +97,7 @@ func ListenLikeds(ctx context.Context, postTxHashes [][]byte) (chan *Liked, erro
 		}
 		go func() {
 			for msg := range chanMessage {
-				var liked = new(Liked)
+				var liked = new(PostHeightLike)
 				db.Set(liked, *msg)
 				likedChan <- liked
 			}

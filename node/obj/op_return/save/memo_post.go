@@ -12,7 +12,7 @@ import (
 )
 
 func MemoPost(info parse.OpReturn, post string) error {
-	var lockMemoPost = &memo.LockPost{
+	var lockMemoPost = &memo.LockHeightPost{
 		LockHash: info.LockHash,
 		Height:   info.Height,
 		TxHash:   info.TxHash,
@@ -29,14 +29,14 @@ func MemoPost(info parse.OpReturn, post string) error {
 			Post:     post,
 		}
 		objects = append(objects, memoPost)
-		memoLikeds, err := memo.GetLikeds([][]byte{info.TxHash})
+		memoPostLikes, err := memo.GetPostHeightLikes([][]byte{info.TxHash})
 		if err != nil {
 			return jerr.Get("error getting memo likeds for post op return handler", err)
 		}
 		var likeTxHashes [][]byte
-		for _, memoLiked := range memoLikeds {
-			if !bytes.Equal(memoLiked.LockHash, memoPost.LockHash) {
-				likeTxHashes = append(likeTxHashes, memoLiked.LikeTxHash)
+		for _, memoPostLike := range memoPostLikes {
+			if !bytes.Equal(memoPostLike.LockHash, memoPost.LockHash) {
+				likeTxHashes = append(likeTxHashes, memoPostLike.LikeTxHash)
 			}
 		}
 		likeTxOuts, err := item.GetTxOutputsByHashes(likeTxHashes)
@@ -67,7 +67,7 @@ func MemoPost(info parse.OpReturn, post string) error {
 	}
 	if info.Height != item.HeightMempool {
 		lockMemoPost.Height = item.HeightMempool
-		if err := memo.RemoveLockPost(lockMemoPost); err != nil {
+		if err := memo.RemoveLockHeightPost(lockMemoPost); err != nil {
 			return jerr.Get("error removing db memo post", err)
 		}
 	}

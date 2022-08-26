@@ -28,7 +28,7 @@ func (c *CheckFollows) Check() error {
 			}
 			for _, msg := range dbClient.Messages {
 				c.Processed++
-				var lockMemoFollow = new(memo.LockFollow)
+				var lockMemoFollow = new(memo.LockHeightFollow)
 				db.Set(lockMemoFollow, msg)
 				startUid = lockMemoFollow.GetUid()
 				if len(lockMemoFollow.Follow) == 0 {
@@ -36,17 +36,17 @@ func (c *CheckFollows) Check() error {
 					if !c.Delete {
 						continue
 					}
-					if err := memo.RemoveLockFollow(lockMemoFollow); err != nil {
+					if err := memo.RemoveLockHeightFollow(lockMemoFollow); err != nil {
 						return jerr.Get("error removing lock memo follow", err)
 					}
-					var lockMemoFollowed = &memo.LockFollowed{
+					var lockMemoFollowed = &memo.LockHeightFollowed{
 						FollowLockHash: lockMemoFollow.Follow,
 						Height:         lockMemoFollow.Height,
 						TxHash:         lockMemoFollow.TxHash,
 						LockHash:       lockMemoFollow.LockHash,
 						Unfollow:       lockMemoFollow.Unfollow,
 					}
-					if err := memo.RemoveLockFollowed(lockMemoFollowed); err != nil {
+					if err := memo.RemoveLockHeightFollowed(lockMemoFollowed); err != nil {
 						return jerr.Get("error removing lock memo followed", err)
 					}
 				}

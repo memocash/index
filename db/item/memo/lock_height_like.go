@@ -9,14 +9,14 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
-type LockLike struct {
+type LockHeightLike struct {
 	LockHash   []byte
 	Height     int64
 	LikeTxHash []byte
 	PostTxHash []byte
 }
 
-func (l LockLike) GetUid() []byte {
+func (l LockHeightLike) GetUid() []byte {
 	return jutil.CombineBytes(
 		l.LockHash,
 		jutil.ByteFlip(jutil.GetInt64DataBig(l.Height)),
@@ -24,19 +24,19 @@ func (l LockLike) GetUid() []byte {
 	)
 }
 
-func (l LockLike) GetShard() uint {
+func (l LockHeightLike) GetShard() uint {
 	return client.GetByteShard(l.LockHash)
 }
 
-func (l LockLike) GetTopic() string {
+func (l LockHeightLike) GetTopic() string {
 	return db.TopicLockMemoLike
 }
 
-func (l LockLike) Serialize() []byte {
+func (l LockHeightLike) Serialize() []byte {
 	return l.PostTxHash
 }
 
-func (l *LockLike) SetUid(uid []byte) {
+func (l *LockHeightLike) SetUid(uid []byte) {
 	if len(uid) != memo.LockHashLength+memo.Int8Size+memo.TxHashLength {
 		panic("invalid uid size for memo like")
 	}
@@ -45,14 +45,14 @@ func (l *LockLike) SetUid(uid []byte) {
 	l.LikeTxHash = jutil.ByteReverse(uid[40:72])
 }
 
-func (l *LockLike) Deserialize(data []byte) {
+func (l *LockHeightLike) Deserialize(data []byte) {
 	if len(data) != memo.TxHashLength {
 		panic("invalid data size for memo like")
 	}
 	l.PostTxHash = data
 }
 
-func RemoveLockMemoLike(lockLike *LockLike) error {
+func RemoveLockHeightLike(lockLike *LockHeightLike) error {
 	shardConfig := config.GetShardConfig(db.GetShard32(lockLike.GetShard()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.DeleteMessages(db.TopicLockMemoLike, [][]byte{lockLike.GetUid()}); err != nil {
