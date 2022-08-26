@@ -16,19 +16,19 @@ type LockBalance struct {
 	Spends    int
 }
 
-func (b LockBalance) GetUid() []byte {
+func (b *LockBalance) GetUid() []byte {
 	return b.LockHash
 }
 
-func (b LockBalance) GetShard() uint {
+func (b *LockBalance) GetShard() uint {
 	return client.GetByteShard(b.LockHash)
 }
 
-func (b LockBalance) GetTopic() string {
+func (b *LockBalance) GetTopic() string {
 	return db.TopicLockBalance
 }
 
-func (b LockBalance) Serialize() []byte {
+func (b *LockBalance) Serialize() []byte {
 	return jutil.CombineBytes(
 		jutil.GetInt64Data(b.Balance),
 		jutil.GetInt64Data(b.Spendable),

@@ -15,19 +15,19 @@ type BlockTx struct {
 	BlockHash []byte
 }
 
-func (b BlockTx) GetUid() []byte {
+func (b *BlockTx) GetUid() []byte {
 	return GetBlockTxUid(b.BlockHash, b.TxHash)
 }
 
-func (b BlockTx) GetShard() uint {
+func (b *BlockTx) GetShard() uint {
 	return client.GetByteShard(b.BlockHash)
 }
 
-func (b BlockTx) GetTopic() string {
+func (b *BlockTx) GetTopic() string {
 	return db.TopicBlockTx
 }
 
-func (b BlockTx) Serialize() []byte {
+func (b *BlockTx) Serialize() []byte {
 	return nil
 }
 

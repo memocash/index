@@ -19,7 +19,7 @@ type Client struct {
 	Topics   []Topic
 }
 
-func (s Client) GetLast() string {
+func (s *Client) GetLast() string {
 	if len(s.Messages) == 0 {
 		return ""
 	}
