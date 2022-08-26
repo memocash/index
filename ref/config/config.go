@@ -178,7 +178,7 @@ func GetOpenFilesCacheCapacity() int {
 }
 
 func GetCompactionDataSize() int {
-	return _config.OpenFilesCacheCapacity
+	return _config.CompactionDataSize
 }
 
 func GetHost(port uint) string {
