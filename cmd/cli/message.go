@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/network/network_client"
 	"github.com/spf13/cobra"
 )
@@ -13,7 +14,13 @@ var outputMessageCmd = &cobra.Command{
 		if len(args) == 0 {
 			jerr.New("fatal error must specify a message").Fatal()
 		}
+		network_client.SetConfig(config.RpcConfig{
+			Host: config.Localhost,
+			Port: config.GetServerPort(),
+		})
 		messenger := network_client.NewOutputMessenger()
-		messenger.Output(args[0])
+		if err := messenger.Output(args[0]); err != nil {
+			jerr.Get("error outputting message", err).Fatal()
+		}
 	},
 }
