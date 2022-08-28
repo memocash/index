@@ -30,6 +30,7 @@ service Network {
     rpc GetUtxos (UtxosRequest) returns (UtxosResponse);
     rpc GetOutputInputs (OutputInputsRequest) returns (OutputInputsResponse);
     rpc ListenTx (TxRequest) returns (ListenTxReply);
+    rpc OutputMessage (StringMessage) returns (ErrorReply);
 }
 
 message Address {
@@ -44,6 +45,10 @@ message BalanceReply {
     int32 txs = 5;
     int32 outputs = 6;
     int32 spends = 7;
+}
+
+message StringMessage {
+    string message = 1;
 }
 
 message ErrorReply {

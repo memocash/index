@@ -35,6 +35,7 @@ type NetworkClient interface {
 	GetUtxos(ctx context.Context, in *UtxosRequest, opts ...grpc.CallOption) (*UtxosResponse, error)
 	GetOutputInputs(ctx context.Context, in *OutputInputsRequest, opts ...grpc.CallOption) (*OutputInputsResponse, error)
 	ListenTx(ctx context.Context, in *TxRequest, opts ...grpc.CallOption) (*ListenTxReply, error)
+	OutputMessage(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (*ErrorReply, error)
 }
 
 type networkClient struct {
@@ -198,6 +199,15 @@ func (c *networkClient) ListenTx(ctx context.Context, in *TxRequest, opts ...grp
 	return out, nil
 }
 
+func (c *networkClient) OutputMessage(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (*ErrorReply, error) {
+	out := new(ErrorReply)
+	err := c.cc.Invoke(ctx, "/network_pb.Network/OutputMessage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NetworkServer is the server API for Network service.
 // All implementations must embed UnimplementedNetworkServer
 // for forward compatibility
@@ -219,6 +229,7 @@ type NetworkServer interface {
 	GetUtxos(context.Context, *UtxosRequest) (*UtxosResponse, error)
 	GetOutputInputs(context.Context, *OutputInputsRequest) (*OutputInputsResponse, error)
 	ListenTx(context.Context, *TxRequest) (*ListenTxReply, error)
+	OutputMessage(context.Context, *StringMessage) (*ErrorReply, error)
 	mustEmbedUnimplementedNetworkServer()
 }
 
@@ -276,6 +287,9 @@ func (UnimplementedNetworkServer) GetOutputInputs(context.Context, *OutputInputs
 }
 func (UnimplementedNetworkServer) ListenTx(context.Context, *TxRequest) (*ListenTxReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListenTx not implemented")
+}
+func (UnimplementedNetworkServer) OutputMessage(context.Context, *StringMessage) (*ErrorReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OutputMessage not implemented")
 }
 func (UnimplementedNetworkServer) mustEmbedUnimplementedNetworkServer() {}
 
@@ -596,6 +610,24 @@ func _Network_ListenTx_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Network_OutputMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StringMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServer).OutputMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/network_pb.Network/OutputMessage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServer).OutputMessage(ctx, req.(*StringMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Network_ServiceDesc is the grpc.ServiceDesc for Network service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -670,6 +702,10 @@ var Network_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListenTx",
 			Handler:    _Network_ListenTx_Handler,
+		},
+		{
+			MethodName: "OutputMessage",
+			Handler:    _Network_OutputMessage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

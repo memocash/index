@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/act/balance"
@@ -30,6 +31,11 @@ type Server struct {
 	network_pb.UnimplementedNetworkServer
 	Verbose bool
 	Port    int
+}
+
+func (s *Server) OutputMessage(_ context.Context, stringMessage *network_pb.StringMessage) (*network_pb.ErrorReply, error) {
+	jlog.Logf("OutputMessage: %s\n", stringMessage.Message)
+	return &network_pb.ErrorReply{}, nil
 }
 
 func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.SaveTxsReply, error) {
