@@ -12,15 +12,17 @@ import (
 )
 
 type Lead struct {
-	Port    int
-	Error   chan error
-	Mutex   sync.Mutex
-	Clients map[int]*Client
-	Counter Counter
+	Port       int
+	ShardError chan ShardError
+	Error      chan error
+	Mutex      sync.Mutex
+	Clients    map[int]*Client
+	Counter    Counter
 }
 
 func (l *Lead) Run() error {
 	l.Error = make(chan error)
+	l.ShardError = make(chan ShardError)
 	l.Clients = make(map[int]*Client)
 	clusterShards := config.GetClusterShards()
 	for _, clusterShard := range clusterShards {
@@ -28,9 +30,30 @@ func (l *Lead) Run() error {
 		if err != nil {
 			return jerr.Get("error did not connect cluster client", err)
 		}
-		l.Clients[clusterShard.Int()] = &Client{Client: cluster_pb.NewClusterClient(conn)}
+		l.Clients[clusterShard.Int()] = &Client{
+			Config: clusterShard,
+			Client: cluster_pb.NewClusterClient(conn)}
 		go l.StartClient(clusterShard)
 	}
+	go func() {
+		for {
+			select {
+			case shardError := <-l.ShardError:
+				if jerr.HasErrorPart(shardError.Error, "connection refused") {
+					jlog.Logf("Shard %d disconnected, waiting for reconnect...\n", shardError.Shard)
+					l.Counter.Stop()
+					l.Clients[shardError.Shard].Connected = false
+					for _, client := range l.Clients {
+						if client.Config.Int() == shardError.Shard {
+							go l.StartClient(client.Config)
+						}
+					}
+					continue
+				}
+				l.Error <- jerr.Get("error unhandled from shard", shardError.Error)
+			}
+		}
+	}()
 	return jerr.Get("error running lead", <-l.Error)
 }
 
@@ -41,7 +64,7 @@ func (l *Lead) CheckAllConnected() {
 		}
 	}
 	jlog.Logf("All shards connected!\n")
-	l.Counter.Start()
+	l.Counter.Start(l.Clients, l.ShardError)
 }
 
 func (l *Lead) StartClient(cfg config.Shard) {
