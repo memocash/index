@@ -30,7 +30,7 @@ var populateHeightBlockShardCmd = &cobra.Command{
 					newHeightBlockShards = append(newHeightBlockShards, &item.HeightBlockShard{
 						Height:    heightBlock.Height,
 						BlockHash: heightBlock.BlockHash,
-						Shard:     uint(shardConfig.Min),
+						Shard:     uint(shardConfig.Shard),
 					})
 				}
 			}

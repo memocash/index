@@ -142,7 +142,7 @@ func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32, n
 	shardConfigs := config.GetQueueShards()
 	shardLimit := limit / uint32(len(shardConfigs))
 	for _, shardConfig := range shardConfigs {
-		if waitSingle && db.GetShard32(uint(startHeight)) != shardConfig.Min {
+		if waitSingle && db.GetShard32(uint(startHeight)) != shardConfig.Shard {
 			continue
 		}
 		dbClient := client.NewClient(shardConfig.GetHost())

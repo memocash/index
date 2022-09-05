@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package cluster_pb;
+
+option go_package = "github.com/memocash/index/ref/cluster/proto/cluster_pb";
+
+service Cluster {
+  rpc Ping (PingReq) returns (PingResp);
+}
+
+message PingReq {
+  uint64 nonce = 1;
+}
+
+message PingResp {
+  uint64 nonce = 1;
+}

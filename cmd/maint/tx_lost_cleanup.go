@@ -27,7 +27,7 @@ var txLostCleanupCmd = &cobra.Command{
 		for _, shard := range config.GetQueueShards() {
 			var lastUid []byte
 			for {
-				txLosts, err := item.GetAllTxLosts(shard.Min, lastUid)
+				txLosts, err := item.GetAllTxLosts(shard.Shard, lastUid)
 				if err != nil {
 					jerr.Get("fatal error getting all tx losts for cleanup", err).Fatal()
 				}

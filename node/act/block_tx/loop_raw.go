@@ -17,7 +17,7 @@ func (l *LoopRaw) Process(blockHash []byte) error {
 		var startTxHash []byte
 		for {
 			blockTxes, err := item.GetBlockTxesRaw(item.BlockTxesRawRequest{
-				Shard:       shard.Min,
+				Shard:       shard.Shard,
 				BlockHash:   blockHash,
 				StartTxHash: startTxHash,
 				Limit:       limit,

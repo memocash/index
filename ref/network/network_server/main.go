@@ -156,7 +156,7 @@ func (s *Server) GetBlockTxs(_ context.Context, req *network_pb.BlockTxRequest) 
 	var blockTxs []*network_pb.BlockTx
 	for _, shard := range config.GetQueueShards() {
 		blockTxsRaw, err := item.GetBlockTxesRaw(item.BlockTxesRawRequest{
-			Shard:       shard.Min,
+			Shard:       shard.Shard,
 			BlockHash:   req.Block,
 			StartTxHash: req.Start,
 			Limit:       client.LargeLimit,
@@ -248,7 +248,7 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 func (s *Server) GetBlockInfos(_ context.Context, req *network_pb.BlockRequest) (*network_pb.BlockInfoReply, error) {
 	var heightBlocks []*item.HeightBlock
 	for _, shardConfig := range config.GetQueueShards() {
-		shardHeightBlocks, err := item.GetHeightBlocks(shardConfig.Min, req.GetHeight(), req.Newest)
+		shardHeightBlocks, err := item.GetHeightBlocks(shardConfig.Shard, req.GetHeight(), req.Newest)
 		if err != nil {
 			return nil, jerr.Get("error getting height block raws", err)
 		}

@@ -134,13 +134,13 @@ func (t *Block) ProcessBlock(heightBlock *HeightBlock) error {
 	}
 	var txCount int
 	for _, shard := range config.GetQueueShards() {
-		if t.Shard != status.NoShard && int(shard.Min) != t.Shard {
+		if t.Shard != status.NoShard && int(shard.Shard) != t.Shard {
 			continue
 		}
 		var lastTxHashReverse []byte
 		for {
 			blockTxesRaw, err := item.GetBlockTxesRaw(item.BlockTxesRawRequest{
-				Shard:       shard.Min,
+				Shard:       shard.Shard,
 				BlockHash:   heightBlock.BlockHash,
 				StartTxHash: jutil.ByteReverse(lastTxHashReverse),
 				Limit:       BlockProcessLimit,

@@ -11,19 +11,22 @@ const (
 )
 
 type Shard struct {
-	Min   uint32 `mapstructure:"MIN"`
-	Max   uint32 `mapstructure:"MAX"`
+	Shard uint32 `mapstructure:"SHARD"`
 	Total uint32 `mapstructure:"TOTAL"`
 	Host  string `mapstructure:"HOST"`
 	Port  int    `mapstructure:"PORT"`
 }
 
 func (s Shard) String() string {
-	return db_util.GetShardString(uint(s.Min), uint(s.Total))
+	return db_util.GetShardString(uint(s.Shard), uint(s.Total))
 }
 
 func (s Shard) GetHost() string {
 	return s.Host + ":" + strconv.Itoa(s.Port)
+}
+
+func (s Shard) Int() int {
+	return int(s.Shard)
 }
 
 func GetShardConfig(shard uint32, configs []Shard) Shard {
@@ -31,7 +34,7 @@ func GetShardConfig(shard uint32, configs []Shard) Shard {
 		shard = shard % configs[0].Total
 	}
 	for _, config := range configs {
-		if config.Min <= shard && shard <= config.Max {
+		if config.Shard == shard {
 			return config
 		}
 	}

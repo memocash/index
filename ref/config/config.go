@@ -15,8 +15,10 @@ const (
 	Localhost            = "127.0.0.1"
 	DefaultBroadcastPort = 26769
 	DefaultAdminPort     = 26770
-	DefaultShard0Port    = 26780
-	DefaultShard1Port    = 26781
+	DefaultQueue0Port    = 26780
+	DefaultQueue1Port    = 26781
+	DefaultShard0Port    = 26790
+	DefaultShard1Port    = 26791
 	DefaultServerPort    = 19021
 
 	DefaultInitBlock       = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
@@ -52,6 +54,8 @@ type Config struct {
 	OpenFilesCacheCapacity int    `mapstructure:"OPEN_FILES_CACHE_CAPACITY"` // In MB
 	CompactionDataSize     int    `mapstructure:"COMPACTION_DATA_SIZE"`
 
+	ClusterShards []Shard `mapstructure:"CLUSTER_SHARDS"`
+
 	ProcessLimit struct {
 		Utxos int `mapstructure:"UTXOS"`
 	} `mapstructure:"PROCESS_LIMIT"`
@@ -71,14 +75,23 @@ var DefaultConfig = Config{
 	BroadcastPort:   DefaultBroadcastPort,
 	DataDir:         DefaultDataDir,
 	QueueShards: []Shard{{
-		Min:   0,
-		Max:   0,
+		Shard: 0,
+		Total: 2,
+		Host:  Localhost,
+		Port:  DefaultQueue0Port,
+	}, {
+		Shard: 1,
+		Total: 2,
+		Host:  Localhost,
+		Port:  DefaultQueue1Port,
+	}},
+	ClusterShards: []Shard{{
+		Shard: 0,
 		Total: 2,
 		Host:  Localhost,
 		Port:  DefaultShard0Port,
 	}, {
-		Min:   1,
-		Max:   1,
+		Shard: 1,
 		Total: 2,
 		Host:  Localhost,
 		Port:  DefaultShard1Port,
@@ -112,6 +125,9 @@ func Init(cmd *cobra.Command) error {
 	if err := viper.Unmarshal(&_config); err != nil {
 		return jerr.Get("error unmarshalling config", err)
 	}
+	if len(_config.ClusterShards) != len(_config.QueueShards) {
+		return jerr.Newf("error config cluster shards and queue shards must be the same length")
+	}
 	return nil
 }
 
@@ -137,6 +153,10 @@ func GetBlocksToConfirm() uint {
 
 func GetQueueShards() []Shard {
 	return _config.QueueShards
+}
+
+func GetClusterShards() []Shard {
+	return _config.ClusterShards
 }
 
 func GetTotalShards() uint32 {

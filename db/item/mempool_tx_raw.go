@@ -110,7 +110,7 @@ func GetMempoolTxs(startTx []byte, limit uint32) ([]*MempoolTxRaw, error) {
 		limit = client.LargeLimit
 	}
 	var txs []*MempoolTxRaw
-	for shard := startShardConfig.Min; shard < startShardConfig.Total; shard++ {
+	for shard := startShardConfig.Shard; shard < startShardConfig.Total; shard++ {
 		shardConfig := config.GetShardConfig(shard, configQueueShards)
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetWOpts(client.Opts{
