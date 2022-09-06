@@ -6,6 +6,7 @@ option go_package = "github.com/memocash/index/ref/cluster/proto/cluster_pb";
 
 service Cluster {
   rpc Ping (PingReq) returns (PingResp);
+  rpc Process (ProcessReq) returns (ProcessResp);
 }
 
 message PingReq {
@@ -14,4 +15,11 @@ message PingReq {
 
 message PingResp {
   uint64 nonce = 1;
+}
+
+message ProcessReq {
+  bytes block = 1;
+}
+
+message ProcessResp {
 }
