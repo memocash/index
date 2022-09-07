@@ -39,7 +39,8 @@ func (l *Lead) Run() error {
 		for {
 			select {
 			case shardError := <-l.ShardError:
-				if jerr.HasErrorPart(shardError.Error, "connection refused") {
+				if jerr.HasErrorPart(shardError.Error, "connection refused") || // Dead connection
+					jerr.HasErrorPart(shardError.Error, "error reading from server: EOF") { // Died in middle of request
 					jlog.Logf("Shard %d disconnected, waiting for reconnect...\n", shardError.Shard)
 					l.Counter.Stop()
 					l.Clients[shardError.Shard].Connected = false

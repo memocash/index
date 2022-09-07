@@ -43,6 +43,13 @@ func (s *Shard) Ping(ctx context.Context, req *cluster_pb.PingReq) (*cluster_pb.
 	}, nil
 }
 
+func (s *Shard) Process(ctx context.Context, req *cluster_pb.ProcessReq) (*cluster_pb.ProcessResp, error) {
+	jlog.Logf("received process, block: %x\n", req.Block)
+	time.Sleep(time.Second * 5)
+	jlog.Logf("finished processing, block: %x\n", req.Block)
+	return &cluster_pb.ProcessResp{}, nil
+}
+
 func NewShard(shardId int) *Shard {
 	return &Shard{
 		Id: shardId,
