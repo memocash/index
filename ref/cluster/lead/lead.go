@@ -17,7 +17,7 @@ type Lead struct {
 	Error      chan error
 	Mutex      sync.Mutex
 	Clients    map[int]*Client
-	Counter    Counter
+	Processor  *Processor
 }
 
 func (l *Lead) Run() error {
@@ -35,6 +35,7 @@ func (l *Lead) Run() error {
 			Client: cluster_pb.NewClusterClient(conn)}
 		go l.StartClient(clusterShard)
 	}
+	l.Processor = NewProcessor(l.Clients, l.ShardError)
 	go func() {
 		for {
 			select {
@@ -42,7 +43,7 @@ func (l *Lead) Run() error {
 				if jerr.HasErrorPart(shardError.Error, "connection refused") || // Dead connection
 					jerr.HasErrorPart(shardError.Error, "error reading from server: EOF") { // Died in middle of request
 					jlog.Logf("Shard %d disconnected, waiting for reconnect...\n", shardError.Shard)
-					l.Counter.Stop()
+					l.Processor.Stop()
 					l.Clients[shardError.Shard].Connected = false
 					for _, client := range l.Clients {
 						if client.Config.Int() == shardError.Shard {
@@ -65,7 +66,7 @@ func (l *Lead) CheckAllConnected() {
 		}
 	}
 	jlog.Logf("All shards connected!\n")
-	l.Counter.Start(l.Clients, l.ShardError)
+	l.Processor.Start()
 }
 
 func (l *Lead) StartClient(cfg config.Shard) {
