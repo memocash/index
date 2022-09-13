@@ -74,6 +74,10 @@ func (p *Peer) Connect() error {
 	return nil
 }
 
+func (p *Peer) Disconnect() {
+	p.peer.Disconnect()
+}
+
 func (p *Peer) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 	if p.BlockSave == nil {
 		if p.TxSave == nil {
@@ -268,7 +272,7 @@ func (p *Peer) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
 func (p *Peer) BroadcastTx(ctx context.Context, msgTx *wire.MsgTx) error {
 	var done = make(chan struct{})
 	p.peer.QueueMessage(msgTx, done)
-	ctx, cancel := context.WithTimeout(ctx, 10 * time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	select {
 	case <-done:
