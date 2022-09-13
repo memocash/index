@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
+	"github.com/memocash/index/db/server"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
 	"github.com/memocash/index/ref/config"
 	"google.golang.org/grpc"
@@ -30,9 +31,18 @@ func (s *Shard) Run() error {
 	s.grpc = grpc.NewServer()
 	cluster_pb.RegisterClusterServer(s.grpc, s)
 	reflection.Register(s.grpc)
-	if err := s.grpc.Serve(s.listener); err != nil {
-		return jerr.Get("failed to serve broadcast", err)
+	go func() {
+		s.Error <- jerr.Get("failed to serve cluster shard", s.grpc.Serve(s.listener))
+	}()
+	queueShards := config.GetQueueShards()
+	if len(queueShards) < s.Id {
+		return jerr.Newf("fatal error shard specified greater than num queue shards: %d %d", s.Id, len(queueShards))
 	}
+	queueServer := server.NewServer(uint(queueShards[s.Id].Port), uint(s.Id))
+	go func() {
+		jlog.Logf("Starting queue server shard %d on port %d...\n", queueServer.Shard, queueServer.Port)
+		s.Error <- jerr.Getf(queueServer.Run(), "error running queue server for shard: %d", s.Id)
+	}()
 	return <-s.Error
 }
 
