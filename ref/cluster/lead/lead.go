@@ -86,8 +86,8 @@ func (l *Lead) StartClient(cfg config.Shard) {
 		l.CheckAllConnected()
 		break
 	Continue:
-		if i%40 == 0 {
-			// Every 10 seconds, depending on timeouts
+		if i == 0 {
+			// Only first time
 			jlog.Logf("Waiting for shard %d to start...\n", cfg.Int())
 		}
 		time.Sleep(250 * time.Millisecond)

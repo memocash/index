@@ -41,7 +41,7 @@ func (p *Processor) Start() {
 	}()
 }
 
-func (p *Processor) Process(block *wire.BlockHeader) bool {
+func (p *Processor) Process(block *wire.MsgBlock) bool {
 	if !p.On {
 		return false
 	}
@@ -65,7 +65,7 @@ func (p *Processor) Process(block *wire.BlockHeader) bool {
 	}
 	wg.Wait()
 	if !hadError {
-		jlog.Logf("Processed block: %s %s\n", blockHash, block.Timestamp)
+		jlog.Logf("Processed block: %s %s\n", blockHash, block.Header.Timestamp)
 	}
 	return true
 }
