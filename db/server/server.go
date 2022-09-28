@@ -131,7 +131,7 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 			messages, err = store.GetMessages(request.Topic, s.Shard, request.Prefixes, request.Start, int(request.Max),
 				request.Newest)
 			if err != nil {
-				return nil, jerr.Getf(err, "error getting messages for topic: %s", request.Topic)
+				return nil, jerr.Getf(err, "error getting messages for topic: %s (shard %d)", request.Topic, s.Shard)
 			}
 			if len(messages) == 0 && request.Wait && i == 0 {
 				if err := ListenSingle(ctx, s.Shard, request.Topic, request.Start, request.Prefixes); err != nil {

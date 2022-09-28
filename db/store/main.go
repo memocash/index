@@ -44,7 +44,7 @@ func getDb(topic string, shard uint) (*leveldb.DB, error) {
 			WriteBuffer:            compactionDataSize * 2 * opt.MiB,
 		})
 		if err != nil {
-			return nil, jerr.Get("error opening level db", err)
+			return nil, jerr.Getf(err, "error opening level db: %s", filename)
 		}
 		conns[connId] = db
 	}

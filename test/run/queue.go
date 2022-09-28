@@ -15,7 +15,7 @@ type Queue struct {
 
 func (q *Queue) Start() error {
 	q.Server = server.NewServer(q.Port, q.Shard)
-	jlog.Logf("Starting queue server on port: %d\n", q.Port)
+	jlog.Logf("Starting queue server shard %d on port: %d\n", q.Shard, q.Port)
 	go func() {
 		if err := q.Server.Run(); !q.Server.Stopped {
 			q.Error = jerr.Get("error queue server ended", err)
