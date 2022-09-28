@@ -40,7 +40,6 @@ func (s *DoubleSpend) Init(wallet *build.Wallet) error {
 		saver.NewDoubleSpend(false),
 	})
 	s.BlockSaver = saver.BlockSaver(false)
-
 	fundingTx, err := test_tx.GetFundingTx(wallet.Address, FundingValue)
 	if err != nil {
 		return jerr.Get("error getting funding tx for address", err)
@@ -158,7 +157,7 @@ func (s *DoubleSpend) CheckSuspects(checkSuspects []TxSuspect) error {
 	if err != nil {
 		return jerr.Get("error getting tx suspects for double spend check", err)
 	}
-	for _, checkSuspect := range checkSuspects {
+	for i, checkSuspect := range checkSuspects {
 		var txSuspectFound bool
 		for _, txSuspect := range txSuspects {
 			if bytes.Equal(txSuspect.TxHash, checkSuspect.Tx) {
@@ -167,8 +166,8 @@ func (s *DoubleSpend) CheckSuspects(checkSuspects []TxSuspect) error {
 			}
 		}
 		if checkSuspect.Expected != txSuspectFound {
-			return jerr.Newf("error check suspect expected does not match actual: %s %t %t",
-				hs.GetTxString(checkSuspect.Tx), checkSuspect.Expected, txSuspectFound)
+			return jerr.Newf("error check suspect expected does not match actual: %d %s %t %t",
+				i, hs.GetTxString(checkSuspect.Tx), checkSuspect.Expected, txSuspectFound)
 		}
 	}
 	return nil
