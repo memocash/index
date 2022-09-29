@@ -17,6 +17,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_block"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 )
 
@@ -28,8 +29,11 @@ const (
 
 type DoubleSpend struct {
 	TxSaver         dbi.TxSave
+	DelayedTxSaver  dbi.TxSave
+	DelayAmount     int
 	BlockSaver      dbi.BlockSave
 	FundingPkScript []byte
+	OldBlocks       []*wire.MsgBlock
 }
 
 func (s *DoubleSpend) Init(wallet *build.Wallet) error {
@@ -39,6 +43,10 @@ func (s *DoubleSpend) Init(wallet *build.Wallet) error {
 		saver.NewUtxo(false),
 		saver.NewDoubleSpend(false),
 	})
+	s.DelayedTxSaver = saver.NewCombined([]dbi.TxSave{
+		saver.NewClearSuspect(),
+	})
+	s.DelayAmount = int(config.GetBlocksToConfirm())
 	s.BlockSaver = saver.BlockSaver(false)
 	fundingTx, err := test_tx.GetFundingTx(wallet.Address, FundingValue)
 	if err != nil {
@@ -102,6 +110,12 @@ func (s *DoubleSpend) SaveBlock(txs []*memo.Tx) error {
 	if err := s.TxSaver.SaveTxs(block); err != nil {
 		return jerr.Get("error adding txs block to network", err)
 	}
+	if len(s.OldBlocks) > s.DelayAmount {
+		if err := s.DelayedTxSaver.SaveTxs(s.OldBlocks[len(s.OldBlocks)-s.DelayAmount-1]); err != nil {
+			return jerr.Get("error adding delayed txs block to network", err)
+		}
+	}
+	s.OldBlocks = append(s.OldBlocks, block)
 	return nil
 }
 
