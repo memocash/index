@@ -18,7 +18,13 @@ export GOVCS='*:bzr|git'; build
 ```
 
 ### Open ports
-Ensure your firewall allows incoming TCPv4 traffic on ports: 8333 19021 26780 26781
+Ensure your firewall allows incoming TCPv4 traffic on port 26770. This is the port used by the app.
+
+Other ports of note which do not require firewall ingress:
+
+* 8333 outbound to BCH node
+* 19021 optional RPC port
+* 26780/26781 are internal shards ports
 
 ### Run server
 ```bash
