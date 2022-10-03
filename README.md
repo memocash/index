@@ -9,7 +9,7 @@ dnf install -y golang,bzr
 ```bash
 git clone git@github.com:memocash/index.git
 cd index
-export GOVCS='*:bzr|git'; build
+export GOVCS='*:bzr|git'; go build
 ```
 
 ### Generate some test data
@@ -28,5 +28,5 @@ Other ports of note which do not require firewall ingress:
 
 ### Run server
 ```bash
-./index serve all 
+./index serve all
 ```
