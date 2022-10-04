@@ -41,6 +41,7 @@ func (s *DoubleSpend) Init(wallet *build.Wallet) error {
 		saver.NewTxRaw(false),
 		saver.NewTx(false),
 		saver.NewUtxo(false),
+		saver.NewLockHeight(false),
 		saver.NewDoubleSpend(false),
 	})
 	s.DelayedTxSaver = saver.NewCombined([]dbi.TxSave{
