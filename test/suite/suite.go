@@ -24,11 +24,15 @@ func (s *Suite) Start() error {
 	if err := s.ClearData(); err != nil {
 		return jerr.Get("error clearing data when starting suite", err)
 	}
-	s.Queue0 = run.NewQueue(config.DefaultQueue0Port, 0)
+	shards := config.GetQueueShards()
+	if len(shards) != 2 {
+		return jerr.Newf("expected 2 shards, got %d", len(shards))
+	}
+	s.Queue0 = run.NewQueue(uint(shards[0].Port), 0)
 	if err := s.Queue0.Start(); err != nil {
 		return jerr.Get("error starting queue 0 server", err)
 	}
-	s.Queue1 = run.NewQueue(config.DefaultQueue1Port, 1)
+	s.Queue1 = run.NewQueue(uint(shards[1].Port), 1)
 	if err := s.Queue1.Start(); err != nil {
 		return jerr.Get("error starting queue 1 server", err)
 	}

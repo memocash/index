@@ -17,6 +17,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_block"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 )
 
@@ -28,8 +29,11 @@ const (
 
 type DoubleSpend struct {
 	TxSaver         dbi.TxSave
+	DelayedTxSaver  dbi.TxSave
+	DelayAmount     int
 	BlockSaver      dbi.BlockSave
 	FundingPkScript []byte
+	OldBlocks       []*wire.MsgBlock
 }
 
 func (s *DoubleSpend) Init(wallet *build.Wallet) error {
@@ -37,10 +41,14 @@ func (s *DoubleSpend) Init(wallet *build.Wallet) error {
 		saver.NewTxRaw(false),
 		saver.NewTx(false),
 		saver.NewUtxo(false),
+		saver.NewLockHeight(false),
 		saver.NewDoubleSpend(false),
 	})
+	s.DelayedTxSaver = saver.NewCombined([]dbi.TxSave{
+		saver.NewClearSuspect(),
+	})
+	s.DelayAmount = int(config.GetBlocksToConfirm())
 	s.BlockSaver = saver.BlockSaver(false)
-
 	fundingTx, err := test_tx.GetFundingTx(wallet.Address, FundingValue)
 	if err != nil {
 		return jerr.Get("error getting funding tx for address", err)
@@ -103,6 +111,12 @@ func (s *DoubleSpend) SaveBlock(txs []*memo.Tx) error {
 	if err := s.TxSaver.SaveTxs(block); err != nil {
 		return jerr.Get("error adding txs block to network", err)
 	}
+	if len(s.OldBlocks) > s.DelayAmount {
+		if err := s.DelayedTxSaver.SaveTxs(s.OldBlocks[len(s.OldBlocks)-s.DelayAmount-1]); err != nil {
+			return jerr.Get("error adding delayed txs block to network", err)
+		}
+	}
+	s.OldBlocks = append(s.OldBlocks, block)
 	return nil
 }
 
@@ -158,7 +172,7 @@ func (s *DoubleSpend) CheckSuspects(checkSuspects []TxSuspect) error {
 	if err != nil {
 		return jerr.Get("error getting tx suspects for double spend check", err)
 	}
-	for _, checkSuspect := range checkSuspects {
+	for i, checkSuspect := range checkSuspects {
 		var txSuspectFound bool
 		for _, txSuspect := range txSuspects {
 			if bytes.Equal(txSuspect.TxHash, checkSuspect.Tx) {
@@ -167,8 +181,8 @@ func (s *DoubleSpend) CheckSuspects(checkSuspects []TxSuspect) error {
 			}
 		}
 		if checkSuspect.Expected != txSuspectFound {
-			return jerr.Newf("error check suspect expected does not match actual: %s %t %t",
-				hs.GetTxString(checkSuspect.Tx), checkSuspect.Expected, txSuspectFound)
+			return jerr.Newf("error check suspect expected does not match actual: %d %s %t %t",
+				i, hs.GetTxString(checkSuspect.Tx), checkSuspect.Expected, txSuspectFound)
 		}
 	}
 	return nil

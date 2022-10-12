@@ -81,7 +81,7 @@ func GetMessagesByUids(topic string, shard uint, uids [][]byte) ([]*Message, err
 func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max int, newest bool) ([]*Message, error) {
 	db, err := getDb(topic, shard)
 	if err != nil {
-		return nil, jerr.Get("error getting db", err)
+		return nil, jerr.Getf(err, "error getting db shard %d", shard)
 	}
 	var isGetLast bool
 	if client.IsMaxStart(start) {
