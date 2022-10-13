@@ -15,6 +15,10 @@ func (t *Broadcast) Broadcast(ctx context.Context, raw []byte) error {
 	conn, err := NewConnection()
 	if err != nil {
 		if config.IsConfigNotSetError(err) {
+			network_client.SetConfig(config.RpcConfig{
+				Host: config.Localhost,
+				Port: config.GetServerPort(),
+			})
 			if err := network_client.NewSendTx().Send([][]byte{raw}); err != nil {
 				return jerr.Get("error sending raw txs to network", err)
 			}
