@@ -9,7 +9,6 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/broadcast/broadcast_server"
 	"github.com/memocash/index/ref/config"
-	"github.com/memocash/index/ref/dbi"
 	"github.com/spf13/cobra"
 )
 
@@ -18,9 +17,7 @@ var nodeCmd = &cobra.Command{
 	Short: "Run Network Block Node",
 	RunE: func(c *cobra.Command, args []string) error {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
-		connection := peer.NewConnection(saver.NewCombined([]dbi.TxSave{
-			saver.NewTxRaw(verbose),
-		}), saver.BlockSaver(verbose))
+		connection := peer.NewConnection(saver.NewCombinedBlockTxRaw(verbose), saver.NewBlock(verbose))
 		if err := connection.Connect(); err != nil {
 			jerr.Get("fatal error connecting to peer", err).Fatal()
 		}
@@ -34,14 +31,7 @@ var mempoolCmd = &cobra.Command{
 	Short: "Run Network Mempool Node",
 	Run: func(c *cobra.Command, args []string) {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
-		connection := peer.NewConnection(saver.NewCombined([]dbi.TxSave{
-			saver.NewTxRaw(verbose),
-			saver.NewTx(verbose),
-			saver.NewUtxo(verbose),
-			saver.NewLockHeight(verbose),
-			saver.NewDoubleSpend(verbose),
-			saver.NewMemo(verbose),
-		}), nil)
+		connection := peer.NewConnection(saver.NewCombinedAll(verbose), nil)
 		if err := connection.Connect(); err != nil {
 			jerr.Get("fatal error connecting to peer", err).Fatal()
 		}

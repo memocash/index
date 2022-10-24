@@ -5,8 +5,11 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/server"
+	"github.com/memocash/index/node/obj/saver"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
 	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/dbi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"net"
@@ -18,6 +21,7 @@ type Shard struct {
 	Error    chan error
 	listener net.Listener
 	grpc     *grpc.Server
+	TxSaver  dbi.TxSave
 	cluster_pb.UnimplementedClusterServer
 }
 
@@ -54,14 +58,21 @@ func (s *Shard) Ping(ctx context.Context, req *cluster_pb.PingReq) (*cluster_pb.
 }
 
 func (s *Shard) Process(ctx context.Context, req *cluster_pb.ProcessReq) (*cluster_pb.ProcessResp, error) {
-	jlog.Logf("received process, block: %x\n", req.Block)
-	time.Sleep(time.Second * 5)
-	jlog.Logf("finished processing, block: %x\n", req.Block)
+	block, err := memo.GetBlockFromRaw(req.Block)
+	if err != nil {
+		return nil, jerr.Get("error getting block from raw", err)
+	}
+	jlog.Logf("received process, block: %s, txs: %d\n", block.BlockHash(), len(block.Transactions))
+	if err := s.TxSaver.SaveTxs(block); err != nil {
+		return nil, jerr.Get("error saving block txs", err)
+	}
+	jlog.Logf("finished processing, block: %s\n", block.BlockHash())
 	return &cluster_pb.ProcessResp{}, nil
 }
 
 func NewShard(shardId int) *Shard {
 	return &Shard{
-		Id: shardId,
+		Id:      shardId,
+		TxSaver: saver.NewCombinedAll(false),
 	}
 }

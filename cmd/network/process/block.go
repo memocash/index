@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/node/obj/process"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/node/obj/status"
-	"github.com/memocash/index/ref/dbi"
 	"github.com/spf13/cobra"
 )
 
@@ -24,10 +23,8 @@ var blockCmd = &cobra.Command{
 		jlog.Log("Starting block processor...")
 		shard, _ := c.Flags().GetInt(FlagShard)
 		blockStatus := status.NewHeight(status.GetStatusShardName(status.NameBlock, shard), startHeight)
-		combinedSaver := saver.NewCombined([]dbi.TxSave{
-			saver.NewTxShard(false, shard),
-		})
-		blockProcessor := process.NewBlockRaw(shard, blockStatus, combinedSaver)
+		txSaver := saver.NewTxShard(false, shard)
+		blockProcessor := process.NewBlockRaw(shard, blockStatus, txSaver)
 		if err := blockProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing blocks (new)", err).Fatal()
 		}

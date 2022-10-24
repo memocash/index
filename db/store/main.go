@@ -29,8 +29,7 @@ func getDb(topic string, shard uint) (*leveldb.DB, error) {
 			return conns[connId], nil
 		}
 		filename := GetDbFile(topic, shard)
-		err := os.MkdirAll(filepath.Dir(filename), os.ModePerm)
-		if err != nil {
+		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
 			return nil, jerr.Get("error creating file directory", err)
 		}
 		openFilesCacheCapacity := config.GetOpenFilesCacheCapacity()

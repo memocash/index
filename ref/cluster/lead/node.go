@@ -18,10 +18,6 @@ func (n *Node) SaveTxs(block *wire.MsgBlock) error {
 	if n.Off {
 		return nil
 	}
-	txRawSaver := saver.NewTxRaw(n.Verbose)
-	if err := txRawSaver.SaveTxs(block); err != nil {
-		return jerr.Get("error saving raw txs for lead node", err)
-	}
 	n.NewBlock <- block
 	return nil
 }
@@ -30,8 +26,7 @@ func (n *Node) SaveBlock(header wire.BlockHeader) error {
 	if n.Off {
 		return nil
 	}
-	blockSaver := saver.BlockSaver(n.Verbose)
-	if err := blockSaver.SaveBlock(header); err != nil {
+	if err := saver.NewBlock(n.Verbose).SaveBlock(header); err != nil {
 		return jerr.Get("error saving block for lead node", err)
 	}
 	return nil
@@ -41,8 +36,7 @@ func (n *Node) GetBlock(height int64) ([]byte, error) {
 	if n.Off {
 		return nil, nil
 	}
-	blockSaver := saver.BlockSaver(n.Verbose)
-	hash, err := blockSaver.GetBlock(height)
+	hash, err := saver.NewBlock(n.Verbose).GetBlock(height)
 	if err != nil {
 		return nil, jerr.Get("error getting block for lead node", err)
 	}

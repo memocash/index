@@ -37,18 +37,10 @@ type DoubleSpend struct {
 }
 
 func (s *DoubleSpend) Init(wallet *build.Wallet) error {
-	s.TxSaver = saver.NewCombined([]dbi.TxSave{
-		saver.NewTxRaw(false),
-		saver.NewTx(false),
-		saver.NewUtxo(false),
-		saver.NewLockHeight(false),
-		saver.NewDoubleSpend(false),
-	})
-	s.DelayedTxSaver = saver.NewCombined([]dbi.TxSave{
-		saver.NewClearSuspect(),
-	})
+	s.TxSaver = saver.NewCombinedAll(false)
+	s.DelayedTxSaver = saver.NewClearSuspect()
 	s.DelayAmount = int(config.GetBlocksToConfirm())
-	s.BlockSaver = saver.BlockSaver(false)
+	s.BlockSaver = saver.NewBlock(false)
 	fundingTx, err := test_tx.GetFundingTx(wallet.Address, FundingValue)
 	if err != nil {
 		return jerr.Get("error getting funding tx for address", err)
