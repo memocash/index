@@ -33,7 +33,7 @@ func (n *Node) GetBlock(height int64) ([]byte, error) {
 	if n.Off {
 		return nil, nil
 	}
-	hash, err := saver.NewBlock(n.Verbose).GetBlock(height)
+	hash, err := saver.NewBlock(n.Verbose).GetBlock(height + 1)
 	if err != nil {
 		return nil, jerr.Get("error getting block for lead node", err)
 	}

@@ -60,6 +60,38 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 		shardBlocks[shard].AddTransaction(tx)
 	}
 	blockHash := block.BlockHash()
+	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeQueue) {
+		return false
+	}
+	if err := saver.NewBlock(p.Verbose).SaveBlock(block.Header); err != nil {
+		jerr.Get("error saving block for lead node", err).Print()
+		return false
+	}
+	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeTx) {
+		return false
+	}
+	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeUtxo) {
+		return false
+	}
+	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeMeta) {
+		return false
+	}
+	jlog.Logf("Processed block: %s %s, %d txs, size: %s\n",
+		blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), len(block.Transactions),
+		jfmt.AddCommasInt(block.SerializeSize()))
+	return true
+}
+
+type ProcessType string
+
+const (
+	ProcessTypeQueue ProcessType = "queue"
+	ProcessTypeTx    ProcessType = "tx"
+	ProcessTypeUtxo  ProcessType = "utxo"
+	ProcessTypeMeta  ProcessType = "meta"
+)
+
+func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*wire.MsgBlock, processType ProcessType) bool {
 	var wg sync.WaitGroup
 	var hadError bool
 	for _, client := range p.Clients {
@@ -69,60 +101,30 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 			if _, ok := shardBlocks[client.Config.Shard]; !ok {
 				return
 			}
-			if _, err := client.Client.Queue(context.Background(), &cluster_pb.QueueReq{
-				Block: memo.GetRawBlock(*shardBlocks[client.Config.Shard]),
-			}); err != nil {
+			var err error
+			switch processType {
+			case ProcessTypeQueue:
+				_, err = client.Client.Queue(context.Background(), &cluster_pb.QueueReq{
+					Block: memo.GetRawBlock(*shardBlocks[client.Config.Shard]),
+				})
+			case ProcessTypeTx:
+				_, err = client.Client.SaveTxs(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
+			case ProcessTypeUtxo:
+				_, err = client.Client.SaveUtxos(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
+			case ProcessTypeMeta:
+				_, err = client.Client.SaveMeta(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
+			}
+			if err != nil {
 				hadError = true
 				p.ErrorChan <- ShardError{
 					Shard: client.Config.Int(),
-					Error: jerr.Getf(err, "error cluster shard queue: %d", client.Config.Shard),
+					Error: jerr.Getf(err, "error cluster shard process: %s - %d", processType, client.Config.Shard),
 				}
 			}
 		}(client)
 	}
 	wg.Wait()
-	if !hadError {
-		if p.Verbose {
-			jlog.Logf("Queued block: %s %s, %d txs\n", blockHash, block.Header.Timestamp, len(block.Transactions))
-		}
-	} else {
-		return false
-	}
-
-	if err := saver.NewBlock(p.Verbose).SaveBlock(block.Header); err != nil {
-		jerr.Get("error saving block for lead node", err).Print()
-		return false
-	}
-
-	wg = sync.WaitGroup{}
-	hadError = false
-	for _, client := range p.Clients {
-		wg.Add(1)
-		go func(client *Client) {
-			defer wg.Done()
-			if _, ok := shardBlocks[client.Config.Shard]; !ok {
-				return
-			}
-			if _, err := client.Client.Process(context.Background(), &cluster_pb.ProcessReq{
-				BlockHash: blockHash[:],
-			}); err != nil {
-				hadError = true
-				p.ErrorChan <- ShardError{
-					Shard: client.Config.Int(),
-					Error: jerr.Getf(err, "error cluster shard process: %d", client.Config.Shard),
-				}
-			}
-		}(client)
-	}
-	wg.Wait()
-	if !hadError {
-		jlog.Logf("Processed block: %s %s, %d txs, size: %s\n",
-			blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), len(block.Transactions),
-			jfmt.AddCommasInt(block.SerializeSize()))
-	} else {
-		return false
-	}
-	return true
+	return !hadError
 }
 
 func (p *Processor) Stop() {

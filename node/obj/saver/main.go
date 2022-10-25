@@ -52,7 +52,6 @@ func NewCombinedTx(verbose bool) *CombinedTx {
 
 func NewCombinedOutput(verbose bool) *CombinedTx {
 	return NewCombined([]dbi.TxSave{
-		NewUtxo(verbose),
 		NewLockHeight(verbose),
 		NewDoubleSpend(verbose),
 		NewMemo(verbose),

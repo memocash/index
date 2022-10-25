@@ -11,7 +11,6 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
 	"github.com/memocash/index/ref/config"
-	"github.com/memocash/index/ref/dbi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"net"
@@ -29,8 +28,6 @@ type Shard struct {
 	Error    chan error
 	listener net.Listener
 	grpc     *grpc.Server
-	TxSaver  dbi.TxSave
-	OutSaver dbi.TxSave
 	Blocks   map[chainhash.Hash]ProcessBlock
 	cluster_pb.UnimplementedClusterServer
 }
@@ -79,63 +76,76 @@ func (s *Shard) Run() error {
 	return <-s.Error
 }
 
-func (s *Shard) Ping(ctx context.Context, req *cluster_pb.PingReq) (*cluster_pb.PingResp, error) {
+func (s *Shard) Ping(_ context.Context, req *cluster_pb.PingReq) (*cluster_pb.PingResp, error) {
 	jlog.Logf("received ping, nonce: %d\n", req.Nonce)
 	return &cluster_pb.PingResp{
 		Nonce: uint64(time.Now().UnixNano()),
 	}, nil
 }
 
-func (s *Shard) Queue(ctx context.Context, req *cluster_pb.QueueReq) (*cluster_pb.EmptyResp, error) {
+func (s *Shard) Queue(_ context.Context, req *cluster_pb.QueueReq) (*cluster_pb.EmptyResp, error) {
 	block, err := memo.GetBlockFromRaw(req.Block)
 	if err != nil {
 		return nil, jerr.Get("error getting block from raw", err)
-	}
-	if s.Verbose {
-		jlog.Logf("received queue shard txs, block: %s, txs: %d\n", block.BlockHash(), len(block.Transactions))
-	}
-	if err := s.TxSaver.SaveTxs(block); err != nil {
-		return nil, jerr.Get("error saving block txs", err)
 	}
 	s.Blocks[block.BlockHash()] = ProcessBlock{
 		Block: block,
 		Added: time.Now(),
 	}
 	s.CheckProcessBlocks()
-	if s.Verbose {
-		jlog.Logf("finished queueing shard txs, block: %s\n", block.BlockHash())
+	return &cluster_pb.EmptyResp{}, nil
+}
+
+func (s *Shard) GetProcessBlock(blockHash []byte) (*ProcessBlock, error) {
+	hash, err := chainhash.NewHash(blockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting block hash for save txs", err)
+	}
+	processBlock, ok := s.Blocks[*hash]
+	if !ok {
+		return nil, jerr.Newf("block not found for shard save txs: %s", hash.String())
+	}
+	return &processBlock, nil
+}
+
+func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.ProcessReq) (*cluster_pb.EmptyResp, error) {
+	processBlock, err := s.GetProcessBlock(req.BlockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting process block for save txs", err)
+	}
+	if err := saver.NewCombinedTx(s.Verbose).SaveTxs(processBlock.Block); err != nil {
+		return nil, jerr.Get("error saving block txs shard txs", err)
 	}
 	return &cluster_pb.EmptyResp{}, nil
 }
 
-func (s *Shard) Process(ctx context.Context, req *cluster_pb.ProcessReq) (*cluster_pb.EmptyResp, error) {
-	blockHash, err := chainhash.NewHash(req.BlockHash)
+func (s *Shard) SaveUtxos(_ context.Context, req *cluster_pb.ProcessReq) (*cluster_pb.EmptyResp, error) {
+	processBlock, err := s.GetProcessBlock(req.BlockHash)
 	if err != nil {
-		return nil, jerr.Get("error getting block hash for shard process", err)
+		return nil, jerr.Get("error getting process block for save utxos", err)
 	}
-	processBlock, ok := s.Blocks[*blockHash]
-	if !ok {
-		return nil, jerr.Newf("block not found for shard process: %s", blockHash.String())
+	if err := saver.NewUtxo(s.Verbose).SaveTxs(processBlock.Block); err != nil {
+		return nil, jerr.Get("error saving block txs shard utxos", err)
 	}
-	delete(s.Blocks, *blockHash)
-	if s.Verbose {
-		jlog.Logf("received process, block: %s\n", blockHash)
+	return &cluster_pb.EmptyResp{}, nil
+}
+
+func (s *Shard) SaveMeta(_ context.Context, req *cluster_pb.ProcessReq) (*cluster_pb.EmptyResp, error) {
+	processBlock, err := s.GetProcessBlock(req.BlockHash)
+	if err != nil {
+		return nil, jerr.Get("error getting process block for save meta", err)
 	}
-	if err := s.OutSaver.SaveTxs(processBlock.Block); err != nil {
-		return nil, jerr.Get("error saving block txs", err)
-	}
-	if s.Verbose {
-		jlog.Logf("finished processing, block: %s\n", processBlock.Block.BlockHash())
+	delete(s.Blocks, processBlock.Block.BlockHash())
+	if err := saver.NewCombinedOutput(s.Verbose).SaveTxs(processBlock.Block); err != nil {
+		return nil, jerr.Get("error saving block txs shard meta", err)
 	}
 	return &cluster_pb.EmptyResp{}, nil
 }
 
 func NewShard(shardId int, verbose bool) *Shard {
 	return &Shard{
-		Id:       shardId,
-		Verbose:  verbose,
-		TxSaver:  saver.NewCombinedTx(verbose),
-		OutSaver: saver.NewCombinedOutput(verbose),
-		Blocks:   make(map[chainhash.Hash]ProcessBlock),
+		Id:      shardId,
+		Verbose: verbose,
+		Blocks:  make(map[chainhash.Hash]ProcessBlock),
 	}
 }
