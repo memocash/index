@@ -10,7 +10,8 @@ var leadCmd = &cobra.Command{
 	Use:   "lead",
 	Short: "lead",
 	Run: func(c *cobra.Command, args []string) {
-		l := lead.NewLead()
+		verbose, _ := c.Flags().GetBool(FlagVerbose)
+		l := lead.NewLead(verbose)
 		jerr.Get("fatal error running leader", l.Run()).Fatal()
 	},
 }

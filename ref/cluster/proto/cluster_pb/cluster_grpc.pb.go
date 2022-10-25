@@ -19,7 +19,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ClusterClient interface {
 	Ping(ctx context.Context, in *PingReq, opts ...grpc.CallOption) (*PingResp, error)
-	Process(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*ProcessResp, error)
+	Queue(ctx context.Context, in *QueueReq, opts ...grpc.CallOption) (*EmptyResp, error)
+	Process(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*EmptyResp, error)
 }
 
 type clusterClient struct {
@@ -39,8 +40,17 @@ func (c *clusterClient) Ping(ctx context.Context, in *PingReq, opts ...grpc.Call
 	return out, nil
 }
 
-func (c *clusterClient) Process(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*ProcessResp, error) {
-	out := new(ProcessResp)
+func (c *clusterClient) Queue(ctx context.Context, in *QueueReq, opts ...grpc.CallOption) (*EmptyResp, error) {
+	out := new(EmptyResp)
+	err := c.cc.Invoke(ctx, "/cluster_pb.Cluster/Queue", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *clusterClient) Process(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*EmptyResp, error) {
+	out := new(EmptyResp)
 	err := c.cc.Invoke(ctx, "/cluster_pb.Cluster/Process", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -53,7 +63,8 @@ func (c *clusterClient) Process(ctx context.Context, in *ProcessReq, opts ...grp
 // for forward compatibility
 type ClusterServer interface {
 	Ping(context.Context, *PingReq) (*PingResp, error)
-	Process(context.Context, *ProcessReq) (*ProcessResp, error)
+	Queue(context.Context, *QueueReq) (*EmptyResp, error)
+	Process(context.Context, *ProcessReq) (*EmptyResp, error)
 	mustEmbedUnimplementedClusterServer()
 }
 
@@ -64,7 +75,10 @@ type UnimplementedClusterServer struct {
 func (UnimplementedClusterServer) Ping(context.Context, *PingReq) (*PingResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
-func (UnimplementedClusterServer) Process(context.Context, *ProcessReq) (*ProcessResp, error) {
+func (UnimplementedClusterServer) Queue(context.Context, *QueueReq) (*EmptyResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Queue not implemented")
+}
+func (UnimplementedClusterServer) Process(context.Context, *ProcessReq) (*EmptyResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Process not implemented")
 }
 func (UnimplementedClusterServer) mustEmbedUnimplementedClusterServer() {}
@@ -98,6 +112,24 @@ func _Cluster_Ping_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Cluster_Queue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueueReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClusterServer).Queue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cluster_pb.Cluster/Queue",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClusterServer).Queue(ctx, req.(*QueueReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Cluster_Process_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ProcessReq)
 	if err := dec(in); err != nil {
@@ -126,6 +158,10 @@ var Cluster_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _Cluster_Ping_Handler,
+		},
+		{
+			MethodName: "Queue",
+			Handler:    _Cluster_Queue_Handler,
 		},
 		{
 			MethodName: "Process",

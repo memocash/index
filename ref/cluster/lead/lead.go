@@ -18,6 +18,7 @@ type Lead struct {
 	Mutex      sync.Mutex
 	Clients    map[int]*Client
 	Processor  *Processor
+	Verbose    bool
 }
 
 func (l *Lead) Run() error {
@@ -35,7 +36,7 @@ func (l *Lead) Run() error {
 			Client: cluster_pb.NewClusterClient(conn)}
 		go l.StartClient(clusterShard)
 	}
-	l.Processor = NewProcessor(l.Clients, l.ShardError)
+	l.Processor = NewProcessor(l.Verbose, l.Clients, l.ShardError)
 	go func() {
 		for {
 			select {
@@ -94,6 +95,8 @@ func (l *Lead) StartClient(cfg config.Shard) {
 	}
 }
 
-func NewLead() *Lead {
-	return &Lead{}
+func NewLead(verbose bool) *Lead {
+	return &Lead{
+		Verbose: verbose,
+	}
 }

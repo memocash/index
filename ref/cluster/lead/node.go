@@ -22,12 +22,9 @@ func (n *Node) SaveTxs(block *wire.MsgBlock) error {
 	return nil
 }
 
-func (n *Node) SaveBlock(header wire.BlockHeader) error {
+func (n *Node) SaveBlock(wire.BlockHeader) error {
 	if n.Off {
 		return nil
-	}
-	if err := saver.NewBlock(n.Verbose).SaveBlock(header); err != nil {
-		return jerr.Get("error saving block for lead node", err)
 	}
 	return nil
 }

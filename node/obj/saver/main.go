@@ -42,3 +42,19 @@ func NewCombinedAll(verbose bool) *CombinedTx {
 		NewMemo(verbose),
 	})
 }
+
+func NewCombinedTx(verbose bool) *CombinedTx {
+	return NewCombined([]dbi.TxSave{
+		NewTxRaw(verbose),
+		NewTx(verbose),
+	})
+}
+
+func NewCombinedOutput(verbose bool) *CombinedTx {
+	return NewCombined([]dbi.TxSave{
+		NewUtxo(verbose),
+		NewLockHeight(verbose),
+		NewDoubleSpend(verbose),
+		NewMemo(verbose),
+	})
+}

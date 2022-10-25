@@ -19,7 +19,8 @@ var shardCmd = &cobra.Command{
 		if fmt.Sprintf("%d", shardId) != args[0] {
 			jerr.New("fatal error invalid shard id").Fatal()
 		}
-		l := shard.NewShard(shardId)
+		verbose, _ := c.Flags().GetBool(FlagVerbose)
+		l := shard.NewShard(shardId, verbose)
 		jerr.Get("fatal error running shard", l.Run()).Fatal()
 	},
 }
