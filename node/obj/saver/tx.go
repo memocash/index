@@ -87,15 +87,22 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 		})
 	}
 	if len(blockHashBytes) > 0 {
-		blockHeight, err := item.GetBlockHeight(blockHashBytes)
+		var blockHeight int64
+		itemBlockHeight, err := item.GetBlockHeight(blockHashBytes)
 		if err != nil {
-			return jerr.Getf(err, "error getting block height for tx save block: %s", hs.GetTxString(blockHashBytes))
+			parentBlockHeight, err := item.GetBlockHeight(block.Header.PrevBlock[:])
+			if err != nil {
+				return jerr.Getf(err, "error getting block height for tx save block: %s", hs.GetTxString(blockHashBytes))
+			}
+			blockHeight = parentBlockHeight.Height + 1
+		} else {
+			blockHeight = itemBlockHeight.Height
 		}
 		if t.Shard != status.NoShard {
 			objects = append(objects, &item.HeightBlockShard{
 				Shard:     uint(t.Shard),
-				Height:    blockHeight.Height,
-				BlockHash: blockHeight.BlockHash,
+				Height:    blockHeight,
+				BlockHash: blockHashBytes,
 			})
 		}
 	}

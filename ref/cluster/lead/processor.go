@@ -79,7 +79,7 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 	}
 	wg.Wait()
 	if !hadError {
-		jlog.Logf("Processed block: %s %s\n", blockHash, block.Header.Timestamp)
+		jlog.Logf("Processed block: %s %s, %d txs\n", blockHash, block.Header.Timestamp, len(block.Transactions))
 	}
 	return true
 }
