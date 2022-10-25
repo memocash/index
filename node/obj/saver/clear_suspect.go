@@ -1,15 +1,15 @@
 package saver
 
 import (
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/ref/dbi"
 )
 
 type ClearSuspect struct {
 }
 
-func (s *ClearSuspect) SaveTxs(block *wire.MsgBlock) error {
+func (s *ClearSuspect) SaveTxs(block *dbi.Block) error {
 	var txHashes = make([][]byte, len(block.Transactions))
 	for i := range block.Transactions {
 		txHash := block.Transactions[i].TxHash()

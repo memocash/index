@@ -1,15 +1,15 @@
 package saver
 
 import (
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/ref/dbi"
 )
 
 type ClearMempoolTxRaw struct {
 }
 
-func (r *ClearMempoolTxRaw) SaveTxs(block *wire.MsgBlock) error {
+func (r *ClearMempoolTxRaw) SaveTxs(block *dbi.Block) error {
 	var mempoolTxRawsToRemove = make([]*item.MempoolTxRaw, len(block.Transactions))
 	for i := range block.Transactions {
 		txHash := block.Transactions[i].TxHash()

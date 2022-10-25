@@ -10,7 +10,6 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
@@ -220,7 +219,7 @@ func (p *Peer) OnInv(_ *peer.Peer, msg *wire.MsgInv) {
 
 func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 	if p.TxSave != nil {
-		err := p.TxSave.SaveTxs(msg)
+		err := p.TxSave.SaveTxs(dbi.GetBlock(msg))
 		if err != nil {
 			p.Error(jerr.Get("error saving txs", err))
 		}
@@ -243,7 +242,7 @@ func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 func (p *Peer) OnTx(_ *peer.Peer, msg *wire.MsgTx) {
 	if p.TxSave != nil {
 		jlog.Logf("OnTx: %s\n", msg.TxHash().String())
-		err := p.TxSave.SaveTxs(memo.GetBlockFromTxs([]*wire.MsgTx{msg}, nil))
+		err := p.TxSave.SaveTxs(dbi.GetBlockSingleTx(msg))
 		if err != nil {
 			p.Error(jerr.Get("error saving new tx", err))
 		}

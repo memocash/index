@@ -8,6 +8,7 @@ import (
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
+	"github.com/memocash/index/ref/dbi"
 	"sync"
 )
 
@@ -43,7 +44,7 @@ func (p *Processor) Start() {
 	}()
 }
 
-func (p *Processor) Process(block *wire.MsgBlock) bool {
+func (p *Processor) Process(block *dbi.Block) bool {
 	if !p.On {
 		return false
 	}
@@ -56,7 +57,7 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 		}
 		shardBlocks[shard].AddTransaction(tx)
 	}
-	blockHash := block.BlockHash()
+	blockHash := block.Header.BlockHash()
 	var wg sync.WaitGroup
 	var hadError bool
 	for _, client := range p.Clients {
@@ -67,7 +68,8 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 				return
 			}
 			if _, err := client.Client.Process(context.Background(), &cluster_pb.ProcessReq{
-				Block: memo.GetRawBlock(*shardBlocks[client.Config.Shard]),
+				Block:  memo.GetRawBlock(*shardBlocks[client.Config.Shard]),
+				Height: block.Height,
 			}); err != nil {
 				hadError = true
 				p.ErrorChan <- ShardError{

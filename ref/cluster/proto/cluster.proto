@@ -19,6 +19,7 @@ message PingResp {
 
 message ProcessReq {
   bytes block = 1;
+  int64 height = 2;
 }
 
 message ProcessResp {

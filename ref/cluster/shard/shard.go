@@ -63,7 +63,7 @@ func (s *Shard) Process(ctx context.Context, req *cluster_pb.ProcessReq) (*clust
 		return nil, jerr.Get("error getting block from raw", err)
 	}
 	jlog.Logf("received process, block: %s, txs: %d\n", block.BlockHash(), len(block.Transactions))
-	if err := s.TxSaver.SaveTxs(block); err != nil {
+	if err := s.TxSaver.SaveTxs(dbi.GetBlockWithHeight(block, req.Height)); err != nil {
 		return nil, jerr.Get("error saving block txs", err)
 	}
 	jlog.Logf("finished processing, block: %s\n", block.BlockHash())

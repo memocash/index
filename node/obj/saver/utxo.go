@@ -2,7 +2,6 @@ package saver
 
 import (
 	"bytes"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
@@ -12,6 +11,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/dbi"
 	"sort"
 )
 
@@ -19,7 +19,7 @@ type Utxo struct {
 	Verbose bool
 }
 
-func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
+func (u *Utxo) SaveTxs(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block")
 	}

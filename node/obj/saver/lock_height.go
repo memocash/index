@@ -3,7 +3,6 @@ package saver
 import (
 	"bytes"
 	"fmt"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
@@ -12,6 +11,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/dbi"
 	"runtime"
 )
 
@@ -20,7 +20,7 @@ type LockHeight struct {
 	CheckTxHash []byte
 }
 
-func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
+func (t *LockHeight) SaveTxs(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block for lock height")
 	}
@@ -59,11 +59,11 @@ type LockHeightSaveRun struct {
 	CheckTxHash []byte
 }
 
-func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
+func (t *LockHeightSaveRun) SetHashHeightInOuts(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block for lock height queue txs")
 	}
-	blockHash := block.BlockHash()
+	blockHash := block.Header.BlockHash()
 	if !block.Header.Timestamp.IsZero() {
 		t.BlockHash = blockHash.CloneBytes()
 		blockHeight, err := item.GetBlockHeight(t.BlockHash)

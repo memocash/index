@@ -2,13 +2,13 @@ package saver
 
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/dbi"
 	"runtime"
 	"time"
 )
@@ -17,7 +17,7 @@ type TxRaw struct {
 	Verbose bool
 }
 
-func (t *TxRaw) SaveTxs(block *wire.MsgBlock) error {
+func (t *TxRaw) SaveTxs(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block")
 	}
@@ -27,20 +27,20 @@ func (t *TxRaw) SaveTxs(block *wire.MsgBlock) error {
 	return nil
 }
 
-func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
+func (t *TxRaw) QueueTxs(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block")
 	}
 	var blockHash chainhash.Hash
 	var blockHashBytes []byte
 	if !block.Header.Timestamp.IsZero() {
-		blockHash = block.BlockHash()
+		blockHash = block.Header.BlockHash()
 		blockHashBytes = blockHash.CloneBytes()
 	}
 	if len(blockHashBytes) > 0 {
 		jlog.Logf("block: %s, %s, txs: %10s, size: %14s\n", blockHash.String(),
 			block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(len(block.Transactions)),
-			jfmt.AddCommasInt(block.SerializeSize()))
+			jfmt.AddCommasInt(block.Msg().SerializeSize()))
 	}
 	seenTime := time.Now()
 	var objects []db.Object

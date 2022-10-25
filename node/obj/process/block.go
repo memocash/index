@@ -162,8 +162,8 @@ func (t *Block) ProcessBlock(heightBlock *HeightBlock) error {
 					return jerr.Get("error getting tx from raw block tx", err)
 				}
 			}
-			err = t.txSave.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader))
-			if err != nil {
+			dbiBlock := dbi.GetBlockWithHeight(memo.GetBlockFromTxs(msgTxs, blockHeader), heightBlock.Height)
+			if err = t.txSave.SaveTxs(dbiBlock); err != nil {
 				return jerr.Get("error saving block txs", err)
 			}
 			if len(blockTxesRaw) < BlockProcessLimit {

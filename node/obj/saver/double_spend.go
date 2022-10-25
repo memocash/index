@@ -11,6 +11,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/dbi"
 	"time"
 )
 
@@ -18,7 +19,7 @@ type DoubleSpend struct {
 	Verbose bool
 }
 
-func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
+func (s *DoubleSpend) SaveTxs(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block")
 	}
@@ -33,7 +34,7 @@ func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
 	}
 	var blockHashBytes []byte
 	if !block.Header.Timestamp.IsZero() {
-		blockHash := block.BlockHash()
+		blockHash := block.Header.BlockHash()
 		blockHashBytes = blockHash.CloneBytes()
 	}
 	existingOutputInputs, err := item.GetOutputInputs(inputOuts)

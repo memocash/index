@@ -5,16 +5,17 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/node/peer"
+	"github.com/memocash/index/ref/dbi"
 )
 
 type Node struct {
 	Off      bool
 	Peer     *peer.Peer
-	NewBlock chan *wire.MsgBlock
+	NewBlock chan *dbi.Block
 	Verbose  bool
 }
 
-func (n *Node) SaveTxs(block *wire.MsgBlock) error {
+func (n *Node) SaveTxs(block *dbi.Block) error {
 	if n.Off {
 		return nil
 	}
@@ -60,6 +61,6 @@ func (n *Node) Stop() {
 
 func NewNode() *Node {
 	return &Node{
-		NewBlock: make(chan *wire.MsgBlock),
+		NewBlock: make(chan *dbi.Block),
 	}
 }

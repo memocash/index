@@ -3,7 +3,6 @@ package saver
 import (
 	"fmt"
 	"github.com/jchavannes/btcd/txscript"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
@@ -12,19 +11,20 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/dbi"
 )
 
 type Memo struct {
 	Verbose bool
 }
 
-func (t *Memo) SaveTxs(block *wire.MsgBlock) error {
+func (t *Memo) SaveTxs(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block")
 	}
 	var height int64
 	if !block.Header.Timestamp.IsZero() {
-		blockHash := block.BlockHash()
+		blockHash := block.Header.BlockHash()
 		blockHashBytes := blockHash.CloneBytes()
 		blockHeight, err := item.GetBlockHeight(blockHashBytes)
 		if err != nil {

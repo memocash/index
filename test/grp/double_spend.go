@@ -33,7 +33,7 @@ type DoubleSpend struct {
 	DelayAmount     int
 	BlockSaver      dbi.BlockSave
 	FundingPkScript []byte
-	OldBlocks       []*wire.MsgBlock
+	OldBlocks       []*dbi.Block
 }
 
 func (s *DoubleSpend) Init(wallet *build.Wallet) error {
@@ -63,7 +63,7 @@ func (s *DoubleSpend) Create(output *memo.Output, wallet build.Wallet) (*memo.Tx
 	if err != nil {
 		return nil, jerr.Get("error generating transaction", err)
 	}
-	if err := s.TxSaver.SaveTxs(memo.GetBlockFromTxs([]*wire.MsgTx{tx.MsgTx}, nil)); err != nil {
+	if err := s.TxSaver.SaveTxs(dbi.GetBlockSingleTx(tx.MsgTx)); err != nil {
 		return nil, jerr.Get("error saving tx", err)
 	}
 	return tx, nil
@@ -96,7 +96,7 @@ func (s *DoubleSpend) SaveBlock(txs []*memo.Tx) error {
 	for i := range txs {
 		wireTxs[i] = txs[i].MsgTx
 	}
-	block := test_block.GetNextBlock(wireTxs)
+	block := dbi.GetBlock(test_block.GetNextBlock(wireTxs))
 	if err := s.BlockSaver.SaveBlock(block.Header); err != nil {
 		return jerr.Get("error saving block header for double spend grp", err)
 	}

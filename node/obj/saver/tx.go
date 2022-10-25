@@ -1,7 +1,6 @@
 package saver
 
 import (
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
@@ -10,6 +9,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/dbi"
 	"runtime"
 	"time"
 )
@@ -19,7 +19,7 @@ type Tx struct {
 	Shard   int
 }
 
-func (t *Tx) SaveTxs(block *wire.MsgBlock) error {
+func (t *Tx) SaveTxs(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block")
 	}
@@ -30,11 +30,11 @@ func (t *Tx) SaveTxs(block *wire.MsgBlock) error {
 	return nil
 }
 
-func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
+func (t *Tx) QueueTxs(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block or empty header")
 	}
-	blockHash := block.BlockHash()
+	blockHash := block.Header.BlockHash()
 	var blockHashBytes []byte
 	if !block.Header.Timestamp.IsZero() {
 		blockHashBytes = blockHash.CloneBytes()
