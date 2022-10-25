@@ -60,14 +60,17 @@ func (l *Lead) Run() error {
 	return jerr.Get("error running lead", <-l.Error)
 }
 
-func (l *Lead) CheckAllConnected() {
+func (l *Lead) CheckAllConnected() error {
 	for _, client := range l.Clients {
 		if !client.Connected {
-			return
+			return nil
 		}
 	}
 	jlog.Logf("All shards connected!\n")
-	l.Processor.Start()
+	if err := l.Processor.Start(); err != nil {
+		return jerr.Get("error starting processor", err)
+	}
+	return nil
 }
 
 func (l *Lead) StartClient(cfg config.Shard) {
@@ -84,7 +87,10 @@ func (l *Lead) StartClient(cfg config.Shard) {
 		}
 		client.Connected = true
 		jlog.Logf("Connected to shard %d, nonce: %d\n", cfg.Int(), resp.Nonce)
-		l.CheckAllConnected()
+		if err := l.CheckAllConnected(); err != nil {
+			l.Error <- jerr.Get("error checking all connected", err)
+			return
+		}
 		break
 	Continue:
 		if i == 0 {

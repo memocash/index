@@ -3,6 +3,7 @@ package lead
 import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/node/peer"
 )
@@ -11,6 +12,7 @@ type Node struct {
 	Off      bool
 	Peer     *peer.Peer
 	NewBlock chan *wire.MsgBlock
+	SyncDone chan struct{}
 	Verbose  bool
 }
 
@@ -46,7 +48,11 @@ func (n *Node) Start() {
 		if err := n.Peer.Connect(); err != nil {
 			jerr.Get("fatal error connecting to peer", err).Fatal()
 		}
-		n.Stop()
+		jlog.Logf("node peer disconnected\n")
+		n.Off = true
+		if n.Peer.SyncDone {
+			n.SyncDone <- struct{}{}
+		}
 	}()
 }
 
@@ -58,5 +64,6 @@ func (n *Node) Stop() {
 func NewNode() *Node {
 	return &Node{
 		NewBlock: make(chan *wire.MsgBlock),
+		SyncDone: make(chan struct{}),
 	}
 }

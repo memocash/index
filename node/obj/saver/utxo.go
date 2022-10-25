@@ -16,7 +16,8 @@ import (
 )
 
 type Utxo struct {
-	Verbose bool
+	Verbose     bool
+	InitialSync bool
 }
 
 func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
@@ -158,6 +159,9 @@ LockUtxoLoop:
 	}
 	if err = db.Save(objects); err != nil {
 		return jerr.Get("error saving new utxo objects", err)
+	}
+	if u.InitialSync {
+		return nil
 	}
 	matchingTxOutputs, err := item.GetTxOutputs(ins)
 	if err != nil {

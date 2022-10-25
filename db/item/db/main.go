@@ -40,6 +40,7 @@ const (
 	TopicPeerFound             = "peer_found"
 	TopicProcessError          = "process_error"
 	TopicProcessStatus         = "process_status"
+	TopicSyncStatus            = "sync_status"
 	TopicTx                    = "tx"
 	TopicTxBlock               = "tx_block"
 	TopicTxInput               = "tx_input"

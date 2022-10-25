@@ -19,8 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ClusterClient interface {
 	Ping(ctx context.Context, in *PingReq, opts ...grpc.CallOption) (*PingResp, error)
-	Queue(ctx context.Context, in *QueueReq, opts ...grpc.CallOption) (*EmptyResp, error)
-	SaveTxs(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*EmptyResp, error)
+	SaveTxs(ctx context.Context, in *SaveReq, opts ...grpc.CallOption) (*EmptyResp, error)
 	SaveUtxos(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*EmptyResp, error)
 	SaveMeta(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*EmptyResp, error)
 }
@@ -42,16 +41,7 @@ func (c *clusterClient) Ping(ctx context.Context, in *PingReq, opts ...grpc.Call
 	return out, nil
 }
 
-func (c *clusterClient) Queue(ctx context.Context, in *QueueReq, opts ...grpc.CallOption) (*EmptyResp, error) {
-	out := new(EmptyResp)
-	err := c.cc.Invoke(ctx, "/cluster_pb.Cluster/Queue", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clusterClient) SaveTxs(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*EmptyResp, error) {
+func (c *clusterClient) SaveTxs(ctx context.Context, in *SaveReq, opts ...grpc.CallOption) (*EmptyResp, error) {
 	out := new(EmptyResp)
 	err := c.cc.Invoke(ctx, "/cluster_pb.Cluster/SaveTxs", in, out, opts...)
 	if err != nil {
@@ -83,8 +73,7 @@ func (c *clusterClient) SaveMeta(ctx context.Context, in *ProcessReq, opts ...gr
 // for forward compatibility
 type ClusterServer interface {
 	Ping(context.Context, *PingReq) (*PingResp, error)
-	Queue(context.Context, *QueueReq) (*EmptyResp, error)
-	SaveTxs(context.Context, *ProcessReq) (*EmptyResp, error)
+	SaveTxs(context.Context, *SaveReq) (*EmptyResp, error)
 	SaveUtxos(context.Context, *ProcessReq) (*EmptyResp, error)
 	SaveMeta(context.Context, *ProcessReq) (*EmptyResp, error)
 	mustEmbedUnimplementedClusterServer()
@@ -97,10 +86,7 @@ type UnimplementedClusterServer struct {
 func (UnimplementedClusterServer) Ping(context.Context, *PingReq) (*PingResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
-func (UnimplementedClusterServer) Queue(context.Context, *QueueReq) (*EmptyResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Queue not implemented")
-}
-func (UnimplementedClusterServer) SaveTxs(context.Context, *ProcessReq) (*EmptyResp, error) {
+func (UnimplementedClusterServer) SaveTxs(context.Context, *SaveReq) (*EmptyResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SaveTxs not implemented")
 }
 func (UnimplementedClusterServer) SaveUtxos(context.Context, *ProcessReq) (*EmptyResp, error) {
@@ -140,26 +126,8 @@ func _Cluster_Ping_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Cluster_Queue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueueReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClusterServer).Queue(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cluster_pb.Cluster/Queue",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClusterServer).Queue(ctx, req.(*QueueReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Cluster_SaveTxs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ProcessReq)
+	in := new(SaveReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -171,7 +139,7 @@ func _Cluster_SaveTxs_Handler(srv interface{}, ctx context.Context, dec func(int
 		FullMethod: "/cluster_pb.Cluster/SaveTxs",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClusterServer).SaveTxs(ctx, req.(*ProcessReq))
+		return srv.(ClusterServer).SaveTxs(ctx, req.(*SaveReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -222,10 +190,6 @@ var Cluster_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _Cluster_Ping_Handler,
-		},
-		{
-			MethodName: "Queue",
-			Handler:    _Cluster_Queue_Handler,
 		},
 		{
 			MethodName: "SaveTxs",

@@ -71,6 +71,34 @@ func GetRecentHeightBlock() (*HeightBlock, error) {
 	return newestHeightBlock, nil
 }
 
+func GetOldestHeightBlock() (*HeightBlock, error) {
+	var heightBlocks []*HeightBlock
+	for i, shardConfig := range config.GetQueueShards() {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetNext(db.TopicHeightBlock, nil, false, false); err != nil {
+			return nil, jerr.Getf(err, "error getting oldest height block for shard: %d", i)
+		}
+		for i := range dbClient.Messages {
+			var heightBlock = new(HeightBlock)
+			db.Set(heightBlock, dbClient.Messages[i])
+			heightBlocks = append(heightBlocks, heightBlock)
+		}
+	}
+	if len(heightBlocks) == 0 {
+		return nil, nil
+	}
+	var oldestHeightBlock *HeightBlock
+	for _, heightBlock := range heightBlocks {
+		if oldestHeightBlock == nil || oldestHeightBlock.Height > heightBlock.Height {
+			oldestHeightBlock = heightBlock
+		}
+	}
+	if oldestHeightBlock == nil {
+		return nil, nil
+	}
+	return oldestHeightBlock, nil
+}
+
 func GetHeightBlockSingle(height int64) (*HeightBlock, error) {
 	heightBlocks, err := GetHeightBlock(height)
 	if err != nil {

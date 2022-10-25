@@ -6,6 +6,8 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
+	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -22,12 +24,52 @@ type Processor struct {
 	Verbose   bool
 }
 
-func (p *Processor) Start() {
+func (p *Processor) Start() error {
 	if p.On {
-		return
+		return nil
+	}
+	p.On = true
+	syncStatusTxs, err := item.GetSyncStatus(item.SyncStatusTxs)
+	if err != nil && !client.IsEntryNotFoundError(err) {
+		return jerr.Get("error getting sync status txs", err)
+	}
+	syncStatusUtxos, err := item.GetSyncStatus(item.SyncStatusUtxos)
+	if err != nil && !client.IsEntryNotFoundError(err) {
+		return jerr.Get("error getting sync status utxos", err)
+	}
+	if syncStatusTxs != nil {
+		go func() {
+			var height int64
+			if syncStatusUtxos != nil {
+				height = syncStatusUtxos.Height
+			} else {
+				oldestHeightBlock, err := item.GetOldestHeightBlock()
+				if err != nil {
+					jerr.Get("error getting oldest height block", err).Fatal()
+					return
+				}
+				height = oldestHeightBlock.Height
+			}
+			jlog.Logf("Starting utxo processing at height: %d\n", height)
+			for {
+				if height >= syncStatusTxs.Height {
+					jlog.Logf("UTXO processing complete at height: %d\n", height)
+					break
+				}
+				heightBlock, err := item.GetHeightBlockSingle(height)
+				if err != nil {
+					jerr.Get("error getting height block", err).Fatal()
+					return
+				}
+				if !p.WaitForProcess(heightBlock.BlockHash, nil, ProcessTypeUtxo) {
+					return
+				}
+				height++
+			}
+		}()
+		return nil
 	}
 	p.StopChan = make(chan struct{})
-	p.On = true
 	p.Node = NewNode()
 	p.Node.Start()
 	jlog.Logf("Starting node listener...\n")
@@ -38,12 +80,29 @@ func (p *Processor) Start() {
 				if p.Process(block) {
 					continue
 				}
+			case <-p.Node.SyncDone:
+				jlog.Logf("Node sync done\n")
+				recentBlock, err := item.GetRecentHeightBlock()
+				if err != nil {
+					jerr.Get("error getting recent height block", err).Fatal()
+				}
+				if err := db.Save([]db.Object{&item.SyncStatus{
+					Name:   item.SyncStatusTxs,
+					Height: recentBlock.Height,
+				}}); err != nil {
+					jerr.Get("error setting sync status txs", err).Fatal()
+				}
+				p.On = false
+				if err := p.Start(); err != nil {
+					jerr.Get("error starting lead processor after block sync complete", err).Fatal()
+				}
 			case <-p.StopChan:
 			}
 			jlog.Log("Stopping node listener")
 			return
 		}
 	}()
+	return nil
 }
 
 func (p *Processor) Process(block *wire.MsgBlock) bool {
@@ -60,9 +119,6 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 		shardBlocks[shard].AddTransaction(tx)
 	}
 	blockHash := block.BlockHash()
-	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeQueue) {
-		return false
-	}
 	if err := saver.NewBlock(p.Verbose).SaveBlock(block.Header); err != nil {
 		jerr.Get("error saving block for lead node", err).Print()
 		return false
@@ -70,13 +126,13 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeTx) {
 		return false
 	}
-	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeUtxo) {
+	/*if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeUtxo) {
 		return false
 	}
 	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeMeta) {
 		return false
-	}
-	jlog.Logf("Processed block: %s %s, %d txs, size: %s\n",
+	}*/
+	jlog.Logf("Saved block: %s %s, %d txs, size: %s\n",
 		blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), len(block.Transactions),
 		jfmt.AddCommasInt(block.SerializeSize()))
 	return true
@@ -85,10 +141,9 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 type ProcessType string
 
 const (
-	ProcessTypeQueue ProcessType = "queue"
-	ProcessTypeTx    ProcessType = "tx"
-	ProcessTypeUtxo  ProcessType = "utxo"
-	ProcessTypeMeta  ProcessType = "meta"
+	ProcessTypeTx   ProcessType = "tx"
+	ProcessTypeUtxo ProcessType = "utxo"
+	ProcessTypeMeta ProcessType = "meta"
 )
 
 func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*wire.MsgBlock, processType ProcessType) bool {
@@ -98,17 +153,15 @@ func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*wir
 		wg.Add(1)
 		go func(client *Client) {
 			defer wg.Done()
-			if _, ok := shardBlocks[client.Config.Shard]; !ok {
+			if _, ok := shardBlocks[client.Config.Shard]; !ok && processType == ProcessTypeTx {
 				return
 			}
 			var err error
 			switch processType {
-			case ProcessTypeQueue:
-				_, err = client.Client.Queue(context.Background(), &cluster_pb.QueueReq{
+			case ProcessTypeTx:
+				_, err = client.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
 					Block: memo.GetRawBlock(*shardBlocks[client.Config.Shard]),
 				})
-			case ProcessTypeTx:
-				_, err = client.Client.SaveTxs(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
 			case ProcessTypeUtxo:
 				_, err = client.Client.SaveUtxos(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
 			case ProcessTypeMeta:

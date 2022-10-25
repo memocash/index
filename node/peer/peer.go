@@ -31,6 +31,7 @@ type Peer struct {
 	LastBlock   *chainhash.Hash
 	HasExisting bool
 	HeightBack  int64
+	SyncDone    bool
 }
 
 func (p *Peer) Error(err error) {
@@ -138,6 +139,15 @@ func (p *Peer) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 
 func (p *Peer) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 	if jutil.IsNil(p.BlockSave) {
+		return
+	}
+	jlog.Logf("len(msg.Headers): %d\n", len(msg.Headers))
+	if len(msg.Headers) == 0 {
+		jlog.Logf("No headers received, disconnecting, sync done: %t\n", p.SyncDone)
+		if !p.SyncDone {
+			p.SyncDone = true
+			p.Disconnect()
+		}
 		return
 	}
 	msgGetData := wire.NewMsgGetData()
