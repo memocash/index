@@ -60,7 +60,7 @@ func (s *Shard) Run() error {
 	if s.listener, err = net.Listen("tcp", clusterConfig.GetHost()); err != nil {
 		return jerr.Get("failed to listen cluster shard", err)
 	}
-	s.grpc = grpc.NewServer()
+	s.grpc = grpc.NewServer(grpc.MaxRecvMsgSize(client.MaxMessageSize), grpc.MaxSendMsgSize(client.MaxMessageSize))
 	cluster_pb.RegisterClusterServer(s.grpc, s)
 	reflection.Register(s.grpc)
 	go func() {

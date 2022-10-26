@@ -12,7 +12,6 @@ import (
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
-	"google.golang.org/grpc"
 	"sync"
 )
 
@@ -162,7 +161,7 @@ func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*wir
 			case ProcessTypeTx:
 				_, err = c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
 					Block: memo.GetRawBlock(*shardBlocks[c.Config.Shard]),
-				}, grpc.MaxCallSendMsgSize(client.MaxMessageSize))
+				})
 			case ProcessTypeUtxo:
 				_, err = c.Client.SaveUtxos(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
 			case ProcessTypeMeta:
