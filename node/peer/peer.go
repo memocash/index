@@ -141,7 +141,6 @@ func (p *Peer) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 	if jutil.IsNil(p.BlockSave) {
 		return
 	}
-	jlog.Logf("len(msg.Headers): %d\n", len(msg.Headers))
 	if len(msg.Headers) == 0 {
 		jlog.Logf("No headers received, disconnecting, sync done: %t\n", p.SyncDone)
 		if !p.SyncDone {

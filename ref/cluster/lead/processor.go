@@ -12,6 +12,7 @@ import (
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
+	"google.golang.org/grpc"
 	"sync"
 )
 
@@ -149,32 +150,32 @@ const (
 func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*wire.MsgBlock, processType ProcessType) bool {
 	var wg sync.WaitGroup
 	var hadError bool
-	for _, client := range p.Clients {
+	for _, c := range p.Clients {
 		wg.Add(1)
-		go func(client *Client) {
+		go func(c *Client) {
 			defer wg.Done()
-			if _, ok := shardBlocks[client.Config.Shard]; !ok && processType == ProcessTypeTx {
+			if _, ok := shardBlocks[c.Config.Shard]; !ok && processType == ProcessTypeTx {
 				return
 			}
 			var err error
 			switch processType {
 			case ProcessTypeTx:
-				_, err = client.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
-					Block: memo.GetRawBlock(*shardBlocks[client.Config.Shard]),
-				})
+				_, err = c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
+					Block: memo.GetRawBlock(*shardBlocks[c.Config.Shard]),
+				}, grpc.MaxCallSendMsgSize(client.MaxMessageSize))
 			case ProcessTypeUtxo:
-				_, err = client.Client.SaveUtxos(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
+				_, err = c.Client.SaveUtxos(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
 			case ProcessTypeMeta:
-				_, err = client.Client.SaveMeta(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
+				_, err = c.Client.SaveMeta(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
 			}
 			if err != nil {
 				hadError = true
 				p.ErrorChan <- ShardError{
-					Shard: client.Config.Int(),
-					Error: jerr.Getf(err, "error cluster shard process: %s - %d", processType, client.Config.Shard),
+					Shard: c.Config.Int(),
+					Error: jerr.Getf(err, "error cluster shard process: %s - %d", processType, c.Config.Shard),
 				}
 			}
-		}(client)
+		}(c)
 	}
 	wg.Wait()
 	return !hadError
