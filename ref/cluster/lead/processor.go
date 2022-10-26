@@ -132,8 +132,8 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeMeta) {
 		return false
 	}*/
-	jlog.Logf("Saved block: %s %s, %d txs, size: %s\n",
-		blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), len(block.Transactions),
+	jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
+		blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(len(block.Transactions)),
 		jfmt.AddCommasInt(block.SerializeSize()))
 	return true
 }
