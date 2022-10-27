@@ -50,10 +50,20 @@ func NewCombinedTx(verbose bool) *CombinedTx {
 	})
 }
 
-func NewCombinedOutput(verbose bool) *CombinedTx {
-	return NewCombined([]dbi.TxSave{
-		NewLockHeight(verbose),
-		NewDoubleSpend(verbose),
+func NewCombinedOutput(verbose, initialSync bool) *CombinedTx {
+	utxo := NewUtxo(verbose)
+	lockHeight := NewLockHeight(verbose)
+	if initialSync {
+		utxo.InitialSync = true
+		lockHeight.InitialSync = true
+	}
+	var combinedTx = &CombinedTx{Savers: []dbi.TxSave{
+		utxo,
+		lockHeight,
 		NewMemo(verbose),
-	})
+	}}
+	if !initialSync {
+		combinedTx.Savers = append(combinedTx.Savers, NewDoubleSpend(verbose))
+	}
+	return combinedTx
 }

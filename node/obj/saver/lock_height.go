@@ -17,6 +17,7 @@ import (
 
 type LockHeight struct {
 	Verbose     bool
+	InitialSync bool
 	CheckTxHash []byte
 }
 
@@ -24,7 +25,7 @@ func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
 	if block == nil {
 		return jerr.Newf("error nil block for lock height")
 	}
-	saveRun := NewLockHeightSaveRun(t.Verbose)
+	saveRun := NewLockHeightSaveRun(t.Verbose, t.InitialSync)
 	saveRun.CheckTxHash = t.CheckTxHash
 	if err := saveRun.SetHashHeightInOuts(block); err != nil {
 		return jerr.Get("error setting hash height for lock height saver run", err)
@@ -50,6 +51,7 @@ func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
 
 type LockHeightSaveRun struct {
 	Verbose     bool
+	InitialSync bool
 	BlockHash   []byte
 	Height      int64
 	ObjectCount int
@@ -144,6 +146,9 @@ func (t *LockHeightSaveRun) SaveOutputs() error {
 		return jerr.Get("error saving db lock height outputs", err)
 	}
 	t.ObjectCount += len(objects)
+	if t.InitialSync {
+		return nil
+	}
 	if err := item.RemoveLockHeightOutputs(lockHeightOutputsToRemove); err != nil {
 		return jerr.Get("error removing mempool lock height outputs for lock heights", err)
 	}
@@ -225,10 +230,13 @@ TxInLoop:
 	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving db lock height output inputs for inputs", err)
 	}
+	t.ObjectCount += len(objects)
+	if t.InitialSync {
+		return nil
+	}
 	if err := item.RemoveLockHeightOutputInputs(lockHeightOutputInputsToRemove); err != nil {
 		return jerr.Get("error removing mempool lock height output inputs for inputs for lock heights", err)
 	}
-	t.ObjectCount += len(objects)
 	return nil
 }
 
@@ -322,16 +330,20 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving db lock height output inputs for outputs", err)
 	}
+	t.ObjectCount += len(objects)
+	if t.InitialSync {
+		return nil
+	}
 	if err := item.RemoveLockHeightOutputInputs(lockHeightOutputInputsToRemove); err != nil {
 		return jerr.Get("error removing mempool lock height output inputs for outputs for lock heights", err)
 	}
-	t.ObjectCount += len(objects)
 	return nil
 }
 
-func NewLockHeightSaveRun(verbose bool) *LockHeightSaveRun {
+func NewLockHeightSaveRun(verbose, initialSync bool) *LockHeightSaveRun {
 	return &LockHeightSaveRun{
-		Verbose: verbose,
+		Verbose:     verbose,
+		InitialSync: initialSync,
 	}
 }
 
