@@ -16,6 +16,9 @@ import (
 var addressCmd = &cobra.Command{
 	Use: "address",
 	Run: func(c *cobra.Command, args []string) {
+		if len(args) < 2 {
+			jerr.New("not enough arguments, must specify address and amount").Fatal()
+		}
 		txSaver := saver.NewCombined([]dbi.TxSave{
 			saver.NewTxRaw(false),
 			saver.NewTx(false),
@@ -23,7 +26,13 @@ var addressCmd = &cobra.Command{
 			saver.NewLockHeight(false),
 		})
 		address := wallet.GetAddressFromString(args[0])
+		if !address.IsSet() {
+			jerr.New("invalid address").Fatal()
+		}
 		amount := jutil.GetInt64FromString(args[1])
+		if amount < memo.DustMinimumOutput {
+			jerr.New("amount must be greater than dust minimum").Fatal()
+		}
 		fundingTx, err := test_tx.GetFundingTx(address, amount)
 		if err != nil {
 			jerr.Get("error getting funding tx for addressCmd", err).Fatal()
