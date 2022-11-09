@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
+	"github.com/memocash/index/cmd/test/fund"
 	"github.com/memocash/index/test/suite"
 	"github.com/memocash/index/test/tasks"
 	"github.com/spf13/cobra"
@@ -34,5 +35,6 @@ func GetCommand() *cobra.Command {
 			testCmd.AddCommand(cmd)
 		}
 	}
+	testCmd.AddCommand(fund.GetCommand())
 	return testCmd
 }
