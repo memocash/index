@@ -192,6 +192,7 @@ type ComplexityRoot struct {
 
 	Subscription struct {
 		Address     func(childComplexity int, address string) int
+		Addresses   func(childComplexity int, addresses []string) int
 		Blocks      func(childComplexity int) int
 		Posts       func(childComplexity int, hashes []string) int
 		Profiles    func(childComplexity int, addresses []string) int
@@ -331,6 +332,7 @@ type SetProfileResolver interface {
 }
 type SubscriptionResolver interface {
 	Address(ctx context.Context, address string) (<-chan *model.Tx, error)
+	Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error)
 	Blocks(ctx context.Context) (<-chan *model.Block, error)
 	Posts(ctx context.Context, hashes []string) (<-chan *model.Post, error)
 	Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error)
@@ -1087,6 +1089,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.Address(childComplexity, args["address"].(string)), true
 
+	case "Subscription.addresses":
+		if e.complexity.Subscription.Addresses == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_addresses_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.Addresses(childComplexity, args["addresses"].([]string)), true
+
 	case "Subscription.blocks":
 		if e.complexity.Subscription.Blocks == nil {
 			break
@@ -1528,6 +1542,7 @@ type Like {
 
 type Subscription {
     address(address: String!): Tx
+    addresses(addresses: [String!]): Tx
     blocks: Block
     posts(hashes: [String!]): Post
     profiles(addresses: [String!]): Profile
@@ -1959,6 +1974,21 @@ func (ec *executionContext) field_Subscription_address_args(ctx context.Context,
 		}
 	}
 	args["address"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_addresses_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []string
+	if tmp, ok := rawArgs["addresses"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("addresses"))
+		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["addresses"] = arg0
 	return args, nil
 }
 
@@ -6880,6 +6910,90 @@ func (ec *executionContext) fieldContext_Subscription_address(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Subscription_address_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_addresses(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_addresses(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().Addresses(rctx, fc.Args["addresses"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.Tx):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_addresses(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hash":
+				return ec.fieldContext_Tx_hash(ctx, field)
+			case "raw":
+				return ec.fieldContext_Tx_raw(ctx, field)
+			case "inputs":
+				return ec.fieldContext_Tx_inputs(ctx, field)
+			case "outputs":
+				return ec.fieldContext_Tx_outputs(ctx, field)
+			case "blocks":
+				return ec.fieldContext_Tx_blocks(ctx, field)
+			case "suspect":
+				return ec.fieldContext_Tx_suspect(ctx, field)
+			case "lost":
+				return ec.fieldContext_Tx_lost(ctx, field)
+			case "seen":
+				return ec.fieldContext_Tx_seen(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_addresses_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -11895,6 +12009,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch fields[0].Name {
 	case "address":
 		return ec._Subscription_address(ctx, fields[0])
+	case "addresses":
+		return ec._Subscription_addresses(ctx, fields[0])
 	case "blocks":
 		return ec._Subscription_blocks(ctx, fields[0])
 	case "posts":

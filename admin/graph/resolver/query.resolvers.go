@@ -294,6 +294,11 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 	return txChan, nil
 }
 
+// Addresses is the resolver for the addresses field.
+func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error) {
+	panic(fmt.Errorf("not implemented: Addresses - addresses"))
+}
+
 // Blocks is the resolver for the blocks field.
 func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block, error) {
 	ctx, cancel := context.WithCancel(ctx)
