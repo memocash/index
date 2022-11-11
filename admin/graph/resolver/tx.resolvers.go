@@ -14,6 +14,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
+// Inputs is the resolver for the inputs field.
 func (r *txResolver) Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInput, error) {
 	rawBytes, err := hex.DecodeString(obj.Raw)
 	if err != nil {
@@ -35,6 +36,7 @@ func (r *txResolver) Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInpu
 	return inputs, nil
 }
 
+// Outputs is the resolver for the outputs field.
 func (r *txResolver) Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOutput, error) {
 	rawBytes, err := hex.DecodeString(obj.Raw)
 	if err != nil {
@@ -56,6 +58,7 @@ func (r *txResolver) Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOut
 	return outputs, nil
 }
 
+// Blocks is the resolver for the blocks field.
 func (r *txResolver) Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block, error) {
 	blocks, err := dataloader.NewBlockLoader(blockLoaderConfig).Load(obj.Hash)
 	if err != nil {
@@ -64,6 +67,7 @@ func (r *txResolver) Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block,
 	return blocks, nil
 }
 
+// Suspect is the resolver for the suspect field.
 func (r *txResolver) Suspect(ctx context.Context, obj *model.Tx) (*model.TxSuspect, error) {
 	txSuspect, err := dataloader.NewTxSuspectLoader(txSuspectLoaderConfig).Load(obj.Hash)
 	if err != nil {
@@ -72,6 +76,7 @@ func (r *txResolver) Suspect(ctx context.Context, obj *model.Tx) (*model.TxSuspe
 	return txSuspect, nil
 }
 
+// Lost is the resolver for the lost field.
 func (r *txResolver) Lost(ctx context.Context, obj *model.Tx) (*model.TxLost, error) {
 	txLost, err := dataloader.NewTxLostLoader(txLostLoaderConfig).Load(obj.Hash)
 	if err != nil {
@@ -80,6 +85,7 @@ func (r *txResolver) Lost(ctx context.Context, obj *model.Tx) (*model.TxLost, er
 	return txLost, nil
 }
 
+// Seen is the resolver for the seen field.
 func (r *txResolver) Seen(ctx context.Context, obj *model.Tx) (*model.Date, error) {
 	txSeen, err := dataloader.NewTxSeenLoader(txSeenLoaderConfig).Load(obj.Hash)
 	if err != nil {

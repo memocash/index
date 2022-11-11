@@ -27,6 +27,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
+// Tx is the resolver for the tx field.
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
 	txHash, err := chainhash.NewHashFromStr(hash)
 	if err != nil {
@@ -46,10 +47,12 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 	}, nil
 }
 
+// Txs is the resolver for the txs field.
 func (r *queryResolver) Txs(ctx context.Context, hashes []string) ([]*model.Tx, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
+// Address is the resolver for the address field.
 func (r *queryResolver) Address(ctx context.Context, address string) (*model.Lock, error) {
 	balance, err := get.NewBalanceFromAddress(address)
 	if err != nil {
@@ -65,6 +68,7 @@ func (r *queryResolver) Address(ctx context.Context, address string) (*model.Loc
 	}, nil
 }
 
+// Addresses is the resolver for the addresses field.
 func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error) {
 	var locks []*model.Lock
 	for _, address := range addresses {
@@ -84,6 +88,7 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*m
 	return locks, nil
 }
 
+// Block is the resolver for the block field.
 func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, error) {
 	blockHash, err := chainhash.NewHashFromStr(hash)
 	if err != nil {
@@ -110,6 +115,7 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 	}, nil
 }
 
+// BlockNewest is the resolver for the block_newest field.
 func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	heightBlock, err := item.GetRecentHeightBlock()
 	if err != nil {
@@ -134,6 +140,7 @@ func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	}, nil
 }
 
+// Blocks is the resolver for the blocks field.
 func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error) {
 	var startInt int64
 	if start != nil {
@@ -175,6 +182,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	return modelBlocks, nil
 }
 
+// DoubleSpends is the resolver for the double_spends field.
 func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *model.Date) ([]*model.DoubleSpend, error) {
 	var startTime time.Time
 	if start != nil {
@@ -199,6 +207,7 @@ func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *m
 	return modelDoubleSpends, nil
 }
 
+// Profiles is the resolver for the profiles field.
 func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error) {
 	var profiles []*model.Profile
 	for _, addressString := range addresses {
@@ -211,6 +220,7 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*mo
 	return profiles, nil
 }
 
+// Posts is the resolver for the posts field.
 func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.Post, error) {
 	posts, errs := dataloader.NewPostLoader(load.PostLoaderConfig).LoadAll(txHashes)
 	for i, err := range errs {
@@ -221,10 +231,12 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.
 	return posts, nil
 }
 
+// Room is the resolver for the room field.
 func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, error) {
 	return &model.Room{Name: name}, nil
 }
 
+// Address is the resolver for the address field.
 func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
 	lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
 	if err != nil {
@@ -282,6 +294,7 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 	return txChan, nil
 }
 
+// Blocks is the resolver for the blocks field.
 func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	blockHeightListener, err := item.ListenBlockHeights(ctx)
@@ -327,6 +340,7 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 	return blockChan, nil
 }
 
+// Posts is the resolver for the posts field.
 func (r *subscriptionResolver) Posts(ctx context.Context, hashes []string) (<-chan *model.Post, error) {
 	postChan, err := new(sub.Post).Listen(ctx, hashes)
 	if err != nil {
@@ -335,6 +349,7 @@ func (r *subscriptionResolver) Posts(ctx context.Context, hashes []string) (<-ch
 	return postChan, nil
 }
 
+// Profiles is the resolver for the profiles field.
 func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error) {
 	var profile = new(sub.Profile)
 	profileChan, err := profile.Listen(ctx, addresses, GetPreloads(ctx))
@@ -344,6 +359,7 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string)
 	return profileChan, nil
 }
 
+// Rooms is the resolver for the rooms field.
 func (r *subscriptionResolver) Rooms(ctx context.Context, names []string) (<-chan *model.Post, error) {
 	var room = new(sub.Room)
 	roomPostsChan, err := room.Listen(ctx, names)
@@ -353,6 +369,7 @@ func (r *subscriptionResolver) Rooms(ctx context.Context, names []string) (<-cha
 	return roomPostsChan, nil
 }
 
+// RoomFollows is the resolver for the room_follows field.
 func (r *subscriptionResolver) RoomFollows(ctx context.Context, addresses []string) (<-chan *model.RoomFollow, error) {
 	var roomFollow = new(sub.RoomFollow)
 	roomFollowsChan, err := roomFollow.Listen(ctx, addresses)

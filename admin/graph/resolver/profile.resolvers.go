@@ -19,6 +19,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
 
+// Tx is the resolver for the tx field.
 func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error) {
 	tx, err := TxLoader(ctx, obj.TxHash)
 	if err != nil {
@@ -27,6 +28,7 @@ func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, 
 	return tx, nil
 }
 
+// Lock is the resolver for the lock field.
 func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
@@ -35,6 +37,7 @@ func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lo
 	return lock, nil
 }
 
+// FollowLock is the resolver for the follow_lock field.
 func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.FollowLockHash)
 	if err != nil {
@@ -43,6 +46,7 @@ func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*mo
 	return lock, nil
 }
 
+// Tx is the resolver for the tx field.
 func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, error) {
 	tx, err := TxLoader(ctx, obj.TxHash)
 	if err != nil {
@@ -51,6 +55,7 @@ func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, erro
 	return tx, nil
 }
 
+// Lock is the resolver for the lock field.
 func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
@@ -59,6 +64,7 @@ func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, 
 	return lock, nil
 }
 
+// Post is the resolver for the post field.
 func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, error) {
 	post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(obj.TxHash)
 	if err != nil {
@@ -67,6 +73,7 @@ func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, 
 	return post, nil
 }
 
+// Tx is the resolver for the tx field.
 func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
 	tx, err := TxLoader(ctx, obj.TxHash)
 	if err != nil {
@@ -75,6 +82,7 @@ func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, erro
 	return tx, nil
 }
 
+// Lock is the resolver for the lock field.
 func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
@@ -83,6 +91,7 @@ func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, 
 	return lock, nil
 }
 
+// Likes is the resolver for the likes field.
 func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Like, error) {
 	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
 	if err != nil {
@@ -120,6 +129,7 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 	return likes, nil
 }
 
+// Parent is the resolver for the parent field.
 func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post, error) {
 	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
 	if err != nil {
@@ -142,6 +152,7 @@ func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post
 	return post, nil
 }
 
+// Replies is the resolver for the replies field.
 func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.Post, error) {
 	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
 	if err != nil {
@@ -164,6 +175,7 @@ func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.P
 	return replies, nil
 }
 
+// Room is the resolver for the room field.
 func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, error) {
 	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
 	if err != nil {
@@ -179,6 +191,7 @@ func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, 
 	}, nil
 }
 
+// Lock is the resolver for the lock field.
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
@@ -187,6 +200,7 @@ func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.
 	return lock, nil
 }
 
+// Following is the resolver for the following field.
 func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error) {
 	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(obj.LockHash)
 	if err != nil {
@@ -212,6 +226,7 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	return follows, nil
 }
 
+// Followers is the resolver for the followers field.
 func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error) {
 	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(obj.LockHash)
 	if err != nil {
@@ -237,6 +252,7 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 	return follows, nil
 }
 
+// Posts is the resolver for the posts field.
 func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *int) ([]*model.Post, error) {
 	lockHash, err := hex.DecodeString(obj.LockHash)
 	if err != nil {
@@ -265,6 +281,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	return posts, nil
 }
 
+// Rooms is the resolver for the rooms field.
 func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *int) ([]*model.RoomFollow, error) {
 	lockHash, err := hex.DecodeString(obj.LockHash)
 	if err != nil {
@@ -283,6 +300,7 @@ func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *
 	return roomFollows, nil
 }
 
+// Tx is the resolver for the tx field.
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
 	tx, err := TxLoader(ctx, obj.TxHash)
 	if err != nil {
@@ -291,6 +309,7 @@ func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx
 	return tx, nil
 }
 
+// Lock is the resolver for the lock field.
 func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
@@ -299,6 +318,7 @@ func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.
 	return lock, nil
 }
 
+// Tx is the resolver for the tx field.
 func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error) {
 	tx, err := TxLoader(ctx, obj.TxHash)
 	if err != nil {
@@ -307,6 +327,7 @@ func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, 
 	return tx, nil
 }
 
+// Lock is the resolver for the lock field.
 func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
@@ -315,6 +336,7 @@ func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lo
 	return lock, nil
 }
 
+// Tx is the resolver for the tx field.
 func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error) {
 	tx, err := TxLoader(ctx, obj.TxHash)
 	if err != nil {
@@ -323,6 +345,7 @@ func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*mo
 	return tx, nil
 }
 
+// Lock is the resolver for the lock field.
 func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
