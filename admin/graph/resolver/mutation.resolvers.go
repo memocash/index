@@ -12,6 +12,7 @@ import (
 	"github.com/memocash/index/ref/broadcast/broadcast_client"
 )
 
+// Broadcast is the resolver for the broadcast field.
 func (r *mutationResolver) Broadcast(ctx context.Context, raw string) (bool, error) {
 	rawBytes, err := hex.DecodeString(raw)
 	if err != nil {

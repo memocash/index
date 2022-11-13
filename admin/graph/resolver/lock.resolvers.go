@@ -18,6 +18,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
+// Profile is the resolver for the profile field.
 func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error) {
 	profile, err := dataloader.NewProfileLoader(load.ProfileLoaderConfig).Load(obj.Address)
 	if err != nil {
@@ -26,6 +27,7 @@ func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Pro
 	return profile, nil
 }
 
+// Utxos is the resolver for the utxos field.
 func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error) {
 	lockHash, err := hex.DecodeString(obj.Hash)
 	if err != nil {
@@ -54,6 +56,7 @@ func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock, start *model.
 	return txOutputs, nil
 }
 
+// Outputs is the resolver for the outputs field.
 func (r *lockResolver) Outputs(ctx context.Context, obj *model.Lock, start *model.HashIndex, height *int) ([]*model.TxOutput, error) {
 	lockHash, err := hex.DecodeString(obj.Hash)
 	if err != nil {

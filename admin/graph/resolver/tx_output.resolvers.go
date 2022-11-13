@@ -18,6 +18,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
+// Tx is the resolver for the tx field.
 func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {
 	preloads := GetPreloads(ctx)
 	var tx = &model.Tx{
@@ -33,6 +34,7 @@ func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.
 	return tx, nil
 }
 
+// Spends is the resolver for the spends field.
 func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error) {
 	txInputs, err := dataloader.NewTxOutputSpendLoader(txOutputSpendLoaderConfig).Load(model.HashIndex{
 		Hash:  obj.Hash,
@@ -44,10 +46,12 @@ func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*
 	return txInputs, nil
 }
 
+// DoubleSpend is the resolver for the double_spend field.
 func (r *txOutputResolver) DoubleSpend(ctx context.Context, obj *model.TxOutput) (*model.DoubleSpend, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
+// Lock is the resolver for the lock field.
 func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*model.Lock, error) {
 	if len(obj.Script) == 0 {
 		return nil, nil

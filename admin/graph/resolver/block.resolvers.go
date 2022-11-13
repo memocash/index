@@ -15,6 +15,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
+// Txs is the resolver for the txs field.
 func (r *blockResolver) Txs(ctx context.Context, obj *model.Block, start *string) ([]*model.Tx, error) {
 	blockHash, err := chainhash.NewHashFromStr(obj.Hash)
 	if err != nil {

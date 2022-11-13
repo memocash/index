@@ -17,6 +17,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
+// Output is the resolver for the output field.
 func (r *doubleSpendResolver) Output(ctx context.Context, obj *model.DoubleSpend) (*model.TxOutput, error) {
 	preloads := GetPreloads(ctx)
 	if !jutil.StringsInSlice([]string{"amount", "script"}, preloads) {
@@ -35,6 +36,7 @@ func (r *doubleSpendResolver) Output(ctx context.Context, obj *model.DoubleSpend
 	return txOutput, nil
 }
 
+// Inputs is the resolver for the inputs field.
 func (r *doubleSpendResolver) Inputs(ctx context.Context, obj *model.DoubleSpend) ([]*model.TxInput, error) {
 	hash, err := chainhash.NewHashFromStr(obj.Hash)
 	if err != nil {

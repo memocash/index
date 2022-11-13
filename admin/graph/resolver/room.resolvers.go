@@ -14,6 +14,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
+// Posts is the resolver for the posts field.
 func (r *roomResolver) Posts(ctx context.Context, obj *model.Room, start *int) ([]*model.Post, error) {
 	roomHeightPosts, err := memo.GetRoomHeightPosts(ctx, obj.Name)
 	if err != nil {
@@ -38,6 +39,7 @@ func (r *roomResolver) Posts(ctx context.Context, obj *model.Room, start *int) (
 	return posts, nil
 }
 
+// Followers is the resolver for the followers field.
 func (r *roomResolver) Followers(ctx context.Context, obj *model.Room, start *int) ([]*model.RoomFollow, error) {
 	lockRoomFollows, err := memo.GetRoomHeightFollows(ctx, obj.Name)
 	if err != nil {
@@ -55,10 +57,12 @@ func (r *roomResolver) Followers(ctx context.Context, obj *model.Room, start *in
 	return roomFollows, nil
 }
 
+// Room is the resolver for the room field.
 func (r *roomFollowResolver) Room(ctx context.Context, obj *model.RoomFollow) (*model.Room, error) {
 	return &model.Room{Name: obj.Name}, nil
 }
 
+// Lock is the resolver for the lock field.
 func (r *roomFollowResolver) Lock(ctx context.Context, obj *model.RoomFollow) (*model.Lock, error) {
 	lock, err := LockLoader(ctx, obj.LockHash)
 	if err != nil {
@@ -67,6 +71,7 @@ func (r *roomFollowResolver) Lock(ctx context.Context, obj *model.RoomFollow) (*
 	return lock, nil
 }
 
+// Tx is the resolver for the tx field.
 func (r *roomFollowResolver) Tx(ctx context.Context, obj *model.RoomFollow) (*model.Tx, error) {
 	tx, err := TxLoader(ctx, obj.TxHash)
 	if err != nil {

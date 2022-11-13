@@ -11,6 +11,7 @@ import (
 	"github.com/memocash/index/admin/graph/model"
 )
 
+// Tx is the resolver for the tx field.
 func (r *txSuspectResolver) Tx(ctx context.Context, obj *model.TxSuspect) (*model.Tx, error) {
 	tx, err := TxLoader(ctx, obj.Hash)
 	if err != nil {

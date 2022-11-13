@@ -14,6 +14,7 @@ import (
 	"github.com/memocash/index/admin/graph/model"
 )
 
+// Tx is the resolver for the tx field.
 func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx, error) {
 	preloads := GetPreloads(ctx)
 	var tx = &model.Tx{
@@ -29,6 +30,7 @@ func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx
 	return tx, nil
 }
 
+// Output is the resolver for the output field.
 func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error) {
 	txOutputs, err := dataloader.NewTxOutputLoader(txOutputLoaderConfig).Load(model.HashIndex{
 		Hash:  obj.PrevHash,
@@ -40,6 +42,7 @@ func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*mode
 	return txOutputs, nil
 }
 
+// DoubleSpend is the resolver for the double_spend field.
 func (r *txInputResolver) DoubleSpend(ctx context.Context, obj *model.TxInput) (*model.DoubleSpend, error) {
 	panic(fmt.Errorf("not implemented"))
 }
