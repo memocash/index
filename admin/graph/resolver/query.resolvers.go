@@ -237,21 +237,42 @@ func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, err
 }
 
 // Address is the resolver for the address field.
-func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
-	lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
-	if err != nil {
-		return nil, jerr.Get("error getting lock script for address subscription", err)
+func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error) {
+	lockHashes := make([][]byte, len(addresses))
+	for _, address := range addresses {
+		lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
+		if err != nil {
+			return nil, jerr.Get("error getting lock script for address subscription", err)
+		}
+		lockHashes = append(lockHashes, script.GetLockHash(lockScript))
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	lockHeightOutputsListener, err := item.ListenMempoolLockHeightOutputs(ctx, script.GetLockHash(lockScript))
+	lockHeightOutputsListeners, err := item.ListenMempoolLockHeightOutputsMultiple(ctx, lockHashes)
 	if err != nil {
 		cancel()
 		return nil, jerr.Get("error getting lock height outputs listener for address subscription", err)
 	}
-	lockHeightInputsListener, err := item.ListenMempoolLockHeightOutputInputs(ctx, script.GetLockHash(lockScript))
+	lockHeightInputsListeners, err := item.ListenMempoolLockHeightOutputInputsMultiple(ctx, lockHashes)
 	if err != nil {
 		cancel()
 		return nil, jerr.Get("error getting lock height inputs listener for address subscription", err)
+	}
+	var aggregateOutput = make(chan *item.LockHeightOutput)
+	var aggregateInput= make(chan *item.LockHeightOutputInput)
+
+	for _, ch := range lockHeightInputsListeners {
+		go func(c chan *item.LockHeightOutputInput) {
+			for msg := range c{
+				aggregateInput <- msg
+			}
+		}(ch)
+	}
+	for _, ch := range lockHeightOutputsListeners {
+		go func(c chan *item.LockHeightOutput) {
+			for msg := range c{
+				aggregateOutput <- msg
+			}
+		}(ch)
 	}
 	var txChan = make(chan *model.Tx)
 	go func() {
@@ -261,7 +282,7 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 		}()
 		for {
 			select {
-			case lockHeightOutput, ok := <-lockHeightOutputsListener:
+			case lockHeightOutput, ok := <-aggregateOutput:
 				if !ok {
 					return
 				}
@@ -274,7 +295,7 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 					Hash: hs.GetTxString(lockHeightOutput.Hash),
 					Raw:  hex.EncodeToString(txRaw.Raw),
 				}
-			case lockHeightOutputInput, ok := <-lockHeightInputsListener:
+			case lockHeightOutputInput, ok := <-aggregateInput:
 				if !ok {
 					return
 				}
@@ -294,9 +315,12 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 	return txChan, nil
 }
 
-// Addresses is the resolver for the addresses field.
-func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error) {
-	panic(fmt.Errorf("not implemented: Addresses - addresses"))
+func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
+	txChan,err := r.Addresses(ctx, []string{address})
+	if err != nil {
+		return nil, jerr.Get("error getting address for address subscription", err)
+	}
+	return txChan, nil
 }
 
 // Blocks is the resolver for the blocks field.
