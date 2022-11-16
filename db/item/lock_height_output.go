@@ -51,26 +51,46 @@ func (o *LockHeightOutput) SetUid(uid []byte) {
 func (o *LockHeightOutput) Deserialize([]byte) {}
 
 func ListenMempoolLockHeightOutputs(ctx context.Context, lockHash []byte) (chan *LockHeightOutput, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	chanMessage, err := dbClient.Listen(ctx, db.TopicLockHeightOutput, [][]byte{lockHash})
+	lockHeightChan, err := ListenMempoolLockHeightOutputsMultiple(ctx, [][]byte{lockHash})
 	if err != nil {
 		return nil, jerr.Get("error getting lock height output listen message chan", err)
 	}
-	var chanLockHeightOutput = make(chan *LockHeightOutput)
-	go func() {
-		for {
-			msg, ok := <-chanMessage
-			if !ok {
-				close(chanLockHeightOutput)
-				return
-			}
-			var lockHeightOutput = new(LockHeightOutput)
-			db.Set(lockHeightOutput, *msg)
-			chanLockHeightOutput <- lockHeightOutput
+	if len(lockHeightChan) != 1 {
+		return nil, jerr.Newf("invalid lock height output listen message chan length: %d", len(lockHeightChan))
+	}
+	return lockHeightChan[0], nil
+}
+
+func ListenMempoolLockHeightOutputsMultiple(ctx context.Context, lockHashes [][]byte) ([]chan *LockHeightOutput, error) {
+	var shardLockHashGroups = make(map[uint32][][]byte)
+	for _, lockHash := range lockHashes {
+		shard := db.GetShardByte32(lockHash)
+		shardLockHashGroups[shard] = append(shardLockHashGroups[shard], lockHash)
+	}
+	var chanLockHeightOutputs []chan *LockHeightOutput
+	for shard, lockHashGroup := range shardLockHashGroups {
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		dbClient := client.NewClient(shardConfig.GetHost())
+		chanMessage, err := dbClient.Listen(ctx, db.TopicLockHeightOutput, lockHashGroup)
+		if err != nil {
+			return nil, jerr.Get("error getting lock height output listen message chan", err)
 		}
-	}()
-	return chanLockHeightOutput, nil
+		var chanLockHeightOutput = make(chan *LockHeightOutput)
+		go func() {
+			for {
+				msg, ok := <-chanMessage
+				if !ok {
+					close(chanLockHeightOutput)
+					return
+				}
+				var lockHeightOutput = new(LockHeightOutput)
+				db.Set(lockHeightOutput, *msg)
+				chanLockHeightOutput <- lockHeightOutput
+			}
+		}()
+		chanLockHeightOutputs = append(chanLockHeightOutputs, chanLockHeightOutput)
+	}
+	return chanLockHeightOutputs, nil
 }
 
 func GetLockHeightOutputs(lockHash, start []byte) ([]*LockHeightOutput, error) {
