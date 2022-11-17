@@ -54,28 +54,46 @@ func (t LockHeightOutputInput) Serialize() []byte {
 }
 
 func (t *LockHeightOutputInput) Deserialize([]byte) {}
-
 func ListenMempoolLockHeightOutputInputs(ctx context.Context, lockHash []byte) (chan *LockHeightOutputInput, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(lockHash), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	chanMessage, err := dbClient.Listen(ctx, db.TopicLockHeightOutputInput, [][]byte{lockHash})
+	lockHeightChan, err := ListenMempoolLockHeightOutputInputsMultiple(ctx, [][]byte{lockHash})
 	if err != nil {
-		return nil, jerr.Get("error getting lock height output input listen message chan", err)
+		return nil, jerr.Get("error getting lock height output listen message chan", err)
 	}
-	var chanLockHeightOutputInput = make(chan *LockHeightOutputInput)
-	go func() {
-		for {
-			msg, ok := <-chanMessage
-			if !ok {
-				close(chanLockHeightOutputInput)
-				return
-			}
-			var lockHeightOutputInput = new(LockHeightOutputInput)
-			db.Set(lockHeightOutputInput, *msg)
-			chanLockHeightOutputInput <- lockHeightOutputInput
+	if len(lockHeightChan) != 1 {
+		return nil, jerr.Newf("invalid lock height input listen message chan length: %d", len(lockHeightChan))
+	}
+	return lockHeightChan[0], nil
+}
+func ListenMempoolLockHeightOutputInputsMultiple(ctx context.Context, lockHashes [][]byte) ([]chan *LockHeightOutputInput, error) {
+	var shardLockHashGroups = make(map[uint32][][]byte)
+	for _, lockHash := range lockHashes {
+		shard := db.GetShardByte32(lockHash)
+		shardLockHashGroups[shard] = append(shardLockHashGroups[shard], lockHash)
+	}
+	var chanLockHeightOutputInputs []chan *LockHeightOutputInput
+	for shard, lockHashGroup := range shardLockHashGroups {
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		dbClient := client.NewClient(shardConfig.GetHost())
+		chanMessage, err := dbClient.Listen(ctx, db.TopicLockHeightOutputInput, lockHashGroup)
+		if err != nil {
+			return nil, jerr.Get("error getting lock height output input listen message chan", err)
 		}
-	}()
-	return chanLockHeightOutputInput, nil
+		var chanLockHeightOutputInput = make(chan *LockHeightOutputInput)
+		go func() {
+			for {
+				msg, ok := <-chanMessage
+				if !ok {
+					close(chanLockHeightOutputInput)
+					return
+				}
+				var lockHeightOutputInput = new(LockHeightOutputInput)
+				db.Set(lockHeightOutputInput, *msg)
+				chanLockHeightOutputInput <- lockHeightOutputInput
+			}
+		}()
+		chanLockHeightOutputInputs = append(chanLockHeightOutputInputs, chanLockHeightOutputInput)
+	}
+	return chanLockHeightOutputInputs, nil
 }
 
 func RemoveLockHeightOutputInputs(lockHeightOutputInputs []*LockHeightOutputInput) error {
