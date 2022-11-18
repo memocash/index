@@ -46,23 +46,36 @@ func (t *TxMinimal) QueueTxs(block wire.MsgBlock) error {
 				Index:     uint32(i),
 			})
 		}
+		objects = append(objects, &chain.Tx{
+			TxHash:   txHash,
+			Version:  tx.Version,
+			LockTime: tx.LockTime,
+		})
 		for j := range tx.TxIn {
 			if memo.IsCoinbaseInput(tx.TxIn[j]) {
 				continue
 			}
 			objects = append(objects, &chain.TxInput{
-				TxHash:    txHash,
-				Index:     uint32(j),
-				PrevHash:  tx.TxIn[j].PreviousOutPoint.Hash,
-				PrevIndex: tx.TxIn[j].PreviousOutPoint.Index,
-				Sequence:  tx.TxIn[j].Sequence,
-				SigScript: tx.TxIn[j].SignatureScript,
+				TxHash:       txHash,
+				Index:        uint32(j),
+				PrevHash:     tx.TxIn[j].PreviousOutPoint.Hash,
+				PrevIndex:    tx.TxIn[j].PreviousOutPoint.Index,
+				Sequence:     tx.TxIn[j].Sequence,
+				UnlockScript: tx.TxIn[j].SignatureScript,
 			})
 			objects = append(objects, &chain.OutputInput{
 				PrevHash:  tx.TxIn[j].PreviousOutPoint.Hash,
 				PrevIndex: tx.TxIn[j].PreviousOutPoint.Index,
 				Hash:      txHash,
 				Index:     uint32(j),
+			})
+		}
+		for k := range tx.TxOut {
+			objects = append(objects, &chain.TxOutput{
+				TxHash:     txHash,
+				Index:      uint32(k),
+				Value:      tx.TxOut[k].Value,
+				LockScript: tx.TxOut[k].PkScript,
 			})
 		}
 		objects = append(objects, &item.TxSeen{

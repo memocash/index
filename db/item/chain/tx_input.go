@@ -7,12 +7,12 @@ import (
 )
 
 type TxInput struct {
-	TxHash    [32]byte
-	Index     uint32
-	PrevHash  [32]byte
-	PrevIndex uint32
-	Sequence  uint32
-	SigScript []byte
+	TxHash       [32]byte
+	Index        uint32
+	PrevHash     [32]byte
+	PrevIndex    uint32
+	Sequence     uint32
+	UnlockScript []byte
 }
 
 func (t *TxInput) GetTopic() string {
@@ -40,7 +40,7 @@ func (t *TxInput) Serialize() []byte {
 		jutil.ByteReverse(t.PrevHash[:]),
 		jutil.GetUint32DataBig(t.PrevIndex),
 		jutil.GetUint32Data(t.Sequence),
-		t.SigScript,
+		t.UnlockScript,
 	)
 }
 
@@ -51,7 +51,7 @@ func (t *TxInput) Deserialize(data []byte) {
 	copy(t.PrevHash[:], jutil.ByteReverse(data[:32]))
 	t.PrevIndex = jutil.GetUint32Big(data[32:36])
 	t.Sequence = jutil.GetUint32(data[36:40])
-	t.SigScript = data[40:]
+	t.UnlockScript = data[40:]
 }
 
 func GetTxInputUid(txHash [32]byte, index uint32) []byte {
