@@ -66,6 +66,9 @@ const (
 	TopicMemoPostRoom             = "memo_post_room"
 	TopicMemoRoomHeightFollow     = "memo_room_follow"
 	TopicMemoRoomHeightPost       = "memo_room_height_post"
+
+	TopicP2pkhHeightOutput = "p2pkh_height_output"
+	TopicP2pkhHeightInput  = "p2pkh_height_input"
 )
 
 type Object interface {
