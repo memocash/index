@@ -22,7 +22,7 @@ func (t *TxOutput) GetShard() uint {
 }
 
 func (t *TxOutput) GetTopic() string {
-	return db.TopicTxOutput
+	return db.TopicChainTxOutput
 }
 
 func (t *TxOutput) Serialize() []byte {

@@ -16,7 +16,7 @@ type TxInput struct {
 }
 
 func (t *TxInput) GetTopic() string {
-	return db.TopicTxInput
+	return db.TopicChainTxInput
 }
 
 func (t *TxInput) GetShard() uint {

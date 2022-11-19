@@ -14,7 +14,7 @@ type OutputInput struct {
 }
 
 func (t *OutputInput) GetTopic() string {
-	return db.TopicOutputInput
+	return db.TopicChainOutputInput
 }
 
 func (t *OutputInput) GetShard() uint {

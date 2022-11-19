@@ -14,7 +14,7 @@ type P2pkhHeightInput struct {
 }
 
 func (i *P2pkhHeightInput) GetTopic() string {
-	return db.TopicP2pkhHeightInput
+	return db.TopicAddrP2pkhHeightInput
 }
 
 func (i *P2pkhHeightInput) GetShard() uint {

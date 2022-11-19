@@ -67,8 +67,15 @@ const (
 	TopicMemoRoomHeightFollow     = "memo_room_follow"
 	TopicMemoRoomHeightPost       = "memo_room_height_post"
 
-	TopicP2pkhHeightOutput = "p2pkh_height_output"
-	TopicP2pkhHeightInput  = "p2pkh_height_input"
+	TopicChainBlockTx     = "chain_block_tx"
+	TopicChainOutputInput = "chain_output_input"
+	TopicChainTx          = "chain_tx"
+	TopicChainTxBlock     = "chain_tx_block"
+	TopicChainTxInput     = "chain_tx_input"
+	TopicChainTxOutput    = "chain_tx_output"
+
+	TopicAddrP2pkhHeightOutput = "addr_p2pkh_height_output"
+	TopicAddrP2pkhHeightInput  = "addr_p2pkh_height_input"
 )
 
 type Object interface {

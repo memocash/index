@@ -13,7 +13,7 @@ type BlockTx struct {
 }
 
 func (b *BlockTx) GetTopic() string {
-	return db.TopicBlockTx
+	return db.TopicChainBlockTx
 }
 
 func (b *BlockTx) GetShard() uint {
