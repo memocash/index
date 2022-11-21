@@ -125,14 +125,19 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 	if !p.On {
 		return false
 	}
-	var shardBlocks = make(map[uint32]*wire.MsgBlock)
-	for _, tx := range block.Transactions {
+	var shardBlocks = make(map[uint32]*cluster_pb.Block)
+	for i, tx := range block.Transactions {
 		txHash := tx.TxHash()
 		shard := db.GetShardByte32(txHash[:])
 		if _, ok := shardBlocks[shard]; !ok {
-			shardBlocks[shard] = wire.NewMsgBlock(&block.Header)
+			shardBlocks[shard] = &cluster_pb.Block{
+				Header: memo.GetRawBlockHeader(block.Header),
+			}
 		}
-		shardBlocks[shard].AddTransaction(tx)
+		shardBlocks[shard].Txs = append(shardBlocks[shard].Txs, &cluster_pb.Tx{
+			Index: uint64(i),
+			Raw:   memo.GetRaw(tx),
+		})
 	}
 	blockHash := block.BlockHash()
 	if err := saver.NewBlock(p.Verbose).SaveBlock(block.Header); err != nil {
@@ -162,7 +167,7 @@ const (
 	ProcessTypeProcess        ProcessType = "process"
 )
 
-func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*wire.MsgBlock, processType ProcessType) bool {
+func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*cluster_pb.Block, processType ProcessType) bool {
 	var wg sync.WaitGroup
 	var hadError bool
 	for _, c := range p.Clients {
@@ -176,7 +181,7 @@ func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*wir
 			switch processType {
 			case ProcessTypeTx:
 				_, err = c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
-					Block: memo.GetRawBlock(*shardBlocks[c.Config.Shard]),
+					Block: shardBlocks[c.Config.Shard],
 				})
 			case ProcessTypeProcessInitial:
 				_, err = c.Client.ProcessInitial(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})

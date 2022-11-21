@@ -229,7 +229,7 @@ func (p *Peer) OnInv(_ *peer.Peer, msg *wire.MsgInv) {
 
 func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 	if p.TxSave != nil {
-		err := p.TxSave.SaveTxs(msg)
+		err := p.TxSave.SaveTxs(dbi.WireBlockToBlock(msg))
 		if err != nil {
 			p.Error(jerr.Get("error saving txs", err))
 		}
@@ -252,7 +252,7 @@ func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 func (p *Peer) OnTx(_ *peer.Peer, msg *wire.MsgTx) {
 	if p.TxSave != nil {
 		jlog.Logf("OnTx: %s\n", msg.TxHash().String())
-		err := p.TxSave.SaveTxs(memo.GetBlockFromTxs([]*wire.MsgTx{msg}, nil))
+		err := p.TxSave.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{msg}, nil)))
 		if err != nil {
 			p.Error(jerr.Get("error saving new tx", err))
 		}

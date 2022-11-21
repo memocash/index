@@ -11,6 +11,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/dbi"
 	"time"
 )
 
@@ -18,10 +19,11 @@ type DoubleSpend struct {
 	Verbose bool
 }
 
-func (s *DoubleSpend) SaveTxs(block *wire.MsgBlock) error {
-	if block == nil {
+func (s *DoubleSpend) SaveTxs(b *dbi.Block) error {
+	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
+	block := b.ToWireBlock()
 	var inputOuts []memo.Out
 	for _, msgTx := range block.Transactions {
 		for _, in := range msgTx.TxIn {

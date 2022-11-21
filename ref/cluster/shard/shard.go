@@ -13,6 +13,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
 	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/dbi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"net"
@@ -86,9 +87,19 @@ func (s *Shard) Ping(_ context.Context, req *cluster_pb.PingReq) (*cluster_pb.Pi
 }
 
 func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb.EmptyResp, error) {
-	block, err := memo.GetBlockFromRaw(req.Block)
+	header, err := memo.GetBlockHeaderFromRaw(req.Block.Header)
 	if err != nil {
-		return nil, jerr.Get("error getting block from raw", err)
+		return nil, jerr.Get("error getting block header", err)
+	}
+	var block = &dbi.Block{
+		Header: *header,
+	}
+	for _, tx := range req.Block.Txs {
+		msgTx, err := memo.GetMsgFromRaw(tx.Raw)
+		if err != nil {
+			return nil, jerr.Get("error getting msg tx", err)
+		}
+		block.Transactions = append(block.Transactions, *dbi.WireTxToTx(msgTx, tx.Index))
 	}
 	if err := saver.NewCombinedTx(s.Verbose).SaveTxs(block); err != nil {
 		return nil, jerr.Get("error saving block txs shard txs", err)
@@ -128,7 +139,7 @@ func (s *Shard) process(blockHashByte []byte, initialSync bool) error {
 			}
 		}
 		utxoSaver := saver.NewCombinedOutput(s.Verbose, initialSync)
-		if err := utxoSaver.SaveTxs(memo.GetBlockFromTxs(txs, blockHeader)); err != nil {
+		if err := utxoSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(txs, blockHeader))); err != nil {
 			return jerr.Get("error saving block txs shard utxos", err)
 		}
 		if len(blockTxsRaw) == client.ExLargeLimit {

@@ -1,7 +1,6 @@
 package saver
 
 import (
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/dbi"
 	"reflect"
@@ -11,7 +10,7 @@ type CombinedTx struct {
 	Savers []dbi.TxSave
 }
 
-func (c *CombinedTx) SaveTxs(block *wire.MsgBlock) error {
+func (c *CombinedTx) SaveTxs(block *dbi.Block) error {
 	for _, saver := range c.Savers {
 		if err := saver.SaveTxs(block); err != nil {
 			return jerr.Getf(err, "error saving transaction for saver - %s", reflect.TypeOf(saver))

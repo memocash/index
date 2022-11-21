@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/node/peer"
+	"github.com/memocash/index/ref/dbi"
 )
 
 type Node struct {
@@ -16,11 +17,11 @@ type Node struct {
 	Verbose  bool
 }
 
-func (n *Node) SaveTxs(block *wire.MsgBlock) error {
+func (n *Node) SaveTxs(b *dbi.Block) error {
 	if n.Off {
 		return nil
 	}
-	n.NewBlock <- block
+	n.NewBlock <- b.ToWireBlock()
 	return nil
 }
 

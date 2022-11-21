@@ -20,7 +20,7 @@ message PingResp {
 }
 
 message SaveReq {
-    bytes block = 1;
+    Block block = 1;
 }
 
 message ProcessReq {
@@ -28,3 +28,13 @@ message ProcessReq {
 }
 
 message EmptyResp {}
+
+message Block {
+    bytes header = 1;
+    repeated Tx txs = 2;
+}
+
+message Tx {
+    uint64 index = 1;
+    bytes raw = 2;
+}

@@ -162,7 +162,7 @@ func (t *Block) ProcessBlock(heightBlock *HeightBlock) error {
 					return jerr.Get("error getting tx from raw block tx", err)
 				}
 			}
-			err = t.txSave.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader))
+			err = t.txSave.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader)))
 			if err != nil {
 				return jerr.Get("error saving block txs", err)
 			}

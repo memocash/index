@@ -39,7 +39,7 @@ var addressCmd = &cobra.Command{
 		}
 		txInfo := parse.GetTxInfo(fundingTx)
 		txInfo.Print()
-		if err := txSaver.SaveTxs(memo.GetBlockFromTxs([]*wire.MsgTx{fundingTx.MsgTx}, nil)); err != nil {
+		if err := txSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{fundingTx.MsgTx}, nil))); err != nil {
 			jerr.Get("error saving funding tx", err).Fatal()
 		}
 	},

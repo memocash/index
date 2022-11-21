@@ -12,6 +12,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/dbi"
 	"runtime"
 )
 
@@ -21,10 +22,11 @@ type LockHeight struct {
 	CheckTxHash []byte
 }
 
-func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
-	if block == nil {
+func (t *LockHeight) SaveTxs(b *dbi.Block) error {
+	if b.IsNil() {
 		return jerr.Newf("error nil block for lock height")
 	}
+	block := b.ToWireBlock()
 	saveRun := NewLockHeightSaveRun(t.Verbose, t.InitialSync)
 	saveRun.CheckTxHash = t.CheckTxHash
 	if err := saveRun.SetHashHeightInOuts(block); err != nil {

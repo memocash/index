@@ -10,6 +10,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/dbi"
 	"runtime"
 	"time"
 )
@@ -19,10 +20,11 @@ type Tx struct {
 	Shard   int
 }
 
-func (t *Tx) SaveTxs(block *wire.MsgBlock) error {
-	if block == nil {
+func (t *Tx) SaveTxs(b *dbi.Block) error {
+	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
+	block := b.ToWireBlock()
 	err := t.QueueTxs(block)
 	if err != nil {
 		return jerr.Get("error queueing msg txs", err)

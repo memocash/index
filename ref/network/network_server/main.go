@@ -17,6 +17,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/dbi"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -74,7 +75,7 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 				return nil, jerr.Get("error saving block", err)
 			}
 		}
-		if err := combinedSaver.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader)); err != nil {
+		if err := combinedSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
 			err = jerr.Get("error saving transactions", err)
 			return &network_pb.SaveTxsReply{
 				Error: err.Error(),
@@ -224,7 +225,7 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 		return nil, jerr.Get("error parsing block header", err)
 	} else if err := saver.NewBlock(true).SaveBlock(*blockHeader); err != nil {
 		return nil, jerr.Get("error saving block", err)
-	} else if err := saver.NewCombinedAll(false).SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader)); err != nil {
+	} else if err := saver.NewCombinedAll(false).SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
 		return nil, jerr.Get("error saving transactions", err)
 	}
 	return &network_pb.ErrorReply{}, nil

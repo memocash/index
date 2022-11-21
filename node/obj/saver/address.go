@@ -2,7 +2,6 @@ package saver
 
 import (
 	"github.com/jchavannes/btcd/txscript"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
@@ -10,6 +9,7 @@ import (
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/dbi"
 )
 
 type Address struct {
@@ -17,10 +17,11 @@ type Address struct {
 	InitialSync bool
 }
 
-func (a *Address) SaveTxs(block *wire.MsgBlock) error {
-	if block == nil {
+func (a *Address) SaveTxs(b *dbi.Block) error {
+	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
+	block := b.ToWireBlock()
 	var height int64
 	if !block.Header.Timestamp.IsZero() {
 		blockHash := block.BlockHash()

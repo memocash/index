@@ -8,6 +8,7 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/dbi"
 	"time"
 )
 
@@ -15,10 +16,11 @@ type TxMinimal struct {
 	Verbose bool
 }
 
-func (t *TxMinimal) SaveTxs(block *wire.MsgBlock) error {
-	if block == nil {
+func (t *TxMinimal) SaveTxs(b *dbi.Block) error {
+	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
+	block := b.ToWireBlock()
 	if err := t.QueueTxs(*block); err != nil {
 		return jerr.Get("error queueing msg txs", err)
 	}

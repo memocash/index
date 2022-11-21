@@ -8,6 +8,7 @@ import (
 	"github.com/memocash/index/node/act/block_tx"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/dbi"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +41,7 @@ var doubleSpendBlockCmd = &cobra.Command{
 					return jerr.Get("error getting tx from raw block tx", err)
 				}
 			}
-			err = doubleSpendSaver.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader))
+			err = doubleSpendSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader)))
 			return nil
 		}).Process(blockHashBytes); err != nil {
 			jerr.Get("fatal error processing block txs for double spend", err).Fatal()
@@ -86,7 +87,7 @@ var lockHeightBlockCmd = &cobra.Command{
 					return jerr.Get("error getting tx from raw block tx", err)
 				}
 			}
-			err = lockHeightSaver.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader))
+			err = lockHeightSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader)))
 			return nil
 		}).Process(blockHashBytes); err != nil {
 			jerr.Get("fatal error processing block txs for lock heights", err).Fatal()
