@@ -1,7 +1,6 @@
 package saver
 
 import (
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
@@ -16,21 +15,21 @@ type TxMinimal struct {
 	Verbose bool
 }
 
-func (t *TxMinimal) SaveTxs(b *dbi.Block) error {
-	if b.IsNil() {
+func (t *TxMinimal) SaveTxs(block *dbi.Block) error {
+	if block.IsNil() {
 		return jerr.Newf("error nil block")
 	}
-	block := b.ToWireBlock()
-	if err := t.QueueTxs(*block); err != nil {
-		return jerr.Get("error queueing msg txs", err)
+	if err := t.QueueTxs(block); err != nil {
+		return jerr.Get("error queueing tx minimal block", err)
 	}
 	return nil
 }
 
-func (t *TxMinimal) QueueTxs(block wire.MsgBlock) error {
-	blockHash := block.BlockHash()
+func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
+	blockHash := block.Header.BlockHash()
 	var objects []db.Object
-	for i, tx := range block.Transactions {
+	for _, dbiTx := range block.Transactions {
+		tx := dbiTx.MsgTx
 		txHash := tx.TxHash()
 		if t.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())
@@ -38,14 +37,14 @@ func (t *TxMinimal) QueueTxs(block wire.MsgBlock) error {
 		if !block.Header.Timestamp.IsZero() {
 			var blockTx = &chain.BlockTx{
 				BlockHash: blockHash,
-				Index:     uint32(i),
+				Index:     dbiTx.BlockIndex,
 				TxHash:    txHash,
 			}
 			objects = append(objects, blockTx)
 			objects = append(objects, &chain.TxBlock{
 				TxHash:    txHash,
 				BlockHash: blockHash,
-				Index:     uint32(i),
+				Index:     dbiTx.BlockIndex,
 			})
 		}
 		objects = append(objects, &chain.Tx{

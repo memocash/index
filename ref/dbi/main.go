@@ -44,11 +44,12 @@ func (b *Block) ToWireBlock() *wire.MsgBlock {
 }
 
 type Tx struct {
-	BlockIndex uint64
-	Version    int32
-	LockTime   uint32
-	Inputs     []Input
-	Outputs    []Output
+	BlockIndex uint32
+	MsgTx      *wire.MsgTx
+}
+
+func (t *Tx) Hash() chainhash.Hash {
+	return t.MsgTx.TxHash()
 }
 
 type Input struct {
@@ -88,32 +89,16 @@ func WireBlockToBlock(wireBlock *wire.MsgBlock) *Block {
 	}
 	block := &Block{Header: wireBlock.Header}
 	for i, wireTx := range wireBlock.Transactions {
-		tx := WireTxToTx(wireTx, uint64(i))
+		tx := WireTxToTx(wireTx, uint32(i))
 		block.Transactions = append(block.Transactions, *tx)
 	}
 	return block
 }
 
-func WireTxToTx(wireTx *wire.MsgTx, index uint64) *Tx {
+func WireTxToTx(wireTx *wire.MsgTx, index uint32) *Tx {
 	tx := &Tx{
-		Version:    wireTx.Version,
-		LockTime:   wireTx.LockTime,
+		MsgTx:      wireTx,
 		BlockIndex: index,
-	}
-	for _, wireInput := range wireTx.TxIn {
-		input := Input{
-			PrevHash:  wireInput.PreviousOutPoint.Hash.CloneBytes(),
-			PrevIndex: wireInput.PreviousOutPoint.Index,
-			Sequence:  wireInput.Sequence,
-		}
-		tx.Inputs = append(tx.Inputs, input)
-	}
-	for _, wireOutput := range wireTx.TxOut {
-		output := Output{
-			Value:      wireOutput.Value,
-			LockScript: wireOutput.PkScript,
-		}
-		tx.Outputs = append(tx.Outputs, output)
 	}
 	return tx
 }
@@ -130,23 +115,5 @@ func BlockToWireBlock(block *Block) *wire.MsgBlock {
 }
 
 func TxToWireTx(tx *Tx) *wire.MsgTx {
-	wireTx := wire.NewMsgTx(tx.Version)
-	wireTx.LockTime = tx.LockTime
-	for _, input := range tx.Inputs {
-		wireTx.AddTxIn(&wire.TxIn{
-			PreviousOutPoint: wire.OutPoint{
-				Hash:  *input.GetPrevHash(),
-				Index: input.PrevIndex,
-			},
-			SignatureScript: input.UnlockScript,
-			Sequence:        input.Sequence,
-		})
-	}
-	for _, output := range tx.Outputs {
-		wireTx.AddTxOut(&wire.TxOut{
-			Value:    output.Value,
-			PkScript: output.LockScript,
-		})
-	}
-	return wireTx
+	return tx.MsgTx
 }
