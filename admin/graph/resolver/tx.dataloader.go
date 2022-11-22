@@ -14,7 +14,6 @@ import (
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"sort"
 	"time"
 )
@@ -212,13 +211,13 @@ var blockLoaderConfig = dataloader.BlockLoaderConfig{
 			}
 			txHashes[i] = hash.CloneBytes()
 		}
-		txBlocks, err := item.GetTxBlocks(txHashes)
+		txBlocks, err := chain.GetTxBlocks(txHashes)
 		if err != nil {
 			return nil, []error{jerr.Get("error getting blocks for tx for resolver", err)}
 		}
 		var blockHashes = make([][]byte, len(txBlocks))
 		for i := range txBlocks {
-			blockHashes[i] = txBlocks[i].BlockHash
+			blockHashes[i] = txBlocks[i].BlockHash[:]
 		}
 		blocks, err := item.GetBlocks(blockHashes)
 		if err != nil {
@@ -231,19 +230,19 @@ var blockLoaderConfig = dataloader.BlockLoaderConfig{
 		var modelBlocks = make([][]*model.Block, len(txHashes))
 		for i := range txHashes {
 			for _, txBlock := range txBlocks {
-				if !bytes.Equal(txBlock.TxHash, txHashes[i]) {
+				if !bytes.Equal(txBlock.TxHash[:], txHashes[i]) {
 					continue
 				}
 				var modelBlock = &model.Block{
-					Hash: hs.GetTxString(txBlock.BlockHash),
+					Hash: chainhash.Hash(txBlock.BlockHash).String(),
 				}
 				for _, block := range blocks {
-					if !bytes.Equal(block.Hash, txBlock.BlockHash) {
+					if !bytes.Equal(block.Hash, txBlock.BlockHash[:]) {
 						continue
 					}
 					blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
 					if err != nil {
-						return nil, []error{jerr.Get("error getting block from raw for tx resolver", err)}
+						return nil, []error{jerr.Get("error getting block header from raw for tx resolver", err)}
 					}
 					modelBlock.Timestamp = model.Date(blockHeader.Timestamp)
 					for _, blockHeight := range blockHeights {
