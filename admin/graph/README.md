@@ -23,8 +23,9 @@ go mod tidy
 # GQL Gen
 
 ```bash
-go get github.com/99designs/gqlgen
+go get github.com/99designs/gqlgen@v0.17.20
 go generate ./...
+go get github.com/99designs/gqlgen@none
 ```
 
 ### Adding field resolvers

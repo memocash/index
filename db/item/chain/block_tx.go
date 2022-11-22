@@ -1,15 +1,19 @@
 package chain
 
 import (
+	"bytes"
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/ref/config"
+	"sort"
 )
 
 type BlockTx struct {
 	BlockHash [32]byte
-	Index     uint32
 	TxHash    [32]byte
+	Index     uint32
 }
 
 func (b *BlockTx) GetTopic() string {
@@ -21,28 +25,63 @@ func (b *BlockTx) GetShard() uint {
 }
 
 func (b *BlockTx) GetUid() []byte {
-	return GetBlockTxUid(b.BlockHash, b.Index)
+	return GetBlockTxUid(b.BlockHash, b.TxHash)
 }
 
 func (b *BlockTx) SetUid(uid []byte) {
-	if len(uid) != 36 {
+	if len(uid) != 64 {
 		return
 	}
 	copy(b.BlockHash[:], jutil.ByteReverse(uid[:32]))
-	b.Index = jutil.GetUint32Big(uid[32:36])
+	copy(b.TxHash[:], jutil.ByteReverse(uid[32:64]))
 }
 
 func (b *BlockTx) Serialize() []byte {
-	return b.TxHash[:]
+	return jutil.GetUint32DataBig(b.Index)
 }
 
 func (b *BlockTx) Deserialize(data []byte) {
-	if len(data) != 32 {
+	if len(data) != 4 {
 		return
 	}
-	copy(b.TxHash[:], jutil.ByteReverse(data[:32]))
+	b.Index = jutil.GetUint32Big(data[:4])
 }
 
-func GetBlockTxUid(blockHash [32]byte, index uint32) []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(blockHash[:]), jutil.GetUint32DataBig(index))
+func GetBlockTxUid(blockHash, txHash [32]byte) []byte {
+	return jutil.CombineBytes(jutil.ByteReverse(blockHash[:]), jutil.ByteReverse(txHash[:]))
+}
+
+type BlockTxesRequest struct {
+	BlockHash [32]byte
+	StartUid  []byte
+	Limit     uint32
+}
+
+func GetBlockTxes(request BlockTxesRequest) ([]*BlockTx, error) {
+	shard := client.GetByteShard32(request.BlockHash[:])
+	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	var limit uint32
+	if request.Limit > 0 {
+		limit = request.Limit
+	} else {
+		limit = client.LargeLimit
+	}
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicChainBlockTx,
+		Prefixes: [][]byte{jutil.ByteReverse(request.BlockHash[:])},
+		Start:    request.StartUid,
+		Max:      limit,
+	}); err != nil {
+		return nil, jerr.Get("error getting client message", err)
+	}
+	var blocks = make([]*BlockTx, len(dbClient.Messages))
+	for i := range dbClient.Messages {
+		blocks[i] = new(BlockTx)
+		db.Set(blocks[i], dbClient.Messages[i])
+	}
+	sort.Slice(blocks, func(i, j int) bool {
+		return bytes.Compare(blocks[i].BlockHash[:], blocks[j].BlockHash[:]) == -1
+	})
+	return blocks, nil
 }

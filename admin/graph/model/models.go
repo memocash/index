@@ -1,8 +1,9 @@
 package model
 
 type Tx struct {
-	Hash string `json:"hash"`
-	Raw  string `json:"raw"`
+	Hash  string `json:"hash"`
+	Index uint32 `json:"index"`
+	Raw   string `json:"raw"`
 }
 
 type TxOutput struct {

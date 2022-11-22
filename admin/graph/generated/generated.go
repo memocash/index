@@ -203,6 +203,7 @@ type ComplexityRoot struct {
 	Tx struct {
 		Blocks  func(childComplexity int) int
 		Hash    func(childComplexity int) int
+		Index   func(childComplexity int) int
 		Inputs  func(childComplexity int) int
 		Lost    func(childComplexity int) int
 		Outputs func(childComplexity int) int
@@ -1170,6 +1171,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tx.Hash(childComplexity), true
 
+	case "Tx.index":
+		if e.complexity.Tx.Index == nil {
+			break
+		}
+
+		return e.complexity.Tx.Index(childComplexity), true
+
 	case "Tx.inputs":
 		if e.complexity.Tx.Inputs == nil {
 			break
@@ -1573,6 +1581,7 @@ scalar Date
 `, BuiltIn: false},
 	{Name: "../schema/tx.graphqls", Input: `type Tx {
     hash: String!
+    index: Uint32!
     raw: String!
     inputs: [TxInput!]!
     outputs: [TxOutput!]!
@@ -2301,6 +2310,8 @@ func (ec *executionContext) fieldContext_Block_txs(ctx context.Context, field gr
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -2628,6 +2639,8 @@ func (ec *executionContext) fieldContext_Follow_tx(ctx context.Context, field gr
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -2982,6 +2995,8 @@ func (ec *executionContext) fieldContext_Like_tx(ctx context.Context, field grap
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -3721,6 +3736,8 @@ func (ec *executionContext) fieldContext_Post_tx(ctx context.Context, field grap
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -4735,6 +4752,8 @@ func (ec *executionContext) fieldContext_Query_tx(ctx context.Context, field gra
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -4805,6 +4824,8 @@ func (ec *executionContext) fieldContext_Query_txs(ctx context.Context, field gr
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -6058,6 +6079,8 @@ func (ec *executionContext) fieldContext_RoomFollow_tx(ctx context.Context, fiel
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -6120,6 +6143,8 @@ func (ec *executionContext) fieldContext_SetName_tx(ctx context.Context, field g
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -6372,6 +6397,8 @@ func (ec *executionContext) fieldContext_SetPic_tx(ctx context.Context, field gr
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -6621,6 +6648,8 @@ func (ec *executionContext) fieldContext_SetProfile_tx(ctx context.Context, fiel
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -6884,6 +6913,8 @@ func (ec *executionContext) fieldContext_Subscription_address(ctx context.Contex
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -6968,6 +6999,8 @@ func (ec *executionContext) fieldContext_Subscription_addresses(ctx context.Cont
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -7451,6 +7484,50 @@ func (ec *executionContext) fieldContext_Tx_hash(ctx context.Context, field grap
 	return fc, nil
 }
 
+func (ec *executionContext) _Tx_index(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Tx_index(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Index, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uint32)
+	fc.Result = res
+	return ec.marshalNUint322uint32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Tx_index(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Tx",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint32 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Tx_raw(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Tx_raw(ctx, field)
 	if err != nil {
@@ -7846,6 +7923,8 @@ func (ec *executionContext) fieldContext_TxInput_tx(ctx context.Context, field g
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -8199,6 +8278,8 @@ func (ec *executionContext) fieldContext_TxLost_tx(ctx context.Context, field gr
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -8305,6 +8386,8 @@ func (ec *executionContext) fieldContext_TxOutput_tx(ctx context.Context, field 
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -8708,6 +8791,8 @@ func (ec *executionContext) fieldContext_TxSuspect_tx(ctx context.Context, field
 			switch field.Name {
 			case "hash":
 				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
 			case "raw":
 				return ec.fieldContext_Tx_raw(ctx, field)
 			case "inputs":
@@ -12039,6 +12124,13 @@ func (ec *executionContext) _Tx(ctx context.Context, sel ast.SelectionSet, obj *
 		case "hash":
 
 			out.Values[i] = ec._Tx_hash(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "index":
+
+			out.Values[i] = ec._Tx_index(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)

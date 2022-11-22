@@ -237,6 +237,15 @@ func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, err
 }
 
 // Address is the resolver for the address field.
+func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
+	txChan, err := r.Addresses(ctx, []string{address})
+	if err != nil {
+		return nil, jerr.Get("error getting address for address subscription", err)
+	}
+	return txChan, nil
+}
+
+// Address is the resolver for the address field.
 func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error) {
 	lockHashes := make([][]byte, len(addresses))
 	for _, address := range addresses {
@@ -258,18 +267,18 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 		return nil, jerr.Get("error getting lock height inputs listener for address subscription", err)
 	}
 	var aggregateOutput = make(chan *item.LockHeightOutput)
-	var aggregateInput= make(chan *item.LockHeightOutputInput)
+	var aggregateInput = make(chan *item.LockHeightOutputInput)
 
 	for _, ch := range lockHeightInputsListeners {
 		go func(c chan *item.LockHeightOutputInput) {
-			for msg := range c{
+			for msg := range c {
 				aggregateInput <- msg
 			}
 		}(ch)
 	}
 	for _, ch := range lockHeightOutputsListeners {
 		go func(c chan *item.LockHeightOutput) {
-			for msg := range c{
+			for msg := range c {
 				aggregateOutput <- msg
 			}
 		}(ch)
@@ -312,14 +321,6 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 
 		}
 	}()
-	return txChan, nil
-}
-
-func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
-	txChan,err := r.Addresses(ctx, []string{address})
-	if err != nil {
-		return nil, jerr.Get("error getting address for address subscription", err)
-	}
 	return txChan, nil
 }
 
