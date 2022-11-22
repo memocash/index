@@ -5,5 +5,5 @@ type Block {
     height: Int
     size: Int64
     tx_count: Int
-    txs(start: String): [Tx!]
+    txs(start: Uint32): [Tx!]
 }

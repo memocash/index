@@ -6,7 +6,6 @@ import (
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
-	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/dbi"
 	"time"
 )
@@ -53,9 +52,6 @@ func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
 			LockTime: tx.LockTime,
 		})
 		for j := range tx.TxIn {
-			if memo.IsCoinbaseInput(tx.TxIn[j]) {
-				continue
-			}
 			objects = append(objects, &chain.TxInput{
 				TxHash:       txHash,
 				Index:        uint32(j),

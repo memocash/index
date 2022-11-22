@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/memocash/index/db/item/chain"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -20,6 +19,7 @@ import (
 	"github.com/memocash/index/admin/graph/sub"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/obj/get"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"

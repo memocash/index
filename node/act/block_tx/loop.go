@@ -12,12 +12,12 @@ type Loop struct {
 
 func (l *Loop) Process(blockHash []byte) error {
 	const limit = client.DefaultLimit
-	var startUid []byte
+	var startIndex uint32
 	for {
 		blockTxes, err := chain.GetBlockTxes(chain.BlockTxesRequest{
-			BlockHash: blockHash,
-			StartUid:  startUid,
-			Limit:     limit,
+			BlockHash:  blockHash,
+			StartIndex: startIndex,
+			Limit:      limit,
 		})
 		if err != nil {
 			return jerr.Get("error getting block txs for loop process", err)
@@ -28,7 +28,7 @@ func (l *Loop) Process(blockHash []byte) error {
 		if len(blockTxes) < limit {
 			break
 		}
-		startUid = chain.GetBlockTxUid(blockHash, blockTxes[len(blockTxes)-1].TxHash[:])
+		startIndex = blockTxes[len(blockTxes)-1].Index
 	}
 	return nil
 }

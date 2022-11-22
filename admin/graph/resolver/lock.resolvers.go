@@ -6,9 +6,8 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/memocash/index/db/item/chain"
 
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -16,6 +15,7 @@ import (
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )

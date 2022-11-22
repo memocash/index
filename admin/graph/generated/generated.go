@@ -70,7 +70,7 @@ type ComplexityRoot struct {
 		Size      func(childComplexity int) int
 		Timestamp func(childComplexity int) int
 		TxCount   func(childComplexity int) int
-		Txs       func(childComplexity int, start *string) int
+		Txs       func(childComplexity int, start *uint32) int
 	}
 
 	DoubleSpend struct {
@@ -247,7 +247,7 @@ type ComplexityRoot struct {
 }
 
 type BlockResolver interface {
-	Txs(ctx context.Context, obj *model.Block, start *string) ([]*model.Tx, error)
+	Txs(ctx context.Context, obj *model.Block, start *uint32) ([]*model.Tx, error)
 }
 type DoubleSpendResolver interface {
 	Output(ctx context.Context, obj *model.DoubleSpend) (*model.TxOutput, error)
@@ -437,7 +437,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Block.Txs(childComplexity, args["start"].(*string)), true
+		return e.complexity.Block.Txs(childComplexity, args["start"].(*uint32)), true
 
 	case "DoubleSpend.hash":
 		if e.complexity.DoubleSpend.Hash == nil {
@@ -1460,7 +1460,7 @@ var sources = []*ast.Source{
     height: Int
     size: Int64
     tx_count: Int
-    txs(start: String): [Tx!]
+    txs(start: Uint32): [Tx!]
 }
 `, BuiltIn: false},
 	{Name: "../schema/double_spend.graphqls", Input: `type DoubleSpend {
@@ -1615,7 +1615,7 @@ scalar Date
     index: Uint32!
     prev_hash: String!
     prev_index: Uint32!
-    output: TxOutput!
+    output: TxOutput
     double_spend: DoubleSpend
 }
 `, BuiltIn: false},
@@ -1650,10 +1650,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Block_txs_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *string
+	var arg0 *uint32
 	if tmp, ok := rawArgs["start"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		arg0, err = ec.unmarshalOUint322ᚖuint32(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2386,7 +2386,7 @@ func (ec *executionContext) _Block_txs(ctx context.Context, field graphql.Collec
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Block().Txs(rctx, obj, fc.Args["start"].(*string))
+		return ec.resolvers.Block().Txs(rctx, obj, fc.Args["start"].(*uint32))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8263,14 +8263,11 @@ func (ec *executionContext) _TxInput_output(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.TxOutput)
 	fc.Result = res
-	return ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, field.Selections, res)
+	return ec.marshalOTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_TxInput_output(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12457,9 +12454,6 @@ func (ec *executionContext) _TxInput(ctx context.Context, sel ast.SelectionSet, 
 					}
 				}()
 				res = ec._TxInput_output(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			}
 
@@ -14431,6 +14425,13 @@ func (ec *executionContext) marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋind
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalOTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx context.Context, sel ast.SelectionSet, v *model.TxOutput) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TxOutput(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOTxSuspect2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxSuspect(ctx context.Context, sel ast.SelectionSet, v *model.TxSuspect) graphql.Marshaler {

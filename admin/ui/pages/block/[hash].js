@@ -20,7 +20,7 @@ export default function LockHash() {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const query = `
-    query ($hash: String!, $start: String) {
+    query ($hash: String!, $start: Uint32) {
         block(hash: $hash) {
             hash
             height
@@ -29,6 +29,7 @@ export default function LockHash() {
             size
             tx_count
             txs(start: $start) {
+                index
                 hash
             }
         }
@@ -59,7 +60,7 @@ export default function LockHash() {
             setLoading(false)
             setBlock(data.data.block)
             if (data.data.block.txs.length > 0) {
-                setLastTx(data.data.block.txs[data.data.block.txs.length - 1].hash)
+                setLastTx(data.data.block.txs[data.data.block.txs.length - 1].index)
             }
         }).catch(res => {
             setErrorMessage("error loading block")

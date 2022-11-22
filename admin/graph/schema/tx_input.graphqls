@@ -4,6 +4,6 @@ type TxInput {
     index: Uint32!
     prev_hash: String!
     prev_index: Uint32!
-    output: TxOutput!
+    output: TxOutput
     double_spend: DoubleSpend
 }

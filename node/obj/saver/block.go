@@ -4,7 +4,6 @@ import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
@@ -51,7 +50,7 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 		if parentBlockHeight != nil {
 			parentHeight = parentBlockHeight.Height
 			hasParent = true
-			if !jutil.AllZeros(b.PrevBlockHash[:]) {
+			if b.PrevBlockHash != [32]byte{} {
 				objects = append(objects, &chain.HeightDuplicate{
 					Height:    parentHeight + 1,
 					BlockHash: b.BlockHash,
