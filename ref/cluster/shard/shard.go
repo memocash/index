@@ -101,7 +101,12 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 		}
 		block.Transactions = append(block.Transactions, *dbi.WireTxToTx(msgTx, tx.Index))
 	}
-	if err := saver.NewCombinedTx(s.Verbose).SaveTxs(block); err != nil {
+	txSaver := saver.NewCombined([]dbi.TxSave{
+		saver.NewTxMinimal(s.Verbose),
+		saver.NewAddress(s.Verbose),
+		saver.NewMemo(s.Verbose),
+	})
+	if err := txSaver.SaveTxs(block); err != nil {
 		return nil, jerr.Get("error saving block txs shard txs", err)
 	}
 	return &cluster_pb.EmptyResp{}, nil
@@ -138,8 +143,11 @@ func (s *Shard) process(blockHashByte []byte, initialSync bool) error {
 				return jerr.Get("error getting msg tx from raw for process shard utxos", err)
 			}
 		}
-		utxoSaver := saver.NewCombinedOutput(s.Verbose, initialSync)
-		if err := utxoSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(txs, blockHeader))); err != nil {
+		txSaver := saver.NewCombined([]dbi.TxSave{
+			saver.NewTxMinimal(s.Verbose),
+			saver.NewMemo(s.Verbose),
+		})
+		if err := txSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(txs, blockHeader))); err != nil {
 			return jerr.Get("error saving block txs shard utxos", err)
 		}
 		if len(blockTxsRaw) == client.ExLargeLimit {

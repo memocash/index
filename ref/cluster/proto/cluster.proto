@@ -35,6 +35,6 @@ message Block {
 }
 
 message Tx {
-    uint64 index = 1;
+    uint32 index = 1;
     bytes raw = 2;
 }

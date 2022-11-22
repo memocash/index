@@ -2,13 +2,14 @@ package save
 
 import (
 	"bytes"
-	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
 
 func MemoPost(info parse.OpReturn, post string) error {
@@ -39,21 +40,18 @@ func MemoPost(info parse.OpReturn, post string) error {
 				likeTxHashes = append(likeTxHashes, memoPostLike.LikeTxHash)
 			}
 		}
-		likeTxOuts, err := item.GetTxOutputsByHashes(likeTxHashes)
+		likeTxOuts, err := chain.GetTxOutputsByHashes(likeTxHashes)
 		if err != nil {
 			return jerr.Get("error getting like tx outputs for post op return handler", err)
 		}
-		var memoLikeTips = make(map[string]int64)
+		var memoLikeTips = make(map[chainhash.Hash]int64)
 		for _, likeTxOut := range likeTxOuts {
-			if bytes.Equal(likeTxOut.LockHash, memoPost.LockHash) {
-				memoLikeTips[hex.EncodeToString(likeTxOut.TxHash)] += likeTxOut.Value
+			lockHash := script.GetLockHash(likeTxOut.LockScript)
+			if bytes.Equal(lockHash, memoPost.LockHash) {
+				memoLikeTips[likeTxOut.TxHash] += likeTxOut.Value
 			}
 		}
-		for likeTxHashString, tip := range memoLikeTips {
-			likeTxHash, err := chainhash.NewHashFromStr(likeTxHashString)
-			if err != nil {
-				return jerr.Get("error parsing like tip tx hash for memo post op return handler", err)
-			}
+		for likeTxHash, tip := range memoLikeTips {
 			if tip > 0 {
 				objects = append(objects, &memo.LikeTip{
 					LikeTxHash: likeTxHash.CloneBytes(),

@@ -1,9 +1,11 @@
 package chain
 
 import (
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/ref/config"
 )
 
 type TxOutput struct {
@@ -50,4 +52,27 @@ func (t *TxOutput) Deserialize(data []byte) {
 
 func GetTxOutputUid(txHash [32]byte, index uint32) []byte {
 	return db.GetTxHashIndexUid(txHash[:], index)
+}
+
+func GetTxOutputsByHashes(txHashes [][]byte) ([]*TxOutput, error) {
+	var shardTxHashes = make(map[uint32][][]byte)
+	for _, txHash := range txHashes {
+		shard := uint32(db.GetShardByte(txHash))
+		shardTxHashes[shard] = append(shardTxHashes[shard], jutil.ByteReverse(txHash))
+	}
+	var txOutputs []*TxOutput
+	for shard, txHashes := range shardTxHashes {
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		dbClient := client.NewClient(shardConfig.GetHost())
+		err := dbClient.GetByPrefixes(db.TopicChainTxOutput, txHashes)
+		if err != nil {
+			return nil, jerr.Get("error getting db message chain tx outputs", err)
+		}
+		for _, msg := range dbClient.Messages {
+			var txOutput = new(TxOutput)
+			db.Set(txOutput, msg)
+			txOutputs = append(txOutputs, txOutput)
+		}
+	}
+	return txOutputs, nil
 }

@@ -135,7 +135,7 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 			}
 		}
 		shardBlocks[shard].Txs = append(shardBlocks[shard].Txs, &cluster_pb.Tx{
-			Index: uint64(i),
+			Index: uint32(i),
 			Raw:   memo.GetRaw(tx),
 		})
 	}

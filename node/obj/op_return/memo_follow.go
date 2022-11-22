@@ -51,11 +51,7 @@ var memoFollowHandler = &Handler{
 			LockHash:       info.LockHash,
 			Unfollow:       unfollow,
 		}
-		var lockAddress = &item.LockAddress{
-			LockHash: followLockHash,
-			Address:  followAddress.GetEncoded(),
-		}
-		if err := db.Save([]db.Object{lockMemoFollow, lockMemoFollowed, lockAddress}); err != nil {
+		if err := db.Save([]db.Object{lockMemoFollow, lockMemoFollowed}); err != nil {
 			return jerr.Get("error saving db lock memo follow object", err)
 		}
 		if info.Height != item.HeightMempool {

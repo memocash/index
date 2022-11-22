@@ -9,7 +9,6 @@ import (
 )
 
 type Block struct {
-	Id   uint64
 	Hash []byte
 	Raw  []byte
 }
