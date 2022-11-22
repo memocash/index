@@ -5,14 +5,17 @@ import (
 	"context"
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
+	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"sort"
 	"time"
 )
 
@@ -125,57 +128,60 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 		for i := range keys {
 			hash, err := chainhash.NewHashFromStr(keys[i])
 			if err != nil {
-				return nil, []error{jerr.Get("error parsing spend tx hash for output", err)}
+				return nil, []error{jerr.Get("error parsing tx hash for raw loader", err)}
 			}
-			txHashes[i] = hash.CloneBytes()
+			txHashes[i] = hash[:]
 		}
-		txBlocks, err := item.GetTxBlocks(txHashes)
+		txs, err := chain.GetTxsByHashes(txHashes)
 		if err != nil {
-			return nil, []error{jerr.Get("error getting tx blocks from items", err)}
+			return nil, []error{jerr.Get("error getting tx inputs for raw", err)}
 		}
-		var mempoolTxHashes [][]byte
-		var blockTxHashes []*item.BlockTx
-		for _, txHash := range txHashes {
-			var blockHash []byte
-			for _, txBlock := range txBlocks {
-				if bytes.Equal(txBlock.TxHash, txHash) {
-					blockHash = txBlock.BlockHash
-					break
-				}
+		txInputs, err := chain.GetTxInputsByHashes(txHashes)
+		if err != nil {
+			return nil, []error{jerr.Get("error getting tx inputs for raw", err)}
+		}
+		sort.Slice(txInputs, func(i, j int) bool {
+			return txInputs[i].Index < txInputs[j].Index
+		})
+		txOutputs, err := chain.GetTxOutputsByHashes(txHashes)
+		if err != nil {
+			return nil, []error{jerr.Get("error getting tx outputs for raw", err)}
+		}
+		sort.Slice(txOutputs, func(i, j int) bool {
+			return txOutputs[i].Index < txOutputs[j].Index
+		})
+		var txRaws []string
+		for _, tx := range txs {
+			var msgTx = &wire.MsgTx{
+				Version:  tx.Version,
+				LockTime: tx.LockTime,
 			}
-			if blockHash != nil {
-				blockTxHashes = append(blockTxHashes, &item.BlockTx{
-					TxHash:    txHash,
-					BlockHash: blockHash,
+			for _, txIn := range txInputs {
+				if txIn.TxHash != tx.TxHash {
+					continue
+				}
+				msgTx.TxIn = append(msgTx.TxIn, &wire.TxIn{
+					PreviousOutPoint: wire.OutPoint{
+						Hash:  txIn.PrevHash,
+						Index: txIn.PrevIndex,
+					},
+					SignatureScript: txIn.UnlockScript,
+					Sequence:        txIn.Sequence,
 				})
-			} else {
-				mempoolTxHashes = append(mempoolTxHashes, txHash)
 			}
-		}
-		mempoolTxRaws, err := item.GetMempoolTxRawByHashes(mempoolTxHashes)
-		if err != nil {
-			return nil, []error{jerr.Get("error getting mempool tx raw", err)}
-		}
-		blockTxRaws, err := item.GetRawBlockTxsByHashes(blockTxHashes)
-		if err != nil {
-			return nil, []error{jerr.Get("error getting block tx raws for tx resolver", err)}
-		}
-		var txRaws = make([]string, len(txHashes))
-		for i := range txHashes {
-			for _, mempoolTxRaw := range mempoolTxRaws {
-				if bytes.Equal(mempoolTxRaw.TxHash, txHashes[i]) {
-					txRaws[i] = hex.EncodeToString(mempoolTxRaw.Raw)
-					break
+			for _, txOut := range txOutputs {
+				if txOut.TxHash != tx.TxHash {
+					continue
 				}
+				msgTx.TxOut = append(msgTx.TxOut, &wire.TxOut{
+					Value:    txOut.Value,
+					PkScript: txOut.LockScript,
+				})
 			}
-			if txRaws[i] == "" {
-				for _, blockTxRaw := range blockTxRaws {
-					if bytes.Equal(blockTxRaw.TxHash, txHashes[i]) {
-						txRaws[i] = hex.EncodeToString(blockTxRaw.Raw)
-						break
-					}
-				}
+			if msgTx.TxHash() != tx.TxHash {
+				return nil, []error{jerr.Newf("tx hash mismatch for raw: %s %s", msgTx.TxHash(), tx.TxHash)}
 			}
+			txRaws = append(txRaws, hex.EncodeToString(memo.GetRaw(msgTx)))
 		}
 		return txRaws, nil
 	},
