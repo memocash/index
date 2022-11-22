@@ -156,9 +156,12 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 				Version:  tx.Version,
 				LockTime: tx.LockTime,
 			}
-			for _, txIn := range txInputs {
+			for i, txIn := range txInputs {
 				if txIn.TxHash != tx.TxHash {
 					continue
+				}
+				if txIn.Index != uint32(i) {
+					return nil, []error{jerr.Newf("tx input index missing: %d %d", txIn.Index, i)}
 				}
 				msgTx.TxIn = append(msgTx.TxIn, &wire.TxIn{
 					PreviousOutPoint: wire.OutPoint{
@@ -169,17 +172,27 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 					Sequence:        txIn.Sequence,
 				})
 			}
-			for _, txOut := range txOutputs {
+			if len(msgTx.TxIn) == 0 {
+				return nil, []error{jerr.Newf("tx inputs missing for tx: %s", chainhash.Hash(tx.TxHash))}
+			}
+			for i, txOut := range txOutputs {
 				if txOut.TxHash != tx.TxHash {
 					continue
+				}
+				if txOut.Index != uint32(i) {
+					return nil, []error{jerr.Newf("tx output index missing: %d %d", txOut.Index, i)}
 				}
 				msgTx.TxOut = append(msgTx.TxOut, &wire.TxOut{
 					Value:    txOut.Value,
 					PkScript: txOut.LockScript,
 				})
 			}
+			if len(msgTx.TxOut) == 0 {
+				return nil, []error{jerr.Newf("tx outputs missing for tx: %s", chainhash.Hash(tx.TxHash))}
+			}
 			if msgTx.TxHash() != tx.TxHash {
-				return nil, []error{jerr.Newf("tx hash mismatch for raw: %s %s", msgTx.TxHash(), tx.TxHash)}
+				return nil, []error{jerr.Newf("tx hash mismatch for raw: %s %s",
+					msgTx.TxHash(), chainhash.Hash(tx.TxHash))}
 			}
 			txRaws = append(txRaws, hex.EncodeToString(memo.GetRaw(msgTx)))
 		}
