@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/memocash/index/db/item/chain"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -94,11 +95,11 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 	if err != nil {
 		return nil, jerr.Get("error parsing block hash for block query resolver", err)
 	}
-	blockHeight, err := item.GetBlockHeight(blockHash.CloneBytes())
+	blockHeight, err := item.GetBlockHeight(blockHash[:])
 	if err != nil {
 		return nil, jerr.Get("error getting block height for query resolver", err)
 	}
-	block, err := item.GetBlock(blockHash.CloneBytes())
+	block, err := item.GetBlock(blockHash[:])
 	if err != nil {
 		return nil, jerr.Get("error getting raw block", err)
 	}
@@ -107,12 +108,23 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 		return nil, jerr.Get("error getting block header from raw", err)
 	}
 	height := int(blockHeight.Height)
-	return &model.Block{
+	var modelBlock = &model.Block{
 		Hash:      hs.GetTxString(blockHeight.BlockHash),
 		Timestamp: model.Date(blockHeader.Timestamp),
 		Height:    &height,
 		Raw:       hex.EncodeToString(block.Raw),
-	}, nil
+	}
+	preloads := GetPreloads(ctx)
+	if !jutil.StringsInSlice([]string{"size", "tx_count"}, preloads) {
+		return modelBlock, nil
+	}
+	blockInfo, err := chain.GetBlockInfo(blockHash[:])
+	if err != nil {
+		return nil, jerr.Get("error getting block infos for query resolver", err)
+	}
+	modelBlock.Size = blockInfo.Size
+	modelBlock.TxCount = blockInfo.TxCount
+	return modelBlock, nil
 }
 
 // BlockNewest is the resolver for the block_newest field.
@@ -162,6 +174,12 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	if err != nil {
 		return nil, jerr.Get("error getting raw blocks", err)
 	}
+	var blockInfos []*chain.BlockInfo
+	if jutil.StringsInSlice([]string{"size", "tx_count"}, GetPreloads(ctx)) {
+		if blockInfos, err = chain.GetBlockInfos(blockHashes); err != nil {
+			return nil, jerr.Get("error getting block infos for blocks query resolver", err)
+		}
+	}
 	var modelBlocks = make([]*model.Block, len(heightBlocks))
 	for i := range heightBlocks {
 		var height = int(heightBlocks[i].Height)
@@ -176,6 +194,12 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 					return nil, jerr.Get("error getting block header from raw", err)
 				}
 				modelBlocks[i].Timestamp = model.Date(blockHeader.Timestamp)
+			}
+		}
+		for _, blockInfo := range blockInfos {
+			if bytes.Equal(blockInfo.BlockHash[:], heightBlocks[i].BlockHash) {
+				modelBlocks[i].Size = blockInfo.Size
+				modelBlocks[i].TxCount = blockInfo.TxCount
 			}
 		}
 	}

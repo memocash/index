@@ -26,6 +26,8 @@ export default function LockHash() {
             height
             timestamp
             raw
+            size
+            tx_count
             txs(start: $start) {
                 hash
             }
@@ -91,8 +93,12 @@ export default function LockHash() {
                         </div>
                     </div>
                     <div className={column.container}>
+                        <div className={column.width15}>Size</div>
+                        <div className={column.width85}>{block.size ? block.size.toLocaleString() : 0} bytes</div>
+                    </div>
+                    <div className={column.container}>
                         <div>
-                            <h3>Txs ({block.txs.length})</h3>
+                            <h3>Txs ({block.txs.length} of {block.tx_count ? block.tx_count.toLocaleString() : 0})</h3>
                             {block.txs.map((tx) => {
                                 return (
                                     <div key={tx.hash} className={column.container}>

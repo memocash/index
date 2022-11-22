@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"

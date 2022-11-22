@@ -45,6 +45,8 @@ type Block struct {
 	Raw       string `json:"raw"`
 	Timestamp Date   `json:"timestamp"`
 	Height    *int   `json:"height"`
+	Size      int64  `json:"size"`
+	TxCount   int    `json:"tx_count"`
 }
 
 type Profile struct {

@@ -14,6 +14,10 @@
     width: 50%;
 }
 
+.width55 {
+    width: 55%;
+}
+
 .width60 {
     width: 60%;
 }
@@ -54,4 +58,8 @@ pre.pre {
     width: 100%;
     word-break: break-all;
     white-space: pre-wrap;
+}
+
+.right {
+    text-align: right;
 }

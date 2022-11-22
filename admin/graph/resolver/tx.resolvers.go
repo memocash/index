@@ -6,13 +6,13 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/memocash/index/db/item/chain"
 
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -102,7 +102,7 @@ func (r *txResolver) Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOut
 
 // Blocks is the resolver for the blocks field.
 func (r *txResolver) Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block, error) {
-	blocks, err := dataloader.NewBlockLoader(blockLoaderConfig).Load(obj.Hash)
+	blocks, err := dataloader.NewBlockLoader(GetBlockLoaderConfig(ctx)).Load(obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error getting blocks for tx from loader", err)
 	}

@@ -67,7 +67,9 @@ type ComplexityRoot struct {
 		Hash      func(childComplexity int) int
 		Height    func(childComplexity int) int
 		Raw       func(childComplexity int) int
+		Size      func(childComplexity int) int
 		Timestamp func(childComplexity int) int
+		TxCount   func(childComplexity int) int
 		Txs       func(childComplexity int, start *string) int
 	}
 
@@ -404,12 +406,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Block.Raw(childComplexity), true
 
+	case "Block.size":
+		if e.complexity.Block.Size == nil {
+			break
+		}
+
+		return e.complexity.Block.Size(childComplexity), true
+
 	case "Block.timestamp":
 		if e.complexity.Block.Timestamp == nil {
 			break
 		}
 
 		return e.complexity.Block.Timestamp(childComplexity), true
+
+	case "Block.tx_count":
+		if e.complexity.Block.TxCount == nil {
+			break
+		}
+
+		return e.complexity.Block.TxCount(childComplexity), true
 
 	case "Block.txs":
 		if e.complexity.Block.Txs == nil {
@@ -1442,6 +1458,8 @@ var sources = []*ast.Source{
     raw: String!
     timestamp: Date!
     height: Int
+    size: Int64
+    tx_count: Int
     txs(start: String): [Tx!]
 }
 `, BuiltIn: false},
@@ -2260,6 +2278,88 @@ func (ec *executionContext) _Block_height(ctx context.Context, field graphql.Col
 }
 
 func (ec *executionContext) fieldContext_Block_height(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Block",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Block_size(ctx context.Context, field graphql.CollectedField, obj *model.Block) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Block_size(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Size, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalOInt642int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Block_size(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Block",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Block_tx_count(ctx context.Context, field graphql.CollectedField, obj *model.Block) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Block_tx_count(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TxCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalOInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Block_tx_count(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Block",
 		Field:      field,
@@ -5034,6 +5134,10 @@ func (ec *executionContext) fieldContext_Query_block(ctx context.Context, field 
 				return ec.fieldContext_Block_timestamp(ctx, field)
 			case "height":
 				return ec.fieldContext_Block_height(ctx, field)
+			case "size":
+				return ec.fieldContext_Block_size(ctx, field)
+			case "tx_count":
+				return ec.fieldContext_Block_tx_count(ctx, field)
 			case "txs":
 				return ec.fieldContext_Block_txs(ctx, field)
 			}
@@ -5098,6 +5202,10 @@ func (ec *executionContext) fieldContext_Query_block_newest(ctx context.Context,
 				return ec.fieldContext_Block_timestamp(ctx, field)
 			case "height":
 				return ec.fieldContext_Block_height(ctx, field)
+			case "size":
+				return ec.fieldContext_Block_size(ctx, field)
+			case "tx_count":
+				return ec.fieldContext_Block_tx_count(ctx, field)
 			case "txs":
 				return ec.fieldContext_Block_txs(ctx, field)
 			}
@@ -5151,6 +5259,10 @@ func (ec *executionContext) fieldContext_Query_blocks(ctx context.Context, field
 				return ec.fieldContext_Block_timestamp(ctx, field)
 			case "height":
 				return ec.fieldContext_Block_height(ctx, field)
+			case "size":
+				return ec.fieldContext_Block_size(ctx, field)
+			case "tx_count":
+				return ec.fieldContext_Block_tx_count(ctx, field)
 			case "txs":
 				return ec.fieldContext_Block_txs(ctx, field)
 			}
@@ -7091,6 +7203,10 @@ func (ec *executionContext) fieldContext_Subscription_blocks(ctx context.Context
 				return ec.fieldContext_Block_timestamp(ctx, field)
 			case "height":
 				return ec.fieldContext_Block_height(ctx, field)
+			case "size":
+				return ec.fieldContext_Block_size(ctx, field)
+			case "tx_count":
+				return ec.fieldContext_Block_tx_count(ctx, field)
 			case "txs":
 				return ec.fieldContext_Block_txs(ctx, field)
 			}
@@ -7738,6 +7854,10 @@ func (ec *executionContext) fieldContext_Tx_blocks(ctx context.Context, field gr
 				return ec.fieldContext_Block_timestamp(ctx, field)
 			case "height":
 				return ec.fieldContext_Block_height(ctx, field)
+			case "size":
+				return ec.fieldContext_Block_size(ctx, field)
+			case "tx_count":
+				return ec.fieldContext_Block_tx_count(ctx, field)
 			case "txs":
 				return ec.fieldContext_Block_txs(ctx, field)
 			}
@@ -10673,6 +10793,14 @@ func (ec *executionContext) _Block(ctx context.Context, sel ast.SelectionSet, ob
 		case "height":
 
 			out.Values[i] = ec._Block_height(ctx, field, obj)
+
+		case "size":
+
+			out.Values[i] = ec._Block_size(ctx, field, obj)
+
+		case "tx_count":
+
+			out.Values[i] = ec._Block_tx_count(ctx, field, obj)
 
 		case "txs":
 			field := field
@@ -13685,6 +13813,16 @@ func (ec *executionContext) marshalOHashIndex2ᚖgithubᚗcomᚋmemocashᚋindex
 		return graphql.Null
 	}
 	res := model.MarshalHashIndex(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
 	return res
 }
 
