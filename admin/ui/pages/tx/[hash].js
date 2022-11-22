@@ -111,7 +111,9 @@ export default function Hash() {
     }, [router])
     let fee = 0
     for (let i = 0; i < tx.inputs.length; i++) {
-        fee += tx.inputs[i].output.amount
+        if (tx.inputs[i].output) {
+            fee += tx.inputs[i].output.amount
+        }
     }
     for (let i = 0; i < tx.outputs.length; i++) {
         fee -= tx.outputs[i].amount
@@ -139,7 +141,9 @@ export default function Hash() {
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>Fee</div>
-                        <div className={column.width85}>{fee} Satoshis ({feeRate} sats/B)</div>
+                        <div className={column.width85}>
+                            {hasCoinbase(tx) ? "Coinbase" : (<>{fee} Satoshis ({feeRate} sats/B)</>)}
+                        </div>
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>First Seen</div>
@@ -168,6 +172,19 @@ export default function Hash() {
             </div>
         </Page>
     )
+}
+
+function isCoinbase(input) {
+    return input.prev_hash === "0000000000000000000000000000000000000000000000000000000000000000"
+}
+
+function hasCoinbase(tx) {
+    for (let i = 0; i < tx.inputs.length; i++) {
+        if (isCoinbase(tx.inputs[i])) {
+            return true
+        }
+    }
+    return false
 }
 
 function BlockInfo(props) {
@@ -202,7 +219,7 @@ function Inputs(props) {
                 return (
                     <div key={input.index} className={[column.container, column.marginBottom].join(" ")}>
                         <div className={column.width15}>{input.index}</div>
-                        <div className={column.width85}>
+                        <div className={column.width85}>{input.output ? (<>
                             Address: {input.output.lock ?
                             <Link href={"/address/" + input.output.lock.address}>
                                 <a>{input.output.lock.address}</a>
@@ -231,7 +248,9 @@ function Inputs(props) {
                                         </span>
                                         : "")}
                             </div>
-                        </div>
+                        </>) : (isCoinbase(input) ? "Coinbase" : (
+                            <>{input.prev_hash}:{input.prev_index}</>
+                        ))}</div>
                     </div>
                 )
             })}
