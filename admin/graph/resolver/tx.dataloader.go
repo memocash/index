@@ -249,11 +249,11 @@ func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
 	for i := range txBlocks {
 		blockHashes[i] = txBlocks[i].BlockHash[:]
 	}
-	blocks, err := item.GetBlocks(blockHashes)
+	blocks, err := chain.GetBlocks(blockHashes)
 	if err != nil {
 		return nil, []error{jerr.Get("error getting blocks for block loader", err)}
 	}
-	blockHeights, err := item.GetBlockHeights(blockHashes)
+	blockHeights, err := chain.GetBlockHeights(blockHashes)
 	if err != nil {
 		return nil, []error{jerr.Get("error getting block heights for block loader", err)}
 	}
@@ -273,7 +273,7 @@ func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
 				Hash: chainhash.Hash(txBlock.BlockHash).String(),
 			}
 			for _, block := range blocks {
-				if !bytes.Equal(block.Hash, txBlock.BlockHash[:]) {
+				if block.Hash != txBlock.BlockHash {
 					continue
 				}
 				blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
@@ -282,7 +282,7 @@ func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
 				}
 				modelBlock.Timestamp = model.Date(blockHeader.Timestamp)
 				for _, blockHeight := range blockHeights {
-					if bytes.Equal(blockHeight.BlockHash, block.Hash) {
+					if blockHeight.BlockHash == block.Hash {
 						height := int(blockHeight.Height)
 						modelBlock.Height = &height
 					}

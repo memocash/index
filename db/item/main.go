@@ -1,22 +1,18 @@
 package item
 
 import (
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/memo"
 )
 
 func GetTopics() []db.Object {
 	return append([]db.Object{
-		&Block{},
-		&BlockHeight{},
-		&BlockTx{},
 		&DoubleSpendInput{},
 		&DoubleSpendOutput{},
 		&DoubleSpendSeen{},
 		&FoundPeer{},
-		&HeightBlock{},
 		&HeightBlockShard{},
-		&HeightDuplicate{},
 		&HeightProcessed{},
 		&LockAddress{},
 		&LockBalance{},
@@ -27,21 +23,16 @@ func GetTopics() []db.Object {
 		&LockUtxoLost{},
 		&MempoolTxRaw{},
 		&Message{},
-		&OutputInput{},
 		&Peer{},
 		&PeerConnection{},
 		&PeerFound{},
 		&ProcessError{},
 		&ProcessStatus{},
-		&Tx{},
-		&TxBlock{},
-		&TxInput{},
 		&TxLost{},
-		&TxOutput{},
 		&TxProcessed{},
 		&TxSeen{},
 		&TxSuspect{},
 	},
-		memo.GetTopics()...,
+		append(chain.GetTopics(), memo.GetTopics()...)...,
 	)
 }

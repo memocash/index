@@ -11,7 +11,7 @@ type TxSave interface {
 
 type BlockSave interface {
 	SaveBlock(BlockInfo) error
-	GetBlock(int64) ([]byte, error)
+	GetBlock(int64) (*chainhash.Hash, error)
 }
 
 type BlockHeightSave interface {

@@ -2,16 +2,17 @@ package lead
 
 import (
 	"context"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
 	"github.com/memocash/index/ref/dbi"
 	"sync"
@@ -45,7 +46,7 @@ func (p *Processor) Start() error {
 			if syncStatusProcessInitial != nil {
 				height = syncStatusProcessInitial.Height
 			} else {
-				oldestHeightBlock, err := item.GetOldestHeightBlock()
+				oldestHeightBlock, err := chain.GetOldestHeightBlock()
 				if err != nil {
 					jerr.Get("error getting oldest height block", err).Fatal()
 					return
@@ -58,11 +59,11 @@ func (p *Processor) Start() error {
 					jlog.Logf("UTXO processing complete at height: %d\n", height)
 					break
 				}
-				heightBlock, err := item.GetHeightBlockSingle(height)
+				heightBlock, err := chain.GetHeightBlockSingle(height)
 				if err != nil {
 					jerr.Get("error getting height block", err).Fatal()
 				}
-				block, err := item.GetBlock(heightBlock.BlockHash)
+				block, err := chain.GetBlock(heightBlock.BlockHash[:])
 				if err != nil {
 					jerr.Get("error getting height block block", err).Fatal()
 				}
@@ -70,7 +71,7 @@ func (p *Processor) Start() error {
 				if err != nil {
 					jerr.Get("error parsing block header", err).Fatal()
 				}
-				if !p.WaitForProcess(heightBlock.BlockHash, nil, ProcessTypeProcessInitial) {
+				if !p.WaitForProcess(heightBlock.BlockHash[:], nil, ProcessTypeProcessInitial) {
 					return
 				}
 				if err := db.Save([]db.Object{&item.SyncStatus{
@@ -80,7 +81,7 @@ func (p *Processor) Start() error {
 					jerr.Get("error setting sync status process initial", err).Fatal()
 				}
 				jlog.Logf("Processed block: %s %s %s\n", jfmt.AddCommas(height),
-					hs.GetTxString(heightBlock.BlockHash), blockHeader.Timestamp.Format("2006-01-02 15:04:05"))
+					chainhash.Hash(heightBlock.BlockHash).String(), blockHeader.Timestamp.Format("2006-01-02 15:04:05"))
 				height++
 			}
 		}()
@@ -99,7 +100,7 @@ func (p *Processor) Start() error {
 				}
 			case <-p.Node.SyncDone:
 				jlog.Logf("Node sync done\n")
-				recentBlock, err := item.GetRecentHeightBlock()
+				recentBlock, err := chain.GetRecentHeightBlock()
 				if err != nil {
 					jerr.Get("error getting recent height block", err).Fatal()
 				}

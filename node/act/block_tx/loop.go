@@ -3,18 +3,18 @@ package block_tx
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 )
 
 type Loop struct {
-	Processor func([]*item.BlockTx) error
+	Processor func([]*chain.BlockTx) error
 }
 
 func (l *Loop) Process(blockHash []byte) error {
 	const limit = client.DefaultLimit
 	var startUid []byte
 	for {
-		blockTxes, err := item.GetBlockTxes(item.BlockTxesRequest{
+		blockTxes, err := chain.GetBlockTxes(chain.BlockTxesRequest{
 			BlockHash: blockHash,
 			StartUid:  startUid,
 			Limit:     limit,
@@ -28,12 +28,12 @@ func (l *Loop) Process(blockHash []byte) error {
 		if len(blockTxes) < limit {
 			break
 		}
-		startUid = item.GetBlockTxUid(blockHash, blockTxes[len(blockTxes)-1].TxHash)
+		startUid = chain.GetBlockTxUid(blockHash, blockTxes[len(blockTxes)-1].TxHash[:])
 	}
 	return nil
 }
 
-func NewLoop(processor func([]*item.BlockTx) error) *Loop {
+func NewLoop(processor func([]*chain.BlockTx) error) *Loop {
 	return &Loop{
 		Processor: processor,
 	}

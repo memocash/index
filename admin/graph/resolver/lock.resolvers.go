@@ -6,6 +6,8 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
+	"github.com/memocash/index/db/item/chain"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -87,14 +89,14 @@ func (r *lockResolver) Outputs(ctx context.Context, obj *model.Lock, start *mode
 			Index:  lockHeightOutputs[i].Index,
 		}
 	}
-	txOutputs, err := item.GetTxOutputs(outs)
+	txOutputs, err := chain.GetTxOutputs(outs)
 	if err != nil {
 		return nil, jerr.Get("error getting tx outputs for lock resolver", err)
 	}
 	var modelTxOutputs = make([]*model.TxOutput, len(lockHeightOutputs))
 	for i := range txOutputs {
 		modelTxOutputs[i] = &model.TxOutput{
-			Hash:   hs.GetTxString(txOutputs[i].TxHash),
+			Hash:   chainhash.Hash(txOutputs[i].TxHash).String(),
 			Index:  txOutputs[i].Index,
 			Amount: txOutputs[i].Value,
 		}

@@ -24,7 +24,7 @@ func (b *TxBlock) GetShard() uint {
 }
 
 func (b *TxBlock) GetUid() []byte {
-	return GetTxBlockUid(b.TxHash, b.BlockHash)
+	return GetTxBlockUid(b.TxHash[:], b.BlockHash[:])
 }
 
 func (b *TxBlock) SetUid(uid []byte) {
@@ -41,8 +41,37 @@ func (b *TxBlock) Serialize() []byte {
 
 func (b *TxBlock) Deserialize([]byte) {}
 
-func GetTxBlockUid(txHash [32]byte, blockHash [32]byte) []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(txHash[:]), jutil.ByteReverse(blockHash[:]))
+func GetTxBlockUid(txHash []byte, blockHash []byte) []byte {
+	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.ByteReverse(blockHash))
+}
+
+func GetSingleTxBlock(txHash, blockHash []byte) (*TxBlock, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetSingle(db.TopicChainTxBlock, GetTxBlockUid(txHash, blockHash)); err != nil {
+		return nil, jerr.Get("error getting client message single tx block", err)
+	}
+	if len(dbClient.Messages) != 1 {
+		return nil, jerr.Newf("error unexpected number of single tx block client messages: %d", len(dbClient.Messages))
+	}
+	var txBlock = new(TxBlock)
+	db.Set(txBlock, dbClient.Messages[0])
+	return txBlock, nil
+}
+
+func GetSingleTxBlocks(txHash []byte) ([]*TxBlock, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetByPrefix(db.TopicChainTxBlock, jutil.ByteReverse(txHash)); err != nil {
+		return nil, jerr.Get("error getting client message chain tx block by prefix", err)
+	}
+	var txBlocks []*TxBlock
+	for _, msg := range dbClient.Messages {
+		var txBlock = new(TxBlock)
+		db.Set(txBlock, msg)
+		txBlocks = append(txBlocks, txBlock)
+	}
+	return txBlocks, nil
 }
 
 func GetTxBlocks(txHashes [][]byte) ([]*TxBlock, error) {

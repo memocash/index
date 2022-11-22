@@ -25,7 +25,7 @@ func (b *BlockTx) GetShard() uint {
 }
 
 func (b *BlockTx) GetUid() []byte {
-	return GetBlockTxUid(b.BlockHash, b.TxHash)
+	return GetBlockTxUid(b.BlockHash[:], b.TxHash[:])
 }
 
 func (b *BlockTx) SetUid(uid []byte) {
@@ -47,18 +47,33 @@ func (b *BlockTx) Deserialize(data []byte) {
 	b.Index = jutil.GetUint32Big(data[:4])
 }
 
-func GetBlockTxUid(blockHash, txHash [32]byte) []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(blockHash[:]), jutil.ByteReverse(txHash[:]))
+func GetBlockTxUid(blockHash, txHash []byte) []byte {
+	return jutil.CombineBytes(jutil.ByteReverse(blockHash), jutil.ByteReverse(txHash))
+}
+
+func GetBlockTx(blockHash, txHash []byte) (*BlockTx, error) {
+	shard := client.GetByteShard32(blockHash)
+	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetSingle(db.TopicChainBlockTx, GetBlockTxUid(blockHash, txHash)); err != nil {
+		return nil, jerr.Get("error getting client message chain block tx single", err)
+	}
+	if len(dbClient.Messages) != 1 {
+		return nil, jerr.Newf("error unexpected number of chain block tx client messages: %d", len(dbClient.Messages))
+	}
+	var block = new(BlockTx)
+	db.Set(block, dbClient.Messages[0])
+	return block, nil
 }
 
 type BlockTxesRequest struct {
-	BlockHash [32]byte
+	BlockHash []byte
 	StartUid  []byte
 	Limit     uint32
 }
 
 func GetBlockTxes(request BlockTxesRequest) ([]*BlockTx, error) {
-	shard := client.GetByteShard32(request.BlockHash[:])
+	shard := client.GetByteShard32(request.BlockHash)
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var limit uint32
@@ -69,7 +84,7 @@ func GetBlockTxes(request BlockTxesRequest) ([]*BlockTx, error) {
 	}
 	if err := dbClient.GetWOpts(client.Opts{
 		Topic:    db.TopicChainBlockTx,
-		Prefixes: [][]byte{jutil.ByteReverse(request.BlockHash[:])},
+		Prefixes: [][]byte{jutil.ByteReverse(request.BlockHash)},
 		Start:    request.StartUid,
 		Max:      limit,
 	}); err != nil {

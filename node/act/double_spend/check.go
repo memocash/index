@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/act/tx_raw"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
@@ -103,15 +104,15 @@ func AttachBlocksToSpendCheckSpends(doubleSpendChecks []*DoubleSpendCheck) error
 			}
 		}
 	}
-	txBlocks, err := item.GetTxBlocks(txHashes)
+	txBlocks, err := chain.GetTxBlocks(txHashes)
 	if err != nil {
 		return jerr.Get("error getting tx blocks for double spend check spends", err)
 	}
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		for _, spend := range doubleSpendCheck.Spends {
 			for _, txBlock := range txBlocks {
-				if bytes.Equal(txBlock.TxHash, spend.TxHash) {
-					spend.BlockHash = txBlock.BlockHash
+				if bytes.Equal(txBlock.TxHash[:], spend.TxHash) {
+					spend.BlockHash = txBlock.BlockHash[:]
 					break
 				}
 			}

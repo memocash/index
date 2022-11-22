@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/act/block_tx"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -24,7 +25,7 @@ var doubleSpendBlockCmd = &cobra.Command{
 			jerr.Get("fatal error parsing block hash", err).Fatal()
 		}
 		blockHashBytes := blockHash.CloneBytes()
-		block, err := item.GetBlock(blockHashBytes)
+		block, err := chain.GetBlock(blockHashBytes)
 		if err != nil {
 			jerr.Get("fatal error getting block", err).Fatal()
 		}
@@ -69,7 +70,7 @@ var lockHeightBlockCmd = &cobra.Command{
 			checkTxHashBytes = checkTxHash.CloneBytes()
 		}
 		blockHashBytes := blockHash.CloneBytes()
-		block, err := item.GetBlock(blockHashBytes)
+		block, err := chain.GetBlock(blockHashBytes)
 		if err != nil {
 			jerr.Get("fatal error getting block", err).Fatal()
 		}

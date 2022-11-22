@@ -8,6 +8,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/server"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -117,7 +118,7 @@ func (s *Shard) process(blockHashByte []byte, initialSync bool) error {
 	if err != nil {
 		return jerr.Get("error parsing block hash for shard save utxos", err)
 	}
-	block, err := item.GetBlock(blockHash[:])
+	block, err := chain.GetBlock(blockHash[:])
 	if err != nil {
 		return jerr.Get("error getting block for shard save utxos", err)
 	}

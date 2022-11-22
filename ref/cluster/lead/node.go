@@ -1,6 +1,7 @@
 package lead
 
 import (
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
@@ -32,7 +33,7 @@ func (n *Node) SaveBlock(dbi.BlockInfo) error {
 	return nil
 }
 
-func (n *Node) GetBlock(height int64) ([]byte, error) {
+func (n *Node) GetBlock(height int64) (*chainhash.Hash, error) {
 	if n.Off {
 		return nil, nil
 	}

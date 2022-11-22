@@ -5,7 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/act/maint"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
@@ -19,26 +19,26 @@ var checkLockUtxoCmd = &cobra.Command{
 		if len(args) == 0 {
 			jerr.New("error must specify block hash").Fatal()
 		}
-		var blockHashByte []byte
+		var blockHash chainhash.Hash
 		if len(args[0]) == memo.TxStringLength {
-			blockHash, err := chainhash.NewHashFromStr(args[0])
+			tBlockHash, err := chainhash.NewHashFromStr(args[0])
 			if err != nil {
 				jerr.Get("error parsing block hash", err).Fatal()
 			}
-			blockHashByte = blockHash.CloneBytes()
+			blockHash = *tBlockHash
 		} else {
 			blockHeight := jutil.GetInt64FromString(args[0])
-			heightBlock, err := item.GetHeightBlockSingle(blockHeight)
+			heightBlock, err := chain.GetHeightBlockSingle(blockHeight)
 			if err != nil {
 				jerr.Get("error getting height block for check lock utxos", err).Fatal()
 			}
-			blockHashByte = heightBlock.BlockHash
-			jlog.Logf("Using block hash: %s\n", hs.GetTxString(blockHashByte))
+			blockHash = heightBlock.BlockHash
+			jlog.Logf("Using block hash: %s\n", blockHash)
 		}
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
 		checkLockUtxos := maint.NewCheckLockUtxo()
 		jlog.Log("Starting check lock utxo for block...")
-		if err := checkLockUtxos.Check(blockHashByte); err != nil {
+		if err := checkLockUtxos.Check(blockHash[:]); err != nil {
 			jerr.Get("error maint check lock utxo", err).Fatal()
 		}
 		jlog.Logf("Checked outputs: %d, spends: %d, lock utxos: %d, missing: %d\n", checkLockUtxos.CheckedOutputs,

@@ -25,10 +25,10 @@ func (r *blockResolver) Txs(ctx context.Context, obj *model.Block, start *string
 		if err != nil {
 			return nil, jerr.Get("error decoding start tx hash for block", err)
 		}
-		startUid = chain.GetBlockTxUid(*blockHash, *startTx)
+		startUid = chain.GetBlockTxUid(blockHash[:], startTx[:])
 	}
 	blockTxs, err := chain.GetBlockTxes(chain.BlockTxesRequest{
-		BlockHash: *blockHash,
+		BlockHash: blockHash[:],
 		StartUid:  startUid,
 		Limit:     client.DefaultLimit,
 	})

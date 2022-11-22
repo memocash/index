@@ -6,10 +6,12 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/act/double_spend"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 	"time"
@@ -38,7 +40,7 @@ func (s *DoubleSpend) SaveTxs(b *dbi.Block) error {
 		blockHash := block.BlockHash()
 		blockHashBytes = blockHash.CloneBytes()
 	}
-	existingOutputInputs, err := item.GetOutputInputs(inputOuts)
+	existingOutputInputs, err := chain.GetOutputInputs(inputOuts)
 	if err != nil {
 		return jerr.Get("error getting output inputs", err)
 	}
@@ -48,42 +50,41 @@ func (s *DoubleSpend) SaveTxs(b *dbi.Block) error {
 	var doubleSpendSeens []*item.DoubleSpendSeen
 	for _, msgTx := range block.Transactions {
 		txHash := msgTx.TxHash()
-		txHashBytes := txHash.CloneBytes()
 		if s.Verbose {
 			jlog.Logf("Double spend tx: %s\n", txHash.String())
 		}
 		for index, in := range msgTx.TxIn {
-			prevOutHash := in.PreviousOutPoint.Hash.CloneBytes()
+			prevOutHash := in.PreviousOutPoint.Hash
 			prevOutIndex := in.PreviousOutPoint.Index
 			for _, ex := range existingOutputInputs {
-				if (bytes.Equal(prevOutHash, ex.PrevHash) && prevOutIndex == ex.PrevIndex) &&
-					(!bytes.Equal(txHashBytes, ex.Hash) || uint32(index) != ex.Index) {
+				if (prevOutHash == ex.PrevHash && prevOutIndex == ex.PrevIndex) &&
+					(txHash != ex.Hash || uint32(index) != ex.Index) {
 					// Double Spend!
 					doubleSpendInputs = append(doubleSpendInputs, &item.DoubleSpendInput{
-						TxHash: txHashBytes,
+						TxHash: txHash[:],
 						Index:  uint32(index),
 					}, &item.DoubleSpendInput{
-						TxHash: ex.Hash,
+						TxHash: ex.Hash[:],
 						Index:  ex.Index,
 					})
 					doubleSpendOutputs = append(doubleSpendOutputs, &item.DoubleSpendOutput{
-						TxHash: prevOutHash,
+						TxHash: prevOutHash[:],
 						Index:  prevOutIndex,
 					})
 					doubleSpendSeens = append(doubleSpendSeens, &item.DoubleSpendSeen{
-						TxHash:    prevOutHash,
+						TxHash:    prevOutHash[:],
 						Index:     prevOutIndex,
 						Timestamp: time.Now(),
 					})
 					doubleSpendChecks = append(doubleSpendChecks, &double_spend.DoubleSpendCheck{
-						ParentTxHash:  prevOutHash,
+						ParentTxHash:  prevOutHash[:],
 						ParentTxIndex: prevOutIndex,
 						Spends: []*double_spend.DoubleSpendCheckSpend{{
-							TxHash:    txHashBytes,
+							TxHash:    txHash[:],
 							Index:     uint32(index),
 							BlockHash: blockHashBytes,
 						}, {
-							TxHash: ex.Hash,
+							TxHash: ex.Hash[:],
 							Index:  ex.Index,
 						}},
 					})
@@ -138,7 +139,7 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 	if err := double_spend.AttachAllToDoubleSpendChecks(doubleSpendChecks); err != nil {
 		return jerr.Get("error attaching all to double spend checks", err)
 	}
-	recentHeightBlock, err := item.GetRecentHeightBlock()
+	recentHeightBlock, err := chain.GetRecentHeightBlock()
 	if err != nil {
 		return jerr.Get("error getting recent height block", err)
 	}
@@ -166,7 +167,7 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 			var allTxHashes [][]byte
 			var newTxHashes = [][]byte{checkSpend.TxHash}
 			for len(newTxHashes) > 0 {
-				txBlocks, err := item.GetTxBlocks(newTxHashes)
+				txBlocks, err := chain.GetTxBlocks(newTxHashes)
 				if err != nil {
 					return jerr.Get("error getting tx blocks for double spend check", err)
 				}
@@ -178,17 +179,17 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 				if err != nil {
 					return jerr.Get("error getting tx suspects for double spend check", err)
 				}
-				txOutputs, err := item.GetTxOutputsByHashes(newTxHashes)
+				txOutputs, err := chain.GetTxOutputsByHashes(newTxHashes)
 				if err != nil {
 					return jerr.Get("error getting tx outputs for double spend check", err)
 				}
 				var outs = make([]memo.Out, len(txOutputs))
 				for i := range txOutputs {
 					outs[i] = memo.Out{
-						TxHash:   txOutputs[i].TxHash,
+						TxHash:   txOutputs[i].TxHash[:],
 						Index:    txOutputs[i].Index,
 						Value:    txOutputs[i].Value,
-						LockHash: txOutputs[i].LockHash,
+						LockHash: script.GetLockHash(txOutputs[i].LockScript),
 					}
 				}
 				if isWinner {
@@ -203,14 +204,14 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 							Index:  lockUtxoLosts[i].Index,
 						}
 					}
-					outputInputs, err := item.GetOutputInputs(outs)
+					outputInputs, err := chain.GetOutputInputs(outs)
 					if err != nil {
 						return jerr.Get("error getting output inputs for lock utxo losts", err)
 					}
 				LockUtxoLostLoop:
 					for _, lockUtxoLost := range lockUtxoLosts {
 						for _, outputInput := range outputInputs {
-							if bytes.Equal(outputInput.PrevHash, lockUtxoLost.Hash) && outputInput.PrevIndex == lockUtxoLost.Index {
+							if bytes.Equal(outputInput.PrevHash[:], lockUtxoLost.Hash) && outputInput.PrevIndex == lockUtxoLost.Index {
 								// Don't save LockUTXO if spent since lost saved
 								continue LockUtxoLostLoop
 							}
@@ -244,9 +245,9 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 				}
 				var blockHashes [][]byte
 				for _, txBlock := range txBlocks {
-					blockHashes = append(blockHashes, txBlock.BlockHash)
+					blockHashes = append(blockHashes, txBlock.BlockHash[:])
 				}
-				blockHeights, err := item.GetBlockHeights(blockHashes)
+				blockHeights, err := chain.GetBlockHeights(blockHashes)
 				if err != nil {
 					return jerr.Get("error getting block heights for double spend check", err)
 				}
@@ -255,9 +256,9 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 					var isConfirmed, hasSuspect bool
 					var foundTxLost *item.TxLost
 					for _, txBlock := range txBlocks {
-						if bytes.Equal(txBlock.TxHash, txHash) {
+						if bytes.Equal(txBlock.TxHash[:], txHash) {
 							for _, blockHeight := range blockHeights {
-								if bytes.Equal(blockHeight.BlockHash, txBlock.BlockHash) {
+								if blockHeight.BlockHash == txBlock.BlockHash {
 									confirmations := recentHeight - blockHeight.Height
 									isConfirmed = confirmations >= blocksToConfirm
 									break
@@ -309,19 +310,19 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 					}
 				}
 				newTxHashes = nil
-				outputInputs, err := item.GetOutputInputsForTxHashes(needsChildTxHashes)
+				outputInputs, err := chain.GetOutputInputsForTxHashes(needsChildTxHashes)
 				if err != nil {
 					return jerr.Get("error getting output inputs for tx hash descendants", err)
 				}
 			Loop:
 				for _, outputInput := range outputInputs {
 					for _, allTxHash := range allTxHashes {
-						if bytes.Equal(allTxHash, outputInput.Hash) {
+						if bytes.Equal(allTxHash, outputInput.Hash[:]) {
 							continue Loop
 						}
 					}
-					allTxHashes = append(allTxHashes, outputInput.Hash)
-					newTxHashes = append(newTxHashes, outputInput.Hash)
+					allTxHashes = append(allTxHashes, outputInput.Hash[:])
+					newTxHashes = append(newTxHashes, outputInput.Hash[:])
 				}
 			}
 			descendantLockHashes, err := GetTxLockHashes(allTxHashes)
@@ -400,29 +401,29 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 	for i := range parentTxSuspects {
 		parentTxSuspectHashes[i] = parentTxSuspects[i].TxHash
 	}
-	parentTxSuspectBlocks, err := item.GetTxBlocks(parentTxSuspectHashes)
+	parentTxSuspectBlocks, err := chain.GetTxBlocks(parentTxSuspectHashes)
 	if err != nil {
 		return jerr.Get("error getting tx blocks for suspect tx hashes", err)
 	}
 	var parentBlockHeightsToGet [][]byte
 	for i := 0; i < len(parentTxSuspects); i++ {
 		for _, parentTxSuspectBlock := range parentTxSuspectBlocks {
-			if bytes.Equal(parentTxSuspectBlock.TxHash, parentTxSuspects[i].TxHash) {
-				parentBlockHeightsToGet = append(parentBlockHeightsToGet, parentTxSuspectBlock.BlockHash)
+			if bytes.Equal(parentTxSuspectBlock.TxHash[:], parentTxSuspects[i].TxHash) {
+				parentBlockHeightsToGet = append(parentBlockHeightsToGet, parentTxSuspectBlock.BlockHash[:])
 				break
 			}
 		}
 	}
 	var maxHeight int64
 	var blocksToConfirm int64
-	var parentBlockHeights []*item.BlockHeight
+	var parentBlockHeights []*chain.BlockHeight
 	if len(parentBlockHeightsToGet) > 0 {
-		recentHeightBlock, err := item.GetRecentHeightBlock()
+		recentHeightBlock, err := chain.GetRecentHeightBlock()
 		if err != nil {
 			return jerr.Get("error getting recent height block", err)
 		}
 		maxHeight = recentHeightBlock.Height
-		if parentBlockHeights, err = item.GetBlockHeights(parentBlockHeightsToGet); err != nil {
+		if parentBlockHeights, err = chain.GetBlockHeights(parentBlockHeightsToGet); err != nil {
 			return jerr.Get("error getting block heights for double spends", err)
 		}
 		blocksToConfirm = int64(config.GetBlocksToConfirm())
@@ -441,16 +442,16 @@ TxLoop:
 			if parentTxSuspectFound == nil {
 				continue
 			}
-			var parentTxSuspectBlockFound *item.TxBlock
+			var parentTxSuspectBlockFound *chain.TxBlock
 			for _, parentTxSuspectBlock := range parentTxSuspectBlocks {
-				if bytes.Equal(parentTxSuspectBlock.TxHash, parentTxSuspectFound.TxHash) {
+				if bytes.Equal(parentTxSuspectBlock.TxHash[:], parentTxSuspectFound.TxHash) {
 					parentTxSuspectBlockFound = parentTxSuspectBlock
 					break
 				}
 			}
 			if parentTxSuspectBlockFound != nil {
 				for _, parentBlockHeight := range parentBlockHeights {
-					if bytes.Equal(parentBlockHeight.BlockHash, parentTxSuspectBlockFound.BlockHash) {
+					if parentBlockHeight.BlockHash == parentTxSuspectBlockFound.BlockHash {
 						if maxHeight-parentBlockHeight.Height >= blocksToConfirm {
 							// Don't add suspect if parent old
 							continue InputLoop
@@ -473,32 +474,32 @@ TxLoop:
 }
 
 func GetTxLockHashes(txHashes [][]byte) ([][]byte, error) {
-	txInputs, err := item.GetTxInputsByHashes(txHashes)
+	txInputs, err := chain.GetTxInputsByHashes(txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx inputs for lock hashes", err)
 	}
 	var outs = make([]memo.Out, len(txInputs))
 	for i := range txInputs {
 		outs[i] = memo.Out{
-			TxHash: txInputs[i].PrevHash,
+			TxHash: txInputs[i].PrevHash[:],
 			Index:  txInputs[i].PrevIndex,
 		}
 	}
-	txOutputs, err := item.GetTxOutputsByHashes(txHashes)
+	txOutputs, err := chain.GetTxOutputsByHashes(txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx outputs for lock hashes txs", err)
 	}
-	txOutputsFromInputs, err := item.GetTxOutputs(outs)
+	txOutputsFromInputs, err := chain.GetTxOutputs(outs)
 	if err != nil {
 		return nil, jerr.Get("error getting tx outputs for lock hashes inputs", err)
 	}
 	var lenTxOutputs = len(txOutputs)
 	var lockHashes = make([][]byte, lenTxOutputs+len(txOutputsFromInputs))
 	for i := range txOutputs {
-		lockHashes[i] = txOutputs[i].LockHash
+		lockHashes[i] = script.GetLockHash(txOutputs[i].LockScript)
 	}
 	for i := range txOutputsFromInputs {
-		lockHashes[lenTxOutputs+i] = txOutputsFromInputs[i].LockHash
+		lockHashes[lenTxOutputs+i] = script.GetLockHash(txOutputsFromInputs[i].LockScript)
 	}
 	return lockHashes, nil
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 )
 
 type TxRaw struct {
@@ -12,7 +13,7 @@ type TxRaw struct {
 }
 
 func Get(txHashes [][]byte) ([]*TxRaw, error) {
-	txBlocks, err := item.GetTxBlocks(txHashes)
+	txBlocks, err := chain.GetTxBlocks(txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx blocks for double spend lock hashes", err)
 	}
@@ -20,13 +21,20 @@ func Get(txHashes [][]byte) ([]*TxRaw, error) {
 Loop:
 	for _, txHash := range txHashes {
 		for _, txBlock := range txBlocks {
-			if bytes.Equal(txBlock.TxHash, txHash) {
+			if bytes.Equal(txBlock.TxHash[:], txHash) {
 				continue Loop
 			}
 		}
 		mempoolTxHashes = append(mempoolTxHashes, txHash)
 	}
-	txBlockRaws, err := item.GetRawTxBlocksByHashes(txBlocks)
+	var reqBlockTxs = make([]*item.ReqBlockTx, len(txBlocks))
+	for i := range txBlocks {
+		reqBlockTxs[i] = &item.ReqBlockTx{
+			BlockHash: txBlocks[i].BlockHash[:],
+			TxHash:    txBlocks[i].TxHash[:],
+		}
+	}
+	txBlockRaws, err := item.GetRawTxBlocksByHashes(reqBlockTxs)
 	if err != nil {
 		return nil, jerr.Get("error getting tx blocks for double spend check spends", err)
 	}
