@@ -67,6 +67,7 @@ const (
 	TopicMemoRoomHeightFollow     = "memo_room_follow"
 	TopicMemoRoomHeightPost       = "memo_room_height_post"
 
+	TopicChainBlockInfo   = "chain_block_info"
 	TopicChainBlockTx     = "chain_block_tx"
 	TopicChainOutputInput = "chain_output_input"
 	TopicChainTx          = "chain_tx"

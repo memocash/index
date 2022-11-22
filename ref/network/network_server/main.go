@@ -71,7 +71,7 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 			blockHeader = header
 		}
 		if blockHeader != nil {
-			if err := blockSaver.SaveBlock(*blockHeader); err != nil {
+			if err := blockSaver.SaveBlock(dbi.BlockInfo{Header: *blockHeader}); err != nil {
 				return nil, jerr.Get("error saving block", err)
 			}
 		}
@@ -223,7 +223,7 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 	}
 	if blockHeader, err := memo.GetBlockHeaderFromRaw(txBlock.Block.Header); err != nil {
 		return nil, jerr.Get("error parsing block header", err)
-	} else if err := saver.NewBlock(true).SaveBlock(*blockHeader); err != nil {
+	} else if err := saver.NewBlock(true).SaveBlock(dbi.BlockInfo{Header: *blockHeader}); err != nil {
 		return nil, jerr.Get("error saving block", err)
 	} else if err := saver.NewCombinedAll(false).SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
 		return nil, jerr.Get("error saving transactions", err)

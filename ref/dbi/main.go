@@ -10,7 +10,7 @@ type TxSave interface {
 }
 
 type BlockSave interface {
-	SaveBlock(wire.BlockHeader) error
+	SaveBlock(BlockInfo) error
 	GetBlock(int64) ([]byte, error)
 }
 
@@ -41,6 +41,12 @@ func (b *Block) IsNil() bool {
 
 func (b *Block) ToWireBlock() *wire.MsgBlock {
 	return BlockToWireBlock(b)
+}
+
+type BlockInfo struct {
+	Header  wire.BlockHeader
+	Size    int64
+	TxCount int
 }
 
 type Tx struct {

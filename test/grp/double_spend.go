@@ -97,7 +97,11 @@ func (s *DoubleSpend) SaveBlock(txs []*memo.Tx) error {
 		wireTxs[i] = txs[i].MsgTx
 	}
 	block := test_block.GetNextBlock(wireTxs)
-	if err := s.BlockSaver.SaveBlock(block.Header); err != nil {
+	if err := s.BlockSaver.SaveBlock(dbi.BlockInfo{
+		Header:  block.Header,
+		Size:    int64(block.SerializeSize()),
+		TxCount: len(block.Transactions),
+	}); err != nil {
 		return jerr.Get("error saving block header for double spend grp", err)
 	}
 	if err := s.TxSaver.SaveTxs(dbi.WireBlockToBlock(block)); err != nil {

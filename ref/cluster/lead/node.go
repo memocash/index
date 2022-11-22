@@ -25,7 +25,7 @@ func (n *Node) SaveTxs(b *dbi.Block) error {
 	return nil
 }
 
-func (n *Node) SaveBlock(wire.BlockHeader) error {
+func (n *Node) SaveBlock(dbi.BlockInfo) error {
 	if n.Off {
 		return nil
 	}

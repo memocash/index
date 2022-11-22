@@ -236,7 +236,11 @@ func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 	}
 	// Save block second in case exit/failure during saving transactions will requeue block again
 	if p.BlockSave != nil {
-		err := p.BlockSave.SaveBlock(msg.Header)
+		err := p.BlockSave.SaveBlock(dbi.BlockInfo{
+			Header:  msg.Header,
+			Size:    int64(msg.SerializeSize()),
+			TxCount: len(msg.Transactions),
+		})
 		if err != nil {
 			p.Error(jerr.Get("error saving block", err))
 		}

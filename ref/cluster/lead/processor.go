@@ -13,6 +13,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
+	"github.com/memocash/index/ref/dbi"
 	"sync"
 )
 
@@ -140,22 +141,21 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 		})
 	}
 	blockHash := block.BlockHash()
-	if err := saver.NewBlock(p.Verbose).SaveBlock(block.Header); err != nil {
+	blockInfo := dbi.BlockInfo{
+		Header:  block.Header,
+		Size:    int64(block.SerializeSize()),
+		TxCount: len(block.Transactions),
+	}
+	if err := saver.NewBlock(p.Verbose).SaveBlock(blockInfo); err != nil {
 		jerr.Get("error saving block for lead node", err).Print()
 		return false
 	}
 	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeTx) {
 		return false
 	}
-	/*if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeProcessInitial) {
-		return false
-	}
-	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeProcess) {
-		return false
-	}*/
 	jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
-		blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(len(block.Transactions)),
-		jfmt.AddCommasInt(block.SerializeSize()))
+		blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
+		jfmt.AddCommasInt(int(blockInfo.Size)))
 	return true
 }
 
