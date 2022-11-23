@@ -44,7 +44,7 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}
 		for j := range tx.TxIn {
-			address := getP2pkhAddressFromUnlockScript(tx.TxIn[j].SignatureScript)
+			address := GetP2pkhAddressFromUnlockScript(tx.TxIn[j].SignatureScript)
 			if !address.IsSet() {
 				continue
 			}
@@ -65,7 +65,7 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 			}
 		}
 		for h := range tx.TxOut {
-			address := getP2pkhAddressFromLockScript(tx.TxOut[h].PkScript)
+			address := GetP2pkhAddressFromLockScript(tx.TxOut[h].PkScript)
 			if !address.IsSet() {
 				continue
 			}
@@ -104,7 +104,7 @@ func NewAddress(verbose bool) *Address {
 	}
 }
 
-func getP2pkhAddressFromUnlockScript(unlockScript []byte) wallet.Address {
+func GetP2pkhAddressFromUnlockScript(unlockScript []byte) wallet.Address {
 	l := len(unlockScript)
 	if l < 2 || !jutil.InIntSlice(int(unlockScript[0]),
 		[]int{txscript.OP_DATA_64, txscript.OP_DATA_65, txscript.OP_DATA_71, txscript.OP_DATA_72}) {
@@ -117,7 +117,7 @@ func getP2pkhAddressFromUnlockScript(unlockScript []byte) wallet.Address {
 	return wallet.GetAddress(unlockScript[s+2:])
 }
 
-func getP2pkhAddressFromLockScript(lockScript []byte) wallet.Address {
+func GetP2pkhAddressFromLockScript(lockScript []byte) wallet.Address {
 	if len(lockScript) != 25 || lockScript[0] != txscript.OP_DUP || lockScript[1] != txscript.OP_HASH160 ||
 		lockScript[2] != txscript.OP_DATA_20 || lockScript[23] != txscript.OP_EQUALVERIFY ||
 		lockScript[24] != txscript.OP_CHECKSIG {
