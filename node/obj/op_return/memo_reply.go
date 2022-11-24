@@ -35,13 +35,12 @@ var memoReplyHandler = &Handler{
 			}
 			return nil
 		}
-		parentTxHashBytes := parentTxHash.CloneBytes()
 		var memoPostParent = &dbMemo.PostParent{
 			PostTxHash:   info.TxHash,
-			ParentTxHash: parentTxHashBytes,
+			ParentTxHash: *parentTxHash,
 		}
 		var memoPostChild = &dbMemo.PostChild{
-			PostTxHash:  parentTxHashBytes,
+			PostTxHash:  *parentTxHash,
 			ChildTxHash: info.TxHash,
 		}
 		if err := db.Save([]db.Object{memoPostParent, memoPostChild}); err != nil {

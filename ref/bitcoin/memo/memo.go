@@ -22,6 +22,7 @@ const (
 	TxHashLength     = 32
 	PubKeyLength     = 64
 	LockHashLength   = TxHashLength
+	AddressLength    = 25
 
 	AddressStringLength = 35
 	TxStringLength      = 64

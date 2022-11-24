@@ -1,7 +1,6 @@
 package op_return
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
@@ -9,7 +8,7 @@ import (
 	dbMemo "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
-	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 var memoLikeHandler = &Handler{
@@ -24,18 +23,19 @@ var memoLikeHandler = &Handler{
 			}
 			return nil
 		}
-		postTxHash := info.PushData[1]
-		if len(postTxHash) != memo.TxHashLength {
+		if len(info.PushData[1]) != memo.TxHashLength {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
-				Error:  fmt.Sprintf("error like tx hash not correct size: %d", len(postTxHash)),
+				Error:  fmt.Sprintf("error like tx hash not correct size: %d", len(info.PushData[1])),
 			}); err != nil {
 				return jerr.Get("error saving process error memo like post tx hash", err)
 			}
 			return nil
 		}
-		var memoLike = &dbMemo.LockHeightLike{
-			LockHash:   info.LockHash,
+		var postTxHash [32]byte
+		copy(postTxHash[:], info.PushData[1])
+		var memoLike = &dbMemo.AddrHeightLike{
+			Addr:       info.Addr,
 			Height:     info.Height,
 			LikeTxHash: info.TxHash,
 			PostTxHash: postTxHash,
@@ -44,18 +44,18 @@ var memoLikeHandler = &Handler{
 			PostTxHash: postTxHash,
 			Height:     info.Height,
 			LikeTxHash: info.TxHash,
-			LockHash:   info.LockHash,
+			Addr:       info.Addr,
 		}
 		memoPost, err := dbMemo.GetPost(postTxHash)
 		if err != nil {
 			return jerr.Get("error getting memo post for like op return handler", err)
 		}
 		var objects = []db.Object{memoLike, memoLiked}
-		if memoPost != nil && !bytes.Equal(memoLike.LockHash, memoPost.LockHash) {
+		if memoPost != nil && memoLike.Addr != memoPost.Addr {
 			var tip int64
 			for _, txOut := range info.Outputs {
-				outputLockHash := script.GetLockHash(txOut.PkScript)
-				if bytes.Equal(outputLockHash, memoPost.LockHash) {
+				outputAddress, _ := wallet.GetAddrFromLockScript(txOut.PkScript)
+				if outputAddress != nil && *outputAddress == memoPost.Addr {
 					tip += txOut.Value
 				}
 			}
@@ -71,7 +71,7 @@ var memoLikeHandler = &Handler{
 		}
 		if info.Height != item.HeightMempool {
 			memoLike.Height = item.HeightMempool
-			if err := dbMemo.RemoveLockHeightLike(memoLike); err != nil {
+			if err := db.Remove([]db.Object{memoLike}); err != nil {
 				return jerr.Get("error removing db memo like", err)
 			}
 		}

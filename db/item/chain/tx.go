@@ -48,11 +48,11 @@ func (t *Tx) Deserialize(data []byte) {
 	t.LockTime = jutil.GetUint32(data[4:8])
 }
 
-func GetTxsByHashes(txHashes [][]byte) ([]*Tx, error) {
+func GetTxsByHashes(txHashes [][32]byte) ([]*Tx, error) {
 	var shardTxHashes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := uint32(db.GetShardByte(txHash))
-		shardTxHashes[shard] = append(shardTxHashes[shard], jutil.ByteReverse(txHash))
+		shard := uint32(db.GetShardByte(txHash[:]))
+		shardTxHashes[shard] = append(shardTxHashes[shard], jutil.ByteReverse(txHash[:]))
 	}
 	var txs []*Tx
 	for shard, txHashes := range shardTxHashes {

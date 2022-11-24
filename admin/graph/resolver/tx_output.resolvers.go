@@ -14,7 +14,6 @@ import (
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/node/obj/get"
-	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
@@ -51,8 +50,8 @@ func (r *txOutputResolver) DoubleSpend(ctx context.Context, obj *model.TxOutput)
 	panic(fmt.Errorf("not implemented"))
 }
 
-// Lock is the resolver for the lock field.
-func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*model.Lock, error) {
+// Addr is the resolver for the addr field.
+func (r *txOutputResolver) Addr(ctx context.Context, obj *model.TxOutput) (*model.Addr, error) {
 	if len(obj.Script) == 0 {
 		return nil, nil
 	}
@@ -60,15 +59,17 @@ func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*mode
 	if err != nil {
 		return nil, jerr.Get("error parsing lock script for tx output lock resolver", err)
 	}
-	balance := get.NewBalance(lockScript)
-	if err := balance.GetBalance(); err != nil {
-		return nil, jerr.Get("error getting lock balance for tx output resolver", err)
-	}
-	return &model.Lock{
-		Hash:    hex.EncodeToString(script.GetLockHash(lockScript)),
+	var modelAddr = &model.Addr{
 		Address: wallet.GetAddressStringFromPkScript(lockScript),
-		Balance: balance.Balance,
-	}, nil
+	}
+	if jutil.StringInSlice("balance", GetPreloads(ctx)) {
+		balance := get.NewBalance(lockScript)
+		if err := balance.GetBalance(); err != nil {
+			return nil, jerr.Get("error getting lock balance for tx output resolver", err)
+		}
+		modelAddr.Balance = balance.Balance
+	}
+	return modelAddr, nil
 }
 
 // TxOutput returns generated.TxOutputResolver implementation.

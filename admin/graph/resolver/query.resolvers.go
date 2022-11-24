@@ -53,7 +53,7 @@ func (r *queryResolver) Txs(ctx context.Context, hashes []string) ([]*model.Tx, 
 }
 
 // Address is the resolver for the address field.
-func (r *queryResolver) Address(ctx context.Context, address string) (*model.Lock, error) {
+func (r *queryResolver) Address(ctx context.Context, address string) (*model.Addr, error) {
 	balance, err := get.NewBalanceFromAddress(address)
 	if err != nil {
 		return nil, jerr.Get("error getting address from string for balance", err)
@@ -61,16 +61,15 @@ func (r *queryResolver) Address(ctx context.Context, address string) (*model.Loc
 	if err := balance.GetBalanceByUtxos(); err != nil {
 		return nil, jerr.Get("error getting address balance from network", err)
 	}
-	return &model.Lock{
-		Hash:    hex.EncodeToString(script.GetLockHash(balance.LockScript)),
+	return &model.Addr{
 		Address: balance.Address,
 		Balance: balance.Balance,
 	}, nil
 }
 
 // Addresses is the resolver for the addresses field.
-func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error) {
-	var locks []*model.Lock
+func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*model.Addr, error) {
+	var locks []*model.Addr
 	for _, address := range addresses {
 		balance, err := get.NewBalanceFromAddress(address)
 		if err != nil {
@@ -79,8 +78,7 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*m
 		if err := balance.GetBalance(); err != nil {
 			return nil, jerr.Get("error getting address balance from network (multi)", err)
 		}
-		locks = append(locks, &model.Lock{
-			Hash:    hex.EncodeToString(script.GetLockHash(balance.LockScript)),
+		locks = append(locks, &model.Addr{
 			Address: balance.Address,
 			Balance: balance.Balance,
 		})

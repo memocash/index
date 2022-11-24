@@ -41,15 +41,15 @@ const (
 	TopicTxSeen                = "tx_seen"
 	TopicTxSuspect             = "tx_suspect"
 
+	TopicMemoAddrHeightFollow     = "memo_addr_height_follow"
+	TopicMemoAddrHeightFollowed   = "memo_addr_height_followed"
+	TopicMemoAddrHeightLike       = "memo_addr_height_like"
+	TopicMemoAddrHeightName       = "memo_addr_height_name"
+	TopicMemoAddrHeightPost       = "memo_addr_height_post"
+	TopicMemoAddrHeightProfile    = "memo_addr_height_profile"
+	TopicMemoAddrHeightProfilePic = "memo_addr_height_profile_pic"
+	TopicMemoAddrHeightRoomFollow = "memo_addr_height_room_follow"
 	TopicMemoLikeTip              = "memo_like_tip"
-	TopicMemoLockHeightFollow     = "memo_lock_height_follow"
-	TopicMemoLockHeightFollowed   = "memo_lock_height_followed"
-	TopicMemoLockHeightLike       = "memo_lock_height_like"
-	TopicMemoLockHeightName       = "memo_lock_height_name"
-	TopicMemoLockHeightPost       = "memo_lock_height_post"
-	TopicMemoLockHeightProfile    = "memo_lock_height_profile"
-	TopicMemoLockHeightProfilePic = "memo_lock_height_profile_pic"
-	TopicMemoLockHeightRoomFollow = "memo_lock_height_room_follow"
 	TopicMemoPost                 = "memo_post"
 	TopicMemoPostChild            = "memo_post_child"
 	TopicMemoPostHeightLike       = "memo_post_height_like"
@@ -70,8 +70,8 @@ const (
 	TopicChainTxInput         = "chain_tx_input"
 	TopicChainTxOutput        = "chain_tx_output"
 
-	TopicAddrP2pkhHeightOutput = "addr_p2pkh_height_output"
-	TopicAddrP2pkhHeightInput  = "addr_p2pkh_height_input"
+	TopicAddrHeightOutput = "addr_height_output"
+	TopicAddrHeightInput  = "addr_height_input"
 )
 
 type Object interface {
@@ -219,4 +219,20 @@ func NewCancelContext(ctx context.Context, done func()) *CancelContext {
 		}()
 	}
 	return c
+}
+
+func FixedTxHashesToRaw(fixedTxHashes [][32]byte) [][]byte {
+	var txHashes = make([][]byte, len(fixedTxHashes))
+	for i, fixedTxHash := range fixedTxHashes {
+		txHashes[i] = fixedTxHash[:]
+	}
+	return txHashes
+}
+
+func RawTxHashesToFixed(txHashes [][]byte) [][32]byte {
+	var fixedTxHashes = make([][32]byte, len(txHashes))
+	for i, txHash := range txHashes {
+		copy(fixedTxHashes[i][:], txHash)
+	}
+	return fixedTxHashes
 }

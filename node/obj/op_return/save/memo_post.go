@@ -1,7 +1,6 @@
 package save
 
 import (
-	"bytes"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
@@ -9,14 +8,14 @@ import (
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
-	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 func MemoPost(info parse.OpReturn, post string) error {
-	var lockMemoPost = &memo.LockHeightPost{
-		LockHash: info.LockHash,
-		Height:   info.Height,
-		TxHash:   info.TxHash,
+	var lockMemoPost = &memo.AddrHeightPost{
+		Addr:   info.Addr,
+		Height: info.Height,
+		TxHash: info.TxHash,
 	}
 	var objects = []db.Object{lockMemoPost}
 	existingMemoPost, err := memo.GetPost(info.TxHash)
@@ -25,18 +24,18 @@ func MemoPost(info parse.OpReturn, post string) error {
 	}
 	if existingMemoPost == nil {
 		var memoPost = &memo.Post{
-			TxHash:   info.TxHash,
-			LockHash: info.LockHash,
-			Post:     post,
+			TxHash: info.TxHash,
+			Addr:   info.Addr,
+			Post:   post,
 		}
 		objects = append(objects, memoPost)
-		memoPostLikes, err := memo.GetPostHeightLikes([][]byte{info.TxHash})
+		memoPostLikes, err := memo.GetPostHeightLikes([][32]byte{info.TxHash})
 		if err != nil {
 			return jerr.Get("error getting memo likeds for post op return handler", err)
 		}
-		var likeTxHashes [][]byte
+		var likeTxHashes [][32]byte
 		for _, memoPostLike := range memoPostLikes {
-			if !bytes.Equal(memoPostLike.LockHash, memoPost.LockHash) {
+			if memoPostLike.Addr != memoPost.Addr {
 				likeTxHashes = append(likeTxHashes, memoPostLike.LikeTxHash)
 			}
 		}
@@ -46,15 +45,15 @@ func MemoPost(info parse.OpReturn, post string) error {
 		}
 		var memoLikeTips = make(map[chainhash.Hash]int64)
 		for _, likeTxOut := range likeTxOuts {
-			lockHash := script.GetLockHash(likeTxOut.LockScript)
-			if bytes.Equal(lockHash, memoPost.LockHash) {
+			addr, _ := wallet.GetAddrFromLockScript(likeTxOut.LockScript)
+			if addr != nil && *addr == memoPost.Addr {
 				memoLikeTips[likeTxOut.TxHash] += likeTxOut.Value
 			}
 		}
 		for likeTxHash, tip := range memoLikeTips {
 			if tip > 0 {
 				objects = append(objects, &memo.LikeTip{
-					LikeTxHash: likeTxHash.CloneBytes(),
+					LikeTxHash: likeTxHash,
 					Tip:        tip,
 				})
 			}
@@ -65,7 +64,7 @@ func MemoPost(info parse.OpReturn, post string) error {
 	}
 	if info.Height != item.HeightMempool {
 		lockMemoPost.Height = item.HeightMempool
-		if err := memo.RemoveLockHeightPost(lockMemoPost); err != nil {
+		if err := db.Remove([]db.Object{lockMemoPost}); err != nil {
 			return jerr.Get("error removing db memo post", err)
 		}
 	}

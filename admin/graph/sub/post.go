@@ -8,27 +8,26 @@ import (
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
 type Post struct {
 	Name         string
-	PostHashChan chan []byte
+	PostHashChan chan [32]byte
 	Cancel       context.CancelFunc
 }
 
 func (r *Post) Listen(ctx context.Context, txHashes []string) (<-chan *model.Post, error) {
-	var txHashesBytes = make([][]byte, len(txHashes))
+	var txHashesBytes = make([][32]byte, len(txHashes))
 	for i := range txHashes {
 		txHash, err := chainhash.NewHashFromStr(txHashes[i])
 		if err != nil {
 			return nil, jerr.Get("error getting tx hash from string for post subscription", err)
 		}
-		txHashesBytes[i] = txHash.CloneBytes()
+		txHashesBytes[i] = *txHash
 	}
 	ctx, r.Cancel = context.WithCancel(ctx)
 	var postChan = make(chan *model.Post)
-	r.PostHashChan = make(chan []byte)
+	r.PostHashChan = make(chan [32]byte)
 	postChildListener, err := memo.ListenPostChildren(ctx, txHashesBytes)
 	if err != nil {
 		r.Cancel()
@@ -72,7 +71,7 @@ func (r *Post) Listen(ctx context.Context, txHashes []string) (<-chan *model.Pos
 				if !ok {
 					return
 				}
-				post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(hs.GetTxString(txHash))
+				post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(chainhash.Hash(txHash).String())
 				if err != nil {
 					jerr.Get("error getting post from dataloader for post subscription resolver", err).Print()
 					return

@@ -53,11 +53,11 @@ func (t *TxOutput) Deserialize(data []byte) {
 	t.LockScript = data[8:]
 }
 
-func GetTxOutputsByHashes(txHashes [][]byte) ([]*TxOutput, error) {
+func GetTxOutputsByHashes(txHashes [][32]byte) ([]*TxOutput, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := uint32(db.GetShardByte(txHash))
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash))
+		shard := uint32(db.GetShardByte(txHash[:]))
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash[:]))
 	}
 	var txOutputs []*TxOutput
 	for shard, txHashes := range shardPrefixes {

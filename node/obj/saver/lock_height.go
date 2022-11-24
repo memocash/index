@@ -268,7 +268,7 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 		txHashes[i] = outputInputs[i].Hash[:]
 	}
 	txHashes = jutil.RemoveDupesAndEmpties(txHashes)
-	txBlocks, err := chain.GetTxBlocks(txHashes)
+	txBlocks, err := chain.GetTxBlocks(db.RawTxHashesToFixed(txHashes))
 	if err != nil {
 		return jerr.Get("error getting tx blocks for lock height output inputs", err)
 	}

@@ -2,24 +2,24 @@ package sub
 
 import (
 	"context"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
 type Room struct {
 	Name         string
-	RoomPostChan chan []byte
+	RoomPostChan chan [32]byte
 	Cancel       context.CancelFunc
 }
 
 func (r *Room) Listen(ctx context.Context, names []string) (<-chan *model.Post, error) {
 	ctx, r.Cancel = context.WithCancel(ctx)
 	var postChan = make(chan *model.Post)
-	r.RoomPostChan = make(chan []byte)
+	r.RoomPostChan = make(chan [32]byte)
 	roomHeightPostsListener, err := memo.ListenRoomPosts(ctx, names)
 	if err != nil {
 		r.Cancel()
@@ -53,7 +53,7 @@ func (r *Room) Listen(ctx context.Context, names []string) (<-chan *model.Post, 
 				if !ok {
 					return
 				}
-				post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(hs.GetTxString(txHash))
+				post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(chainhash.Hash(txHash).String())
 				if err != nil {
 					jerr.Get("error getting post from dataloader for room subscription resolver", err).Print()
 					return

@@ -2,16 +2,12 @@ package load
 
 import (
 	"context"
-	"encoding/hex"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item"
-	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
-	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"time"
 )
@@ -25,51 +21,47 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 		for i, addressString := range addressStrings {
-			address := wallet.GetAddressFromString(addressString)
-			lockHash := script.GetLockHashForAddress(address)
-			if err := db.Save([]db.Object{&item.LockAddress{
-				LockHash: lockHash,
-				Address:  address.GetEncoded(),
-			}}); err != nil {
-				errors[i] = jerr.Get("error saving lock address", err)
+			addr, err := wallet.GetAddrFromString(addressString)
+			if err != nil {
+				errors[i] = jerr.Get("error getting address from string", err)
 				continue
 			}
-			lockHashString := hex.EncodeToString(lockHash)
-			var profile = &model.Profile{LockHash: lockHashString}
-			lockMemoName, err := memo.GetLockHeightName(ctx, lockHash)
+			addrString := addr.String()
+			var profile = &model.Profile{Address: addrString}
+			addrMemoName, err := memo.GetAddrHeightName(ctx, *addr)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting memo name", err)
 				continue
 			}
-			if lockMemoName != nil {
+			if addrMemoName != nil {
 				profile.Name = &model.SetName{
-					TxHash:   hs.GetTxString(lockMemoName.TxHash),
-					Name:     lockMemoName.Name,
-					LockHash: lockHashString,
+					TxHash:  chainhash.Hash(addrMemoName.TxHash).String(),
+					Name:    addrMemoName.Name,
+					Address: addrString,
 				}
 			}
-			lockMemoProfile, err := memo.GetLockHeightProfile(ctx, lockHash)
+			addrMemoProfile, err := memo.GetAddrHeightProfile(ctx, *addr)
 			if err != nil && !client.IsEntryNotFoundError(err) {
-				errors[i] = jerr.Get("error getting lock memo profile", err)
+				errors[i] = jerr.Get("error getting addr memo profile", err)
 				continue
 			}
-			if lockMemoProfile != nil {
+			if addrMemoProfile != nil {
 				profile.Profile = &model.SetProfile{
-					TxHash:   hs.GetTxString(lockMemoProfile.TxHash),
-					Text:     lockMemoProfile.Profile,
-					LockHash: lockHashString,
+					TxHash:  chainhash.Hash(addrMemoProfile.TxHash).String(),
+					Text:    addrMemoProfile.Profile,
+					Address: addrString,
 				}
 			}
-			lockMemoProfilePic, err := memo.GetLockHeightProfilePic(ctx, lockHash)
+			addrMemoProfilePic, err := memo.GetAddrHeightProfilePic(ctx, *addr)
 			if err != nil && !client.IsEntryNotFoundError(err) {
-				errors[i] = jerr.Get("error getting lock memo profile pic", err)
+				errors[i] = jerr.Get("error getting addr memo profile pic", err)
 				continue
 			}
-			if lockMemoProfilePic != nil {
+			if addrMemoProfilePic != nil {
 				profile.Pic = &model.SetPic{
-					TxHash:   hs.GetTxString(lockMemoProfilePic.TxHash),
-					LockHash: lockHashString,
-					Pic:      lockMemoProfilePic.Pic,
+					TxHash:  chainhash.Hash(addrMemoProfilePic.TxHash).String(),
+					Address: addrString,
+					Pic:     addrMemoProfilePic.Pic,
 				}
 			}
 			profiles[i] = profile

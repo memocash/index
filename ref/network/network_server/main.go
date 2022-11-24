@@ -11,6 +11,7 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/act/balance"
 	"github.com/memocash/index/node/obj/get"
 	"github.com/memocash/index/node/obj/saver"
@@ -99,7 +100,8 @@ func (s *Server) GetTx(_ context.Context, req *network_pb.TxRequest) (*network_p
 
 func (s *Server) GetTxBlock(_ context.Context, req *network_pb.TxBlockRequest) (*network_pb.TxBlockReply, error) {
 	getTxBlock := get.NewTxBlock()
-	if err := getTxBlock.Get(req.Txs); err != nil {
+	txHashes := db.RawTxHashesToFixed(req.Txs)
+	if err := getTxBlock.Get(txHashes); err != nil {
 		return nil, jerr.Get("error getting tx blocks by hashes", err)
 	}
 	var txs = make([]*network_pb.BlockTx, len(getTxBlock.Txs))

@@ -60,11 +60,11 @@ func GetTxInputUid(txHash [32]byte, index uint32) []byte {
 	return db.GetTxHashIndexUid(txHash[:], index)
 }
 
-func GetTxInputsByHashes(txHashes [][]byte) ([]*TxInput, error) {
+func GetTxInputsByHashes(txHashes [][32]byte) ([]*TxInput, error) {
 	var shardTxHashes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := uint32(db.GetShardByte(txHash))
-		shardTxHashes[shard] = append(shardTxHashes[shard], jutil.ByteReverse(txHash))
+		shard := uint32(db.GetShardByte(txHash[:]))
+		shardTxHashes[shard] = append(shardTxHashes[shard], jutil.ByteReverse(txHash[:]))
 	}
 	var txInputs []*TxInput
 	for shard, txHashes := range shardTxHashes {

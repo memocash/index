@@ -1,5 +1,4 @@
-type Lock {
-    hash: String!
+type Addr {
     address: String
     profile: Profile
     balance: Int64!

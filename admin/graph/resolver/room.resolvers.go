@@ -5,13 +5,13 @@ package resolver
 
 import (
 	"context"
-	"encoding/hex"
 
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 // Posts is the resolver for the posts field.
@@ -20,7 +20,7 @@ func (r *roomResolver) Posts(ctx context.Context, obj *model.Room, start *int) (
 	if err != nil {
 		return nil, jerr.Get("error getting room height posts for room resolver", err)
 	}
-	var txHashes = make([][]byte, len(roomHeightPosts))
+	var txHashes = make([][32]byte, len(roomHeightPosts))
 	for i := range roomHeightPosts {
 		txHashes[i] = roomHeightPosts[i].TxHash
 	}
@@ -31,9 +31,9 @@ func (r *roomResolver) Posts(ctx context.Context, obj *model.Room, start *int) (
 	var posts = make([]*model.Post, len(memoPosts))
 	for i := range memoPosts {
 		posts[i] = &model.Post{
-			TxHash:   hs.GetTxString(memoPosts[i].TxHash),
-			LockHash: hex.EncodeToString(memoPosts[i].LockHash),
-			Text:     memoPosts[i].Post,
+			TxHash:  chainhash.Hash(memoPosts[i].TxHash).String(),
+			Address: wallet.Addr(memoPosts[i].Addr).String(),
+			Text:    memoPosts[i].Post,
 		}
 	}
 	return posts, nil
@@ -49,9 +49,9 @@ func (r *roomResolver) Followers(ctx context.Context, obj *model.Room, start *in
 	for i := range lockRoomFollows {
 		roomFollows[i] = &model.RoomFollow{
 			Name:     obj.Name,
-			LockHash: hex.EncodeToString(lockRoomFollows[i].LockHash),
+			Address:  wallet.Addr(lockRoomFollows[i].Addr).String(),
 			Unfollow: lockRoomFollows[i].Unfollow,
-			TxHash:   hs.GetTxString(lockRoomFollows[i].TxHash),
+			TxHash:   chainhash.Hash(lockRoomFollows[i].TxHash).String(),
 		}
 	}
 	return roomFollows, nil
@@ -62,13 +62,13 @@ func (r *roomFollowResolver) Room(ctx context.Context, obj *model.RoomFollow) (*
 	return &model.Room{Name: obj.Name}, nil
 }
 
-// Lock is the resolver for the lock field.
-func (r *roomFollowResolver) Lock(ctx context.Context, obj *model.RoomFollow) (*model.Lock, error) {
-	lock, err := LockLoader(ctx, obj.LockHash)
+// Addr is the resolver for the addr field.
+func (r *roomFollowResolver) Addr(ctx context.Context, obj *model.RoomFollow) (*model.Addr, error) {
+	addr, err := AddrLoader(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for room follow resolver: %s", obj.TxHash)
+		return nil, jerr.Getf(err, "error getting addr from loader for room follow resolver: %s", obj.TxHash)
 	}
-	return lock, nil
+	return addr, nil
 }
 
 // Tx is the resolver for the tx field.

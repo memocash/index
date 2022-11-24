@@ -13,35 +13,24 @@ import (
 type RoomHeightFollow struct {
 	RoomHash []byte
 	Height   int64
-	TxHash   []byte
+	TxHash   [32]byte
 	Unfollow bool
-	LockHash []byte
+	Addr     [25]byte
 }
 
-func (f RoomHeightFollow) GetUid() []byte {
-	return jutil.CombineBytes(
-		f.RoomHash,
-		jutil.ByteFlip(jutil.GetInt64DataBig(f.Height)),
-		jutil.ByteReverse(f.TxHash),
-	)
-}
-
-func (f RoomHeightFollow) GetShard() uint {
-	return client.GetByteShard(f.RoomHash)
-}
-
-func (f RoomHeightFollow) GetTopic() string {
+func (f *RoomHeightFollow) GetTopic() string {
 	return db.TopicMemoRoomHeightFollow
 }
 
-func (f RoomHeightFollow) Serialize() []byte {
-	var unfollow byte
-	if f.Unfollow {
-		unfollow = 1
-	}
+func (f *RoomHeightFollow) GetShard() uint {
+	return client.GetByteShard(f.RoomHash)
+}
+
+func (f *RoomHeightFollow) GetUid() []byte {
 	return jutil.CombineBytes(
-		[]byte{unfollow},
-		f.LockHash,
+		f.RoomHash,
+		jutil.ByteFlip(jutil.GetInt64DataBig(f.Height)),
+		jutil.ByteReverse(f.TxHash[:]),
 	)
 }
 
@@ -51,15 +40,26 @@ func (f *RoomHeightFollow) SetUid(uid []byte) {
 	}
 	f.RoomHash = uid[:32]
 	f.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
-	f.TxHash = jutil.ByteReverse(uid[40:72])
+	copy(f.TxHash[:], jutil.ByteReverse(uid[40:72]))
+}
+
+func (f *RoomHeightFollow) Serialize() []byte {
+	var unfollow byte
+	if f.Unfollow {
+		unfollow = 1
+	}
+	return jutil.CombineBytes(
+		[]byte{unfollow},
+		f.Addr[:],
+	)
 }
 
 func (f *RoomHeightFollow) Deserialize(data []byte) {
-	if len(data) < 1+memo.TxHashLength+1 {
+	if len(data) < 1+memo.AddressLength+1 {
 		return
 	}
 	f.Unfollow = data[0] == 1
-	f.LockHash = data[1:33]
+	copy(f.Addr[:], data[1:26])
 }
 
 func GetRoomHeightFollows(ctx context.Context, room string) ([]*RoomHeightFollow, error) {

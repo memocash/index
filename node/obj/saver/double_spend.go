@@ -2,6 +2,7 @@ package saver
 
 import (
 	"bytes"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
@@ -51,7 +52,7 @@ func (s *DoubleSpend) SaveTxs(b *dbi.Block) error {
 	for _, msgTx := range block.Transactions {
 		txHash := msgTx.TxHash()
 		if s.Verbose {
-			jlog.Logf("Double spend tx: %s\n", txHash.String())
+			jlog.Logf("Double spend tx: %s\n", txHash)
 		}
 		for index, in := range msgTx.TxIn {
 			prevOutHash := in.PreviousOutPoint.Hash
@@ -77,14 +78,14 @@ func (s *DoubleSpend) SaveTxs(b *dbi.Block) error {
 						Timestamp: time.Now(),
 					})
 					doubleSpendChecks = append(doubleSpendChecks, &double_spend.DoubleSpendCheck{
-						ParentTxHash:  prevOutHash[:],
+						ParentTxHash:  prevOutHash,
 						ParentTxIndex: prevOutIndex,
 						Spends: []*double_spend.DoubleSpendCheckSpend{{
-							TxHash:    txHash[:],
+							TxHash:    txHash,
 							Index:     uint32(index),
 							BlockHash: blockHashBytes,
 						}, {
-							TxHash: ex.Hash[:],
+							TxHash: ex.Hash,
 							Index:  ex.Index,
 						}},
 					})
@@ -159,23 +160,23 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 			isWinner, err := doubleSpendCheck.IsWinnerSpend(checkSpend)
 			if err != nil {
 				return jerr.Getf(err, "error checking if double spend check is winner (%s:%d)",
-					hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex)
+					chainhash.Hash(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex)
 			}
 			jlog.Logf("Checking double spend: %s:%d (out: %s:%d, win: %t)\n",
-				hs.GetTxString(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex,
-				hs.GetTxString(checkSpend.TxHash), checkSpend.Index, isWinner)
-			var allTxHashes [][]byte
-			var newTxHashes = [][]byte{checkSpend.TxHash}
+				chainhash.Hash(doubleSpendCheck.ParentTxHash), doubleSpendCheck.ParentTxIndex,
+				chainhash.Hash(checkSpend.TxHash), checkSpend.Index, isWinner)
+			var allTxHashes [][32]byte
+			var newTxHashes = [][32]byte{checkSpend.TxHash}
 			for len(newTxHashes) > 0 {
 				txBlocks, err := chain.GetTxBlocks(newTxHashes)
 				if err != nil {
 					return jerr.Get("error getting tx blocks for double spend check", err)
 				}
-				txLosts, err := item.GetTxLosts(newTxHashes)
+				txLosts, err := item.GetTxLosts(db.FixedTxHashesToRaw(newTxHashes))
 				if err != nil {
 					return jerr.Get("error getting tx losts for double spend check", err)
 				}
-				txSuspects, err := item.GetTxSuspects(newTxHashes)
+				txSuspects, err := item.GetTxSuspects(db.FixedTxHashesToRaw(newTxHashes))
 				if err != nil {
 					return jerr.Get("error getting tx suspects for double spend check", err)
 				}
@@ -256,7 +257,7 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 					var isConfirmed, hasSuspect bool
 					var foundTxLost *item.TxLost
 					for _, txBlock := range txBlocks {
-						if bytes.Equal(txBlock.TxHash[:], txHash) {
+						if txBlock.TxHash == txHash {
 							for _, blockHeight := range blockHeights {
 								if blockHeight.BlockHash == txBlock.BlockHash {
 									confirmations := recentHeight - blockHeight.Height
@@ -268,45 +269,46 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 						}
 					}
 					for _, txLost := range txLosts {
-						if bytes.Equal(txLost.TxHash, txHash) {
+						if bytes.Equal(txLost.TxHash, txHash[:]) {
 							foundTxLost = txLost
 							break
 						}
 					}
 					for _, txSuspect := range txSuspects {
-						if bytes.Equal(txSuspect.TxHash, txHash) {
+						if bytes.Equal(txSuspect.TxHash, txHash[:]) {
 							hasSuspect = true
 							break
 						}
 					}
 					if isWinner {
 						if foundTxLost != nil {
-							jlog.Logf("Removing TxLost: %s (spend: %s, parent: %s)\n", hs.GetTxString(txHash),
-								hs.GetTxString(checkSpend.TxHash), hs.GetTxString(doubleSpendCheck.ParentTxHash))
+							jlog.Logf("Removing TxLost: %s (spend: %s, parent: %s)\n", chainhash.Hash(txHash),
+								chainhash.Hash(checkSpend.TxHash), chainhash.Hash(doubleSpendCheck.ParentTxHash))
 							lostTxsToRemove = append(lostTxsToRemove, foundTxLost)
 						}
 						if !isConfirmed {
 							newItems = append(newItems, &item.TxSuspect{
-								TxHash: txHash,
+								TxHash: txHash[:],
 							})
 						} else if hasSuspect {
-							suspectTxsToRemove = append(suspectTxsToRemove, txHash)
+							suspectTxsToRemove = append(suspectTxsToRemove, txHash[:])
 						}
 					} else {
 						if foundTxLost == nil {
-							jlog.Logf("Adding TxLost from double spend: %s (spend: %s, parent: %s)\n", hs.GetTxString(txHash),
-								hs.GetTxString(checkSpend.TxHash), hs.GetTxString(doubleSpendCheck.ParentTxHash))
+							jlog.Logf("Adding TxLost from double spend: %s (spend: %s, parent: %s)\n",
+								chainhash.Hash(txHash), chainhash.Hash(checkSpend.TxHash),
+								chainhash.Hash(doubleSpendCheck.ParentTxHash))
 							newItems = append(newItems, &item.TxLost{
-								TxHash:      txHash,
-								DoubleSpend: checkSpend.TxHash,
+								TxHash:      txHash[:],
+								DoubleSpend: checkSpend.TxHash[:],
 							})
 						}
 						if hasSuspect {
-							suspectTxsToRemove = append(suspectTxsToRemove, txHash)
+							suspectTxsToRemove = append(suspectTxsToRemove, txHash[:])
 						}
 					}
 					if !isConfirmed || foundTxLost != nil || hasSuspect || !isWinner {
-						needsChildTxHashes = append(needsChildTxHashes, txHash)
+						needsChildTxHashes = append(needsChildTxHashes, txHash[:])
 					}
 				}
 				newTxHashes = nil
@@ -317,12 +319,12 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 			Loop:
 				for _, outputInput := range outputInputs {
 					for _, allTxHash := range allTxHashes {
-						if bytes.Equal(allTxHash, outputInput.Hash[:]) {
+						if allTxHash == outputInput.Hash {
 							continue Loop
 						}
 					}
-					allTxHashes = append(allTxHashes, outputInput.Hash[:])
-					newTxHashes = append(newTxHashes, outputInput.Hash[:])
+					allTxHashes = append(allTxHashes, outputInput.Hash)
+					newTxHashes = append(newTxHashes, outputInput.Hash)
 				}
 			}
 			descendantLockHashes, err := GetTxLockHashes(allTxHashes)
@@ -380,7 +382,7 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 						parentTxHash = txLost.TxHash
 					}
 					jlog.Logf("Adding TxLost from Parent: %s (parent: %s %s)\n",
-						txHash.String(), hs.GetTxString(txLost.TxHash), hs.GetTxString(txLost.DoubleSpend))
+						txHash, hs.GetTxString(txLost.TxHash), hs.GetTxString(txLost.DoubleSpend))
 					newTxLosts = append(newTxLosts, item.TxLost{
 						TxHash:      txHashBytes,
 						DoubleSpend: parentTxHash,
@@ -397,9 +399,9 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 	if err != nil {
 		return jerr.Get("error getting tx suspects for double spend check txs", err)
 	}
-	var parentTxSuspectHashes = make([][]byte, len(parentTxSuspects))
+	var parentTxSuspectHashes = make([][32]byte, len(parentTxSuspects))
 	for i := range parentTxSuspects {
-		parentTxSuspectHashes[i] = parentTxSuspects[i].TxHash
+		copy(parentTxSuspectHashes[i][:], parentTxSuspects[i].TxHash)
 	}
 	parentTxSuspectBlocks, err := chain.GetTxBlocks(parentTxSuspectHashes)
 	if err != nil {
@@ -473,7 +475,7 @@ TxLoop:
 	return nil
 }
 
-func GetTxLockHashes(txHashes [][]byte) ([][]byte, error) {
+func GetTxLockHashes(txHashes [][32]byte) ([][]byte, error) {
 	txInputs, err := chain.GetTxInputsByHashes(txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx inputs for lock hashes", err)

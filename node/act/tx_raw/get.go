@@ -1,27 +1,27 @@
 package tx_raw
 
 import (
-	"bytes"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/db/item/db"
 )
 
 type TxRaw struct {
-	Hash []byte
+	Hash [32]byte
 	Raw  []byte
 }
 
-func Get(txHashes [][]byte) ([]*TxRaw, error) {
+func Get(txHashes [][32]byte) ([]*TxRaw, error) {
 	txBlocks, err := chain.GetTxBlocks(txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx blocks for double spend lock hashes", err)
 	}
-	var mempoolTxHashes [][]byte
+	var mempoolTxHashes [][32]byte
 Loop:
 	for _, txHash := range txHashes {
 		for _, txBlock := range txBlocks {
-			if bytes.Equal(txBlock.TxHash[:], txHash) {
+			if txBlock.TxHash == txHash {
 				continue Loop
 			}
 		}
@@ -38,22 +38,21 @@ Loop:
 	if err != nil {
 		return nil, jerr.Get("error getting tx blocks for double spend check spends", err)
 	}
-	mempoolTxRaws, err := item.GetMempoolTxRawByHashes(mempoolTxHashes)
+	mempoolTxRaws, err := item.GetMempoolTxRawByHashes(db.FixedTxHashesToRaw(mempoolTxHashes))
 	if err != nil {
 		return nil, jerr.Get("error getting tx blocks for double spend check spends", err)
 	}
 	var txRaws []*TxRaw
+	addTxRaw := func(txHash []byte, raw []byte) {
+		txRaw := &TxRaw{Raw: raw}
+		copy(txRaw.Hash[:], txHash)
+		txRaws = append(txRaws, txRaw)
+	}
 	for _, txBlockRaw := range txBlockRaws {
-		txRaws = append(txRaws, &TxRaw{
-			Hash: txBlockRaw.TxHash,
-			Raw:  txBlockRaw.Raw,
-		})
+		addTxRaw(txBlockRaw.TxHash, txBlockRaw.Raw)
 	}
 	for _, mempoolTxRaw := range mempoolTxRaws {
-		txRaws = append(txRaws, &TxRaw{
-			Hash: mempoolTxRaw.TxHash,
-			Raw:  mempoolTxRaw.Raw,
-		})
+		addTxRaw(mempoolTxRaw.TxHash, mempoolTxRaw.Raw)
 	}
 	return txRaws, nil
 }

@@ -2,29 +2,25 @@ package resolver
 
 import (
 	"context"
-	"encoding/hex"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/model"
-	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-func LockLoader(ctx context.Context, lockHash string) (*model.Lock, error) {
-	address, err := dataloader.NewLockAddressLoader(lockAddressLoaderConfig).Load(lockHash)
+func AddrLoader(ctx context.Context, addressString string) (*model.Addr, error) {
+	address, err := wallet.GetAddrFromString(addressString)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting address from lock dataloader: %s", lockHash)
+		return nil, jerr.Getf(err, "error getting address from dataloader: %s", addressString)
 	}
-	var lock = &model.Lock{
-		Hash:    hex.EncodeToString(script.GetLockHashForAddress(*address)),
-		Address: address.GetEncoded(),
-	}
+	var addr = &model.Addr{Address: address.String()}
 	if jutil.StringInSlice("balance", GetPreloads(ctx)) {
-		balance, err := dataloader.NewAddressBalanceLoader(addressBalanceLoaderConfig).Load(address.GetEncoded())
+		balance, err := dataloader.NewAddressBalanceLoader(addressBalanceLoaderConfig).Load(address.String())
 		if err != nil {
-			return nil, jerr.Getf(err, "error getting address balance from dataloader: %s", lockHash)
+			return nil, jerr.Getf(err, "error getting address balance from dataloader: %s", addressString)
 		}
-		lock.Balance = balance
+		addr.Balance = balance
 	}
-	return lock, nil
+	return addr, nil
 }

@@ -9,7 +9,7 @@ type TxBlock struct {
 	Txs []*chain.TxBlock
 }
 
-func (b *TxBlock) Get(txHashes [][]byte) error {
+func (b *TxBlock) Get(txHashes [][32]byte) error {
 	var err error
 	b.Txs, err = chain.GetTxBlocks(txHashes)
 	if err != nil {

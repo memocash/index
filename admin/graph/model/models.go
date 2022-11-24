@@ -34,8 +34,7 @@ type TxSuspect struct {
 	Hash string `json:"hash"`
 }
 
-type Lock struct {
-	Hash    string `json:"hash"`
+type Addr struct {
 	Address string `json:"address"`
 	Balance int64  `json:"balance"`
 }
@@ -50,46 +49,46 @@ type Block struct {
 }
 
 type Profile struct {
-	LockHash string      `json:"lock_hash"`
-	Name     *SetName    `json:"name"`
-	Profile  *SetProfile `json:"profile"`
-	Pic      *SetPic     `json:"pic"`
+	Address string      `json:"address"`
+	Name    *SetName    `json:"name"`
+	Profile *SetProfile `json:"profile"`
+	Pic     *SetPic     `json:"pic"`
 }
 
 type Follow struct {
-	TxHash         string `json:"tx_hash"`
-	LockHash       string `json:"lock_hash"`
-	FollowLockHash string `json:"follow_lock_hash"`
-	Unfollow       bool   `json:"unfollow"`
+	TxHash        string `json:"tx_hash"`
+	Address       string `json:"address"`
+	FollowAddress string `json:"follow_address"`
+	Unfollow      bool   `json:"unfollow"`
 }
 
 type SetName struct {
-	TxHash   string `json:"tx_hash"`
-	LockHash string `json:"lock_hash"`
-	Name     string `json:"name"`
+	TxHash  string `json:"tx_hash"`
+	Address string `json:"address"`
+	Name    string `json:"name"`
 }
 
 type SetPic struct {
-	TxHash   string `json:"tx_hash"`
-	LockHash string `json:"lock_hash"`
-	Pic      string `json:"pic"`
+	TxHash  string `json:"tx_hash"`
+	Address string `json:"address"`
+	Pic     string `json:"pic"`
 }
 
 type SetProfile struct {
-	TxHash   string `json:"tx_hash"`
-	LockHash string `json:"lock_hash"`
-	Text     string `json:"text"`
+	TxHash  string `json:"tx_hash"`
+	Address string `json:"address"`
+	Text    string `json:"text"`
 }
 
 type Post struct {
-	TxHash   string `json:"tx_hash"`
-	LockHash string `json:"lock_hash"`
-	Text     string `json:"text"`
+	TxHash  string `json:"tx_hash"`
+	Address string `json:"address"`
+	Text    string `json:"text"`
 }
 
 type Like struct {
 	TxHash     string `json:"tx_hash"`
-	LockHash   string `json:"lock_hash"`
+	Address    string `json:"address"`
 	PostTxHash string `json:"post_tx_hash"`
 	Tip        int64  `json:"tip"`
 }
@@ -100,7 +99,7 @@ type Room struct {
 
 type RoomFollow struct {
 	Name     string `json:"name"`
-	LockHash string `json:"lock_hash"`
+	Address  string `json:"address"`
 	Unfollow bool   `json:"unfollow"`
 	TxHash   string `json:"tx_hash"`
 }

@@ -74,11 +74,11 @@ func GetSingleTxBlocks(txHash []byte) ([]*TxBlock, error) {
 	return txBlocks, nil
 }
 
-func GetTxBlocks(txHashes [][]byte) ([]*TxBlock, error) {
+func GetTxBlocks(txHashes [][32]byte) ([]*TxBlock, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := db.GetShardByte32(txHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash))
+		shard := db.GetShardByte32(txHash[:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash[:]))
 	}
 	wait := db.NewWait(len(shardPrefixes))
 	var txBlocks []*TxBlock

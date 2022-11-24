@@ -11,46 +11,46 @@ import (
 )
 
 type PostChild struct {
-	PostTxHash  []byte
-	ChildTxHash []byte
+	PostTxHash  [32]byte
+	ChildTxHash [32]byte
 }
 
-func (c PostChild) GetUid() []byte {
-	return jutil.CombineBytes(
-		jutil.ByteReverse(c.PostTxHash),
-		jutil.ByteReverse(c.ChildTxHash),
-	)
-}
-
-func (c PostChild) GetShard() uint {
-	return client.GetByteShard(c.PostTxHash)
-}
-
-func (c PostChild) GetTopic() string {
+func (c *PostChild) GetTopic() string {
 	return db.TopicMemoPostChild
 }
 
-func (c PostChild) Serialize() []byte {
-	return nil
+func (c *PostChild) GetShard() uint {
+	return client.GetByteShard(c.PostTxHash[:])
+}
+
+func (c *PostChild) GetUid() []byte {
+	return jutil.CombineBytes(
+		jutil.ByteReverse(c.PostTxHash[:]),
+		jutil.ByteReverse(c.ChildTxHash[:]),
+	)
 }
 
 func (c *PostChild) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength*2 {
 		return
 	}
-	c.PostTxHash = jutil.ByteReverse(uid[:32])
-	c.ChildTxHash = jutil.ByteReverse(uid[32:])
+	copy(c.PostTxHash[:], jutil.ByteReverse(uid[:32]))
+	copy(c.ChildTxHash[:], jutil.ByteReverse(uid[32:]))
+}
+
+func (c *PostChild) Serialize() []byte {
+	return nil
 }
 
 func (c *PostChild) Deserialize([]byte) {}
 
-func GetPostChildren(ctx context.Context, postTxHash []byte) ([]*PostChild, error) {
-	shardConfig := config.GetShardConfig(db.GetShardByte32(postTxHash), config.GetQueueShards())
+func GetPostChildren(ctx context.Context, postTxHash [32]byte) ([]*PostChild, error) {
+	shardConfig := config.GetShardConfig(db.GetShardByte32(postTxHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Context:  ctx,
 		Topic:    db.TopicMemoPostChild,
-		Prefixes: [][]byte{jutil.ByteReverse(postTxHash)},
+		Prefixes: [][]byte{jutil.ByteReverse(postTxHash[:])},
 	}); err != nil {
 		return nil, jerr.Get("error getting client message memo post children", err)
 	}
@@ -62,14 +62,14 @@ func GetPostChildren(ctx context.Context, postTxHash []byte) ([]*PostChild, erro
 	return postChildren, nil
 }
 
-func ListenPostChildren(ctx context.Context, postTxHashes [][]byte) (chan *PostChild, error) {
+func ListenPostChildren(ctx context.Context, postTxHashes [][32]byte) (chan *PostChild, error) {
 	if len(postTxHashes) == 0 {
 		return nil, nil
 	}
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, postTxHash := range postTxHashes {
-		shard := client.GetByteShard32(postTxHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash))
+		shard := client.GetByteShard32(postTxHash[:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash[:]))
 	}
 	shardConfigs := config.GetQueueShards()
 	var postChildChan = make(chan *PostChild)

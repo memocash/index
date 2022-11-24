@@ -27,8 +27,8 @@ var memoRoomFollowHandler = &Handler{
 		unfollow := bytes.Equal(info.PushData[0], memo.PrefixTopicUnfollow)
 		var room = jutil.GetUtf8String(info.PushData[1])
 		roomHash := dbMemo.GetRoomHash(room)
-		var lockRoomFollow = &dbMemo.LockHeightRoomFollow{
-			LockHash: info.LockHash,
+		var lockRoomFollow = &dbMemo.AddrHeightRoomFollow{
+			Addr:     info.Addr,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
 			Room:     room,
@@ -38,7 +38,7 @@ var memoRoomFollowHandler = &Handler{
 			RoomHash: roomHash,
 			Height:   info.Height,
 			TxHash:   info.TxHash,
-			LockHash: info.LockHash,
+			Addr:     info.Addr,
 			Unfollow: unfollow,
 		}
 		if err := db.Save([]db.Object{lockRoomFollow, roomFollow}); err != nil {

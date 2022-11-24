@@ -9,7 +9,6 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/obj/op_return"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
-	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/dbi"
 )
@@ -42,21 +41,20 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 	}
 	for _, tx := range block.Transactions {
 		txHash := tx.TxHash()
-		txHashBytes := txHash.CloneBytes()
 		if t.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}
-		var lockHash []byte
+		var addr *wallet.Addr
 		var SetLockHash = func() error {
-			if lockHash != nil {
+			if addr != nil {
 				return nil
 			}
 			for j := range tx.TxIn {
-				address, err := wallet.GetAddressFromSignatureScript(tx.TxIn[j].SignatureScript)
+				address, err := wallet.GetAddrFromUnlockScript(tx.TxIn[j].SignatureScript)
 				if err != nil {
 					return jerr.Get("error getting address from signature script", err)
 				}
-				lockHash = script.GetLockHashForAddress(*address)
+				addr = address
 			}
 			return nil
 		}
@@ -68,9 +66,9 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 				if err := SetLockHash(); err != nil {
 					return jerr.Get("error setting lock hash for op return tx", err)
 				}
-				if len(lockHash) == 0 {
+				if addr == nil {
 					if err := item.LogProcessError(&item.ProcessError{
-						TxHash: txHashBytes,
+						TxHash: txHash,
 						Error:  fmt.Sprintf("error could not find input pk hash for memo: %s", txHash.String()),
 					}); err != nil {
 						return jerr.Get("error saving process error for op return without lock hash", err)
@@ -83,8 +81,8 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 				}
 				if err := opReturnHandler.Handle(parse.OpReturn{
 					Height:   height,
-					TxHash:   txHashBytes,
-					LockHash: lockHash,
+					TxHash:   txHash,
+					Addr:     *addr,
 					PushData: pushData,
 					Outputs:  tx.TxOut,
 				}); err != nil {

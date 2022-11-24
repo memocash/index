@@ -14,27 +14,23 @@ import (
 type RoomHeightPost struct {
 	RoomHash []byte
 	Height   int64
-	TxHash   []byte
+	TxHash   [32]byte
 }
 
-func (p RoomHeightPost) GetUid() []byte {
-	return jutil.CombineBytes(
-		p.RoomHash,
-		jutil.ByteFlip(jutil.GetInt64DataBig(p.Height)),
-		jutil.ByteReverse(p.TxHash),
-	)
-}
-
-func (p RoomHeightPost) GetShard() uint {
-	return client.GetByteShard(p.RoomHash)
-}
-
-func (p RoomHeightPost) GetTopic() string {
+func (p *RoomHeightPost) GetTopic() string {
 	return db.TopicMemoRoomHeightPost
 }
 
-func (p RoomHeightPost) Serialize() []byte {
-	return nil
+func (p *RoomHeightPost) GetShard() uint {
+	return client.GetByteShard(p.RoomHash)
+}
+
+func (p *RoomHeightPost) GetUid() []byte {
+	return jutil.CombineBytes(
+		p.RoomHash,
+		jutil.ByteFlip(jutil.GetInt64DataBig(p.Height)),
+		jutil.ByteReverse(p.TxHash[:]),
+	)
 }
 
 func (p *RoomHeightPost) SetUid(uid []byte) {
@@ -43,7 +39,11 @@ func (p *RoomHeightPost) SetUid(uid []byte) {
 	}
 	p.RoomHash = uid[:32]
 	p.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
-	p.TxHash = jutil.ByteReverse(uid[40:72])
+	copy(p.TxHash[:], jutil.ByteReverse(uid[40:72]))
+}
+
+func (p *RoomHeightPost) Serialize() []byte {
+	return nil
 }
 
 func (p *RoomHeightPost) Deserialize([]byte) {}

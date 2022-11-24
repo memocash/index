@@ -1,6 +1,6 @@
 type Profile {
-    lock: Lock!
-    lock_hash: String!
+    addr: Addr!
+    address: String!
     name: SetName
     profile: SetProfile
     pic: SetPic
@@ -13,42 +13,42 @@ type Profile {
 type SetName {
     tx: Tx!
     tx_hash: String!
-    lock: Lock!
-    lock_hash: String!
+    addr: Addr!
+    address: String!
     name: String!
 }
 
 type SetProfile {
     tx: Tx!
     tx_hash: String!
-    lock: Lock!
-    lock_hash: String!
+    addr: Addr!
+    address: String!
     text: String!
 }
 
 type SetPic {
     tx: Tx!
     tx_hash: String!
-    lock: Lock
-    lock_hash: String!
+    addr: Addr!
+    address: String!
     pic: String!
 }
 
 type Follow {
     tx: Tx!
     tx_hash: String!
-    lock: Lock!
-    lock_hash: String!
-    follow_lock: Lock!
-    follow_lock_hash: String!
+    addr: Addr!
+    address: String!
+    follow_addr: Addr!
+    follow_address: String!
     unfollow: Boolean!
 }
 
 type Post {
     tx: Tx!
     tx_hash: String!
-    lock: Lock!
-    lock_hash: String!
+    addr: Addr!
+    address: String!
     text: String!
     likes: [Like!]
     parent: Post
@@ -59,8 +59,8 @@ type Post {
 type Like {
     tx: Tx!
     tx_hash: String!
-    lock: Lock!
-    lock_hash: String!
+    addr: Addr!
+    address: String!
     post_tx_hash: String!
     post: Post
     tip: Int64

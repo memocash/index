@@ -42,7 +42,7 @@ func (r *txResolver) Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInpu
 	if err != nil {
 		return nil, jerr.Get("error getting tx hash for inputs", err)
 	}
-	txInputs, err := chain.GetTxInputsByHashes([][]byte{txHash[:]})
+	txInputs, err := chain.GetTxInputsByHashes([][32]byte{*txHash})
 	if err != nil {
 		return nil, jerr.Get("error getting tx inputs for model tx", err)
 	}
@@ -84,7 +84,7 @@ func (r *txResolver) Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOut
 	if err != nil {
 		return nil, jerr.Get("error getting tx hash for outputs", err)
 	}
-	txOutputs, err := chain.GetTxOutputsByHashes([][]byte{txHash[:]})
+	txOutputs, err := chain.GetTxOutputsByHashes([][32]byte{*txHash})
 	if err != nil {
 		return nil, jerr.Get("error getting tx outputs for model tx", err)
 	}

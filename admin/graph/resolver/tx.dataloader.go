@@ -123,13 +123,13 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,
 	Fetch: func(keys []string) ([]string, []error) {
-		var txHashes = make([][]byte, len(keys))
+		var txHashes = make([][32]byte, len(keys))
 		for i := range keys {
 			hash, err := chainhash.NewHashFromStr(keys[i])
 			if err != nil {
 				return nil, []error{jerr.Get("error parsing tx hash for raw loader", err)}
 			}
-			txHashes[i] = hash[:]
+			txHashes[i] = *hash
 		}
 		txs, err := chain.GetTxsByHashes(txHashes)
 		if err != nil {
@@ -232,14 +232,14 @@ var blockLoaderConfigWithInfo = dataloader.BlockLoaderConfig{
 }
 
 func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
-	var txHashes = make([][]byte, len(keys))
+	var txHashes = make([][32]byte, len(keys))
 	for i := range keys {
 		hash, err := chainhash.NewHashFromStr(keys[i])
 		if err != nil {
 			return nil, []error{jerr.Get("error getting tx hash from string for block loader"+
 				"", err)}
 		}
-		txHashes[i] = hash.CloneBytes()
+		txHashes[i] = *hash
 	}
 	txBlocks, err := chain.GetTxBlocks(txHashes)
 	if err != nil {
@@ -266,7 +266,7 @@ func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
 	var modelBlocks = make([][]*model.Block, len(txHashes))
 	for i := range txHashes {
 		for _, txBlock := range txBlocks {
-			if !bytes.Equal(txBlock.TxHash[:], txHashes[i]) {
+			if txBlock.TxHash != txHashes[i] {
 				continue
 			}
 			var modelBlock = &model.Block{
