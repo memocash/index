@@ -34,6 +34,7 @@ export default function Hash() {
                 index
                 prev_hash
                 prev_index
+                script
                 output {
                     amount
                     spends {
@@ -226,6 +227,9 @@ function Inputs({tx}) {
                             <br/>
                             Amount: {input.output.amount}
                             <br/>
+                            UnlockScript: <pre
+                            className={[pre.pre, pre.inline].join(" ")}>{input.script}</pre>
+                            <br/>
                             {input.output.spends && input.output.spends.length >= 2 ?
                                 <div className={[column.red, column.bold].join(" ")}>
                                     DOUBLE SPEND
@@ -276,7 +280,7 @@ function Outputs({tx}) {
                             <br/>
                             Amount: {output.amount}
                             <br/>
-                            PkScript: <pre
+                            LockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
                             {output.spends ? <>
                                 {output.spends.length >= 2 ?

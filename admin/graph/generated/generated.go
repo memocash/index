@@ -220,6 +220,7 @@ type ComplexityRoot struct {
 		Output      func(childComplexity int) int
 		PrevHash    func(childComplexity int) int
 		PrevIndex   func(childComplexity int) int
+		Script      func(childComplexity int) int
 		Tx          func(childComplexity int) int
 	}
 
@@ -1269,6 +1270,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TxInput.PrevIndex(childComplexity), true
 
+	case "TxInput.script":
+		if e.complexity.TxInput.Script == nil {
+			break
+		}
+
+		return e.complexity.TxInput.Script(childComplexity), true
+
 	case "TxInput.tx":
 		if e.complexity.TxInput.Tx == nil {
 			break
@@ -1603,6 +1611,7 @@ scalar Date
     tx: Tx!
     hash: String!
     index: Uint32!
+    script: String!
     prev_hash: String!
     prev_index: Uint32!
     output: TxOutput
@@ -2673,6 +2682,8 @@ func (ec *executionContext) fieldContext_DoubleSpend_inputs(ctx context.Context,
 				return ec.fieldContext_TxInput_hash(ctx, field)
 			case "index":
 				return ec.fieldContext_TxInput_index(ctx, field)
+			case "script":
+				return ec.fieldContext_TxInput_script(ctx, field)
 			case "prev_hash":
 				return ec.fieldContext_TxInput_prev_hash(ctx, field)
 			case "prev_index":
@@ -7663,6 +7674,8 @@ func (ec *executionContext) fieldContext_Tx_inputs(ctx context.Context, field gr
 				return ec.fieldContext_TxInput_hash(ctx, field)
 			case "index":
 				return ec.fieldContext_TxInput_index(ctx, field)
+			case "script":
+				return ec.fieldContext_TxInput_script(ctx, field)
 			case "prev_hash":
 				return ec.fieldContext_TxInput_prev_hash(ctx, field)
 			case "prev_index":
@@ -8079,6 +8092,50 @@ func (ec *executionContext) fieldContext_TxInput_index(ctx context.Context, fiel
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Uint32 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TxInput_script(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TxInput_script(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Script, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TxInput_script(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TxInput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8674,6 +8731,8 @@ func (ec *executionContext) fieldContext_TxOutput_spends(ctx context.Context, fi
 				return ec.fieldContext_TxInput_hash(ctx, field)
 			case "index":
 				return ec.fieldContext_TxInput_index(ctx, field)
+			case "script":
+				return ec.fieldContext_TxInput_script(ctx, field)
 			case "prev_hash":
 				return ec.fieldContext_TxInput_prev_hash(ctx, field)
 			case "prev_index":
@@ -12353,6 +12412,13 @@ func (ec *executionContext) _TxInput(ctx context.Context, sel ast.SelectionSet, 
 		case "index":
 
 			out.Values[i] = ec._TxInput_index(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "script":
+
+			out.Values[i] = ec._TxInput_script(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)

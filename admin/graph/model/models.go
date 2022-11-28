@@ -18,6 +18,7 @@ type TxInput struct {
 	Index     uint32 `json:"index"`
 	PrevHash  string `json:"prev_hash"`
 	PrevIndex uint32 `json:"prev_index"`
+	Script    string `json:"script"`
 }
 
 type DoubleSpend struct {

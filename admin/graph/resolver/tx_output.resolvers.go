@@ -35,7 +35,13 @@ func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.
 
 // Spends is the resolver for the spends field.
 func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error) {
-	txInputs, err := dataloader.NewTxOutputSpendLoader(txOutputSpendLoaderConfig).Load(model.HashIndex{
+	var dataloaderConfig dataloader.TxOutputSpendLoaderConfig
+	if jutil.StringInSlice("script", GetPreloads(ctx)) {
+		dataloaderConfig = txOutputSpendWithScriptLoaderConfig
+	} else {
+		dataloaderConfig = txOutputSpendLoaderConfig
+	}
+	txInputs, err := dataloader.NewTxOutputSpendLoader(dataloaderConfig).Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: obj.Index,
 	})

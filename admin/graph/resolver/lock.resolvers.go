@@ -5,16 +5,16 @@ package resolver
 
 import (
 	"context"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
+	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
+	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/ref/bitcoin/wallet"
-
-	"github.com/memocash/index/admin/graph/generated"
-	"github.com/memocash/index/admin/graph/model"
 )
 
 // Profile is the resolver for the profile field.

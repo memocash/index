@@ -34,6 +34,7 @@ func (r *txResolver) Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInpu
 				Index:     uint32(i),
 				PrevHash:  msgTx.TxIn[i].PreviousOutPoint.Hash.String(),
 				PrevIndex: msgTx.TxIn[i].PreviousOutPoint.Index,
+				Script:    hex.EncodeToString(msgTx.TxIn[i].SignatureScript),
 			}
 		}
 		return inputs, nil
@@ -53,6 +54,7 @@ func (r *txResolver) Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInpu
 			Index:     txInputs[i].Index,
 			PrevHash:  chainhash.Hash(txInputs[i].PrevHash).String(),
 			PrevIndex: txInputs[i].PrevIndex,
+			Script:    hex.EncodeToString(txInputs[i].UnlockScript),
 		}
 	}
 	return modelInputs, nil
