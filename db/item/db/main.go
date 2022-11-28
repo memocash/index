@@ -83,6 +83,14 @@ type Object interface {
 	Deserialize(data []byte)
 }
 
+func CombineObjects(objectGroups ...[]Object) []Object {
+	var objects []Object
+	for _, objectGroup := range objectGroups {
+		objects = append(objects, objectGroup...)
+	}
+	return objects
+}
+
 func GetShardByte(b []byte) uint {
 	return GetShard(client.GetByteShard(b))
 }

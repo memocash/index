@@ -187,8 +187,7 @@ function hasCoinbase(tx) {
     return false
 }
 
-function BlockInfo(props) {
-    const tx = props.tx
+function BlockInfo({tx}) {
     return (
         <div className={column.container}>
             <div className={column.width15}>Block</div>
@@ -210,8 +209,7 @@ function BlockInfo(props) {
     )
 }
 
-function Inputs(props) {
-    const tx = props.tx
+function Inputs({tx}) {
     return (
         <div className={column.width50}>
             <h3>Inputs ({tx.inputs.length})</h3>
@@ -249,7 +247,9 @@ function Inputs(props) {
                                         : "")}
                             </div>
                         </>) : (isCoinbase(input) ? "Coinbase" : (
-                            <>{input.prev_hash}:{input.prev_index}</>
+                            <Link href={"/tx/" + input.prev_hash}>
+                                <a><PreInline>{input.prev_hash}:{input.prev_index}</PreInline></a>
+                            </Link>
                         ))}</div>
                     </div>
                 )
@@ -258,8 +258,7 @@ function Inputs(props) {
     )
 }
 
-function Outputs(props) {
-    const tx = props.tx
+function Outputs({tx}) {
     return (
         <div className={column.width50}>
             <h3>Outputs ({tx.outputs.length})</h3>

@@ -70,8 +70,11 @@ func GetTxInputsByHashes(txHashes [][32]byte) ([]*TxInput, error) {
 	for shard, txHashes := range shardTxHashes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		err := dbClient.GetByPrefixes(db.TopicChainTxInput, txHashes)
-		if err != nil {
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:    db.TopicChainTxInput,
+			Prefixes: txHashes,
+			Max:      client.HugeLimit,
+		}); err != nil {
 			return nil, jerr.Get("error getting db message chain tx inputs", err)
 		}
 		for _, msg := range dbClient.Messages {

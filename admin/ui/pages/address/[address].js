@@ -21,7 +21,6 @@ export default function LockHash() {
     const query = `
     query ($address: String!) {
         address(address: $address) {
-            hash
             address
             balance
             utxos {

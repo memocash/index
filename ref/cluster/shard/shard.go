@@ -146,6 +146,7 @@ func (s *Shard) process(blockHashByte []byte, initialSync bool) error {
 		}
 		txSaver := saver.NewCombined([]dbi.TxSave{
 			saver.NewTxMinimal(s.Verbose),
+			saver.NewAddress(s.Verbose),
 			saver.NewMemo(s.Verbose),
 		})
 		if err := txSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(txs, blockHeader))); err != nil {

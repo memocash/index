@@ -52,7 +52,8 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 			for j := range tx.TxIn {
 				address, err := wallet.GetAddrFromUnlockScript(tx.TxIn[j].SignatureScript)
 				if err != nil {
-					return jerr.Get("error getting address from signature script", err)
+					// error getting address from signature script
+					continue
 				}
 				addr = address
 			}
