@@ -1,6 +1,8 @@
 package wallet
 
 import (
+	"bytes"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcutil"
 	"github.com/jchavannes/btcutil/base58"
@@ -35,17 +37,19 @@ func GetAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
 		return nil, jerr.New("error unlock script is not a standard address")
 	}
 	var addr = new(Addr)
-	copy(addr[:], btcutil.Hash160(unlockScript[s+2:]))
+	copy(addr[1:21], btcutil.Hash160(unlockScript[s+2:]))
+	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
 	return addr, nil
 }
 
 func GetAddrFromLockScript(lockScript []byte) (*Addr, error) {
-	if len(lockScript) != 25 || lockScript[0] != txscript.OP_DUP || lockScript[1] != txscript.OP_HASH160 ||
-		lockScript[2] != txscript.OP_DATA_20 || lockScript[23] != txscript.OP_EQUALVERIFY ||
-		lockScript[24] != txscript.OP_CHECKSIG {
+	if len(lockScript) != 25 ||
+		!bytes.Equal(lockScript[0:3], []byte{txscript.OP_DUP, txscript.OP_HASH160, txscript.OP_DATA_20}) ||
+		!bytes.Equal(lockScript[23:], []byte{txscript.OP_EQUALVERIFY, txscript.OP_CHECKSIG}) {
 		return nil, jerr.New("error lock script is not a standard address")
 	}
 	var addr = new(Addr)
-	copy(addr[:], lockScript[3:23])
+	copy(addr[1:21], lockScript[3:23])
+	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
 	return addr, nil
 }
