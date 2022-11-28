@@ -1,9 +1,11 @@
 package addr
 
 import (
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/ref/config"
 )
 
 type HeightInput struct {
@@ -40,3 +42,22 @@ func (i *HeightInput) Serialize() []byte {
 }
 
 func (i *HeightInput) Deserialize([]byte) {}
+
+func GetHeightInputs(addr [25]byte, start []byte) ([]*HeightInput, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(addr[:]), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicAddrHeightInput,
+		Start:    start,
+		Prefixes: [][]byte{addr[:]},
+		Max:      client.ExLargeLimit,
+	}); err != nil {
+		return nil, jerr.Get("error getting db height inputs by prefix", err)
+	}
+	var heightInputs = make([]*HeightInput, len(dbClient.Messages))
+	for i := range dbClient.Messages {
+		heightInputs[i] = new(HeightInput)
+		db.Set(heightInputs[i], dbClient.Messages[i])
+	}
+	return heightInputs, nil
+}

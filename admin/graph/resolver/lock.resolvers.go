@@ -5,7 +5,7 @@ package resolver
 
 import (
 	"context"
-
+	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -14,6 +14,8 @@ import (
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/addr"
+	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
@@ -26,35 +28,52 @@ func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Pro
 	return profile, nil
 }
 
-// Utxos is the resolver for the utxos field.
-func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error) {
-	// TODO: Fix UTXO resolver
+// Spends is the resolver for the spends field.
+func (r *lockResolver) Spends(ctx context.Context, obj *model.Lock, start *model.HashIndex, height *int) ([]*model.TxInput, error) {
 	address, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
-		return nil, jerr.Get("error getting address for utxo resolver", err)
+		return nil, jerr.Get("error decoding lock hash for lock spends resolver", err)
 	}
 	var startUid []byte
 	if start != nil {
 		startHash, err := chainhash.NewHashFromStr(start.Hash)
 		if err != nil {
-			return nil, jerr.Get("error decoding start hash", err)
+			return nil, jerr.Get("error decoding start hash for lock spends resolver", err)
 		}
-		// TODO: Support height
-		startUid = addr.GetHeightTxHashIndexUid(*address, 0, *startHash, start.Index)
+		var height64 int64
+		if height != nil {
+			height64 = int64(*height)
+		}
+		startUid = addr.GetHeightTxHashIndexUid(*address, int32(height64), *startHash, start.Index)
+	} else if height != nil {
+		startUid = jutil.CombineBytes(address[:], jutil.GetInt64DataBig(int64(*height)))
 	}
-	heightOutputs, err := addr.GetHeightOutputs(*address, startUid)
+	heightInputs, err := addr.GetHeightInputs(*address, startUid)
 	if err != nil {
-		return nil, jerr.Get("error getting height outputs for addr utxo resolver", err)
+		return nil, jerr.Get("error getting addr inputs for lock spends resolver", err)
 	}
-	var txOutputs = make([]*model.TxOutput, len(heightOutputs))
-	for i := range heightOutputs {
-		txOutputs[i] = &model.TxOutput{
-			Hash:   chainhash.Hash(heightOutputs[i].TxHash).String(),
-			Index:  heightOutputs[i].Index,
-			Amount: heightOutputs[i].Value,
+	var outs = make([]memo.Out, len(heightInputs))
+	for i := range heightInputs {
+		outs[i] = memo.Out{
+			TxHash: heightInputs[i].TxHash[:],
+			Index:  heightInputs[i].Index,
 		}
 	}
-	return txOutputs, nil
+	txInputs, err := chain.GetTxInputs(outs)
+	if err != nil {
+		return nil, jerr.Get("error getting tx inputs for lock spends resolver", err)
+	}
+	var modelTxOutputs = make([]*model.TxInput, len(heightInputs))
+	for i := range txInputs {
+		modelTxOutputs[i] = &model.TxInput{
+			Hash:      chainhash.Hash(txInputs[i].TxHash).String(),
+			Index:     txInputs[i].Index,
+			PrevHash:  chainhash.Hash(txInputs[i].PrevHash).String(),
+			PrevIndex: txInputs[i].PrevIndex,
+			Script:    hex.EncodeToString(txInputs[i].UnlockScript),
+		}
+	}
+	return modelTxOutputs, nil
 }
 
 // Outputs is the resolver for the outputs field.

@@ -106,7 +106,7 @@ type ComplexityRoot struct {
 		Balance func(childComplexity int) int
 		Outputs func(childComplexity int, start *model.HashIndex, height *int) int
 		Profile func(childComplexity int) int
-		Utxos   func(childComplexity int, start *model.HashIndex) int
+		Spends  func(childComplexity int, start *model.HashIndex, height *int) int
 	}
 
 	Mutation struct {
@@ -270,7 +270,7 @@ type LikeResolver interface {
 type LockResolver interface {
 	Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error)
 
-	Utxos(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error)
+	Spends(ctx context.Context, obj *model.Lock, start *model.HashIndex, height *int) ([]*model.TxInput, error)
 	Outputs(ctx context.Context, obj *model.Lock, start *model.HashIndex, height *int) ([]*model.TxOutput, error)
 }
 type MutationResolver interface {
@@ -604,17 +604,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Lock.Profile(childComplexity), true
 
-	case "Lock.utxos":
-		if e.complexity.Lock.Utxos == nil {
+	case "Lock.spends":
+		if e.complexity.Lock.Spends == nil {
 			break
 		}
 
-		args, err := ec.field_Lock_utxos_args(context.TODO(), rawArgs)
+		args, err := ec.field_Lock_spends_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Lock.Utxos(childComplexity, args["start"].(*model.HashIndex)), true
+		return e.complexity.Lock.Spends(childComplexity, args["start"].(*model.HashIndex), args["height"].(*int)), true
 
 	case "Mutation.broadcast":
 		if e.complexity.Mutation.Broadcast == nil {
@@ -1474,7 +1474,7 @@ var sources = []*ast.Source{
     address: String
     profile: Profile
     balance: Int64!
-    utxos(start: HashIndex): [TxOutput!]
+    spends(start: HashIndex, height: Int): [TxInput!]
     outputs(start: HashIndex, height: Int): [TxOutput!]
 }
 `, BuiltIn: false},
@@ -1685,7 +1685,7 @@ func (ec *executionContext) field_Lock_outputs_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Lock_utxos_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Lock_spends_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *model.HashIndex
@@ -1697,6 +1697,15 @@ func (ec *executionContext) field_Lock_utxos_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["start"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["height"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["height"] = arg1
 	return args, nil
 }
 
@@ -2852,8 +2861,8 @@ func (ec *executionContext) fieldContext_Follow_lock(ctx context.Context, field 
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -2952,8 +2961,8 @@ func (ec *executionContext) fieldContext_Follow_follow_lock(ctx context.Context,
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -3204,8 +3213,8 @@ func (ec *executionContext) fieldContext_Like_lock(ctx context.Context, field gr
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -3551,8 +3560,8 @@ func (ec *executionContext) fieldContext_Lock_balance(ctx context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Lock_utxos(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Lock_utxos(ctx, field)
+func (ec *executionContext) _Lock_spends(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Lock_spends(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3565,7 +3574,7 @@ func (ec *executionContext) _Lock_utxos(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Lock().Utxos(rctx, obj, fc.Args["start"].(*model.HashIndex))
+		return ec.resolvers.Lock().Spends(rctx, obj, fc.Args["start"].(*model.HashIndex), fc.Args["height"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3574,12 +3583,12 @@ func (ec *executionContext) _Lock_utxos(ctx context.Context, field graphql.Colle
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*model.TxOutput)
+	res := resTmp.([]*model.TxInput)
 	fc.Result = res
-	return ec.marshalOTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutputᚄ(ctx, field.Selections, res)
+	return ec.marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInputᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Lock_utxos(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Lock_spends(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Lock",
 		Field:      field,
@@ -3588,23 +3597,23 @@ func (ec *executionContext) fieldContext_Lock_utxos(ctx context.Context, field g
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
-				return ec.fieldContext_TxOutput_tx(ctx, field)
+				return ec.fieldContext_TxInput_tx(ctx, field)
 			case "hash":
-				return ec.fieldContext_TxOutput_hash(ctx, field)
+				return ec.fieldContext_TxInput_hash(ctx, field)
 			case "index":
-				return ec.fieldContext_TxOutput_index(ctx, field)
-			case "amount":
-				return ec.fieldContext_TxOutput_amount(ctx, field)
+				return ec.fieldContext_TxInput_index(ctx, field)
 			case "script":
-				return ec.fieldContext_TxOutput_script(ctx, field)
-			case "spends":
-				return ec.fieldContext_TxOutput_spends(ctx, field)
+				return ec.fieldContext_TxInput_script(ctx, field)
+			case "prev_hash":
+				return ec.fieldContext_TxInput_prev_hash(ctx, field)
+			case "prev_index":
+				return ec.fieldContext_TxInput_prev_index(ctx, field)
+			case "output":
+				return ec.fieldContext_TxInput_output(ctx, field)
 			case "double_spend":
-				return ec.fieldContext_TxOutput_double_spend(ctx, field)
-			case "lock":
-				return ec.fieldContext_TxOutput_lock(ctx, field)
+				return ec.fieldContext_TxInput_double_spend(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type TxOutput", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type TxInput", field.Name)
 		},
 	}
 	defer func() {
@@ -3614,7 +3623,7 @@ func (ec *executionContext) fieldContext_Lock_utxos(ctx context.Context, field g
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Lock_utxos_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Lock_spends_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -3899,8 +3908,8 @@ func (ec *executionContext) fieldContext_Post_lock(ctx context.Context, field gr
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -4271,8 +4280,8 @@ func (ec *executionContext) fieldContext_Profile_lock(ctx context.Context, field
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -4947,8 +4956,8 @@ func (ec *executionContext) fieldContext_Query_address(ctx context.Context, fiel
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -5011,8 +5020,8 @@ func (ec *executionContext) fieldContext_Query_addresses(ctx context.Context, fi
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -5951,8 +5960,8 @@ func (ec *executionContext) fieldContext_RoomFollow_lock(ctx context.Context, fi
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -6311,8 +6320,8 @@ func (ec *executionContext) fieldContext_SetName_lock(ctx context.Context, field
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -6563,8 +6572,8 @@ func (ec *executionContext) fieldContext_SetPic_lock(ctx context.Context, field 
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -6815,8 +6824,8 @@ func (ec *executionContext) fieldContext_SetProfile_lock(ctx context.Context, fi
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -8843,8 +8852,8 @@ func (ec *executionContext) fieldContext_TxOutput_lock(ctx context.Context, fiel
 				return ec.fieldContext_Lock_profile(ctx, field)
 			case "balance":
 				return ec.fieldContext_Lock_balance(ctx, field)
-			case "utxos":
-				return ec.fieldContext_Lock_utxos(ctx, field)
+			case "spends":
+				return ec.fieldContext_Lock_spends(ctx, field)
 			case "outputs":
 				return ec.fieldContext_Lock_outputs(ctx, field)
 			}
@@ -11146,7 +11155,7 @@ func (ec *executionContext) _Lock(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "utxos":
+		case "spends":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -11155,7 +11164,7 @@ func (ec *executionContext) _Lock(ctx context.Context, sel ast.SelectionSet, obj
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Lock_utxos(ctx, field, obj)
+				res = ec._Lock_spends(ctx, field, obj)
 				return res
 			}
 
@@ -14355,6 +14364,53 @@ func (ec *executionContext) marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋinde
 
 	}
 	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInputᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TxInput) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTxInput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInput(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
 
 	return ret
 }
