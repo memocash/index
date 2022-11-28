@@ -7,7 +7,6 @@ import (
 	"github.com/jchavannes/btcutil"
 	"github.com/jchavannes/btcutil/base58"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
 )
 
 type Addr [25]byte
@@ -28,13 +27,12 @@ func GetAddrFromString(addrString string) (*Addr, error) {
 
 func GetAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
 	l := len(unlockScript)
-	if l < 2 || !jutil.InIntSlice(int(unlockScript[0]),
-		[]int{txscript.OP_DATA_64, txscript.OP_DATA_65, txscript.OP_DATA_71, txscript.OP_DATA_72}) {
-		return nil, jerr.New("error unlock script is not a standard address")
+	if l < 2 || int(unlockScript[0]) < txscript.OP_DATA_64 || int(unlockScript[0]) > txscript.OP_DATA_72 {
+		return nil, jerr.Newf("error unlock script is not a standard address 1: %d", unlockScript[0])
 	}
 	s := int(unlockScript[0])
 	if l < s+35 || unlockScript[s+1] != txscript.OP_DATA_33 {
-		return nil, jerr.New("error unlock script is not a standard address")
+		return nil, jerr.Newf("error unlock script is not a standard address 2: %d %d", l, s)
 	}
 	var addr = new(Addr)
 	copy(addr[1:21], btcutil.Hash160(unlockScript[s+2:]))
