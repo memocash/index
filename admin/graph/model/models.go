@@ -34,7 +34,7 @@ type TxSuspect struct {
 	Hash string `json:"hash"`
 }
 
-type Addr struct {
+type Lock struct {
 	Address string `json:"address"`
 	Balance int64  `json:"balance"`
 }

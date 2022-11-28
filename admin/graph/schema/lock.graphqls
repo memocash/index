@@ -1,4 +1,4 @@
-type Addr {
+type Lock {
     address: String
     profile: Profile
     balance: Int64!

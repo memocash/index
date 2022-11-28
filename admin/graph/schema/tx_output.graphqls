@@ -6,5 +6,5 @@ type TxOutput {
     script: String!
     spends: [TxInput]
     double_spend: DoubleSpend
-    addr: Addr
+    lock: Lock
 }

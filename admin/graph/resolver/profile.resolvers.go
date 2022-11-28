@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -25,22 +24,22 @@ func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, 
 	return tx, nil
 }
 
-// Addr is the resolver for the addr field.
-func (r *followResolver) Addr(ctx context.Context, obj *model.Follow) (*model.Addr, error) {
-	addr, err := AddrLoader(ctx, obj.Address)
+// Lock is the resolver for the lock field.
+func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
+	lock, err := LockLoader(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting addr from loader for follow resolver: %s", obj.TxHash)
+		return nil, jerr.Getf(err, "error getting lock from loader for follow resolver: %s", obj.TxHash)
 	}
-	return addr, nil
+	return lock, nil
 }
 
-// FollowAddr is the resolver for the follow_addr field.
-func (r *followResolver) FollowAddr(ctx context.Context, obj *model.Follow) (*model.Addr, error) {
-	addr, err := AddrLoader(ctx, obj.FollowAddress)
+// FollowLock is the resolver for the follow_lock field.
+func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
+	lock, err := LockLoader(ctx, obj.FollowAddress)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting follow addr from loader for follow resolver: %s", obj.TxHash)
+		return nil, jerr.Getf(err, "error getting follow lock from loader for follow resolver: %s", obj.TxHash)
 	}
-	return addr, nil
+	return lock, nil
 }
 
 // Tx is the resolver for the tx field.
@@ -52,13 +51,13 @@ func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, erro
 	return tx, nil
 }
 
-// Addr is the resolver for the addr field.
-func (r *likeResolver) Addr(ctx context.Context, obj *model.Like) (*model.Addr, error) {
-	addr, err := AddrLoader(ctx, obj.Address)
+// Lock is the resolver for the lock field.
+func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, error) {
+	lock, err := LockLoader(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting addr from loader for like resolver: %s %x", obj.TxHash, obj.Address)
+		return nil, jerr.Getf(err, "error getting lock from loader for like resolver: %s %x", obj.TxHash, obj.Address)
 	}
-	return addr, nil
+	return lock, nil
 }
 
 // Post is the resolver for the post field.
@@ -79,13 +78,13 @@ func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, erro
 	return tx, nil
 }
 
-// Addr is the resolver for the addr field.
-func (r *postResolver) Addr(ctx context.Context, obj *model.Post) (*model.Addr, error) {
-	addr, err := AddrLoader(ctx, obj.Address)
+// Lock is the resolver for the lock field.
+func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, error) {
+	lock, err := LockLoader(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting addr from loader for post resolver: %s %x", obj.TxHash, obj.Address)
+		return nil, jerr.Getf(err, "error getting lock from loader for post resolver: %s %x", obj.TxHash, obj.Address)
 	}
-	return addr, nil
+	return lock, nil
 }
 
 // Likes is the resolver for the likes field.
@@ -188,13 +187,13 @@ func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, 
 	}, nil
 }
 
-// Addr is the resolver for the addr field.
-func (r *profileResolver) Addr(ctx context.Context, obj *model.Profile) (*model.Addr, error) {
-	addr, err := AddrLoader(ctx, obj.Address)
+// Lock is the resolver for the lock field.
+func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
+	lock, err := LockLoader(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting addr from loader for profile resolver: %s", obj.Address)
 	}
-	return addr, nil
+	return lock, nil
 }
 
 // Following is the resolver for the following field.
@@ -282,7 +281,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *int) ([]*model.RoomFollow, error) {
 	addr, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
-		return nil, jerr.Get("error decoding addr for room follows in profile resolver", err)
+		return nil, jerr.Get("error decoding lock for room follows in profile resolver", err)
 	}
 	lockRoomFollows, err := memo.GetAddrHeightRoomFollows(ctx, [][25]byte{*addr})
 	var roomFollows = make([]*model.RoomFollow, len(lockRoomFollows))
@@ -306,13 +305,13 @@ func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx
 	return tx, nil
 }
 
-// Addr is the resolver for the addr field.
-func (r *setNameResolver) Addr(ctx context.Context, obj *model.SetName) (*model.Addr, error) {
-	addr, err := AddrLoader(ctx, obj.Address)
+// Lock is the resolver for the lock field.
+func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.Lock, error) {
+	lock, err := LockLoader(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting addr from loader for set name resolver: %s %x", obj.TxHash, obj.Address)
+		return nil, jerr.Getf(err, "error getting lock from loader for set name resolver: %s %x", obj.TxHash, obj.Address)
 	}
-	return addr, nil
+	return lock, nil
 }
 
 // Tx is the resolver for the tx field.
@@ -324,13 +323,13 @@ func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, 
 	return tx, nil
 }
 
-// Addr is the resolver for the addr field.
-func (r *setPicResolver) Addr(ctx context.Context, obj *model.SetPic) (*model.Addr, error) {
-	addr, err := AddrLoader(ctx, obj.Address)
+// Lock is the resolver for the lock field.
+func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lock, error) {
+	lock, err := LockLoader(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting addr from loader for set pic resolver: %s %x", obj.TxHash, obj.Address)
+		return nil, jerr.Getf(err, "error getting lock from loader for set pic resolver: %s %x", obj.TxHash, obj.Address)
 	}
-	return addr, nil
+	return lock, nil
 }
 
 // Tx is the resolver for the tx field.
@@ -342,9 +341,9 @@ func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*mo
 	return tx, nil
 }
 
-// Addr is the resolver for the addr field.
-func (r *setProfileResolver) Addr(ctx context.Context, obj *model.SetProfile) (*model.Addr, error) {
-	lock, err := AddrLoader(ctx, obj.Address)
+// Lock is the resolver for the lock field.
+func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error) {
+	lock, err := LockLoader(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock from loader for set profile resolver: %s", obj.TxHash)
 	}

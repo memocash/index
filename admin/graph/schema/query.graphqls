@@ -1,8 +1,8 @@
 type Query {
     tx(hash: String!): Tx
     txs(hashes: [String!]): [Tx]
-    address(address: String!): Addr
-    addresses(addresses: [String!]): [Addr]
+    address(address: String!): Lock
+    addresses(addresses: [String!]): [Lock]
     block(hash: String!): Block
     block_newest: Block
     blocks(newest: Boolean, start: Uint32): [Block!]

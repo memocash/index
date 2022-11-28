@@ -7,7 +7,7 @@ type Room {
 type RoomFollow {
     name: String!
     room: Room!
-    addr: Addr!
+    lock: Lock!
     address: String!
     unfollow: Boolean!
     tx_hash: String!

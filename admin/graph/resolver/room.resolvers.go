@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
@@ -62,13 +61,13 @@ func (r *roomFollowResolver) Room(ctx context.Context, obj *model.RoomFollow) (*
 	return &model.Room{Name: obj.Name}, nil
 }
 
-// Addr is the resolver for the addr field.
-func (r *roomFollowResolver) Addr(ctx context.Context, obj *model.RoomFollow) (*model.Addr, error) {
-	addr, err := AddrLoader(ctx, obj.Address)
+// Lock is the resolver for the lock field.
+func (r *roomFollowResolver) Lock(ctx context.Context, obj *model.RoomFollow) (*model.Lock, error) {
+	lock, err := LockLoader(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting addr from loader for room follow resolver: %s", obj.TxHash)
+		return nil, jerr.Getf(err, "error getting lock from loader for room follow resolver: %s", obj.TxHash)
 	}
-	return addr, nil
+	return lock, nil
 }
 
 // Tx is the resolver for the tx field.

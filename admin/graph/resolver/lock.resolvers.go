@@ -5,20 +5,20 @@ package resolver
 
 import (
 	"context"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
-	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
-	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+
+	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/model"
 )
 
 // Profile is the resolver for the profile field.
-func (r *addrResolver) Profile(ctx context.Context, obj *model.Addr) (*model.Profile, error) {
+func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error) {
 	profile, err := dataloader.NewProfileLoader(load.ProfileLoaderConfig).Load(obj.Address)
 	if err != nil {
 		return nil, jerr.Get("error getting profile from dataloader for lock resolver", err)
@@ -27,7 +27,7 @@ func (r *addrResolver) Profile(ctx context.Context, obj *model.Addr) (*model.Pro
 }
 
 // Utxos is the resolver for the utxos field.
-func (r *addrResolver) Utxos(ctx context.Context, obj *model.Addr, start *model.HashIndex) ([]*model.TxOutput, error) {
+func (r *lockResolver) Utxos(ctx context.Context, obj *model.Lock, start *model.HashIndex) ([]*model.TxOutput, error) {
 	// TODO: Fix UTXO resolver
 	address, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
@@ -58,7 +58,7 @@ func (r *addrResolver) Utxos(ctx context.Context, obj *model.Addr, start *model.
 }
 
 // Outputs is the resolver for the outputs field.
-func (r *addrResolver) Outputs(ctx context.Context, obj *model.Addr, start *model.HashIndex, height *int) ([]*model.TxOutput, error) {
+func (r *lockResolver) Outputs(ctx context.Context, obj *model.Lock, start *model.HashIndex, height *int) ([]*model.TxOutput, error) {
 	address, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
 		return nil, jerr.Get("error decoding lock hash for lock output resolver", err)
@@ -92,7 +92,7 @@ func (r *addrResolver) Outputs(ctx context.Context, obj *model.Addr, start *mode
 	return modelTxOutputs, nil
 }
 
-// Addr returns generated.AddrResolver implementation.
-func (r *Resolver) Addr() generated.AddrResolver { return &addrResolver{r} }
+// Lock returns generated.LockResolver implementation.
+func (r *Resolver) Lock() generated.LockResolver { return &lockResolver{r} }
 
-type addrResolver struct{ *Resolver }
+type lockResolver struct{ *Resolver }
