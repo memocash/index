@@ -83,7 +83,7 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 			for i := range outGroup {
 				prefixes[i] = jutil.CombineBytes(
 					jutil.ByteReverse(outGroup[i].TxHash),
-					jutil.GetUint32Data(outGroup[i].Index),
+					jutil.GetUint32DataBig(outGroup[i].Index),
 				)
 			}
 			sort.Slice(prefixes, func(i, j int) bool {
