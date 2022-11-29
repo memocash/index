@@ -3,5 +3,7 @@ type Block {
     raw: String!
     timestamp: Date!
     height: Int
-    txs(start: String): [Tx!]
+    size: Int64
+    tx_count: Int
+    txs(start: Uint32): [Tx!]
 }

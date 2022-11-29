@@ -1,6 +1,7 @@
-package item
+package chain
 
 import (
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -11,64 +12,63 @@ import (
 )
 
 type TxOutput struct {
-	TxHash   []byte
-	Index    uint32
-	Value    int64
-	LockHash []byte
+	TxHash     [32]byte
+	Index      uint32
+	Value      int64
+	LockScript []byte
 }
 
-func (t TxOutput) GetUid() []byte {
-	return GetTxOutputUid(t.TxHash, t.Index)
+func (t *TxOutput) GetTopic() string {
+	return db.TopicChainTxOutput
 }
 
-func (t TxOutput) GetShard() uint {
-	return client.GetByteShard(t.TxHash)
+func (t *TxOutput) GetShard() uint {
+	return client.GetByteShard(t.TxHash[:])
 }
 
-func (t TxOutput) GetTopic() string {
-	return db.TopicTxOutput
-}
-
-func (t TxOutput) Serialize() []byte {
-	return jutil.CombineBytes(
-		jutil.GetInt64Data(t.Value),
-		t.LockHash,
-	)
+func (t *TxOutput) GetUid() []byte {
+	return db.GetTxHashIndexUid(t.TxHash[:], t.Index)
 }
 
 func (t *TxOutput) SetUid(uid []byte) {
 	if len(uid) != 36 {
 		return
 	}
-	t.TxHash = jutil.ByteReverse(uid[:32])
+	copy(t.TxHash[:], jutil.ByteReverse(uid[:32]))
 	t.Index = jutil.GetUint32(uid[32:36])
 }
 
+func (t *TxOutput) Serialize() []byte {
+	return jutil.CombineBytes(
+		jutil.GetInt64Data(t.Value),
+		t.LockScript,
+	)
+}
+
 func (t *TxOutput) Deserialize(data []byte) {
-	if len(data) != 40 {
+	if len(data) < 8 {
 		return
 	}
 	t.Value = jutil.GetInt64(data[:8])
-	t.LockHash = data[8:40]
+	t.LockScript = data[8:]
 }
 
-func GetTxOutputUid(txHash []byte, index uint32) []byte {
-	return db.GetTxHashIndexUid(txHash, index)
-}
-
-func GetTxOutputsByHashes(txHashes [][]byte) ([]*TxOutput, error) {
-	var shardTxHashes = make(map[uint32][][]byte)
+func GetTxOutputsByHashes(txHashes [][32]byte) ([]*TxOutput, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := uint32(db.GetShardByte(txHash))
-		shardTxHashes[shard] = append(shardTxHashes[shard], jutil.ByteReverse(txHash))
+		shard := uint32(db.GetShardByte(txHash[:]))
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash[:]))
 	}
 	var txOutputs []*TxOutput
-	for shard, txHashes := range shardTxHashes {
+	for shard, txHashes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		err := dbClient.GetByPrefixes(db.TopicTxOutput, txHashes)
-		if err != nil {
-			return nil, jerr.Get("error getting db message tx outputs", err)
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:    db.TopicChainTxOutput,
+			Prefixes: txHashes,
+			Max:      client.HugeLimit,
+		}); err != nil {
+			return nil, jerr.Get("error getting db message chain tx outputs", err)
 		}
 		for _, msg := range dbClient.Messages {
 			var txOutput = new(TxOutput)
@@ -94,13 +94,17 @@ func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
 			dbClient := client.NewClient(shardConfig.GetHost())
 			var uids = make([][]byte, len(outGroup))
 			for i := range outGroup {
-				uids[i] = GetTxOutputUid(outGroup[i].TxHash, outGroup[i].Index)
+				txHash, err := chainhash.NewHash(outGroup[i].TxHash)
+				if err != nil {
+					wait.AddError(jerr.Get("error creating tx hash", err))
+				}
+				uids[i] = db.GetTxHashIndexUid(txHash[:], outGroup[i].Index)
 			}
 			sort.Slice(uids, func(i, j int) bool {
 				return jutil.ByteLT(uids[i], uids[j])
 			})
-			if err := dbClient.GetSpecific(db.TopicTxOutput, uids); err != nil {
-				wait.AddError(jerr.Get("error getting db", err))
+			if err := dbClient.GetSpecific(db.TopicChainTxOutput, uids); err != nil {
+				wait.AddError(jerr.Get("error getting specific chain tx outputs by uids", err))
 				return
 			}
 			wait.Lock.Lock()
@@ -117,20 +121,4 @@ func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
 		return nil, jerr.Get("error getting tx outputs", jerr.Combine(wait.Errs...))
 	}
 	return txOutputs, nil
-}
-
-func GetTxOutput(hash []byte, index uint32) (*TxOutput, error) {
-	shard := db.GetShardByte32(hash)
-	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	uid := GetTxOutputUid(hash, index)
-	if err := dbClient.GetSingle(db.TopicTxOutput, uid); err != nil {
-		return nil, jerr.Get("error getting db", err)
-	}
-	if len(dbClient.Messages) != 1 {
-		return nil, nil
-	}
-	var txOutput = new(TxOutput)
-	db.Set(txOutput, dbClient.Messages[0])
-	return txOutput, nil
 }

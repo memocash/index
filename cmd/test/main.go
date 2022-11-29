@@ -35,6 +35,9 @@ func GetCommand() *cobra.Command {
 			testCmd.AddCommand(cmd)
 		}
 	}
-	testCmd.AddCommand(fund.GetCommand())
+	testCmd.AddCommand(
+		saveTxCmd,
+		fund.GetCommand(),
+	)
 	return testCmd
 }

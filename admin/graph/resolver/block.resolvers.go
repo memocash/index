@@ -11,29 +11,23 @@ import (
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/db/item/chain"
 )
 
 // Txs is the resolver for the txs field.
-func (r *blockResolver) Txs(ctx context.Context, obj *model.Block, start *string) ([]*model.Tx, error) {
+func (r *blockResolver) Txs(ctx context.Context, obj *model.Block, start *uint32) ([]*model.Tx, error) {
 	blockHash, err := chainhash.NewHashFromStr(obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error parsing block hash for block txs resolver", err)
 	}
-	blockHashByte := blockHash.CloneBytes()
-	var startUid []byte
+	var startIndex uint32
 	if start != nil {
-		startTx, err := chainhash.NewHashFromStr(*start)
-		if err != nil {
-			return nil, jerr.Get("error decoding start tx hash for block", err)
-		}
-		startUid = item.GetBlockTxUid(blockHashByte, startTx.CloneBytes())
+		startIndex = *start
 	}
-	blockTxs, err := item.GetBlockTxes(item.BlockTxesRequest{
-		BlockHash: blockHashByte,
-		StartUid:  startUid,
-		Limit:     client.DefaultLimit,
+	blockTxs, err := chain.GetBlockTxes(chain.BlockTxesRequest{
+		BlockHash:  blockHash[:],
+		StartIndex: startIndex,
+		Limit:      client.DefaultLimit,
 	})
 	if err != nil {
 		return nil, jerr.Get("error getting block transactions for hash", err)
@@ -41,7 +35,8 @@ func (r *blockResolver) Txs(ctx context.Context, obj *model.Block, start *string
 	var modelTxs = make([]*model.Tx, len(blockTxs))
 	for i := range blockTxs {
 		modelTxs[i] = &model.Tx{
-			Hash: hs.GetTxString(blockTxs[i].TxHash),
+			Index: blockTxs[i].Index,
+			Hash:  chainhash.Hash(blockTxs[i].TxHash).String(),
 		}
 	}
 	return modelTxs, nil

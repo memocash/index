@@ -12,9 +12,8 @@ import (
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
-	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
 // Output is the resolver for the output field.
@@ -42,7 +41,7 @@ func (r *doubleSpendResolver) Inputs(ctx context.Context, obj *model.DoubleSpend
 	if err != nil {
 		return nil, jerr.Get("error parsing double spend hash", err)
 	}
-	outputInputs, err := item.GetOutputInput(memo.Out{
+	outputInputs, err := chain.GetOutputInput(memo.Out{
 		TxHash: hash.CloneBytes(),
 		Index:  obj.Index,
 	})
@@ -52,9 +51,9 @@ func (r *doubleSpendResolver) Inputs(ctx context.Context, obj *model.DoubleSpend
 	var txInputs = make([]*model.TxInput, len(outputInputs))
 	for i := range outputInputs {
 		txInputs[i] = &model.TxInput{
-			Hash:      hs.GetTxString(outputInputs[i].Hash),
+			Hash:      chainhash.Hash(outputInputs[i].Hash).String(),
 			Index:     outputInputs[i].Index,
-			PrevHash:  hs.GetTxString(outputInputs[i].PrevHash),
+			PrevHash:  chainhash.Hash(outputInputs[i].PrevHash).String(),
 			PrevIndex: outputInputs[i].PrevIndex,
 		}
 	}

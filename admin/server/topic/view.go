@@ -27,7 +27,7 @@ var viewRoute = admin.Route{
 		}
 		var topicViewResponse = new(admin.TopicViewResponse)
 		for _, shardConfig := range config.GetQueueShards() {
-			if topicViewRequest.Shard >= 0 && uint32(topicViewRequest.Shard) != shardConfig.Min {
+			if topicViewRequest.Shard >= 0 && uint32(topicViewRequest.Shard) != shardConfig.Shard {
 				continue
 			}
 			db := client.NewClient(shardConfig.GetHost())
@@ -40,7 +40,7 @@ var viewRoute = admin.Route{
 					Topic:   topicViewRequest.Topic,
 					Uid:     hex.EncodeToString(msg.Uid),
 					Message: hex.EncodeToString(msg.Message),
-					Shard:   uint(shardConfig.Min),
+					Shard:   uint(shardConfig.Shard),
 				})
 			}
 		}

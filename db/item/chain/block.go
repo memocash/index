@@ -1,4 +1,4 @@
-package item
+package chain
 
 import (
 	"github.com/jchavannes/jgo/jerr"
@@ -9,29 +9,28 @@ import (
 )
 
 type Block struct {
-	Id   uint64
-	Hash []byte
+	Hash [32]byte
 	Raw  []byte
 }
 
-func (b Block) GetUid() []byte {
-	return jutil.ByteReverse(b.Hash)
+func (b *Block) GetTopic() string {
+	return db.TopicChainBlock
 }
 
-func (b Block) GetShard() uint {
-	return client.GetByteShard(b.Hash)
+func (b *Block) GetShard() uint {
+	return client.GetByteShard(b.Hash[:])
 }
 
-func (b Block) GetTopic() string {
-	return db.TopicBlock
-}
-
-func (b Block) Serialize() []byte {
-	return b.Raw
+func (b *Block) GetUid() []byte {
+	return jutil.ByteReverse(b.Hash[:])
 }
 
 func (b *Block) SetUid(uid []byte) {
-	b.Hash = jutil.ByteReverse(uid)
+	copy(b.Hash[:], jutil.ByteReverse(uid))
+}
+
+func (b *Block) Serialize() []byte {
+	return b.Raw
 }
 
 func (b *Block) Deserialize(data []byte) {
@@ -42,7 +41,7 @@ func (b *Block) Deserialize(data []byte) {
 func GetBlock(blockHash []byte) (*Block, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(blockHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetSingle(db.TopicBlock, jutil.ByteReverse(blockHash)); err != nil {
+	if err := dbClient.GetSingle(db.TopicChainBlock, jutil.ByteReverse(blockHash)); err != nil {
 		return nil, jerr.Get("error getting client message block", err)
 	}
 	if len(dbClient.Messages) != 1 {
@@ -63,7 +62,7 @@ func GetBlocks(blockHashes [][]byte) ([]*Block, error) {
 	for shard, blockHashGroup := range shardBlockHashGroups {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetSpecific(db.TopicBlock, blockHashGroup); err != nil {
+		if err := dbClient.GetSpecific(db.TopicChainBlock, blockHashGroup); err != nil {
 			return nil, jerr.Get("error getting client message blocks", err)
 		}
 		for _, msg := range dbClient.Messages {

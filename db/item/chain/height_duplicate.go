@@ -1,4 +1,4 @@
-package item
+package chain
 
 import (
 	"github.com/jchavannes/jgo/jerr"
@@ -10,23 +10,19 @@ import (
 
 type HeightDuplicate struct {
 	Height    int64
-	BlockHash []byte
+	BlockHash [32]byte
 }
 
-func (d HeightDuplicate) GetUid() []byte {
-	return jutil.CombineBytes(jutil.GetInt64DataBig(d.Height), jutil.ByteReverse(d.BlockHash))
+func (d *HeightDuplicate) GetTopic() string {
+	return db.TopicChainHeightDuplicate
 }
 
-func (d HeightDuplicate) GetShard() uint {
+func (d *HeightDuplicate) GetShard() uint {
 	return uint(d.Height)
 }
 
-func (d HeightDuplicate) GetTopic() string {
-	return db.TopicHeightDuplicate
-}
-
-func (d HeightDuplicate) Serialize() []byte {
-	return nil
+func (d *HeightDuplicate) GetUid() []byte {
+	return jutil.CombineBytes(jutil.GetInt64DataBig(d.Height), jutil.ByteReverse(d.BlockHash[:]))
 }
 
 func (d *HeightDuplicate) SetUid(uid []byte) {
@@ -34,7 +30,11 @@ func (d *HeightDuplicate) SetUid(uid []byte) {
 		return
 	}
 	d.Height = jutil.GetInt64Big(uid[:8])
-	d.BlockHash = jutil.ByteReverse(uid[8:40])
+	copy(d.BlockHash[:], jutil.ByteReverse(uid[8:40]))
+}
+
+func (d *HeightDuplicate) Serialize() []byte {
+	return nil
 }
 
 func (d *HeightDuplicate) Deserialize([]byte) {}
@@ -43,7 +43,7 @@ func GetHeightDuplicatesAll(startHeight int64) ([]*HeightDuplicate, error) {
 	var heightDuplicates []*HeightDuplicate
 	for _, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
-		err := dbClient.GetLarge(db.TopicHeightDuplicate, jutil.GetInt64DataBig(startHeight), false, false)
+		err := dbClient.GetLarge(db.TopicChainHeightDuplicate, jutil.GetInt64DataBig(startHeight), false, false)
 		if err != nil {
 			return nil, jerr.Get("error getting height duplicates from queue client", err)
 		}

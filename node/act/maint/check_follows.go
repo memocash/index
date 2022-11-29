@@ -20,7 +20,7 @@ func (c *CheckFollows) Check() error {
 		var startUid []byte
 		for {
 			if err := dbClient.GetWOpts(client.Opts{
-				Topic: db.TopicMemoLockHeightFollow,
+				Topic: db.TopicMemoAddrHeightFollow,
 				Start: startUid,
 				Max:   client.ExLargeLimit,
 			}); err != nil {
@@ -28,26 +28,23 @@ func (c *CheckFollows) Check() error {
 			}
 			for _, msg := range dbClient.Messages {
 				c.Processed++
-				var lockMemoFollow = new(memo.LockHeightFollow)
-				db.Set(lockMemoFollow, msg)
-				startUid = lockMemoFollow.GetUid()
-				if len(lockMemoFollow.Follow) == 0 {
+				var addrMemoFollow = new(memo.AddrHeightFollow)
+				db.Set(addrMemoFollow, msg)
+				startUid = addrMemoFollow.GetUid()
+				if len(addrMemoFollow.FollowAddr) == 0 {
 					c.BadFollows++
 					if !c.Delete {
 						continue
 					}
-					if err := memo.RemoveLockHeightFollow(lockMemoFollow); err != nil {
-						return jerr.Get("error removing lock memo follow", err)
+					var addrMemoFollowed = &memo.AddrHeightFollowed{
+						FollowAddr: addrMemoFollow.FollowAddr,
+						Height:     addrMemoFollow.Height,
+						TxHash:     addrMemoFollow.TxHash,
+						Addr:       addrMemoFollow.Addr,
+						Unfollow:   addrMemoFollow.Unfollow,
 					}
-					var lockMemoFollowed = &memo.LockHeightFollowed{
-						FollowLockHash: lockMemoFollow.Follow,
-						Height:         lockMemoFollow.Height,
-						TxHash:         lockMemoFollow.TxHash,
-						LockHash:       lockMemoFollow.LockHash,
-						Unfollow:       lockMemoFollow.Unfollow,
-					}
-					if err := memo.RemoveLockHeightFollowed(lockMemoFollowed); err != nil {
-						return jerr.Get("error removing lock memo followed", err)
+					if err := db.Remove([]db.Object{addrMemoFollow, addrMemoFollowed}); err != nil {
+						return jerr.Get("error removing addr memo follow/followed", err)
 					}
 				}
 			}

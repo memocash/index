@@ -13,7 +13,7 @@ import (
 
 var memoProfileHandler = &Handler{
 	prefix: memo.PrefixSetProfile,
-	handle: func(info parse.OpReturn) error {
+	handle: func(info parse.OpReturn, initialSync bool) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -24,19 +24,19 @@ var memoProfileHandler = &Handler{
 			return nil
 		}
 		var profile = jutil.GetUtf8String(info.PushData[1])
-		var lockMemoProfile = &dbMemo.LockHeightProfile{
-			LockHash: info.LockHash,
-			Height:   info.Height,
-			TxHash:   info.TxHash,
-			Profile:  profile,
+		var addrMemoProfile = &dbMemo.AddrHeightProfile{
+			Addr:    info.Addr,
+			Height:  info.Height,
+			TxHash:  info.TxHash,
+			Profile: profile,
 		}
-		if err := db.Save([]db.Object{lockMemoProfile}); err != nil {
-			return jerr.Get("error saving db lock memo profile object", err)
+		if err := db.Save([]db.Object{addrMemoProfile}); err != nil {
+			return jerr.Get("error saving db addr memo profile object", err)
 		}
-		if info.Height != item.HeightMempool {
-			lockMemoProfile.Height = item.HeightMempool
-			if err := dbMemo.RemoveLockHeightProfile(lockMemoProfile); err != nil {
-				return jerr.Get("error removing db lock memo profile", err)
+		if !initialSync && info.Height != item.HeightMempool {
+			addrMemoProfile.Height = item.HeightMempool
+			if err := db.Remove([]db.Object{addrMemoProfile}); err != nil {
+				return jerr.Get("error removing db addr memo profile", err)
 			}
 		}
 		return nil

@@ -1,10 +1,11 @@
 package process
 
 import (
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/obj/status"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/spf13/cobra"
@@ -39,16 +40,16 @@ var statusSetCmd = &cobra.Command{
 		shard := jutil.GetIntFromString(args[1])
 		height := jutil.GetInt64FromString(args[2])
 		statusShard := status.NewHeight(status.GetStatusShardName(topicName, shard), 0)
-		heightBlock, err := item.GetHeightBlockSingle(height)
+		heightBlock, err := chain.GetHeightBlockSingle(height)
 		if err != nil {
 			jerr.Get("fatal error getting height block for setting status", err).Fatal()
 		}
 		if err := statusShard.SetHeight(status.BlockHeight{
 			Height: heightBlock.Height,
-			Block:  heightBlock.BlockHash,
+			Block:  heightBlock.BlockHash[:],
 		}); err != nil {
 			jerr.Get("fatal error getting height for status shard", err).Fatal()
 		}
-		jlog.Logf("set height: %d, block: %s\n", heightBlock.Height, hs.GetTxString(heightBlock.BlockHash))
+		jlog.Logf("set height: %d, block: %s\n", heightBlock.Height, chainhash.Hash(heightBlock.BlockHash))
 	},
 }

@@ -1,4 +1,4 @@
-package item
+package chain
 
 import (
 	"github.com/jchavannes/jgo/jerr"
@@ -10,32 +10,33 @@ import (
 )
 
 type TxBlock struct {
-	TxHash    []byte
-	BlockHash []byte
+	TxHash    [32]byte
+	BlockHash [32]byte
+	Index     uint32
 }
 
-func (b TxBlock) GetUid() []byte {
-	return GetTxBlockUid(b.TxHash, b.BlockHash)
+func (b *TxBlock) GetTopic() string {
+	return db.TopicChainTxBlock
 }
 
-func (b TxBlock) GetShard() uint {
-	return client.GetByteShard(b.TxHash)
+func (b *TxBlock) GetShard() uint {
+	return client.GetByteShard(b.TxHash[:])
 }
 
-func (b TxBlock) GetTopic() string {
-	return db.TopicTxBlock
-}
-
-func (b TxBlock) Serialize() []byte {
-	return nil
+func (b *TxBlock) GetUid() []byte {
+	return GetTxBlockUid(b.TxHash[:], b.BlockHash[:])
 }
 
 func (b *TxBlock) SetUid(uid []byte) {
 	if len(uid) != 64 {
 		return
 	}
-	b.TxHash = jutil.ByteReverse(uid[:32])
-	b.BlockHash = jutil.ByteReverse(uid[32:64])
+	copy(b.TxHash[:], jutil.ByteReverse(uid[:32]))
+	copy(b.BlockHash[:], jutil.ByteReverse(uid[32:64]))
+}
+
+func (b *TxBlock) Serialize() []byte {
+	return nil
 }
 
 func (b *TxBlock) Deserialize([]byte) {}
@@ -47,7 +48,7 @@ func GetTxBlockUid(txHash []byte, blockHash []byte) []byte {
 func GetSingleTxBlock(txHash, blockHash []byte) (*TxBlock, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetSingle(db.TopicTxBlock, GetTxBlockUid(txHash, blockHash)); err != nil {
+	if err := dbClient.GetSingle(db.TopicChainTxBlock, GetTxBlockUid(txHash, blockHash)); err != nil {
 		return nil, jerr.Get("error getting client message single tx block", err)
 	}
 	if len(dbClient.Messages) != 1 {
@@ -61,8 +62,8 @@ func GetSingleTxBlock(txHash, blockHash []byte) (*TxBlock, error) {
 func GetSingleTxBlocks(txHash []byte) ([]*TxBlock, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetByPrefix(db.TopicTxBlock, jutil.ByteReverse(txHash)); err != nil {
-		return nil, jerr.Get("error getting client message tx block by prefix", err)
+	if err := dbClient.GetByPrefix(db.TopicChainTxBlock, jutil.ByteReverse(txHash)); err != nil {
+		return nil, jerr.Get("error getting client message chain tx block by prefix", err)
 	}
 	var txBlocks []*TxBlock
 	for _, msg := range dbClient.Messages {
@@ -73,11 +74,11 @@ func GetSingleTxBlocks(txHash []byte) ([]*TxBlock, error) {
 	return txBlocks, nil
 }
 
-func GetTxBlocks(txHashes [][]byte) ([]*TxBlock, error) {
+func GetTxBlocks(txHashes [][32]byte) ([]*TxBlock, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := db.GetShardByte32(txHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash))
+		shard := db.GetShardByte32(txHash[:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash[:]))
 	}
 	wait := db.NewWait(len(shardPrefixes))
 	var txBlocks []*TxBlock
@@ -88,8 +89,8 @@ func GetTxBlocks(txHashes [][]byte) ([]*TxBlock, error) {
 				return jutil.ByteLT(prefixes[i], prefixes[j])
 			})
 			dbClient := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
-			if err := dbClient.GetByPrefixes(db.TopicTxBlock, prefixes); err != nil {
-				wait.AddError(jerr.Get("error getting client message tx blocks", err))
+			if err := dbClient.GetByPrefixes(db.TopicChainTxBlock, prefixes); err != nil {
+				wait.AddError(jerr.Get("error getting client message chain tx blocks", err))
 				return
 			}
 			wait.Lock.Lock()
@@ -103,7 +104,7 @@ func GetTxBlocks(txHashes [][]byte) ([]*TxBlock, error) {
 	}
 	wait.Group.Wait()
 	if len(wait.Errs) > 0 {
-		return nil, jerr.Get("error getting tx blocks", jerr.Combine(wait.Errs...))
+		return nil, jerr.Get("error getting chain tx blocks", jerr.Combine(wait.Errs...))
 	}
 	return txBlocks, nil
 }

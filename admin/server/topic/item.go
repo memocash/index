@@ -42,7 +42,7 @@ var itemRoute = admin.Route{
 			return
 		}
 		var props = make(map[string]interface{})
-		for _, topic := range item.GetTopics() {
+		for _, topic := range item.GetTopicsSorted() {
 			if topic.GetTopic() != topicItemRequest.Topic {
 				continue
 			}

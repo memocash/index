@@ -1,7 +1,6 @@
 package saver
 
 import (
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/dbi"
 	"reflect"
@@ -11,7 +10,7 @@ type CombinedTx struct {
 	Savers []dbi.TxSave
 }
 
-func (c *CombinedTx) SaveTxs(block *wire.MsgBlock) error {
+func (c *CombinedTx) SaveTxs(block *dbi.Block) error {
 	for _, saver := range c.Savers {
 		if err := saver.SaveTxs(block); err != nil {
 			return jerr.Getf(err, "error saving transaction for saver - %s", reflect.TypeOf(saver))
@@ -26,38 +25,44 @@ func NewCombined(savers []dbi.TxSave) *CombinedTx {
 	}
 }
 
-type CombinedBlock struct {
-	Main   dbi.BlockSave
-	Savers []dbi.BlockSave
-}
-
-func (c *CombinedBlock) SaveBlock(block wire.BlockHeader) error {
-	for i, saver := range c.Savers {
-		if err := saver.SaveBlock(block); err != nil {
-			return jerr.Getf(err, "error saving block for saver %d", i)
-		}
-	}
-	return nil
-}
-
-func (c *CombinedBlock) GetBlock(height int64) ([]byte, error) {
-	block, err := c.Main.GetBlock(height)
-	if err != nil {
-		return nil, jerr.Get("error getting block for combined block saver", err)
-	}
-	return block, nil
-}
-
-func NewCombinedBlock(main dbi.BlockSave, savers []dbi.BlockSave) *CombinedBlock {
-	return &CombinedBlock{
-		Main:   main,
-		Savers: savers,
-	}
-}
-
-func BlockSaver(verbose bool) dbi.BlockSave {
-	blockSaver := NewBlock(verbose)
-	return NewCombinedBlock(blockSaver, []dbi.BlockSave{
-		blockSaver,
+func NewCombinedBlockTxRaw(verbose bool) *CombinedTx {
+	return NewCombined([]dbi.TxSave{
+		NewTxRaw(verbose),
 	})
+}
+
+func NewCombinedAll(verbose bool) *CombinedTx {
+	return NewCombined([]dbi.TxSave{
+		NewTxRaw(verbose),
+		NewTx(verbose),
+		NewUtxo(verbose),
+		NewLockHeight(verbose),
+		NewDoubleSpend(verbose),
+		NewMemo(verbose, false),
+	})
+}
+
+func NewCombinedTx(verbose bool) *CombinedTx {
+	return NewCombined([]dbi.TxSave{
+		NewTxRaw(verbose),
+		NewTx(verbose),
+	})
+}
+
+func NewCombinedOutput(verbose, initialSync bool) *CombinedTx {
+	utxo := NewUtxo(verbose)
+	lockHeight := NewLockHeight(verbose)
+	if initialSync {
+		utxo.InitialSync = true
+		lockHeight.InitialSync = true
+	}
+	var combinedTx = &CombinedTx{Savers: []dbi.TxSave{
+		utxo,
+		lockHeight,
+		NewMemo(verbose, initialSync),
+	}}
+	if !initialSync {
+		combinedTx.Savers = append(combinedTx.Savers, NewDoubleSpend(verbose))
+	}
+	return combinedTx
 }

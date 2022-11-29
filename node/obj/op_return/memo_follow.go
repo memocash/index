@@ -9,13 +9,12 @@ import (
 	dbMemo "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
-	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 var memoFollowHandler = &Handler{
 	prefix: memo.PrefixFollow,
-	handle: func(info parse.OpReturn) error {
+	handle: func(info parse.OpReturn, initialSync bool) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -36,36 +35,29 @@ var memoFollowHandler = &Handler{
 			}
 			return nil
 		}
-		followLockHash := script.GetLockHashForAddress(followAddress)
-		var lockMemoFollow = &dbMemo.LockHeightFollow{
-			LockHash: info.LockHash,
-			Height:   info.Height,
-			TxHash:   info.TxHash,
-			Follow:   followLockHash,
-			Unfollow: unfollow,
+		followAddr := followAddress.GetAddr()
+		var addrMemoFollow = &dbMemo.AddrHeightFollow{
+			Addr:       info.Addr,
+			Height:     info.Height,
+			TxHash:     info.TxHash,
+			FollowAddr: followAddr,
+			Unfollow:   unfollow,
 		}
-		var lockMemoFollowed = &dbMemo.LockHeightFollowed{
-			FollowLockHash: followLockHash,
-			Height:         info.Height,
-			TxHash:         info.TxHash,
-			LockHash:       info.LockHash,
-			Unfollow:       unfollow,
+		var addrMemoFollowed = &dbMemo.AddrHeightFollowed{
+			FollowAddr: followAddr,
+			Height:     info.Height,
+			TxHash:     info.TxHash,
+			Addr:       info.Addr,
+			Unfollow:   unfollow,
 		}
-		var lockAddress = &item.LockAddress{
-			LockHash: followLockHash,
-			Address:  followAddress.GetEncoded(),
-		}
-		if err := db.Save([]db.Object{lockMemoFollow, lockMemoFollowed, lockAddress}); err != nil {
+		if err := db.Save([]db.Object{addrMemoFollow, addrMemoFollowed}); err != nil {
 			return jerr.Get("error saving db lock memo follow object", err)
 		}
-		if info.Height != item.HeightMempool {
-			lockMemoFollow.Height = item.HeightMempool
-			if err := dbMemo.RemoveLockHeightFollow(lockMemoFollow); err != nil {
-				return jerr.Get("error removing db lock memo follow", err)
-			}
-			lockMemoFollowed.Height = item.HeightMempool
-			if err := dbMemo.RemoveLockHeightFollowed(lockMemoFollowed); err != nil {
-				return jerr.Get("error removing db lock memo followed", err)
+		if !initialSync && info.Height != item.HeightMempool {
+			addrMemoFollow.Height = item.HeightMempool
+			addrMemoFollowed.Height = item.HeightMempool
+			if err := db.Remove([]db.Object{addrMemoFollow, addrMemoFollowed}); err != nil {
+				return jerr.Get("error removing db addr memo follow/followed", err)
 			}
 		}
 		return nil

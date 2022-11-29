@@ -4,6 +4,8 @@ pre.pre {
     white-space: pre-wrap;
     padding: 0;
     margin: 0;
+    max-height: 250px;
+    overflow-y: auto;
 }
 
 pre.inline {

@@ -9,6 +9,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/obj/status"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
@@ -51,14 +52,14 @@ func (t *Block) Process() error {
 	for {
 		var heightBlocks []*HeightBlock
 		if t.UseRaw {
-			heightBlockItems, err := item.GetHeightBlocksAll(height+1, waitForBlocks)
+			heightBlockItems, err := chain.GetHeightBlocksAll(height+1, waitForBlocks)
 			if err != nil {
 				return jerr.Getf(err, "error no block raws returned for block process, height: %d", height)
 			}
 			for _, heightBlockItem := range heightBlockItems {
 				heightBlocks = append(heightBlocks, &HeightBlock{
 					Height:    heightBlockItem.Height,
-					BlockHash: heightBlockItem.BlockHash,
+					BlockHash: heightBlockItem.BlockHash[:],
 				})
 			}
 		} else if t.Shard != status.NoShard {
@@ -123,7 +124,7 @@ func (t *Block) Process() error {
 }
 
 func (t *Block) ProcessBlock(heightBlock *HeightBlock) error {
-	block, err := item.GetBlock(heightBlock.BlockHash)
+	block, err := chain.GetBlock(heightBlock.BlockHash)
 	if err != nil {
 		return jerr.Getf(err, "error getting block: %d %x", heightBlock.Height,
 			jutil.ByteReverse(heightBlock.BlockHash))
@@ -134,13 +135,13 @@ func (t *Block) ProcessBlock(heightBlock *HeightBlock) error {
 	}
 	var txCount int
 	for _, shard := range config.GetQueueShards() {
-		if t.Shard != status.NoShard && int(shard.Min) != t.Shard {
+		if t.Shard != status.NoShard && int(shard.Shard) != t.Shard {
 			continue
 		}
 		var lastTxHashReverse []byte
 		for {
 			blockTxesRaw, err := item.GetBlockTxesRaw(item.BlockTxesRawRequest{
-				Shard:       shard.Min,
+				Shard:       shard.Shard,
 				BlockHash:   heightBlock.BlockHash,
 				StartTxHash: jutil.ByteReverse(lastTxHashReverse),
 				Limit:       BlockProcessLimit,
@@ -162,7 +163,7 @@ func (t *Block) ProcessBlock(heightBlock *HeightBlock) error {
 					return jerr.Get("error getting tx from raw block tx", err)
 				}
 			}
-			err = t.txSave.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader))
+			err = t.txSave.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader)))
 			if err != nil {
 				return jerr.Get("error saving block txs", err)
 			}

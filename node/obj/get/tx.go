@@ -1,9 +1,10 @@
 package get
 
 import (
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/db/item/chain"
 )
 
 type Tx struct {
@@ -13,7 +14,7 @@ type Tx struct {
 }
 
 func (t *Tx) Get() error {
-	txBlocks, err := item.GetSingleTxBlocks(t.TxHash)
+	txBlocks, err := chain.GetSingleTxBlocks(t.TxHash)
 	if err != nil {
 		return jerr.Get("error getting tx blocks", err)
 	}
@@ -28,12 +29,12 @@ func (t *Tx) Get() error {
 	case l != 1:
 		return jerr.Newf("error unexpected number of tx blocks returned: %d", len(txBlocks))
 	}
-	txRaw, err := item.GetRawBlockTxByHash(txBlocks[0].BlockHash, txBlocks[0].TxHash)
+	txRaw, err := item.GetRawBlockTxByHash(txBlocks[0].BlockHash[:], txBlocks[0].TxHash[:])
 	if err != nil {
 		return jerr.Getf(err, "error getting raw block tx by hash: %s %s",
-			hs.GetTxString(txBlocks[0].BlockHash), hs.GetTxString(txBlocks[0].TxHash))
+			chainhash.Hash(txBlocks[0].BlockHash), chainhash.Hash(txBlocks[0].TxHash))
 	}
-	t.BlockHash = txBlocks[0].BlockHash
+	t.BlockHash = txBlocks[0].BlockHash[:]
 	t.Raw = txRaw.Raw
 	return nil
 }

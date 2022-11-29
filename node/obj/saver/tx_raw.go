@@ -9,6 +9,7 @@ import (
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/dbi"
 	"runtime"
 	"time"
 )
@@ -17,10 +18,11 @@ type TxRaw struct {
 	Verbose bool
 }
 
-func (t *TxRaw) SaveTxs(block *wire.MsgBlock) error {
-	if block == nil {
+func (t *TxRaw) SaveTxs(b *dbi.Block) error {
+	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
+	block := b.ToWireBlock()
 	if err := t.QueueTxs(block); err != nil {
 		return jerr.Get("error queueing msg txs", err)
 	}
@@ -38,9 +40,8 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 		blockHashBytes = blockHash.CloneBytes()
 	}
 	if len(blockHashBytes) > 0 {
-		jlog.Logf("block: %s, %s, txs: %10s, size: %14s\n", blockHash.String(),
-			block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(len(block.Transactions)),
-			jfmt.AddCommasInt(block.SerializeSize()))
+		jlog.Logf("block: %s, %s, txs: %10s\n", blockHash.String(),
+			block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(len(block.Transactions)))
 	}
 	seenTime := time.Now()
 	var objects []db.Object

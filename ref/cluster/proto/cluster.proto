@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package cluster_pb;
+
+option go_package = "github.com/memocash/index/ref/cluster/proto/cluster_pb";
+
+service Cluster {
+    rpc Ping (PingReq) returns (PingResp);
+    rpc SaveTxs (SaveReq) returns (EmptyResp);
+    rpc ProcessInitial (ProcessReq) returns (EmptyResp);
+    rpc Process (ProcessReq) returns (EmptyResp);
+}
+
+message PingReq {
+    uint64 nonce = 1;
+}
+
+message PingResp {
+    uint64 nonce = 1;
+}
+
+message SaveReq {
+    Block block = 1;
+    bool is_initial = 2;
+}
+
+message ProcessReq {
+    bytes block_hash = 1;
+}
+
+message EmptyResp {}
+
+message Block {
+    bytes header = 1;
+    repeated Tx txs = 2;
+}
+
+message Tx {
+    uint32 index = 1;
+    bytes raw = 2;
+}

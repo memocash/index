@@ -11,47 +11,47 @@ import (
 )
 
 type PostParent struct {
-	PostTxHash   []byte
-	ParentTxHash []byte
+	PostTxHash   [32]byte
+	ParentTxHash [32]byte
 }
 
-func (p PostParent) GetUid() []byte {
-	return jutil.ByteReverse(p.PostTxHash)
-}
-
-func (p PostParent) GetShard() uint {
-	return client.GetByteShard(p.PostTxHash)
-}
-
-func (p PostParent) GetTopic() string {
+func (p *PostParent) GetTopic() string {
 	return db.TopicMemoPostParent
 }
 
-func (p PostParent) Serialize() []byte {
-	return jutil.ByteReverse(p.ParentTxHash)
+func (p *PostParent) GetShard() uint {
+	return client.GetByteShard(p.PostTxHash[:])
+}
+
+func (p *PostParent) GetUid() []byte {
+	return jutil.ByteReverse(p.PostTxHash[:])
 }
 
 func (p *PostParent) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength {
 		return
 	}
-	p.PostTxHash = jutil.ByteReverse(uid)
+	copy(p.PostTxHash[:], jutil.ByteReverse(uid))
+}
+
+func (p *PostParent) Serialize() []byte {
+	return jutil.ByteReverse(p.ParentTxHash[:])
 }
 
 func (p *PostParent) Deserialize(data []byte) {
 	if len(data) != memo.TxHashLength {
 		return
 	}
-	p.ParentTxHash = jutil.ByteReverse(data)
+	copy(p.ParentTxHash[:], jutil.ByteReverse(data))
 }
 
-func GetPostParent(ctx context.Context, postTxHash []byte) (*PostParent, error) {
-	shardConfig := config.GetShardConfig(db.GetShardByte32(postTxHash), config.GetQueueShards())
+func GetPostParent(ctx context.Context, postTxHash [32]byte) (*PostParent, error) {
+	shardConfig := config.GetShardConfig(db.GetShardByte32(postTxHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Context: ctx,
 		Topic:   db.TopicMemoPostParent,
-		Uids:    [][]byte{jutil.ByteReverse(postTxHash)},
+		Uids:    [][]byte{jutil.ByteReverse(postTxHash[:])},
 	}); err != nil {
 		return nil, jerr.Get("error getting client message memo post parents", err)
 	}

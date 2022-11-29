@@ -1,5 +1,6 @@
 type Tx {
     hash: String!
+    index: Uint32!
     raw: String!
     inputs: [TxInput!]!
     outputs: [TxOutput!]!

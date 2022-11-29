@@ -5,14 +5,16 @@ import (
 	"context"
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
+	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"sort"
 	"time"
 )
 
@@ -121,124 +123,182 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,
 	Fetch: func(keys []string) ([]string, []error) {
-		var txHashes = make([][]byte, len(keys))
+		var txHashes = make([][32]byte, len(keys))
 		for i := range keys {
 			hash, err := chainhash.NewHashFromStr(keys[i])
 			if err != nil {
-				return nil, []error{jerr.Get("error parsing spend tx hash for output", err)}
+				return nil, []error{jerr.Get("error parsing tx hash for raw loader", err)}
 			}
-			txHashes[i] = hash.CloneBytes()
+			txHashes[i] = *hash
 		}
-		txBlocks, err := item.GetTxBlocks(txHashes)
+		txs, err := chain.GetTxsByHashes(txHashes)
 		if err != nil {
-			return nil, []error{jerr.Get("error getting tx blocks from items", err)}
+			return nil, []error{jerr.Get("error getting tx inputs for raw", err)}
 		}
-		var mempoolTxHashes [][]byte
-		var blockTxHashes []*item.BlockTx
-		for _, txHash := range txHashes {
-			var blockHash []byte
-			for _, txBlock := range txBlocks {
-				if bytes.Equal(txBlock.TxHash, txHash) {
-					blockHash = txBlock.BlockHash
-					break
-				}
+		txInputs, err := chain.GetTxInputsByHashes(txHashes)
+		if err != nil {
+			return nil, []error{jerr.Get("error getting tx inputs for raw", err)}
+		}
+		sort.Slice(txInputs, func(i, j int) bool {
+			return txInputs[i].Index < txInputs[j].Index
+		})
+		txOutputs, err := chain.GetTxOutputsByHashes(txHashes)
+		if err != nil {
+			return nil, []error{jerr.Get("error getting tx outputs for raw", err)}
+		}
+		sort.Slice(txOutputs, func(i, j int) bool {
+			return txOutputs[i].Index < txOutputs[j].Index
+		})
+		var txRaws []string
+		for _, tx := range txs {
+			var msgTx = &wire.MsgTx{
+				Version:  tx.Version,
+				LockTime: tx.LockTime,
 			}
-			if blockHash != nil {
-				blockTxHashes = append(blockTxHashes, &item.BlockTx{
-					TxHash:    txHash,
-					BlockHash: blockHash,
+			for i, txIn := range txInputs {
+				if txIn.TxHash != tx.TxHash {
+					continue
+				}
+				if txIn.Index != uint32(i) {
+					return nil, []error{jerr.Newf("tx input index missing: %d %d", txIn.Index, i)}
+				}
+				msgTx.TxIn = append(msgTx.TxIn, &wire.TxIn{
+					PreviousOutPoint: wire.OutPoint{
+						Hash:  txIn.PrevHash,
+						Index: txIn.PrevIndex,
+					},
+					SignatureScript: txIn.UnlockScript,
+					Sequence:        txIn.Sequence,
 				})
-			} else {
-				mempoolTxHashes = append(mempoolTxHashes, txHash)
 			}
-		}
-		mempoolTxRaws, err := item.GetMempoolTxRawByHashes(mempoolTxHashes)
-		if err != nil {
-			return nil, []error{jerr.Get("error getting mempool tx raw", err)}
-		}
-		blockTxRaws, err := item.GetRawBlockTxsByHashes(blockTxHashes)
-		if err != nil {
-			return nil, []error{jerr.Get("error getting block tx raws for tx resolver", err)}
-		}
-		var txRaws = make([]string, len(txHashes))
-		for i := range txHashes {
-			for _, mempoolTxRaw := range mempoolTxRaws {
-				if bytes.Equal(mempoolTxRaw.TxHash, txHashes[i]) {
-					txRaws[i] = hex.EncodeToString(mempoolTxRaw.Raw)
-					break
+			if len(msgTx.TxIn) == 0 {
+				return nil, []error{jerr.Newf("tx inputs missing for tx: %s", chainhash.Hash(tx.TxHash))}
+			}
+			for i, txOut := range txOutputs {
+				if txOut.TxHash != tx.TxHash {
+					continue
 				}
-			}
-			if txRaws[i] == "" {
-				for _, blockTxRaw := range blockTxRaws {
-					if bytes.Equal(blockTxRaw.TxHash, txHashes[i]) {
-						txRaws[i] = hex.EncodeToString(blockTxRaw.Raw)
-						break
-					}
+				if txOut.Index != uint32(i) {
+					return nil, []error{jerr.Newf("tx output index missing: %d %d", txOut.Index, i)}
 				}
+				msgTx.TxOut = append(msgTx.TxOut, &wire.TxOut{
+					Value:    txOut.Value,
+					PkScript: txOut.LockScript,
+				})
 			}
+			if len(msgTx.TxOut) == 0 {
+				return nil, []error{jerr.Newf("tx outputs missing for tx: %s", chainhash.Hash(tx.TxHash))}
+			}
+			if msgTx.TxHash() != tx.TxHash {
+				return nil, []error{jerr.Newf("tx hash mismatch for raw: %s %s",
+					msgTx.TxHash(), chainhash.Hash(tx.TxHash))}
+			}
+			txRaws = append(txRaws, hex.EncodeToString(memo.GetRaw(msgTx)))
 		}
 		return txRaws, nil
 	},
 }
 
-var blockLoaderConfig = dataloader.BlockLoaderConfig{
+func GetBlockLoaderConfig(ctx context.Context) dataloader.BlockLoaderConfig {
+	preloads := GetPreloads(ctx)
+	if !jutil.StringsInSlice([]string{"size", "tx_count"}, preloads) {
+		return blockLoaderConfigNoInfo
+	}
+	return blockLoaderConfigWithInfo
+}
+
+var blockLoaderConfigNoInfo = dataloader.BlockLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,
 	Fetch: func(keys []string) ([][]*model.Block, []error) {
-		var txHashes = make([][]byte, len(keys))
-		for i := range keys {
-			hash, err := chainhash.NewHashFromStr(keys[i])
-			if err != nil {
-				return nil, []error{jerr.Get("error getting tx hash from string for block resolver", err)}
-			}
-			txHashes[i] = hash.CloneBytes()
-		}
-		txBlocks, err := item.GetTxBlocks(txHashes)
-		if err != nil {
-			return nil, []error{jerr.Get("error getting blocks for tx for resolver", err)}
-		}
-		var blockHashes = make([][]byte, len(txBlocks))
-		for i := range txBlocks {
-			blockHashes[i] = txBlocks[i].BlockHash
-		}
-		blocks, err := item.GetBlocks(blockHashes)
-		if err != nil {
-			return nil, []error{jerr.Get("error getting blocks for tx resolver", err)}
-		}
-		blockHeights, err := item.GetBlockHeights(blockHashes)
-		if err != nil {
-			return nil, []error{jerr.Get("error getting block heights for tx resolver", err)}
-		}
-		var modelBlocks = make([][]*model.Block, len(txHashes))
-		for i := range txHashes {
-			for _, txBlock := range txBlocks {
-				if !bytes.Equal(txBlock.TxHash, txHashes[i]) {
-					continue
-				}
-				var modelBlock = &model.Block{
-					Hash: hs.GetTxString(txBlock.BlockHash),
-				}
-				for _, block := range blocks {
-					if !bytes.Equal(block.Hash, txBlock.BlockHash) {
-						continue
-					}
-					blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
-					if err != nil {
-						return nil, []error{jerr.Get("error getting block from raw for tx resolver", err)}
-					}
-					modelBlock.Timestamp = model.Date(blockHeader.Timestamp)
-					for _, blockHeight := range blockHeights {
-						if bytes.Equal(blockHeight.BlockHash, block.Hash) {
-							height := int(blockHeight.Height)
-							modelBlock.Height = &height
-						}
-					}
-				}
-				modelBlocks[i] = append(modelBlocks[i], modelBlock)
-			}
+		modelBlocks, errs := blockLoad(keys, false)
+		if errs != nil {
+			return nil, errs
 		}
 		return modelBlocks, nil
 	},
+}
+
+var blockLoaderConfigWithInfo = dataloader.BlockLoaderConfig{
+	Wait:     2 * time.Millisecond,
+	MaxBatch: 100,
+	Fetch: func(keys []string) ([][]*model.Block, []error) {
+		modelBlocks, errs := blockLoad(keys, true)
+		if errs != nil {
+			return nil, errs
+		}
+		return modelBlocks, nil
+	},
+}
+
+func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
+	var txHashes = make([][32]byte, len(keys))
+	for i := range keys {
+		hash, err := chainhash.NewHashFromStr(keys[i])
+		if err != nil {
+			return nil, []error{jerr.Get("error getting tx hash from string for block loader"+
+				"", err)}
+		}
+		txHashes[i] = *hash
+	}
+	txBlocks, err := chain.GetTxBlocks(txHashes)
+	if err != nil {
+		return nil, []error{jerr.Get("error getting blocks for tx for block loader", err)}
+	}
+	var blockHashes = make([][]byte, len(txBlocks))
+	for i := range txBlocks {
+		blockHashes[i] = txBlocks[i].BlockHash[:]
+	}
+	blocks, err := chain.GetBlocks(blockHashes)
+	if err != nil {
+		return nil, []error{jerr.Get("error getting blocks for block loader", err)}
+	}
+	blockHeights, err := chain.GetBlockHeights(blockHashes)
+	if err != nil {
+		return nil, []error{jerr.Get("error getting block heights for block loader", err)}
+	}
+	var blockInfos []*chain.BlockInfo
+	if withInfo {
+		if blockInfos, err = chain.GetBlockInfos(blockHashes); err != nil {
+			return nil, []error{jerr.Get("error getting block infos for block loader", err)}
+		}
+	}
+	var modelBlocks = make([][]*model.Block, len(txHashes))
+	for i := range txHashes {
+		for _, txBlock := range txBlocks {
+			if txBlock.TxHash != txHashes[i] {
+				continue
+			}
+			var modelBlock = &model.Block{
+				Hash: chainhash.Hash(txBlock.BlockHash).String(),
+			}
+			for _, block := range blocks {
+				if block.Hash != txBlock.BlockHash {
+					continue
+				}
+				blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
+				if err != nil {
+					return nil, []error{jerr.Get("error getting block header from raw for block loader", err)}
+				}
+				modelBlock.Timestamp = model.Date(blockHeader.Timestamp)
+				for _, blockHeight := range blockHeights {
+					if blockHeight.BlockHash == block.Hash {
+						height := int(blockHeight.Height)
+						modelBlock.Height = &height
+					}
+				}
+			}
+			for _, blockInfo := range blockInfos {
+				if blockInfo.BlockHash != txBlock.BlockHash {
+					continue
+				}
+				modelBlock.Size = blockInfo.Size
+				modelBlock.TxCount = blockInfo.TxCount
+			}
+			modelBlocks[i] = append(modelBlocks[i], modelBlock)
+		}
+	}
+	return modelBlocks, nil
 }
 
 func TxLoader(ctx context.Context, txHash string) (*model.Tx, error) {

@@ -1,8 +1,7 @@
 type Lock {
-    hash: String!
     address: String
     profile: Profile
     balance: Int64!
-    utxos(start: HashIndex): [TxOutput!]
+    spends(start: HashIndex, height: Int): [TxInput!]
     outputs(start: HashIndex, height: Int): [TxOutput!]
 }

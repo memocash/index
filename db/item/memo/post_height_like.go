@@ -11,53 +11,53 @@ import (
 )
 
 type PostHeightLike struct {
-	PostTxHash []byte
+	PostTxHash [32]byte
 	Height     int64
-	LikeTxHash []byte
-	LockHash   []byte
+	LikeTxHash [32]byte
+	Addr       [25]byte
 }
 
-func (l PostHeightLike) GetUid() []byte {
-	return jutil.CombineBytes(
-		jutil.ByteReverse(l.PostTxHash),
-		jutil.ByteFlip(jutil.GetInt64DataBig(l.Height)),
-		jutil.ByteReverse(l.LikeTxHash),
-	)
-}
-
-func (l PostHeightLike) GetShard() uint {
-	return client.GetByteShard(l.PostTxHash)
-}
-
-func (l PostHeightLike) GetTopic() string {
+func (l *PostHeightLike) GetTopic() string {
 	return db.TopicMemoPostHeightLike
 }
 
-func (l PostHeightLike) Serialize() []byte {
-	return l.LockHash
+func (l *PostHeightLike) GetShard() uint {
+	return client.GetByteShard(l.PostTxHash[:])
+}
+
+func (l *PostHeightLike) GetUid() []byte {
+	return jutil.CombineBytes(
+		jutil.ByteReverse(l.PostTxHash[:]),
+		jutil.ByteFlip(jutil.GetInt64DataBig(l.Height)),
+		jutil.ByteReverse(l.LikeTxHash[:]),
+	)
 }
 
 func (l *PostHeightLike) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		panic("invalid uid size for memo liked")
 	}
-	l.PostTxHash = jutil.ByteReverse(uid[:32])
+	copy(l.PostTxHash[:], jutil.ByteReverse(uid[:32]))
 	l.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
-	l.LikeTxHash = jutil.ByteReverse(uid[40:72])
+	copy(l.LikeTxHash[:], jutil.ByteReverse(uid[40:72]))
+}
+
+func (l *PostHeightLike) Serialize() []byte {
+	return l.Addr[:]
 }
 
 func (l *PostHeightLike) Deserialize(data []byte) {
-	if len(data) != memo.LockHashLength {
+	if len(data) != memo.AddressLength {
 		panic("invalid data size for memo liked")
 	}
-	l.LockHash = data
+	copy(l.Addr[:], data)
 }
 
-func GetPostHeightLikes(postTxHashes [][]byte) ([]*PostHeightLike, error) {
+func GetPostHeightLikes(postTxHashes [][32]byte) ([]*PostHeightLike, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, postTxHash := range postTxHashes {
-		shard := db.GetShardByte32(postTxHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash))
+		shard := db.GetShardByte32(postTxHash[:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash[:]))
 	}
 	var likeds []*PostHeightLike
 	for shard, prefixes := range shardPrefixes {
@@ -75,14 +75,14 @@ func GetPostHeightLikes(postTxHashes [][]byte) ([]*PostHeightLike, error) {
 	return likeds, nil
 }
 
-func ListenPostHeightLikes(ctx context.Context, postTxHashes [][]byte) (chan *PostHeightLike, error) {
+func ListenPostHeightLikes(ctx context.Context, postTxHashes [][32]byte) (chan *PostHeightLike, error) {
 	if len(postTxHashes) == 0 {
 		return nil, nil
 	}
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, postTxHash := range postTxHashes {
-		shard := client.GetByteShard32(postTxHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash))
+		shard := client.GetByteShard32(postTxHash[:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash[:]))
 	}
 	shardConfigs := config.GetQueueShards()
 	var likedChan = make(chan *PostHeightLike)

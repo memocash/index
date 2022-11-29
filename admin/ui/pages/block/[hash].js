@@ -15,18 +15,21 @@ export default function LockHash() {
         timestamp: "",
         txs: [],
     })
-    const [lastStart, setLastStart] = useState(undefined)
-    const [lastTx, setLastTx] = useState("")
+    const [lastOffset, setLastOffset] = useState(0)
+    const [offset, setOffset] = useState("")
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const query = `
-    query ($hash: String!, $start: String) {
+    query ($hash: String!, $start: Uint32) {
         block(hash: $hash) {
             hash
             height
             timestamp
             raw
+            size
+            tx_count
             txs(start: $start) {
+                index
                 hash
             }
         }
@@ -34,12 +37,16 @@ export default function LockHash() {
     `
     let lastBlockHash = undefined
     useEffect(() => {
-        if (!router || !router.query || (router.query.hash === lastBlockHash && router.query.start === lastStart)) {
+        if (!router || !router.query || (router.query.hash === lastBlockHash && router.query.start === lastOffset)) {
             return
         }
         const {hash, start} = router.query
         lastBlockHash = hash
-        setLastStart(start)
+        if (start) {
+            setLastOffset(parseInt(start))
+        } else {
+            setLastOffset(0)
+        }
         graphQL(query, {
             hash: hash,
             start: start,
@@ -57,7 +64,7 @@ export default function LockHash() {
             setLoading(false)
             setBlock(data.data.block)
             if (data.data.block.txs.length > 0) {
-                setLastTx(data.data.block.txs[data.data.block.txs.length - 1].hash)
+                setOffset(data.data.block.txs[data.data.block.txs.length - 1].index)
             }
         }).catch(res => {
             setErrorMessage("error loading block")
@@ -91,8 +98,13 @@ export default function LockHash() {
                         </div>
                     </div>
                     <div className={column.container}>
+                        <div className={column.width15}>Size</div>
+                        <div className={column.width85}>{block.size ? block.size.toLocaleString() : 0} bytes</div>
+                    </div>
+                    <div className={column.container}>
                         <div>
-                            <h3>Txs ({block.txs.length})</h3>
+                            <h3>Txs ({lastOffset + 1} - {lastOffset + block.txs.length} of
+                                {" " + (block.tx_count ? block.tx_count.toLocaleString() : 0)})</h3>
                             {block.txs.map((tx) => {
                                 return (
                                     <div key={tx.hash} className={column.container}>
@@ -114,7 +126,7 @@ export default function LockHash() {
                         <Link href={{
                             pathname: "/block/" + block.hash,
                             query: {
-                                start: lastTx,
+                                start: offset,
                             }
                         }}>
                             <a>Next</a>

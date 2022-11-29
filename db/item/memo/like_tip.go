@@ -10,33 +10,33 @@ import (
 )
 
 type LikeTip struct {
-	LikeTxHash []byte
+	LikeTxHash [32]byte
 	Tip        int64
 }
 
-func (t LikeTip) GetUid() []byte {
-	return jutil.CombineBytes(
-		jutil.ByteReverse(t.LikeTxHash),
-	)
-}
-
-func (t LikeTip) GetShard() uint {
-	return client.GetByteShard(t.LikeTxHash)
-}
-
-func (t LikeTip) GetTopic() string {
+func (t *LikeTip) GetTopic() string {
 	return db.TopicMemoLikeTip
 }
 
-func (t LikeTip) Serialize() []byte {
-	return jutil.GetInt64Data(t.Tip)
+func (t *LikeTip) GetShard() uint {
+	return client.GetByteShard(t.LikeTxHash[:])
+}
+
+func (t *LikeTip) GetUid() []byte {
+	return jutil.CombineBytes(
+		jutil.ByteReverse(t.LikeTxHash[:]),
+	)
 }
 
 func (t *LikeTip) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength {
 		panic("invalid uid size for memo like tip")
 	}
-	t.LikeTxHash = jutil.ByteReverse(uid[:32])
+	copy(t.LikeTxHash[:], jutil.ByteReverse(uid[:32]))
+}
+
+func (t *LikeTip) Serialize() []byte {
+	return jutil.GetInt64Data(t.Tip)
 }
 
 func (t *LikeTip) Deserialize(data []byte) {
@@ -46,11 +46,11 @@ func (t *LikeTip) Deserialize(data []byte) {
 	t.Tip = jutil.GetInt64(data)
 }
 
-func GetLikeTips(likeTxHashes [][]byte) ([]*LikeTip, error) {
+func GetLikeTips(likeTxHashes [][32]byte) ([]*LikeTip, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, likeTxHash := range likeTxHashes {
-		shard := db.GetShardByte32(likeTxHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(likeTxHash))
+		shard := db.GetShardByte32(likeTxHash[:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(likeTxHash[:]))
 	}
 	var likeTips []*LikeTip
 	for shard, prefixes := range shardPrefixes {

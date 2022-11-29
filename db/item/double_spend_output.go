@@ -58,8 +58,8 @@ func GetDoubleSpendOutputs(start *DoubleSpendOutput, limit uint32) ([]*DoubleSpe
 		limit = client.LargeLimit
 	}
 	var doubleSpendOutputs []*DoubleSpendOutput
-	for shard := startShardConfig.Min; shard < startShardConfig.Total; shard++ {
-		if shard > startShardConfig.Min {
+	for shard := startShardConfig.Shard; shard < startShardConfig.Total; shard++ {
+		if shard > startShardConfig.Shard {
 			startUid = nil
 		}
 		shardConfig := config.GetShardConfig(shard, configQueueShards)

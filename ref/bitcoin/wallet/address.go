@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"github.com/jchavannes/bchutil"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcutil"
 	"github.com/jchavannes/jgo/jerr"
@@ -293,6 +294,13 @@ func (a Address) IsSet() bool {
 
 func (a Address) GetPkHash() []byte {
 	return a.ScriptAddress()
+}
+
+func (a Address) GetAddr() Addr {
+	b := append([]byte{0x00}, a.GetPkHash()...)
+	var r [25]byte
+	copy(r[:], append(b, chainhash.DoubleHashB(b)[:4]...))
+	return r
 }
 
 func (a Address) ScriptAddress() []byte {
