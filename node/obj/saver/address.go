@@ -44,6 +44,7 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 		for j := range tx.TxIn {
 			address, err := wallet.GetAddrFromUnlockScript(tx.TxIn[j].SignatureScript)
 			if err != nil {
+				//jerr.Get("error getting address from unlock script", err).Print()
 				continue
 			}
 			heightInput := &addr.HeightInput{

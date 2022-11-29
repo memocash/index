@@ -27,12 +27,14 @@ func GetAddrFromString(addrString string) (*Addr, error) {
 
 func GetAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
 	l := len(unlockScript)
-	if l < 2 || int(unlockScript[0]) < txscript.OP_DATA_64 || int(unlockScript[0]) > txscript.OP_DATA_72 {
+	if l < 2 || int(unlockScript[0]) < txscript.OP_DATA_64 || int(unlockScript[0]) > txscript.OP_DATA_73 {
 		return nil, jerr.Newf("error unlock script is not a standard address 1: %d", unlockScript[0])
 	}
 	s := int(unlockScript[0])
-	if l < s+35 || unlockScript[s+1] != txscript.OP_DATA_33 {
+	if l < s+35 {
 		return nil, jerr.Newf("error unlock script is not a standard address 2: %d %d", l, s)
+	} else if unlockScript[s+1] != txscript.OP_DATA_33 && unlockScript[s+1] != txscript.OP_DATA_65 {
+		return nil, jerr.Newf("error unlock script is not a standard address 3: %d %d %d", l, s, unlockScript[s+1])
 	}
 	var addr = new(Addr)
 	copy(addr[1:21], btcutil.Hash160(unlockScript[s+2:]))
