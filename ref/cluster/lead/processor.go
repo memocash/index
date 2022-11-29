@@ -25,6 +25,7 @@ type Processor struct {
 	ErrorChan chan ShardError
 	Node      *Node
 	Verbose   bool
+	Synced    bool
 }
 
 func (p *Processor) Start() error {
@@ -41,6 +42,7 @@ func (p *Processor) Start() error {
 		return jerr.Get("error getting sync status initial", err)
 	}
 	if syncStatusTxs != nil {
+		p.Synced = true
 		go func() {
 			var height int64
 			if syncStatusProcessInitial != nil {
@@ -100,6 +102,7 @@ func (p *Processor) Start() error {
 				}
 			case <-p.Node.SyncDone:
 				jlog.Logf("Node sync done\n")
+				p.Synced = true
 				recentBlock, err := chain.GetRecentHeightBlock()
 				if err != nil {
 					jerr.Get("error getting recent height block", err).Fatal()
@@ -182,7 +185,8 @@ func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*clu
 			switch processType {
 			case ProcessTypeTx:
 				_, err = c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
-					Block: shardBlocks[c.Config.Shard],
+					Block:     shardBlocks[c.Config.Shard],
+					IsInitial: !p.Synced,
 				})
 			case ProcessTypeProcessInitial:
 				_, err = c.Client.ProcessInitial(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})

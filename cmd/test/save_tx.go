@@ -20,7 +20,7 @@ var saveTxCmd = &cobra.Command{
 		}
 		txSaver := saver.NewCombined([]dbi.TxSave{
 			saver.NewTxMinimal(false),
-			saver.NewAddress(false),
+			saver.NewAddress(false, false),
 			saver.NewMemo(false),
 		})
 		txRaw, err := hex.DecodeString(args[0])

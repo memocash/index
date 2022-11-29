@@ -21,6 +21,7 @@ message PingResp {
 
 message SaveReq {
     Block block = 1;
+    bool is_initial = 2;
 }
 
 message ProcessReq {

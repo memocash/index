@@ -98,8 +98,9 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 	return nil
 }
 
-func NewAddress(verbose bool) *Address {
+func NewAddress(verbose, initial bool) *Address {
 	return &Address{
-		Verbose: verbose,
+		Verbose:     verbose,
+		InitialSync: initial,
 	}
 }
