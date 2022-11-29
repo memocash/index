@@ -23,7 +23,7 @@ var memoCmd = &cobra.Command{
 		jlog.Log("Starting memo processor...")
 		shard, _ := c.Flags().GetInt(FlagShard)
 		blockStatus := status.NewHeight(status.GetStatusShardName(status.NameMemo, shard), startHeight)
-		txSaver := saver.NewMemo(false)
+		txSaver := saver.NewMemo(false, false)
 		blockProcessor := process.NewBlockShard(shard, blockStatus, txSaver)
 		if err := blockProcessor.Process(); err != nil {
 			jerr.Get("fatal error processing memo blocks", err).Fatal()

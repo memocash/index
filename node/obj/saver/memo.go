@@ -14,7 +14,8 @@ import (
 )
 
 type Memo struct {
-	Verbose bool
+	Verbose     bool
+	InitialSync bool
 }
 
 func (t *Memo) SaveTxs(b *dbi.Block) error {
@@ -86,7 +87,7 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 					Addr:     *addr,
 					PushData: pushData,
 					Outputs:  tx.TxOut,
-				}); err != nil {
+				}, t.InitialSync); err != nil {
 					return jerr.Get("error handling op return", err)
 				}
 			}
@@ -95,8 +96,9 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 	return nil
 }
 
-func NewMemo(verbose bool) *Memo {
+func NewMemo(verbose, initialSync bool) *Memo {
 	return &Memo{
-		Verbose: verbose,
+		Verbose:     verbose,
+		InitialSync: initialSync,
 	}
 }

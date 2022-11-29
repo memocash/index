@@ -14,7 +14,7 @@ import (
 
 var memoFollowHandler = &Handler{
 	prefix: memo.PrefixFollow,
-	handle: func(info parse.OpReturn) error {
+	handle: func(info parse.OpReturn, initialSync bool) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -53,7 +53,7 @@ var memoFollowHandler = &Handler{
 		if err := db.Save([]db.Object{addrMemoFollow, addrMemoFollowed}); err != nil {
 			return jerr.Get("error saving db lock memo follow object", err)
 		}
-		if info.Height != item.HeightMempool {
+		if !initialSync && info.Height != item.HeightMempool {
 			addrMemoFollow.Height = item.HeightMempool
 			addrMemoFollowed.Height = item.HeightMempool
 			if err := db.Remove([]db.Object{addrMemoFollow, addrMemoFollowed}); err != nil {

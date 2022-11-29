@@ -38,7 +38,7 @@ func NewCombinedAll(verbose bool) *CombinedTx {
 		NewUtxo(verbose),
 		NewLockHeight(verbose),
 		NewDoubleSpend(verbose),
-		NewMemo(verbose),
+		NewMemo(verbose, false),
 	})
 }
 
@@ -59,7 +59,7 @@ func NewCombinedOutput(verbose, initialSync bool) *CombinedTx {
 	var combinedTx = &CombinedTx{Savers: []dbi.TxSave{
 		utxo,
 		lockHeight,
-		NewMemo(verbose),
+		NewMemo(verbose, initialSync),
 	}}
 	if !initialSync {
 		combinedTx.Savers = append(combinedTx.Savers, NewDoubleSpend(verbose))

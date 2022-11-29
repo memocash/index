@@ -105,7 +105,7 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 	txSaver := saver.NewCombined([]dbi.TxSave{
 		saver.NewTxMinimal(s.Verbose),
 		saver.NewAddress(s.Verbose, req.IsInitial),
-		saver.NewMemo(s.Verbose),
+		saver.NewMemo(s.Verbose, req.IsInitial),
 	})
 	if err := txSaver.SaveTxs(block); err != nil {
 		return nil, jerr.Get("error saving block txs shard txs", err)
@@ -147,7 +147,7 @@ func (s *Shard) process(blockHashByte []byte, initialSync bool) error {
 		txSaver := saver.NewCombined([]dbi.TxSave{
 			saver.NewTxMinimal(s.Verbose),
 			saver.NewAddress(s.Verbose, initialSync),
-			saver.NewMemo(s.Verbose),
+			saver.NewMemo(s.Verbose, initialSync),
 		})
 		if err := txSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(txs, blockHeader))); err != nil {
 			return jerr.Get("error saving block txs shard utxos", err)

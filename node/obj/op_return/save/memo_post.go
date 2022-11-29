@@ -11,7 +11,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-func MemoPost(info parse.OpReturn, post string) error {
+func MemoPost(info parse.OpReturn, post string, initialSync bool) error {
 	var lockMemoPost = &memo.AddrHeightPost{
 		Addr:   info.Addr,
 		Height: info.Height,
@@ -62,7 +62,7 @@ func MemoPost(info parse.OpReturn, post string) error {
 	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving db memo post object", err)
 	}
-	if info.Height != item.HeightMempool {
+	if !initialSync && info.Height != item.HeightMempool {
 		lockMemoPost.Height = item.HeightMempool
 		if err := db.Remove([]db.Object{lockMemoPost}); err != nil {
 			return jerr.Get("error removing db memo post", err)

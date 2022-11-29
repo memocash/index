@@ -13,7 +13,7 @@ import (
 
 var memoProfileHandler = &Handler{
 	prefix: memo.PrefixSetProfile,
-	handle: func(info parse.OpReturn) error {
+	handle: func(info parse.OpReturn, initialSync bool) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -33,7 +33,7 @@ var memoProfileHandler = &Handler{
 		if err := db.Save([]db.Object{addrMemoProfile}); err != nil {
 			return jerr.Get("error saving db addr memo profile object", err)
 		}
-		if info.Height != item.HeightMempool {
+		if !initialSync && info.Height != item.HeightMempool {
 			addrMemoProfile.Height = item.HeightMempool
 			if err := db.Remove([]db.Object{addrMemoProfile}); err != nil {
 				return jerr.Get("error removing db addr memo profile", err)
