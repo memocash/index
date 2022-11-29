@@ -110,13 +110,16 @@ export default function Block() {
                         return (
                             <div key={block.hash} className={column.container}>
                                 <div className={column.width15}>{block.height}</div>
-                                <div className={column.width55}>
+                                <div className={column.width40}>
                                     <Link href={"/block/" + block.hash}>
                                         <a>
                                             <PreInline>{block.hash}</PreInline>
 
                                         </a>
                                     </Link>
+                                </div>
+                                <div className={[column.width15].join(" ")}>
+                                    {block.timestamp}
                                 </div>
                                 <div className={[column.width15, column.right].join(" ")}>
                                     {block.size ? block.size.toLocaleString() : 0} bytes

@@ -27,7 +27,9 @@ func GetAddrFromString(addrString string) (*Addr, error) {
 
 func GetAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
 	l := len(unlockScript)
-	if l < 2 || int(unlockScript[0]) < txscript.OP_DATA_64 || int(unlockScript[0]) > txscript.OP_DATA_73 {
+	if l < 2 {
+		return nil, jerr.Newf("error unlock script is not a standard address 0: none")
+	} else if int(unlockScript[0]) < txscript.OP_DATA_64 || int(unlockScript[0]) > txscript.OP_DATA_73 {
 		return nil, jerr.Newf("error unlock script is not a standard address 1: %d", unlockScript[0])
 	}
 	s := int(unlockScript[0])
