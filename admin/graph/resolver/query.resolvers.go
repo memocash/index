@@ -4,7 +4,6 @@ package resolver
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -20,6 +19,7 @@ import (
 	"github.com/memocash/index/admin/graph/sub"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/obj/get"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
@@ -62,7 +62,6 @@ func (r *queryResolver) Address(ctx context.Context, address string) (*model.Loc
 		return nil, jerr.Get("error getting address balance from network", err)
 	}
 	return &model.Lock{
-		Hash:    hex.EncodeToString(script.GetLockHash(balance.LockScript)),
 		Address: balance.Address,
 		Balance: balance.Balance,
 	}, nil
@@ -80,7 +79,6 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*m
 			return nil, jerr.Get("error getting address balance from network (multi)", err)
 		}
 		locks = append(locks, &model.Lock{
-			Hash:    hex.EncodeToString(script.GetLockHash(balance.LockScript)),
 			Address: balance.Address,
 			Balance: balance.Balance,
 		})
@@ -94,11 +92,11 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 	if err != nil {
 		return nil, jerr.Get("error parsing block hash for block query resolver", err)
 	}
-	blockHeight, err := item.GetBlockHeight(blockHash.CloneBytes())
+	blockHeight, err := chain.GetBlockHeight(blockHash[:])
 	if err != nil {
 		return nil, jerr.Get("error getting block height for query resolver", err)
 	}
-	block, err := item.GetBlock(blockHash.CloneBytes())
+	block, err := chain.GetBlock(blockHash[:])
 	if err != nil {
 		return nil, jerr.Get("error getting raw block", err)
 	}
@@ -107,24 +105,35 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 		return nil, jerr.Get("error getting block header from raw", err)
 	}
 	height := int(blockHeight.Height)
-	return &model.Block{
-		Hash:      hs.GetTxString(blockHeight.BlockHash),
+	var modelBlock = &model.Block{
+		Hash:      chainhash.Hash(blockHeight.BlockHash).String(),
 		Timestamp: model.Date(blockHeader.Timestamp),
 		Height:    &height,
 		Raw:       hex.EncodeToString(block.Raw),
-	}, nil
+	}
+	preloads := GetPreloads(ctx)
+	if !jutil.StringsInSlice([]string{"size", "tx_count"}, preloads) {
+		return modelBlock, nil
+	}
+	blockInfo, err := chain.GetBlockInfo(blockHash[:])
+	if err != nil {
+		return nil, jerr.Get("error getting block infos for query resolver", err)
+	}
+	modelBlock.Size = blockInfo.Size
+	modelBlock.TxCount = blockInfo.TxCount
+	return modelBlock, nil
 }
 
 // BlockNewest is the resolver for the block_newest field.
 func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
-	heightBlock, err := item.GetRecentHeightBlock()
+	heightBlock, err := chain.GetRecentHeightBlock()
 	if err != nil {
 		return nil, jerr.Get("error getting recent height block for query", err)
 	}
 	if heightBlock == nil {
 		return nil, nil
 	}
-	block, err := item.GetBlock(heightBlock.BlockHash)
+	block, err := chain.GetBlock(heightBlock.BlockHash[:])
 	if err != nil {
 		return nil, jerr.Get("error getting raw block", err)
 	}
@@ -134,7 +143,7 @@ func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	}
 	height := int(heightBlock.Height)
 	return &model.Block{
-		Hash:      hs.GetTxString(heightBlock.BlockHash),
+		Hash:      chainhash.Hash(heightBlock.BlockHash).String(),
 		Timestamp: model.Date(blockHeader.Timestamp),
 		Height:    &height,
 	}, nil
@@ -150,32 +159,44 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	if newest != nil {
 		newestBool = *newest
 	}
-	heightBlocks, err := item.GetHeightBlocksAllDefault(startInt, false, newestBool)
+	heightBlocks, err := chain.GetHeightBlocksAllDefault(startInt, false, newestBool)
 	if err != nil {
 		return nil, jerr.Get("error getting height blocks for query", err)
 	}
 	var blockHashes = make([][]byte, len(heightBlocks))
 	for i := range heightBlocks {
-		blockHashes[i] = heightBlocks[i].BlockHash
+		blockHashes[i] = heightBlocks[i].BlockHash[:]
 	}
-	blocks, err := item.GetBlocks(blockHashes)
+	blocks, err := chain.GetBlocks(blockHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting raw blocks", err)
+	}
+	var blockInfos []*chain.BlockInfo
+	if jutil.StringsInSlice([]string{"size", "tx_count"}, GetPreloads(ctx)) {
+		if blockInfos, err = chain.GetBlockInfos(blockHashes); err != nil {
+			return nil, jerr.Get("error getting block infos for blocks query resolver", err)
+		}
 	}
 	var modelBlocks = make([]*model.Block, len(heightBlocks))
 	for i := range heightBlocks {
 		var height = int(heightBlocks[i].Height)
 		modelBlocks[i] = &model.Block{
-			Hash:   hs.GetTxString(heightBlocks[i].BlockHash),
+			Hash:   chainhash.Hash(heightBlocks[i].BlockHash).String(),
 			Height: &height,
 		}
 		for _, block := range blocks {
-			if bytes.Equal(block.Hash, heightBlocks[i].BlockHash) {
+			if block.Hash == heightBlocks[i].BlockHash {
 				blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
 				if err != nil {
 					return nil, jerr.Get("error getting block header from raw", err)
 				}
 				modelBlocks[i].Timestamp = model.Date(blockHeader.Timestamp)
+			}
+		}
+		for _, blockInfo := range blockInfos {
+			if blockInfo.BlockHash == heightBlocks[i].BlockHash {
+				modelBlocks[i].Size = blockInfo.Size
+				modelBlocks[i].TxCount = blockInfo.TxCount
 			}
 		}
 	}
@@ -237,6 +258,15 @@ func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, err
 }
 
 // Address is the resolver for the address field.
+func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
+	txChan, err := r.Addresses(ctx, []string{address})
+	if err != nil {
+		return nil, jerr.Get("error getting address for address subscription", err)
+	}
+	return txChan, nil
+}
+
+// Address is the resolver for the address field.
 func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error) {
 	lockHashes := make([][]byte, len(addresses))
 	for _, address := range addresses {
@@ -258,18 +288,18 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 		return nil, jerr.Get("error getting lock height inputs listener for address subscription", err)
 	}
 	var aggregateOutput = make(chan *item.LockHeightOutput)
-	var aggregateInput= make(chan *item.LockHeightOutputInput)
+	var aggregateInput = make(chan *item.LockHeightOutputInput)
 
 	for _, ch := range lockHeightInputsListeners {
 		go func(c chan *item.LockHeightOutputInput) {
-			for msg := range c{
+			for msg := range c {
 				aggregateInput <- msg
 			}
 		}(ch)
 	}
 	for _, ch := range lockHeightOutputsListeners {
 		go func(c chan *item.LockHeightOutput) {
-			for msg := range c{
+			for msg := range c {
 				aggregateOutput <- msg
 			}
 		}(ch)
@@ -315,18 +345,10 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 	return txChan, nil
 }
 
-func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
-	txChan,err := r.Addresses(ctx, []string{address})
-	if err != nil {
-		return nil, jerr.Get("error getting address for address subscription", err)
-	}
-	return txChan, nil
-}
-
 // Blocks is the resolver for the blocks field.
 func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block, error) {
 	ctx, cancel := context.WithCancel(ctx)
-	blockHeightListener, err := item.ListenBlockHeights(ctx)
+	blockHeightListener, err := chain.ListenBlockHeights(ctx)
 	if err != nil {
 		cancel()
 		return nil, jerr.Get("error getting block height listener for subscription", err)
@@ -338,7 +360,7 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 			cancel()
 		}()
 		for {
-			var blockHeight *item.BlockHeight
+			var blockHeight *chain.BlockHeight
 			var ok bool
 			select {
 			case <-ctx.Done():
@@ -348,7 +370,7 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 					return
 				}
 			}
-			block, err := item.GetBlock(blockHeight.BlockHash)
+			block, err := chain.GetBlock(blockHeight.BlockHash[:])
 			if err != nil {
 				jerr.Get("error getting block for block height subscription", err).Print()
 				return
@@ -360,7 +382,7 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 			}
 			height := int(blockHeight.Height)
 			blockChan <- &model.Block{
-				Hash:      hs.GetTxString(blockHeight.BlockHash),
+				Hash:      chainhash.Hash(blockHeight.BlockHash).String(),
 				Timestamp: model.Date(blockHeader.Timestamp),
 				Height:    &height,
 			}

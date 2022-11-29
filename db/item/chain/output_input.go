@@ -1,4 +1,4 @@
-package item
+package chain
 
 import (
 	"github.com/jchavannes/jgo/jerr"
@@ -11,18 +11,26 @@ import (
 )
 
 type OutputInput struct {
-	PrevHash  []byte
+	PrevHash  [32]byte
 	PrevIndex uint32
-	Hash      []byte
+	Hash      [32]byte
 	Index     uint32
 }
 
-func (t OutputInput) GetUid() []byte {
+func (t *OutputInput) GetTopic() string {
+	return db.TopicChainOutputInput
+}
+
+func (t *OutputInput) GetShard() uint {
+	return client.GetByteShard(t.PrevHash[:])
+}
+
+func (t *OutputInput) GetUid() []byte {
 	return jutil.CombineBytes(
-		jutil.ByteReverse(t.PrevHash),
-		jutil.GetUint32Data(t.PrevIndex),
-		jutil.ByteReverse(t.Hash),
-		jutil.GetUint32Data(t.Index),
+		jutil.ByteReverse(t.PrevHash[:]),
+		jutil.GetUint32DataBig(t.PrevIndex),
+		jutil.ByteReverse(t.Hash[:]),
+		jutil.GetUint32DataBig(t.Index),
 	)
 }
 
@@ -30,21 +38,13 @@ func (t *OutputInput) SetUid(uid []byte) {
 	if len(uid) != 72 {
 		return
 	}
-	t.PrevHash = jutil.ByteReverse(uid[:32])
-	t.PrevIndex = jutil.GetUint32(uid[32:36])
-	t.Hash = jutil.ByteReverse(uid[36:68])
-	t.Index = jutil.GetUint32(uid[68:72])
+	copy(t.PrevHash[:], jutil.ByteReverse(uid[:32]))
+	t.PrevIndex = jutil.GetUint32Big(uid[32:36])
+	copy(t.Hash[:], jutil.ByteReverse(uid[36:68]))
+	t.Index = jutil.GetUint32Big(uid[68:72])
 }
 
-func (t OutputInput) GetShard() uint {
-	return client.GetByteShard(t.PrevHash)
-}
-
-func (t OutputInput) GetTopic() string {
-	return db.TopicOutputInput
-}
-
-func (t OutputInput) Serialize() []byte {
+func (t *OutputInput) Serialize() []byte {
 	return nil
 }
 
@@ -55,8 +55,8 @@ func GetOutputInput(out memo.Out) ([]*OutputInput, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	prefix := jutil.CombineBytes(jutil.ByteReverse(out.TxHash), jutil.GetUint32Data(out.Index))
-	if err := dbClient.GetByPrefix(db.TopicOutputInput, prefix); err != nil {
-		return nil, jerr.Get("error getting by prefix for output input", err)
+	if err := dbClient.GetByPrefix(db.TopicChainOutputInput, prefix); err != nil {
+		return nil, jerr.Get("error getting by prefix for chain output input", err)
 	}
 	var outputInputs = make([]*OutputInput, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -83,7 +83,7 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 			for i := range outGroup {
 				prefixes[i] = jutil.CombineBytes(
 					jutil.ByteReverse(outGroup[i].TxHash),
-					jutil.GetUint32Data(outGroup[i].Index),
+					jutil.GetUint32DataBig(outGroup[i].Index),
 				)
 			}
 			sort.Slice(prefixes, func(i, j int) bool {
@@ -96,8 +96,8 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 				} else {
 					prefixesToUse, prefixes = prefixes, nil
 				}
-				if err := dbClient.GetByPrefixes(db.TopicOutputInput, prefixesToUse); err != nil {
-					wait.AddError(jerr.Get("error getting by prefixes for output inputs", err))
+				if err := dbClient.GetByPrefixes(db.TopicChainOutputInput, prefixesToUse); err != nil {
+					wait.AddError(jerr.Get("error getting by prefixes for chain output inputs", err))
 					return
 				}
 				wait.Lock.Lock()
@@ -112,7 +112,7 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 	}
 	wait.Group.Wait()
 	if len(wait.Errs) > 0 {
-		return nil, jerr.Get("error getting output input messages", jerr.Combine(wait.Errs...))
+		return nil, jerr.Get("error getting chain output input messages", jerr.Combine(wait.Errs...))
 	}
 	return outputInputs, nil
 }
@@ -131,8 +131,8 @@ func GetOutputInputsForTxHashes(txHashes [][]byte) ([]*OutputInput, error) {
 		for i := range outGroup {
 			prefixes[i] = jutil.ByteReverse(outGroup[i])
 		}
-		if err := dbClient.GetByPrefixes(db.TopicOutputInput, prefixes); err != nil {
-			return nil, jerr.Get("error getting by prefixes for output inputs by tx hashes", err)
+		if err := dbClient.GetByPrefixes(db.TopicChainOutputInput, prefixes); err != nil {
+			return nil, jerr.Get("error getting by prefixes for chain output inputs by tx hashes", err)
 		}
 		for i := range dbClient.Messages {
 			var outputInput = new(OutputInput)

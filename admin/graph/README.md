@@ -12,7 +12,6 @@ go run github.com/vektah/dataloaden TxSeenLoader string *github.com/memocash/ind
 go run github.com/vektah/dataloaden TxOutputLoader github.com/memocash/index/admin/graph/model.HashIndex *github.com/memocash/index/admin/graph/model.TxOutput
 go run github.com/vektah/dataloaden TxRawLoader string string
 go run github.com/vektah/dataloaden ProfileLoader string *github.com/memocash/index/admin/graph/model.Profile
-go run github.com/vektah/dataloaden LockAddressLoader string *github.com/memocash/index/ref/bitcoin/wallet.Address
 go run github.com/vektah/dataloaden AddressBalanceLoader string int64
 go run github.com/vektah/dataloaden PostLoader string *github.com/memocash/index/admin/graph/model.Post
 
@@ -23,8 +22,9 @@ go mod tidy
 # GQL Gen
 
 ```bash
-go get github.com/99designs/gqlgen
+go get github.com/99designs/gqlgen@v0.17.20
 go generate ./...
+go get github.com/99designs/gqlgen@none
 ```
 
 ### Adding field resolvers

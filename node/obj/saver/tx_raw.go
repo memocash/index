@@ -9,6 +9,7 @@ import (
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/dbi"
 	"runtime"
 	"time"
 )
@@ -17,10 +18,11 @@ type TxRaw struct {
 	Verbose bool
 }
 
-func (t *TxRaw) SaveTxs(block *wire.MsgBlock) error {
-	if block == nil {
+func (t *TxRaw) SaveTxs(b *dbi.Block) error {
+	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
+	block := b.ToWireBlock()
 	if err := t.QueueTxs(block); err != nil {
 		return jerr.Get("error queueing msg txs", err)
 	}

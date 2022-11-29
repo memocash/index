@@ -12,7 +12,7 @@ import (
 
 var memoPostHandler = &Handler{
 	prefix: memo.PrefixPost,
-	handle: func(info parse.OpReturn) error {
+	handle: func(info parse.OpReturn, initialSync bool) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -23,7 +23,7 @@ var memoPostHandler = &Handler{
 			return nil
 		}
 		var post = jutil.GetUtf8String(info.PushData[1])
-		if err := save.MemoPost(info, post); err != nil {
+		if err := save.MemoPost(info, post, initialSync); err != nil {
 			return jerr.Get("error saving memo post for memo post handler", err)
 		}
 		return nil

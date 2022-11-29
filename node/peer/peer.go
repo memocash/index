@@ -88,19 +88,14 @@ func (p *Peer) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 		return
 	}
 	msgGetHeaders := wire.NewMsgGetHeaders()
-	blockHashByte, err := p.BlockSave.GetBlock(0)
+	blockHash, err := p.BlockSave.GetBlock(0)
 	if err != nil {
 		p.Error(jerr.Get("error getting node block", err))
 		return
 	}
-	if len(blockHashByte) > 0 && !bytes.Equal(blockHashByte, wallet.GetGenesisBlock().Hash.CloneBytes()) {
+	if blockHash != nil && blockHash != wallet.GetGenesisBlock().Hash {
 		p.HasExisting = true
-		blockHash, err := chainhash.NewHash(blockHashByte)
-		if err != nil {
-			p.Error(jerr.Get("error getting block hash for get headers", err))
-		} else {
-			msgGetHeaders.BlockLocatorHashes = append(msgGetHeaders.BlockLocatorHashes, blockHash)
-		}
+		msgGetHeaders.BlockLocatorHashes = append(msgGetHeaders.BlockLocatorHashes, blockHash)
 	}
 	if len(msgGetHeaders.BlockLocatorHashes) == 0 {
 		initBlockParent := config.GetInitBlockParent()
@@ -161,14 +156,9 @@ func (p *Peer) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 						"over max height back (%d)", p.HeightBack, MaxHeightBack))
 					return
 				}
-				blockHashByte, err := p.BlockSave.GetBlock(p.HeightBack)
+				blockHash, err := p.BlockSave.GetBlock(p.HeightBack)
 				if err != nil {
 					p.Error(jerr.Get("error getting node block after orphan", err))
-					return
-				}
-				blockHash, err := chainhash.NewHash(blockHashByte)
-				if err != nil {
-					p.Error(jerr.Get("error getting block hash for get headers for orphan", err))
 					return
 				}
 				msgGetHeaders := wire.NewMsgGetHeaders()
@@ -229,14 +219,18 @@ func (p *Peer) OnInv(_ *peer.Peer, msg *wire.MsgInv) {
 
 func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 	if p.TxSave != nil {
-		err := p.TxSave.SaveTxs(msg)
+		err := p.TxSave.SaveTxs(dbi.WireBlockToBlock(msg))
 		if err != nil {
 			p.Error(jerr.Get("error saving txs", err))
 		}
 	}
 	// Save block second in case exit/failure during saving transactions will requeue block again
 	if p.BlockSave != nil {
-		err := p.BlockSave.SaveBlock(msg.Header)
+		err := p.BlockSave.SaveBlock(dbi.BlockInfo{
+			Header:  msg.Header,
+			Size:    int64(msg.SerializeSize()),
+			TxCount: len(msg.Transactions),
+		})
 		if err != nil {
 			p.Error(jerr.Get("error saving block", err))
 		}
@@ -252,7 +246,7 @@ func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 func (p *Peer) OnTx(_ *peer.Peer, msg *wire.MsgTx) {
 	if p.TxSave != nil {
 		jlog.Logf("OnTx: %s\n", msg.TxHash().String())
-		err := p.TxSave.SaveTxs(memo.GetBlockFromTxs([]*wire.MsgTx{msg}, nil))
+		err := p.TxSave.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{msg}, nil)))
 		if err != nil {
 			p.Error(jerr.Get("error saving new tx", err))
 		}

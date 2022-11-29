@@ -1,13 +1,13 @@
 package load
 
 import (
-	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/memo"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 	"time"
 )
 
@@ -31,7 +31,7 @@ var PostLoaderConfig = dataloader.PostLoaderConfig{
 				errors[i] = jerr.Get("error getting tx hash from string", err)
 				continue
 			}
-			memoPost, err := memo.GetPost(txHash.CloneBytes())
+			memoPost, err := memo.GetPost(*txHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting lock memo post", err)
 				continue
@@ -41,9 +41,9 @@ var PostLoaderConfig = dataloader.PostLoaderConfig{
 				continue
 			}
 			posts[i] = &model.Post{
-				TxHash:   txHash.String(),
-				LockHash: hex.EncodeToString(memoPost.LockHash),
-				Text:     memoPost.Post,
+				TxHash:  txHash.String(),
+				Address: wallet.Addr(memoPost.Addr).String(),
+				Text:    memoPost.Post,
 			}
 		}
 		return posts, errors

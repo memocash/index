@@ -63,7 +63,7 @@ func (s *DoubleSpend) Create(output *memo.Output, wallet build.Wallet) (*memo.Tx
 	if err != nil {
 		return nil, jerr.Get("error generating transaction", err)
 	}
-	if err := s.TxSaver.SaveTxs(memo.GetBlockFromTxs([]*wire.MsgTx{tx.MsgTx}, nil)); err != nil {
+	if err := s.TxSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{tx.MsgTx}, nil))); err != nil {
 		return nil, jerr.Get("error saving tx", err)
 	}
 	return tx, nil
@@ -97,14 +97,18 @@ func (s *DoubleSpend) SaveBlock(txs []*memo.Tx) error {
 		wireTxs[i] = txs[i].MsgTx
 	}
 	block := test_block.GetNextBlock(wireTxs)
-	if err := s.BlockSaver.SaveBlock(block.Header); err != nil {
+	if err := s.BlockSaver.SaveBlock(dbi.BlockInfo{
+		Header:  block.Header,
+		Size:    int64(block.SerializeSize()),
+		TxCount: len(block.Transactions),
+	}); err != nil {
 		return jerr.Get("error saving block header for double spend grp", err)
 	}
-	if err := s.TxSaver.SaveTxs(block); err != nil {
+	if err := s.TxSaver.SaveTxs(dbi.WireBlockToBlock(block)); err != nil {
 		return jerr.Get("error adding txs block to network", err)
 	}
 	if len(s.OldBlocks) > s.DelayAmount {
-		if err := s.DelayedTxSaver.SaveTxs(s.OldBlocks[len(s.OldBlocks)-s.DelayAmount-1]); err != nil {
+		if err := s.DelayedTxSaver.SaveTxs(dbi.WireBlockToBlock(s.OldBlocks[len(s.OldBlocks)-s.DelayAmount-1])); err != nil {
 			return jerr.Get("error adding delayed txs block to network", err)
 		}
 	}

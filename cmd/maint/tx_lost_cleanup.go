@@ -7,6 +7,8 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
@@ -19,7 +21,7 @@ var txLostCleanupCmd = &cobra.Command{
 		verbose, _ := cmd.Flags().GetBool(FlagVerbose)
 		var totalTxLosts int
 		var txLostsRemoved int
-		currentHeightBlock, err := item.GetRecentHeightBlock()
+		currentHeightBlock, err := chain.GetRecentHeightBlock()
 		if err != nil {
 			jerr.Get("fatal error getting recent height block", err).Fatal()
 		}
@@ -43,22 +45,22 @@ var txLostCleanupCmd = &cobra.Command{
 					}
 				}
 				txHashes = jutil.RemoveDupesAndEmpties(txHashes)
-				txBlocks, err := item.GetTxBlocks(txHashes)
+				txBlocks, err := chain.GetTxBlocks(db.RawTxHashesToFixed(txHashes))
 				if err != nil {
 					jerr.Get("fatal error getting tx blocks for tx losts maint", err).Fatal()
 				}
 				var blockHashes = make([][]byte, len(txBlocks))
 				for i := range txBlocks {
-					blockHashes[i] = txBlocks[i].BlockHash
+					blockHashes[i] = txBlocks[i].BlockHash[:]
 				}
-				blockHeights, err := item.GetBlockHeights(blockHashes)
+				blockHeights, err := chain.GetBlockHeights(blockHashes)
 				if err != nil {
 					jerr.Get("fatal error getting block heights", err).Fatal()
 				}
 				for i := 0; i < len(txBlocks); i++ {
-					var blockHeightFound *item.BlockHeight
+					var blockHeightFound *chain.BlockHeight
 					for _, blockHeight := range blockHeights {
-						if bytes.Equal(blockHeight.BlockHash, txBlocks[i].BlockHash) {
+						if blockHeight.BlockHash == txBlocks[i].BlockHash {
 							blockHeightFound = blockHeight
 							break
 						}
@@ -78,7 +80,7 @@ var txLostCleanupCmd = &cobra.Command{
 						txLostTxHash = txLost.TxHash
 					}
 					for _, txBlock := range txBlocks {
-						if bytes.Equal(txLostTxHash, txBlock.TxHash) {
+						if bytes.Equal(txLostTxHash, txBlock.TxHash[:]) {
 							txLostsToRemove = append(txLostsToRemove, txLost)
 							if verbose {
 								jlog.Logf("Removing TxLost: %s (ds: %s)\n",
@@ -88,9 +90,9 @@ var txLostCleanupCmd = &cobra.Command{
 						}
 					}
 				}
-				var txLostsToRemoveHashes = make([][]byte, len(txLostsToRemove))
+				var txLostsToRemoveHashes = make([][32]byte, len(txLostsToRemove))
 				for i := range txLostsToRemove {
-					txLostsToRemoveHashes[i] = txLostsToRemove[i].TxHash
+					copy(txLostsToRemoveHashes[i][:], txLostsToRemove[i].TxHash)
 				}
 				lockHashBalancesToRemove, err := saver.GetTxLockHashes(txLostsToRemoveHashes)
 				if err != nil {

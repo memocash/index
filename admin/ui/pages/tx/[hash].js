@@ -34,6 +34,7 @@ export default function Hash() {
                 index
                 prev_hash
                 prev_index
+                script
                 output {
                     amount
                     spends {
@@ -111,7 +112,9 @@ export default function Hash() {
     }, [router])
     let fee = 0
     for (let i = 0; i < tx.inputs.length; i++) {
-        fee += tx.inputs[i].output.amount
+        if (tx.inputs[i].output) {
+            fee += tx.inputs[i].output.amount
+        }
     }
     for (let i = 0; i < tx.outputs.length; i++) {
         fee -= tx.outputs[i].amount
@@ -139,7 +142,9 @@ export default function Hash() {
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>Fee</div>
-                        <div className={column.width85}>{fee} Satoshis ({feeRate} sats/B)</div>
+                        <div className={column.width85}>
+                            {hasCoinbase(tx) ? "Coinbase" : (<>{fee} Satoshis ({feeRate} sats/B)</>)}
+                        </div>
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>First Seen</div>
@@ -170,8 +175,20 @@ export default function Hash() {
     )
 }
 
-function BlockInfo(props) {
-    const tx = props.tx
+function isCoinbase(input) {
+    return input.prev_hash === "0000000000000000000000000000000000000000000000000000000000000000"
+}
+
+function hasCoinbase(tx) {
+    for (let i = 0; i < tx.inputs.length; i++) {
+        if (isCoinbase(tx.inputs[i])) {
+            return true
+        }
+    }
+    return false
+}
+
+function BlockInfo({tx}) {
     return (
         <div className={column.container}>
             <div className={column.width15}>Block</div>
@@ -193,8 +210,7 @@ function BlockInfo(props) {
     )
 }
 
-function Inputs(props) {
-    const tx = props.tx
+function Inputs({tx}) {
     return (
         <div className={column.width50}>
             <h3>Inputs ({tx.inputs.length})</h3>
@@ -202,7 +218,7 @@ function Inputs(props) {
                 return (
                     <div key={input.index} className={[column.container, column.marginBottom].join(" ")}>
                         <div className={column.width15}>{input.index}</div>
-                        <div className={column.width85}>
+                        <div className={column.width85}>{input.output ? (<>
                             Address: {input.output.lock ?
                             <Link href={"/address/" + input.output.lock.address}>
                                 <a>{input.output.lock.address}</a>
@@ -210,6 +226,9 @@ function Inputs(props) {
                             : <>Not found</>}
                             <br/>
                             Amount: {input.output.amount}
+                            <br/>
+                            UnlockScript: <pre
+                            className={[pre.pre, pre.inline].join(" ")}>{input.script}</pre>
                             <br/>
                             {input.output.spends && input.output.spends.length >= 2 ?
                                 <div className={[column.red, column.bold].join(" ")}>
@@ -231,7 +250,11 @@ function Inputs(props) {
                                         </span>
                                         : "")}
                             </div>
-                        </div>
+                        </>) : (isCoinbase(input) ? "Coinbase" : (
+                            <Link href={"/tx/" + input.prev_hash}>
+                                <a><PreInline>{input.prev_hash}:{input.prev_index}</PreInline></a>
+                            </Link>
+                        ))}</div>
                     </div>
                 )
             })}
@@ -239,8 +262,7 @@ function Inputs(props) {
     )
 }
 
-function Outputs(props) {
-    const tx = props.tx
+function Outputs({tx}) {
     return (
         <div className={column.width50}>
             <h3>Outputs ({tx.outputs.length})</h3>
@@ -258,7 +280,7 @@ function Outputs(props) {
                             <br/>
                             Amount: {output.amount}
                             <br/>
-                            PkScript: <pre
+                            LockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
                             {output.spends ? <>
                                 {output.spends.length >= 2 ?

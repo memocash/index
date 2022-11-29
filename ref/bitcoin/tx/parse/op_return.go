@@ -6,8 +6,8 @@ import (
 
 type OpReturn struct {
 	Height   int64
-	TxHash   []byte
-	LockHash []byte
+	TxHash   [32]byte
+	Addr     [25]byte
 	PushData [][]byte
 	Outputs  []*wire.TxOut
 }

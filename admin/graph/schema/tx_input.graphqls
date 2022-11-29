@@ -2,8 +2,9 @@ type TxInput {
     tx: Tx!
     hash: String!
     index: Uint32!
+    script: String!
     prev_hash: String!
     prev_index: Uint32!
-    output: TxOutput!
+    output: TxOutput
     double_spend: DoubleSpend
 }

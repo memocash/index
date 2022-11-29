@@ -10,47 +10,47 @@ import (
 )
 
 type Post struct {
-	TxHash   []byte
-	LockHash []byte
-	Post     string
+	TxHash [32]byte
+	Addr   [25]byte
+	Post   string
 }
 
-func (p Post) GetUid() []byte {
-	return jutil.ByteReverse(p.TxHash)
-}
-
-func (p Post) GetShard() uint {
-	return client.GetByteShard(p.TxHash)
-}
-
-func (p Post) GetTopic() string {
+func (p *Post) GetTopic() string {
 	return db.TopicMemoPost
 }
 
-func (p Post) Serialize() []byte {
-	return jutil.CombineBytes(
-		p.LockHash,
-		[]byte(p.Post),
-	)
+func (p *Post) GetShard() uint {
+	return client.GetByteShard(p.TxHash[:])
+}
+
+func (p *Post) GetUid() []byte {
+	return jutil.ByteReverse(p.TxHash[:])
 }
 
 func (p *Post) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength {
 		return
 	}
-	p.TxHash = jutil.ByteReverse(uid)
+	copy(p.TxHash[:], jutil.ByteReverse(uid))
+}
+
+func (p *Post) Serialize() []byte {
+	return jutil.CombineBytes(
+		p.Addr[:],
+		[]byte(p.Post),
+	)
 }
 
 func (p *Post) Deserialize(data []byte) {
-	if len(data) < memo.LockHashLength {
+	if len(data) < memo.AddressLength {
 		return
 	}
-	p.LockHash = data[:32]
-	p.Post = string(data[32:])
+	copy(p.Addr[:], data[:25])
+	p.Post = string(data[25:])
 }
 
-func GetPost(txHash []byte) (*Post, error) {
-	posts, err := GetPosts([][]byte{txHash})
+func GetPost(txHash [32]byte) (*Post, error) {
+	posts, err := GetPosts([][32]byte{txHash})
 	if err != nil {
 		return nil, jerr.Get("error getting memo posts for single", err)
 	}
@@ -60,11 +60,11 @@ func GetPost(txHash []byte) (*Post, error) {
 	return posts[0], nil
 }
 
-func GetPosts(txHashes [][]byte) ([]*Post, error) {
+func GetPosts(txHashes [][32]byte) ([]*Post, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := db.GetShardByte32(txHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash))
+		shard := db.GetShardByte32(txHash[:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash[:]))
 	}
 	var posts []*Post
 	for shard, prefixes := range shardPrefixes {

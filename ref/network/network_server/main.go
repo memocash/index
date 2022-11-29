@@ -10,6 +10,8 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/act/balance"
 	"github.com/memocash/index/node/obj/get"
 	"github.com/memocash/index/node/obj/saver"
@@ -17,6 +19,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/dbi"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -59,7 +62,7 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 			if err != nil {
 				return nil, jerr.Getf(err, "error decoding block hash for tx: %s", msgTxs[0].TxHash())
 			}
-			block, err := item.GetBlock(blockHash)
+			block, err := chain.GetBlock(blockHash)
 			if err != nil {
 				return nil, jerr.Get("error getting block", err)
 			}
@@ -70,11 +73,11 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 			blockHeader = header
 		}
 		if blockHeader != nil {
-			if err := blockSaver.SaveBlock(*blockHeader); err != nil {
+			if err := blockSaver.SaveBlock(dbi.BlockInfo{Header: *blockHeader}); err != nil {
 				return nil, jerr.Get("error saving block", err)
 			}
 		}
-		if err := combinedSaver.SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader)); err != nil {
+		if err := combinedSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
 			err = jerr.Get("error saving transactions", err)
 			return &network_pb.SaveTxsReply{
 				Error: err.Error(),
@@ -97,14 +100,15 @@ func (s *Server) GetTx(_ context.Context, req *network_pb.TxRequest) (*network_p
 
 func (s *Server) GetTxBlock(_ context.Context, req *network_pb.TxBlockRequest) (*network_pb.TxBlockReply, error) {
 	getTxBlock := get.NewTxBlock()
-	if err := getTxBlock.Get(req.Txs); err != nil {
+	txHashes := db.RawTxHashesToFixed(req.Txs)
+	if err := getTxBlock.Get(txHashes); err != nil {
 		return nil, jerr.Get("error getting tx blocks by hashes", err)
 	}
 	var txs = make([]*network_pb.BlockTx, len(getTxBlock.Txs))
 	for i := range getTxBlock.Txs {
 		txs[i] = &network_pb.BlockTx{
-			Block: getTxBlock.Txs[i].BlockHash,
-			Tx:    getTxBlock.Txs[i].TxHash,
+			Block: getTxBlock.Txs[i].BlockHash[:],
+			Tx:    getTxBlock.Txs[i].TxHash[:],
 		}
 	}
 	return &network_pb.TxBlockReply{Txs: txs}, nil
@@ -128,16 +132,16 @@ func (s *Server) GetOutputInputs(_ context.Context, req *network_pb.OutputInputs
 			Index:  req.Outputs[i].Index,
 		}
 	}
-	outputInputs, err := item.GetOutputInputs(outs)
+	outputInputs, err := chain.GetOutputInputs(outs)
 	if err != nil {
 		return nil, jerr.Get("error getting output inputs", err)
 	}
 	var inputs = make([]*network_pb.Input, len(outputInputs))
 	for i := range outputInputs {
 		inputs[i] = &network_pb.Input{
-			Tx:          outputInputs[i].Hash,
+			Tx:          outputInputs[i].Hash[:],
 			Index:       outputInputs[i].Index,
-			PrevTxHash:  outputInputs[i].PrevHash,
+			PrevTxHash:  outputInputs[i].PrevHash[:],
 			PrevTxIndex: outputInputs[i].PrevIndex,
 		}
 	}
@@ -222,18 +226,18 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 	}
 	if blockHeader, err := memo.GetBlockHeaderFromRaw(txBlock.Block.Header); err != nil {
 		return nil, jerr.Get("error parsing block header", err)
-	} else if err := saver.NewBlock(true).SaveBlock(*blockHeader); err != nil {
+	} else if err := saver.NewBlock(true).SaveBlock(dbi.BlockInfo{Header: *blockHeader}); err != nil {
 		return nil, jerr.Get("error saving block", err)
-	} else if err := saver.NewCombinedAll(false).SaveTxs(memo.GetBlockFromTxs(msgTxs, blockHeader)); err != nil {
+	} else if err := saver.NewCombinedAll(false).SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
 		return nil, jerr.Get("error saving transactions", err)
 	}
 	return &network_pb.ErrorReply{}, nil
 }
 
 func (s *Server) GetBlockInfos(_ context.Context, req *network_pb.BlockRequest) (*network_pb.BlockInfoReply, error) {
-	var heightBlocks []*item.HeightBlock
+	var heightBlocks []*chain.HeightBlock
 	for _, shardConfig := range config.GetQueueShards() {
-		shardHeightBlocks, err := item.GetHeightBlocks(shardConfig.Shard, req.GetHeight(), req.Newest)
+		shardHeightBlocks, err := chain.GetHeightBlocks(shardConfig.Shard, req.GetHeight(), req.Newest)
 		if err != nil {
 			return nil, jerr.Get("error getting height block raws", err)
 		}
@@ -244,7 +248,7 @@ func (s *Server) GetBlockInfos(_ context.Context, req *network_pb.BlockRequest) 
 	}
 	var blockHashes = make([][]byte, len(heightBlocks))
 	for i := range heightBlocks {
-		blockHashes[i] = heightBlocks[i].BlockHash
+		blockHashes[i] = heightBlocks[i].BlockHash[:]
 	}
 	/*blocks, err := item.GetBlocks(blockHashes)
 	if err != nil {
@@ -264,7 +268,7 @@ func (s *Server) GetBlockInfos(_ context.Context, req *network_pb.BlockRequest) 
 			}
 		}*/
 		blockInfos[i] = &network_pb.BlockInfo{
-			Hash:   heightBlocks[i].BlockHash,
+			Hash:   heightBlocks[i].BlockHash[:],
 			Height: heightBlocks[i].Height,
 			//Txs:    txCount,
 			//Header: header,
@@ -283,14 +287,14 @@ func (s *Server) GetBlockInfos(_ context.Context, req *network_pb.BlockRequest) 
 
 func (s *Server) GetHeightBlocks(_ context.Context, req *network_pb.BlockHeightRequest) (*network_pb.BlockHeightResponse, error) {
 	var response = new(network_pb.BlockHeightResponse)
-	if heightBlocks, err := item.GetHeightBlocksAll(req.Start, req.Wait); err != nil {
+	if heightBlocks, err := chain.GetHeightBlocksAll(req.Start, req.Wait); err != nil {
 		return nil, jerr.Get("error getting height blocks all", err)
 	} else {
 		response.Blocks = make([]*network_pb.BlockHeight, len(heightBlocks))
 		for i := range heightBlocks {
 			response.Blocks[i] = &network_pb.BlockHeight{
 				Height: heightBlocks[i].Height,
-				Hash:   heightBlocks[i].BlockHash,
+				Hash:   heightBlocks[i].BlockHash[:],
 			}
 		}
 	}
@@ -298,16 +302,16 @@ func (s *Server) GetHeightBlocks(_ context.Context, req *network_pb.BlockHeightR
 }
 
 func GetBlockTxCount(blockHash []byte) (int64, error) {
-	txCount, err := item.GetBlockTxCount(blockHash)
+	blockInfo, err := chain.GetBlockInfo(blockHash)
 	if err != nil {
 		return 0, jerr.Get("error getting block txes", err)
 	}
-	return int64(txCount), nil
+	return int64(blockInfo.TxCount), nil
 }
 
 func (s *Server) GetBlockByHash(_ context.Context, req *network_pb.BlockHashRequest) (*network_pb.BlockInfo, error) {
 	blockHash := req.GetHash()
-	blockHeight, err := item.GetBlockHeight(blockHash)
+	blockHeight, err := chain.GetBlockHeight(blockHash)
 	if err != nil && !client.IsEntryNotFoundError(err) {
 		return nil, jerr.Get("error getting block height by hash", err)
 	}
@@ -319,7 +323,7 @@ func (s *Server) GetBlockByHash(_ context.Context, req *network_pb.BlockHashRequ
 	if err != nil {
 		return nil, jerr.Get("error getting block tx count", err)
 	}
-	block, err := item.GetBlock(blockHash)
+	block, err := chain.GetBlock(blockHash)
 	if err != nil {
 		return nil, jerr.Get("error getting block", err)
 	}
@@ -332,16 +336,16 @@ func (s *Server) GetBlockByHash(_ context.Context, req *network_pb.BlockHashRequ
 }
 
 func (s *Server) GetBlockByHeight(_ context.Context, req *network_pb.BlockRequest) (*network_pb.BlockInfo, error) {
-	heightBlock, err := item.GetHeightBlockSingle(req.GetHeight())
+	heightBlock, err := chain.GetHeightBlockSingle(req.GetHeight())
 	if err != nil {
 		return nil, jerr.Get("error getting height block by height", err)
 	}
-	block, err := item.GetBlock(heightBlock.BlockHash)
+	block, err := chain.GetBlock(heightBlock.BlockHash[:])
 	if err != nil {
 		return nil, jerr.Get("error getting block", err)
 	}
 	return &network_pb.BlockInfo{
-		Hash:   heightBlock.BlockHash,
+		Hash:   heightBlock.BlockHash[:],
 		Height: heightBlock.Height,
 		Header: block.Raw,
 	}, nil

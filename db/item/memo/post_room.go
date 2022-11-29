@@ -11,31 +11,31 @@ import (
 )
 
 type PostRoom struct {
-	TxHash []byte
+	TxHash [32]byte
 	Room   string
 }
 
-func (r PostRoom) GetUid() []byte {
-	return jutil.ByteReverse(r.TxHash)
-}
-
-func (r PostRoom) GetShard() uint {
-	return client.GetByteShard(r.TxHash)
-}
-
-func (r PostRoom) GetTopic() string {
+func (r *PostRoom) GetTopic() string {
 	return db.TopicMemoPostRoom
 }
 
-func (r PostRoom) Serialize() []byte {
-	return []byte(r.Room)
+func (r *PostRoom) GetShard() uint {
+	return client.GetByteShard(r.TxHash[:])
+}
+
+func (r *PostRoom) GetUid() []byte {
+	return jutil.ByteReverse(r.TxHash[:])
 }
 
 func (r *PostRoom) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength {
 		return
 	}
-	r.TxHash = jutil.ByteReverse(uid)
+	copy(r.TxHash[:], jutil.ByteReverse(uid))
+}
+
+func (r *PostRoom) Serialize() []byte {
+	return []byte(r.Room)
 }
 
 func (r *PostRoom) Deserialize(data []byte) {

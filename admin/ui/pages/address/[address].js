@@ -13,7 +13,7 @@ export default function LockHash() {
     const [address, setAddress] = useState({
         address: "",
         balance: 0,
-        utxos: [],
+        spends: [],
         outputs: [],
     })
     const [loading, setLoading] = useState(true)
@@ -21,13 +21,14 @@ export default function LockHash() {
     const query = `
     query ($address: String!) {
         address(address: $address) {
-            hash
             address
             balance
-            utxos {
+            spends {
                 hash
                 index
-                amount
+                output {
+                    amount
+                }
                 tx {
                     lost {
                         hash
@@ -90,20 +91,20 @@ export default function LockHash() {
                     </div>
                     <div className={column.container}>
                         <div className={column.width50}>
-                            <h3>Utxos ({address.utxos.length})</h3>
-                            {address.utxos.map((output) => {
+                            <h3>Spends ({address.spends.length})</h3>
+                            {address.spends.map((input) => {
                                 return (
-                                    <div key={output} className={column.container}>
-                                        <div className={column.width25}>{output.amount.toLocaleString()}</div>
+                                    <div key={input} className={column.container}>
+                                        <div className={column.width25}>{input.output ? input.output.amount.toLocaleString() : "Unknown"}</div>
                                         <div className={column.width75}>
-                                            <Link href={"/tx/" + output.hash}>
-                                                <a><PreInline>{output.hash}:{output.index}</PreInline></a>
+                                            <Link href={"/tx/" + input.hash}>
+                                                <a><PreInline>{input.hash}:{input.index}</PreInline></a>
                                             </Link>
-                                            {output.tx.lost ?
+                                            {input.tx.lost ?
                                                 <div className={[column.red, column.bold].join(" ")}>
                                                     LOST
                                                 </div>
-                                                : (output.tx.suspect ?
+                                                : (input.tx.suspect ?
                                                     <div className={[column.orange, column.bold].join(" ")}>
                                                         SUSPECT
                                                     </div>

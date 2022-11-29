@@ -2,17 +2,19 @@ package double_spend
 
 import (
 	"bytes"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/act/tx_raw"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"time"
 )
 
 type DoubleSpendCheck struct {
-	ParentTxHash  []byte
+	ParentTxHash  [32]byte
 	ParentTxIndex uint32
 	LockHash      []byte
 	Spends        []*DoubleSpendCheckSpend
@@ -23,7 +25,7 @@ func (c DoubleSpendCheck) IsWinnerSpend(spendCheck *DoubleSpendCheckSpend) (bool
 	if err != nil {
 		return false, jerr.Get("error getting winner spend", err)
 	}
-	return bytes.Equal(winnerSpend.TxHash, spendCheck.TxHash), nil
+	return winnerSpend.TxHash == spendCheck.TxHash, nil
 }
 
 func (c DoubleSpendCheck) GetWinnerSpend() (*DoubleSpendCheckSpend, error) {
@@ -48,7 +50,7 @@ func (c DoubleSpendCheck) GetWinnerSpend() (*DoubleSpendCheckSpend, error) {
 }
 
 type DoubleSpendCheckSpend struct {
-	TxHash     []byte
+	TxHash     [32]byte
 	Index      uint32
 	LockHashes [][]byte
 	FirstSeen  time.Time
@@ -69,20 +71,20 @@ func AttachAllToDoubleSpendChecks(doubleSpendChecks []*DoubleSpendCheck) error {
 }
 
 func AttachSeensToSpendCheckSpends(doubleSpendChecks []*DoubleSpendCheck) error {
-	var txHashes [][]byte
+	var txHashes [][32]byte
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		for _, spend := range doubleSpendCheck.Spends {
 			txHashes = append(txHashes, spend.TxHash)
 		}
 	}
-	txSeens, err := item.GetTxSeens(txHashes)
+	txSeens, err := item.GetTxSeens(db.FixedTxHashesToRaw(txHashes))
 	if err != nil {
 		return jerr.Get("error getting tx seens for double spend check spends", err)
 	}
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		for _, spend := range doubleSpendCheck.Spends {
 			for _, txSeen := range txSeens {
-				if bytes.Equal(txSeen.TxHash, spend.TxHash) {
+				if bytes.Equal(txSeen.TxHash, spend.TxHash[:]) {
 					spend.FirstSeen = txSeen.Timestamp
 					break
 				}
@@ -95,7 +97,7 @@ func AttachSeensToSpendCheckSpends(doubleSpendChecks []*DoubleSpendCheck) error 
 // AttachBlocksToSpendCheckSpends
 // TODO: Handle block hash already set, also include confirmation count
 func AttachBlocksToSpendCheckSpends(doubleSpendChecks []*DoubleSpendCheck) error {
-	var txHashes [][]byte
+	var txHashes [][32]byte
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		for _, spend := range doubleSpendCheck.Spends {
 			if len(spend.BlockHash) == 0 {
@@ -103,15 +105,15 @@ func AttachBlocksToSpendCheckSpends(doubleSpendChecks []*DoubleSpendCheck) error
 			}
 		}
 	}
-	txBlocks, err := item.GetTxBlocks(txHashes)
+	txBlocks, err := chain.GetTxBlocks(txHashes)
 	if err != nil {
 		return jerr.Get("error getting tx blocks for double spend check spends", err)
 	}
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		for _, spend := range doubleSpendCheck.Spends {
 			for _, txBlock := range txBlocks {
-				if bytes.Equal(txBlock.TxHash, spend.TxHash) {
-					spend.BlockHash = txBlock.BlockHash
+				if txBlock.TxHash == spend.TxHash {
+					spend.BlockHash = txBlock.BlockHash[:]
 					break
 				}
 			}
@@ -122,7 +124,7 @@ func AttachBlocksToSpendCheckSpends(doubleSpendChecks []*DoubleSpendCheck) error
 
 // AttachLockHashesToSpendChecks assumes blocks attached before
 func AttachLockHashesToSpendChecks(doubleSpendChecks []*DoubleSpendCheck) error {
-	var txHashes [][]byte
+	var txHashes [][32]byte
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		txHashes = append(txHashes, doubleSpendCheck.ParentTxHash)
 		for _, spend := range doubleSpendCheck.Spends {
@@ -135,11 +137,11 @@ func AttachLockHashesToSpendChecks(doubleSpendChecks []*DoubleSpendCheck) error 
 	}
 	for _, doubleSpendCheck := range doubleSpendChecks {
 		for _, txRaw := range txRaws {
-			if bytes.Equal(txRaw.Hash, doubleSpendCheck.ParentTxHash) {
+			if txRaw.Hash == doubleSpendCheck.ParentTxHash {
 				msgTx, err := memo.GetMsgFromRaw(txRaw.Raw)
 				if err != nil {
 					return jerr.Getf(err, "error parsing raw msg for double spend check: %s",
-						hs.GetTxString(doubleSpendCheck.ParentTxHash))
+						chainhash.Hash(doubleSpendCheck.ParentTxHash))
 				}
 				doubleSpendCheck.LockHash = script.GetLockHash(msgTx.TxOut[doubleSpendCheck.ParentTxIndex].PkScript)
 				break
@@ -147,10 +149,11 @@ func AttachLockHashesToSpendChecks(doubleSpendChecks []*DoubleSpendCheck) error 
 		}
 		for _, spend := range doubleSpendCheck.Spends {
 			for _, txRaw := range txRaws {
-				if bytes.Equal(txRaw.Hash, spend.TxHash) {
+				if txRaw.Hash == spend.TxHash {
 					msgTx, err := memo.GetMsgFromRaw(txRaw.Raw)
 					if err != nil {
-						return jerr.Getf(err, "error parsing raw msg for double spend check spend tx: %s", hs.GetTxString(spend.TxHash))
+						return jerr.Getf(err, "error parsing raw msg for double spend check spend tx: %s",
+							chainhash.Hash(spend.TxHash))
 					}
 					for _, out := range msgTx.TxOut {
 						spend.LockHashes = append(spend.LockHashes, script.GetLockHash(out.PkScript))

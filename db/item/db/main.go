@@ -13,17 +13,12 @@ import (
 )
 
 const (
-	TopicBlock                 = "block"
-	TopicBlockHeight           = "block_height"
-	TopicBlockTx               = "block_tx"
 	TopicBlockTxRaw            = "block_tx_raw"
 	TopicDoubleSpendInput      = "double_spend_input"
 	TopicDoubleSpendOutput     = "double_spend_output"
 	TopicDoubleSpendSeen       = "double_spend_seen"
 	TopicFoundPeer             = "found_peer"
-	TopicHeightBlock           = "height_block"
 	TopicHeightBlockShard      = "height_block_shard"
-	TopicHeightDuplicate       = "height_duplicate"
 	TopicHeightProcessed       = "height_processed"
 	TopicLockAddress           = "lock_address"
 	TopicLockBalance           = "lock_balance"
@@ -34,7 +29,6 @@ const (
 	TopicLockUtxoLost          = "lock_utxo_lost"
 	TopicMempoolTxRaw          = "mempool_tx_raw"
 	TopicMessage               = "message"
-	TopicOutputInput           = "output_input"
 	TopicPeer                  = "peer"
 	TopicPeerConnection        = "peer_connection"
 	TopicPeerFound             = "peer_found"
@@ -42,23 +36,20 @@ const (
 	TopicProcessStatus         = "process_status"
 	TopicSyncStatus            = "sync_status"
 	TopicTx                    = "tx"
-	TopicTxBlock               = "tx_block"
-	TopicTxInput               = "tx_input"
 	TopicTxLost                = "tx_lost"
-	TopicTxOutput              = "tx_output"
 	TopicTxProcessed           = "tx_processed"
 	TopicTxSeen                = "tx_seen"
 	TopicTxSuspect             = "tx_suspect"
 
+	TopicMemoAddrHeightFollow     = "memo_addr_height_follow"
+	TopicMemoAddrHeightFollowed   = "memo_addr_height_followed"
+	TopicMemoAddrHeightLike       = "memo_addr_height_like"
+	TopicMemoAddrHeightName       = "memo_addr_height_name"
+	TopicMemoAddrHeightPost       = "memo_addr_height_post"
+	TopicMemoAddrHeightProfile    = "memo_addr_height_profile"
+	TopicMemoAddrHeightProfilePic = "memo_addr_height_profile_pic"
+	TopicMemoAddrHeightRoomFollow = "memo_addr_height_room_follow"
 	TopicMemoLikeTip              = "memo_like_tip"
-	TopicMemoLockHeightFollow     = "memo_lock_height_follow"
-	TopicMemoLockHeightFollowed   = "memo_lock_height_followed"
-	TopicMemoLockHeightLike       = "memo_lock_height_like"
-	TopicMemoLockHeightName       = "memo_lock_height_name"
-	TopicMemoLockHeightPost       = "memo_lock_height_post"
-	TopicMemoLockHeightProfile    = "memo_lock_height_profile"
-	TopicMemoLockHeightProfilePic = "memo_lock_height_profile_pic"
-	TopicMemoLockHeightRoomFollow = "memo_lock_height_room_follow"
 	TopicMemoPost                 = "memo_post"
 	TopicMemoPostChild            = "memo_post_child"
 	TopicMemoPostHeightLike       = "memo_post_height_like"
@@ -66,6 +57,21 @@ const (
 	TopicMemoPostRoom             = "memo_post_room"
 	TopicMemoRoomHeightFollow     = "memo_room_follow"
 	TopicMemoRoomHeightPost       = "memo_room_height_post"
+
+	TopicChainBlock           = "chain_block"
+	TopicChainBlockHeight     = "chain_block_height"
+	TopicChainHeightBlock     = "chain_height_block"
+	TopicChainHeightDuplicate = "chain_height_duplicate"
+	TopicChainBlockInfo       = "chain_block_info"
+	TopicChainBlockTx         = "chain_block_tx"
+	TopicChainOutputInput     = "chain_output_input"
+	TopicChainTx              = "chain_tx"
+	TopicChainTxBlock         = "chain_tx_block"
+	TopicChainTxInput         = "chain_tx_input"
+	TopicChainTxOutput        = "chain_tx_output"
+
+	TopicAddrHeightOutput = "addr_height_output"
+	TopicAddrHeightInput  = "addr_height_input"
 )
 
 type Object interface {
@@ -75,6 +81,14 @@ type Object interface {
 	SetUid(uid []byte)
 	Serialize() []byte
 	Deserialize(data []byte)
+}
+
+func CombineObjects(objectGroups ...[]Object) []Object {
+	var objects []Object
+	for _, objectGroup := range objectGroups {
+		objects = append(objects, objectGroup...)
+	}
+	return objects
 }
 
 func GetShardByte(b []byte) uint {
@@ -213,4 +227,20 @@ func NewCancelContext(ctx context.Context, done func()) *CancelContext {
 		}()
 	}
 	return c
+}
+
+func FixedTxHashesToRaw(fixedTxHashes [][32]byte) [][]byte {
+	var txHashes = make([][]byte, len(fixedTxHashes))
+	for i, fixedTxHash := range fixedTxHashes {
+		txHashes[i] = fixedTxHash[:]
+	}
+	return txHashes
+}
+
+func RawTxHashesToFixed(txHashes [][]byte) [][32]byte {
+	var fixedTxHashes = make([][32]byte, len(txHashes))
+	for i, txHash := range txHashes {
+		copy(fixedTxHashes[i][:], txHash)
+	}
+	return fixedTxHashes
 }

@@ -10,7 +10,7 @@ import (
 type Handler struct {
 	prefix       []byte
 	prefixScript []byte
-	handle       func(parse.OpReturn) error
+	handle       func(parse.OpReturn, bool) error
 }
 
 func (h *Handler) CanHandle(pkScript []byte) bool {
@@ -18,11 +18,11 @@ func (h *Handler) CanHandle(pkScript []byte) bool {
 		bytes.Equal(pkScript[:len(h.prefixScript)], h.prefixScript)
 }
 
-func (h *Handler) Handle(info parse.OpReturn) error {
+func (h *Handler) Handle(info parse.OpReturn, initialSync bool) error {
 	if h.handle == nil {
 		return jerr.Newf("error handler not set (prefix: %x)", h.prefix)
 	}
-	if err := h.handle(info); err != nil {
+	if err := h.handle(info, initialSync); err != nil {
 		return jerr.Getf(err, "error processing op return handler (prefix: %x)", h.prefix)
 	}
 	return nil

@@ -3,15 +3,18 @@ package saver
 import (
 	"bytes"
 	"fmt"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/dbi"
 	"runtime"
 )
 
@@ -21,10 +24,11 @@ type LockHeight struct {
 	CheckTxHash []byte
 }
 
-func (t *LockHeight) SaveTxs(block *wire.MsgBlock) error {
-	if block == nil {
+func (t *LockHeight) SaveTxs(b *dbi.Block) error {
+	if b.IsNil() {
 		return jerr.Newf("error nil block for lock height")
 	}
+	block := b.ToWireBlock()
 	saveRun := NewLockHeightSaveRun(t.Verbose, t.InitialSync)
 	saveRun.CheckTxHash = t.CheckTxHash
 	if err := saveRun.SetHashHeightInOuts(block); err != nil {
@@ -68,7 +72,7 @@ func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
 	blockHash := block.BlockHash()
 	if !block.Header.Timestamp.IsZero() {
 		t.BlockHash = blockHash.CloneBytes()
-		blockHeight, err := item.GetBlockHeight(t.BlockHash)
+		blockHeight, err := chain.GetBlockHeight(t.BlockHash)
 		if err != nil {
 			return jerr.Get("error getting block height for lock height", err)
 		}
@@ -171,7 +175,7 @@ TxInLoop:
 			Index:  in.PrevIndex,
 		})
 	}
-	inputOutputs, err := item.GetTxOutputs(inputOuts)
+	inputOutputs, err := chain.GetTxOutputs(inputOuts)
 	if err != nil {
 		return jerr.Get("error getting outputs for lock height inputs", err)
 	}
@@ -181,8 +185,8 @@ TxInLoop:
 	for _, in := range t.Ins {
 		var lockHash []byte
 		for _, inputOutput := range inputOutputs {
-			if bytes.Equal(inputOutput.TxHash, in.PrevHash) && inputOutput.Index == in.PrevIndex {
-				lockHash = inputOutput.LockHash
+			if bytes.Equal(inputOutput.TxHash[:], in.PrevHash) && inputOutput.Index == in.PrevIndex {
+				lockHash = script.GetLockHash(inputOutput.LockScript)
 				break
 			}
 		}
@@ -252,7 +256,7 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 			}
 		}
 	}
-	outputInputs, err := item.GetOutputInputs(lockOuts)
+	outputInputs, err := chain.GetOutputInputs(lockOuts)
 	if err != nil {
 		return jerr.Get("error getting output inputs for lock output inputs", err)
 	}
@@ -261,41 +265,42 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 	}
 	var txHashes = make([][]byte, len(outputInputs))
 	for i := range outputInputs {
-		txHashes[i] = outputInputs[i].Hash
+		txHashes[i] = outputInputs[i].Hash[:]
 	}
 	txHashes = jutil.RemoveDupesAndEmpties(txHashes)
-	txBlocks, err := item.GetTxBlocks(txHashes)
+	txBlocks, err := chain.GetTxBlocks(db.RawTxHashesToFixed(txHashes))
 	if err != nil {
 		return jerr.Get("error getting tx blocks for lock height output inputs", err)
 	}
 	var blockHashesToGetHeights = make([][]byte, len(txBlocks))
 	for i := range txBlocks {
-		blockHashesToGetHeights[i] = txBlocks[i].BlockHash
+		blockHashesToGetHeights[i] = txBlocks[i].BlockHash[:]
 	}
-	blockHeights, err := item.GetBlockHeights(blockHashesToGetHeights)
+	blockHeights, err := chain.GetBlockHeights(blockHashesToGetHeights)
 	if err != nil {
 		return jerr.Get("error getting block heights for lock height output inputs", err)
 	}
 	for _, outputInput := range outputInputs {
 		var lockHash []byte
 		for _, lockOut := range lockOuts {
-			if bytes.Equal(lockOut.TxHash, outputInput.PrevHash) &&
+			if bytes.Equal(lockOut.TxHash, outputInput.PrevHash[:]) &&
 				lockOut.Index == outputInput.PrevIndex {
 				lockHash = lockOut.LockHash
 				break
 			}
 		}
-		var txBlockHash []byte
+		var txBlockHash *chainhash.Hash
 		for _, txBlock := range txBlocks {
-			if bytes.Equal(txBlock.TxHash, outputInput.Hash) {
-				txBlockHash = txBlock.BlockHash
+			if txBlock.TxHash == outputInput.Hash {
+				blockHash := chainhash.Hash(txBlock.BlockHash)
+				txBlockHash = &blockHash
 				break
 			}
 		}
 		var txBlockHeight int64
-		if len(txBlockHash) > 0 {
+		if txBlockHash != nil {
 			for _, blockHeight := range blockHeights {
-				if bytes.Equal(blockHeight.BlockHash, txBlockHash) {
+				if blockHeight.BlockHash == *txBlockHash {
 					txBlockHeight = blockHeight.Height
 				}
 			}
@@ -303,9 +308,9 @@ func (t *LockHeightSaveRun) SaveOutputInputsForOutputs() error {
 		var lockHeightOutputInput = &item.LockHeightOutputInput{
 			LockHash:  lockHash,
 			Height:    txBlockHeight,
-			Hash:      outputInput.Hash,
+			Hash:      outputInput.Hash[:],
 			Index:     outputInput.Index,
-			PrevHash:  outputInput.PrevHash,
+			PrevHash:  outputInput.PrevHash[:],
 			PrevIndex: outputInput.PrevIndex,
 		}
 		if len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, lockHeightOutputInput.Hash) {

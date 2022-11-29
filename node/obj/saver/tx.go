@@ -5,11 +5,13 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/status"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
+	"github.com/memocash/index/ref/dbi"
 	"runtime"
 	"time"
 )
@@ -19,10 +21,11 @@ type Tx struct {
 	Shard   int
 }
 
-func (t *Tx) SaveTxs(block *wire.MsgBlock) error {
-	if block == nil {
+func (t *Tx) SaveTxs(b *dbi.Block) error {
+	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
+	block := b.ToWireBlock()
 	err := t.QueueTxs(block)
 	if err != nil {
 		return jerr.Get("error queueing msg txs", err)
@@ -47,23 +50,23 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}
 		if len(blockHashBytes) > 0 {
-			objects = append(objects, &item.BlockTx{
-				TxHash:    txHashBytes,
-				BlockHash: blockHashBytes,
+			objects = append(objects, &chain.BlockTx{
+				TxHash:    txHash,
+				BlockHash: blockHash,
 			})
-			objects = append(objects, &item.TxBlock{
-				TxHash:    txHashBytes,
-				BlockHash: blockHashBytes,
+			objects = append(objects, &chain.TxBlock{
+				TxHash:    txHash,
+				BlockHash: blockHash,
 			})
 		}
 		for j := range tx.TxIn {
 			if memo.IsCoinbaseInput(tx.TxIn[j]) {
 				continue
 			}
-			objects = append(objects, &item.OutputInput{
-				Hash:      txHashBytes,
+			objects = append(objects, &chain.OutputInput{
+				Hash:      txHash,
 				Index:     uint32(j),
-				PrevHash:  tx.TxIn[j].PreviousOutPoint.Hash.CloneBytes(),
+				PrevHash:  tx.TxIn[j].PreviousOutPoint.Hash,
 				PrevIndex: tx.TxIn[j].PreviousOutPoint.Index,
 			})
 		}
@@ -88,9 +91,9 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 	}
 	if len(blockHashBytes) > 0 {
 		var blockHeight int64
-		itemBlockHeight, err := item.GetBlockHeight(blockHashBytes)
+		itemBlockHeight, err := chain.GetBlockHeight(blockHashBytes)
 		if err != nil {
-			parentBlockHeight, err := item.GetBlockHeight(block.Header.PrevBlock[:])
+			parentBlockHeight, err := chain.GetBlockHeight(block.Header.PrevBlock[:])
 			if err != nil {
 				return jerr.Getf(err, "error getting block height for tx save block: %s", hs.GetTxString(blockHashBytes))
 			}

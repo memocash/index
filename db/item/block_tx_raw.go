@@ -64,14 +64,7 @@ func GetRawBlockTxByHash(blockHash, txHash []byte) (*BlockTxRaw, error) {
 	return tx, nil
 }
 
-func GetRawTxBlocksByHashes(txBlocks []*TxBlock) ([]*BlockTxRaw, error) {
-	var blockTxes = make([]*BlockTx, len(txBlocks))
-	for i := range blockTxes {
-		blockTxes[i] = &BlockTx{
-			TxHash:    txBlocks[i].TxHash,
-			BlockHash: txBlocks[i].BlockHash,
-		}
-	}
+func GetRawTxBlocksByHashes(blockTxes []*ReqBlockTx) ([]*BlockTxRaw, error) {
 	blockTxRaw, err := GetRawBlockTxsByHashes(blockTxes)
 	if err != nil {
 		return nil, jerr.Get("error getting raw block txs by hashes", err)
@@ -80,9 +73,9 @@ func GetRawTxBlocksByHashes(txBlocks []*TxBlock) ([]*BlockTxRaw, error) {
 }
 
 func GetRawBlockTxsByTxHashes(blockHash []byte, txHashes [][]byte) ([]*BlockTxRaw, error) {
-	var blockTxs = make([]*BlockTx, len(txHashes))
+	var blockTxs = make([]*ReqBlockTx, len(txHashes))
 	for i := range txHashes {
-		blockTxs[i] = &BlockTx{
+		blockTxs[i] = &ReqBlockTx{
 			TxHash:    txHashes[i],
 			BlockHash: blockHash,
 		}
@@ -94,7 +87,12 @@ func GetRawBlockTxsByTxHashes(blockHash []byte, txHashes [][]byte) ([]*BlockTxRa
 	return blockTxRaws, nil
 }
 
-func GetRawBlockTxsByHashes(blockTxs []*BlockTx) ([]*BlockTxRaw, error) {
+type ReqBlockTx struct {
+	BlockHash []byte
+	TxHash    []byte
+}
+
+func GetRawBlockTxsByHashes(blockTxs []*ReqBlockTx) ([]*BlockTxRaw, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, blockTx := range blockTxs {
 		shard := db.GetShardByte32(blockTx.TxHash)

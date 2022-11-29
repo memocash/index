@@ -2,16 +2,17 @@ package saver
 
 import (
 	"bytes"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"github.com/memocash/index/ref/dbi"
 	"sort"
 )
 
@@ -20,13 +21,14 @@ type Utxo struct {
 	InitialSync bool
 }
 
-func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
-	if block == nil {
+func (u *Utxo) SaveTxs(b *dbi.Block) error {
+	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
+	block := b.ToWireBlock()
 	var lockUtxos []*item.LockUtxo
-	var txOutputs []*item.TxOutput
-	var txInputs []*item.TxInput
+	var txOutputs []*chain.TxOutput
+	var txInputs []*chain.TxInput
 	var lockAddresses []*item.LockAddress
 	var ins []memo.Out
 	var lockHashes [][]byte
@@ -46,10 +48,10 @@ func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
 				TxHash: msgTx.TxIn[g].PreviousOutPoint.Hash.CloneBytes(),
 				Index:  msgTx.TxIn[g].PreviousOutPoint.Index,
 			})
-			txInputs = append(txInputs, &item.TxInput{
-				TxHash:    txHashBytes,
+			txInputs = append(txInputs, &chain.TxInput{
+				TxHash:    txHash,
 				Index:     uint32(g),
-				PrevHash:  msgTx.TxIn[g].PreviousOutPoint.Hash.CloneBytes(),
+				PrevHash:  msgTx.TxIn[g].PreviousOutPoint.Hash,
 				PrevIndex: msgTx.TxIn[g].PreviousOutPoint.Index,
 			})
 		}
@@ -65,11 +67,11 @@ func (u *Utxo) SaveTxs(block *wire.MsgBlock) error {
 			}
 			lockUtxos = append(lockUtxos, lockUtxo)
 			lockHashes = append(lockHashes, lockUtxo.LockHash)
-			var txOutput = &item.TxOutput{
-				TxHash:   lockUtxo.Hash,
-				Index:    lockUtxo.Index,
-				Value:    lockUtxo.Value,
-				LockHash: lockUtxo.LockHash,
+			var txOutput = &chain.TxOutput{
+				TxHash:     txHash,
+				Index:      uint32(g),
+				Value:      txOut.Value,
+				LockScript: txOut.PkScript,
 			}
 			txOutputs = append(txOutputs, txOutput)
 			address, _ := wallet.GetAddressFromPkScript(txOut.PkScript)
@@ -126,14 +128,14 @@ LockUtxoLoop:
 			Index:  lockUtxos[i].Index,
 		})
 	}
-	outputInputs, err := item.GetOutputInputs(outs)
+	outputInputs, err := chain.GetOutputInputs(outs)
 	if err != nil {
 		return jerr.Get("error getting utxo output inputs", err)
 	}
 	for i := 0; i < len(lockUtxos); i++ {
 		lockUtxo := lockUtxos[i]
 		for g, outputInput := range outputInputs {
-			if bytes.Equal(outputInput.PrevHash, lockUtxo.Hash) &&
+			if bytes.Equal(outputInput.PrevHash[:], lockUtxo.Hash) &&
 				outputInput.PrevIndex == lockUtxo.Index {
 				lockUtxos = append(lockUtxos[:i], lockUtxos[i+1:]...)
 				i--
@@ -163,18 +165,18 @@ LockUtxoLoop:
 	if u.InitialSync {
 		return nil
 	}
-	matchingTxOutputs, err := item.GetTxOutputs(ins)
+	matchingTxOutputs, err := chain.GetTxOutputs(ins)
 	if err != nil {
 		return jerr.Get("error getting matching tx outputs for inputs", err)
 	}
 	var spentOuts = make([]*item.LockUtxo, len(matchingTxOutputs))
 	for i := range matchingTxOutputs {
 		spentOuts[i] = &item.LockUtxo{
-			LockHash: matchingTxOutputs[i].LockHash,
-			Hash:     matchingTxOutputs[i].TxHash,
+			LockHash: script.GetLockHash(matchingTxOutputs[i].LockScript),
+			Hash:     matchingTxOutputs[i].TxHash[:],
 			Index:    matchingTxOutputs[i].Index,
 		}
-		lockHashes = append(lockHashes, matchingTxOutputs[i].LockHash)
+		lockHashes = append(lockHashes, spentOuts[i].LockHash)
 	}
 	if err = item.RemoveLockUtxos(spentOuts); err != nil {
 		return jerr.Get("error removing lock utxos", err)

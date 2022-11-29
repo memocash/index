@@ -2,17 +2,19 @@ package lead
 
 import (
 	"context"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
+	"github.com/memocash/index/ref/dbi"
 	"sync"
 )
 
@@ -23,6 +25,7 @@ type Processor struct {
 	ErrorChan chan ShardError
 	Node      *Node
 	Verbose   bool
+	Synced    bool
 }
 
 func (p *Processor) Start() error {
@@ -39,12 +42,13 @@ func (p *Processor) Start() error {
 		return jerr.Get("error getting sync status initial", err)
 	}
 	if syncStatusTxs != nil {
+		p.Synced = true
 		go func() {
 			var height int64
 			if syncStatusProcessInitial != nil {
 				height = syncStatusProcessInitial.Height
 			} else {
-				oldestHeightBlock, err := item.GetOldestHeightBlock()
+				oldestHeightBlock, err := chain.GetOldestHeightBlock()
 				if err != nil {
 					jerr.Get("error getting oldest height block", err).Fatal()
 					return
@@ -57,11 +61,11 @@ func (p *Processor) Start() error {
 					jlog.Logf("UTXO processing complete at height: %d\n", height)
 					break
 				}
-				heightBlock, err := item.GetHeightBlockSingle(height)
+				heightBlock, err := chain.GetHeightBlockSingle(height)
 				if err != nil {
 					jerr.Get("error getting height block", err).Fatal()
 				}
-				block, err := item.GetBlock(heightBlock.BlockHash)
+				block, err := chain.GetBlock(heightBlock.BlockHash[:])
 				if err != nil {
 					jerr.Get("error getting height block block", err).Fatal()
 				}
@@ -69,7 +73,7 @@ func (p *Processor) Start() error {
 				if err != nil {
 					jerr.Get("error parsing block header", err).Fatal()
 				}
-				if !p.WaitForProcess(heightBlock.BlockHash, nil, ProcessTypeProcessInitial) {
+				if !p.WaitForProcess(heightBlock.BlockHash[:], nil, ProcessTypeProcessInitial) {
 					return
 				}
 				if err := db.Save([]db.Object{&item.SyncStatus{
@@ -79,7 +83,7 @@ func (p *Processor) Start() error {
 					jerr.Get("error setting sync status process initial", err).Fatal()
 				}
 				jlog.Logf("Processed block: %s %s %s\n", jfmt.AddCommas(height),
-					hs.GetTxString(heightBlock.BlockHash), blockHeader.Timestamp.Format("2006-01-02 15:04:05"))
+					chainhash.Hash(heightBlock.BlockHash).String(), blockHeader.Timestamp.Format("2006-01-02 15:04:05"))
 				height++
 			}
 		}()
@@ -98,7 +102,8 @@ func (p *Processor) Start() error {
 				}
 			case <-p.Node.SyncDone:
 				jlog.Logf("Node sync done\n")
-				recentBlock, err := item.GetRecentHeightBlock()
+				p.Synced = true
+				recentBlock, err := chain.GetRecentHeightBlock()
 				if err != nil {
 					jerr.Get("error getting recent height block", err).Fatal()
 				}
@@ -125,32 +130,36 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 	if !p.On {
 		return false
 	}
-	var shardBlocks = make(map[uint32]*wire.MsgBlock)
-	for _, tx := range block.Transactions {
+	var shardBlocks = make(map[uint32]*cluster_pb.Block)
+	for i, tx := range block.Transactions {
 		txHash := tx.TxHash()
 		shard := db.GetShardByte32(txHash[:])
 		if _, ok := shardBlocks[shard]; !ok {
-			shardBlocks[shard] = wire.NewMsgBlock(&block.Header)
+			shardBlocks[shard] = &cluster_pb.Block{
+				Header: memo.GetRawBlockHeader(block.Header),
+			}
 		}
-		shardBlocks[shard].AddTransaction(tx)
+		shardBlocks[shard].Txs = append(shardBlocks[shard].Txs, &cluster_pb.Tx{
+			Index: uint32(i),
+			Raw:   memo.GetRaw(tx),
+		})
 	}
 	blockHash := block.BlockHash()
-	if err := saver.NewBlock(p.Verbose).SaveBlock(block.Header); err != nil {
+	blockInfo := dbi.BlockInfo{
+		Header:  block.Header,
+		Size:    int64(block.SerializeSize()),
+		TxCount: len(block.Transactions),
+	}
+	if err := saver.NewBlock(p.Verbose).SaveBlock(blockInfo); err != nil {
 		jerr.Get("error saving block for lead node", err).Print()
 		return false
 	}
 	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeTx) {
 		return false
 	}
-	/*if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeProcessInitial) {
-		return false
-	}
-	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeProcess) {
-		return false
-	}*/
 	jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
-		blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(len(block.Transactions)),
-		jfmt.AddCommasInt(block.SerializeSize()))
+		blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
+		jfmt.AddCommasInt(int(blockInfo.Size)))
 	return true
 }
 
@@ -162,7 +171,7 @@ const (
 	ProcessTypeProcess        ProcessType = "process"
 )
 
-func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*wire.MsgBlock, processType ProcessType) bool {
+func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*cluster_pb.Block, processType ProcessType) bool {
 	var wg sync.WaitGroup
 	var hadError bool
 	for _, c := range p.Clients {
@@ -176,7 +185,8 @@ func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*wir
 			switch processType {
 			case ProcessTypeTx:
 				_, err = c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
-					Block: memo.GetRawBlock(*shardBlocks[c.Config.Shard]),
+					Block:     shardBlocks[c.Config.Shard],
+					IsInitial: !p.Synced,
 				})
 			case ProcessTypeProcessInitial:
 				_, err = c.Client.ProcessInitial(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})

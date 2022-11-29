@@ -10,7 +10,7 @@ import (
 var listRoute = admin.Route{
 	Pattern: admin.UrlTopicList,
 	Handler: func(r admin.Response) {
-		topics := item.GetTopics()
+		topics := item.GetTopicsSorted()
 		var topicListResponse = new(admin.TopicListResponse)
 		topicListResponse.Topics = make([]admin.Topic, len(topics))
 		for i := range topics {

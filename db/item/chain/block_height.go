@@ -1,4 +1,4 @@
-package item
+package chain
 
 import (
 	"context"
@@ -12,32 +12,32 @@ import (
 )
 
 type BlockHeight struct {
-	BlockHash []byte
+	BlockHash [32]byte
 	Height    int64
 }
 
-func (b BlockHeight) GetUid() []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(b.BlockHash), jutil.GetInt64DataBig(b.Height))
+func (b *BlockHeight) GetTopic() string {
+	return db.TopicChainBlockHeight
 }
 
-func (b BlockHeight) GetShard() uint {
-	return client.GetByteShard(b.BlockHash)
+func (b *BlockHeight) GetShard() uint {
+	return client.GetByteShard(b.BlockHash[:])
 }
 
-func (b BlockHeight) GetTopic() string {
-	return db.TopicBlockHeight
-}
-
-func (b BlockHeight) Serialize() []byte {
-	return nil
+func (b *BlockHeight) GetUid() []byte {
+	return jutil.CombineBytes(jutil.ByteReverse(b.BlockHash[:]), jutil.GetInt64DataBig(b.Height))
 }
 
 func (b *BlockHeight) SetUid(uid []byte) {
 	if len(uid) != 40 {
 		return
 	}
-	b.BlockHash = jutil.ByteReverse(uid[:32])
+	copy(b.BlockHash[:], jutil.ByteReverse(uid[:32]))
 	b.Height = jutil.GetInt64Big(uid[32:40])
+}
+
+func (b *BlockHeight) Serialize() []byte {
+	return nil
 }
 
 func (b *BlockHeight) Deserialize([]byte) {}
@@ -45,7 +45,7 @@ func (b *BlockHeight) Deserialize([]byte) {}
 func GetBlockHeight(blockHash []byte) (*BlockHeight, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(blockHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetByPrefix(db.TopicBlockHeight, jutil.ByteReverse(blockHash)); err != nil {
+	if err := dbClient.GetByPrefix(db.TopicChainBlockHeight, jutil.ByteReverse(blockHash)); err != nil {
 		return nil, jerr.Get("error getting client message for block height", err)
 	}
 	if len(dbClient.Messages) == 0 {
@@ -78,7 +78,7 @@ func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
 				return jutil.ByteLT(prefixes[i], prefixes[j])
 			})
 			dbClient := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
-			if err := dbClient.GetByPrefixes(db.TopicBlockHeight, prefixes); err != nil {
+			if err := dbClient.GetByPrefixes(db.TopicChainBlockHeight, prefixes); err != nil {
 				wait.AddError(jerr.Get("error getting client message block heights", err))
 				return
 			}
@@ -105,7 +105,7 @@ func ListenBlockHeights(ctx context.Context) (chan *BlockHeight, error) {
 	})
 	for _, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicBlockHeight, nil)
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicChainBlockHeight, nil)
 		if err != nil {
 			return nil, jerr.Get("error getting block height listen message chan", err)
 		}

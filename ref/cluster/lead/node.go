@@ -1,11 +1,13 @@
 package lead
 
 import (
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/node/peer"
+	"github.com/memocash/index/ref/dbi"
 )
 
 type Node struct {
@@ -16,22 +18,22 @@ type Node struct {
 	Verbose  bool
 }
 
-func (n *Node) SaveTxs(block *wire.MsgBlock) error {
+func (n *Node) SaveTxs(b *dbi.Block) error {
 	if n.Off {
 		return nil
 	}
-	n.NewBlock <- block
+	n.NewBlock <- b.ToWireBlock()
 	return nil
 }
 
-func (n *Node) SaveBlock(wire.BlockHeader) error {
+func (n *Node) SaveBlock(dbi.BlockInfo) error {
 	if n.Off {
 		return nil
 	}
 	return nil
 }
 
-func (n *Node) GetBlock(height int64) ([]byte, error) {
+func (n *Node) GetBlock(height int64) (*chainhash.Hash, error) {
 	if n.Off {
 		return nil, nil
 	}

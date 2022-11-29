@@ -166,6 +166,13 @@ func GetTotalShards() uint32 {
 	return _config.QueueShards[0].Total
 }
 
+func GetTotalClusterShards() uint32 {
+	if len(_config.ClusterShards) == 0 {
+		return 0
+	}
+	return _config.ClusterShards[0].Total
+}
+
 func GetSaveMetrics() bool {
 	return _config.SaveMetrics
 }
