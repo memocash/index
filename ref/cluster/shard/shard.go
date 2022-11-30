@@ -94,6 +94,7 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 	}
 	var block = &dbi.Block{
 		Header: *header,
+		Height: req.Height,
 	}
 	for _, tx := range req.Block.Txs {
 		msgTx, err := memo.GetMsgFromRaw(tx.Raw)

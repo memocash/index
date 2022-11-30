@@ -32,6 +32,7 @@ type OutputSave interface {
 
 type Block struct {
 	Header       wire.BlockHeader
+	Height       int64
 	Transactions []Tx
 }
 

@@ -73,7 +73,7 @@ func (p *Processor) Start() error {
 				if err != nil {
 					jerr.Get("error parsing block header", err).Fatal()
 				}
-				if !p.WaitForProcess(heightBlock.BlockHash[:], nil, ProcessTypeProcessInitial) {
+				if !p.WaitForProcess(heightBlock.BlockHash[:], 0, nil, ProcessTypeProcessInitial) {
 					return
 				}
 				if err := db.Save([]db.Object{&item.SyncStatus{
@@ -150,11 +150,12 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 		Size:    int64(block.SerializeSize()),
 		TxCount: len(block.Transactions),
 	}
-	if err := saver.NewBlock(p.Verbose).SaveBlock(blockInfo); err != nil {
+	blockSaver := saver.NewBlock(p.Verbose)
+	if err := blockSaver.SaveBlock(blockInfo); err != nil {
 		jerr.Get("error saving block for lead node", err).Print()
 		return false
 	}
-	if !p.WaitForProcess(blockHash[:], shardBlocks, ProcessTypeTx) {
+	if blockSaver.NewHeight == 0 || !p.WaitForProcess(blockHash[:], blockSaver.NewHeight, shardBlocks, ProcessTypeTx) {
 		return false
 	}
 	jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
@@ -171,7 +172,7 @@ const (
 	ProcessTypeProcess        ProcessType = "process"
 )
 
-func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*cluster_pb.Block, processType ProcessType) bool {
+func (p *Processor) WaitForProcess(blockHash []byte, height int64, shardBlocks map[uint32]*cluster_pb.Block, processType ProcessType) bool {
 	var wg sync.WaitGroup
 	var hadError bool
 	for _, c := range p.Clients {
@@ -187,6 +188,7 @@ func (p *Processor) WaitForProcess(blockHash []byte, shardBlocks map[uint32]*clu
 				_, err = c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
 					Block:     shardBlocks[c.Config.Shard],
 					IsInitial: !p.Synced,
+					Height:    height,
 				})
 			case ProcessTypeProcessInitial:
 				_, err = c.Client.ProcessInitial(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})

@@ -6,7 +6,6 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
-	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/obj/op_return"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -23,16 +22,7 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 		return jerr.Newf("error nil block")
 	}
 	block := b.ToWireBlock()
-	var height int64
-	if !block.Header.Timestamp.IsZero() {
-		blockHash := block.BlockHash()
-		blockHashBytes := blockHash.CloneBytes()
-		blockHeight, err := chain.GetBlockHeight(blockHashBytes)
-		if err != nil {
-			return jerr.Get("error getting block height for memo", err)
-		}
-		height = blockHeight.Height
-	}
+	var height = b.Height
 	if height == 0 {
 		height = item.HeightMempool
 	}

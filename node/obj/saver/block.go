@@ -17,6 +17,7 @@ type Block struct {
 	BlockHash       chainhash.Hash
 	PrevBlockHash   chainhash.Hash
 	PrevBlockHeight int64
+	NewHeight       int64
 }
 
 func (b *Block) SaveBlock(info dbi.BlockInfo) error {
@@ -58,34 +59,32 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 			}
 		}
 	}
-	var skipHeight bool
-	var newBlockHeight int64
 	if hasParent {
-		newBlockHeight = parentHeight + 1
+		b.NewHeight = parentHeight + 1
 	} else {
 		initBlockParent, err := chainhash.NewHashFromStr(config.GetInitBlockParent())
 		if err != nil {
 			return jerr.Get("error parsing init block hash", err)
 		}
 		if *initBlockParent == info.Header.PrevBlock {
-			newBlockHeight = int64(config.GetInitBlockHeight())
+			b.NewHeight = int64(config.GetInitBlockHeight())
 		} else {
-			skipHeight = true
+			b.NewHeight = 0
 			// block does not match parent or config init block
 		}
 	}
 	var heightBlock *chain.HeightBlock
-	if !skipHeight {
+	if b.NewHeight != 0 {
 		heightBlock = &chain.HeightBlock{
-			Height:    newBlockHeight,
+			Height:    b.NewHeight,
 			BlockHash: b.BlockHash,
 		}
 		var blockHeight = &chain.BlockHeight{
-			Height:    newBlockHeight,
+			Height:    b.NewHeight,
 			BlockHash: b.BlockHash,
 		}
 		objects = append(objects, blockHeight)
-		b.PrevBlockHeight = newBlockHeight
+		b.PrevBlockHeight = b.NewHeight
 		b.PrevBlockHash = b.BlockHash
 	}
 	if info.Size > 0 {
