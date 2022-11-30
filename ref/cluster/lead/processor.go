@@ -155,7 +155,11 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 		jerr.Get("error saving block for lead node", err).Print()
 		return false
 	}
-	if blockSaver.NewHeight == 0 || !p.WaitForProcess(blockHash[:], blockSaver.NewHeight, shardBlocks, ProcessTypeTx) {
+	if blockSaver.NewHeight == 0 {
+		// A block without a height can happen if you receive a new block while syncing, ignore it.
+		return true
+	}
+	if !p.WaitForProcess(blockHash[:], blockSaver.NewHeight, shardBlocks, ProcessTypeTx) {
 		return false
 	}
 	jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
