@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/cmd/cli"
-	"github.com/memocash/index/cmd/cluster"
 	"github.com/memocash/index/cmd/maint"
 	"github.com/memocash/index/cmd/network"
 	"github.com/memocash/index/cmd/peer"
@@ -47,7 +46,6 @@ func Execute() error {
 	indexCmd.PersistentFlags().Bool(config.FlagProfile, false, "profile execution")
 	indexCmd.AddCommand(
 		cli.GetCommand(),
-		cluster.GetCommand(),
 		test.GetCommand(),
 		peer.GetCommand(),
 		network.GetCommand(),

@@ -56,6 +56,13 @@ func (s *Shard) CheckProcessBlocks() {
 }
 
 func (s *Shard) Run() error {
+	if err := s.Start(); err != nil {
+		return jerr.Get("error starting shard", err)
+	}
+	return s.Serve()
+}
+
+func (s *Shard) Start() error {
 	s.Error = make(chan error)
 	var err error
 	clusterConfig := config.GetShardConfig(uint32(s.Id), config.GetClusterShards())
@@ -77,6 +84,10 @@ func (s *Shard) Run() error {
 		jlog.Logf("Starting queue server shard %d on port %d...\n", queueServer.Shard, queueServer.Port)
 		s.Error <- jerr.Getf(queueServer.Run(), "error running queue server for shard: %d", s.Id)
 	}()
+	return nil
+}
+
+func (s *Shard) Serve() error {
 	return <-s.Error
 }
 

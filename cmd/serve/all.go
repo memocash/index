@@ -4,8 +4,9 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	admin "github.com/memocash/index/admin/server"
-	db "github.com/memocash/index/db/server"
 	"github.com/memocash/index/node"
+	"github.com/memocash/index/ref/cluster/lead"
+	"github.com/memocash/index/ref/cluster/shard"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/network/network_server"
 	"github.com/spf13/cobra"
@@ -16,8 +17,7 @@ var allCmd = &cobra.Command{
 	Run: func(c *cobra.Command, args []string) {
 		var errorHandler = make(chan error)
 		// Admin server
-		nodeGroup := node.NewGroup()
-		adminServer := admin.NewServer(nodeGroup)
+		adminServer := admin.NewServer(node.NewGroup())
 		if err := adminServer.Start(); err != nil {
 			jerr.Get("fatal error starting admin server", err).Fatal()
 		}
@@ -25,17 +25,17 @@ var allCmd = &cobra.Command{
 		go func() {
 			errorHandler <- jerr.Get("error running admin server", adminServer.Serve())
 		}()
-		// Queue servers
-		for i, queueShard := range config.GetQueueShards() {
-			queueServer := db.NewServer(uint(queueShard.Port), uint(i))
-			if err := queueServer.Start(); err != nil {
-				jerr.Getf(err, "fatal error starting db queue server shard %d", queueServer.Shard).Fatal()
+		// Cluster shard servers
+		verbose, _ := c.Flags().GetBool(FlagVerbose)
+		for _, shardConfig := range config.GetClusterShards() {
+			clusterShard := shard.NewShard(int(shardConfig.Shard), verbose)
+			if err := clusterShard.Start(); err != nil {
+				jerr.Getf(err, "fatal error starting cluster shard %d", shardConfig.Shard).Fatal()
 			}
-			jlog.Logf("Queue server started on port: %d...\n", queueServer.Port)
-			go func() {
-				errorHandler <- jerr.Getf(queueServer.Serve(), "error running db queue server shard %d",
-					queueServer.Shard)
-			}()
+			jlog.Logf("Cluster shard started on port: %d...\n", shardConfig.Port)
+			go func(s *shard.Shard) {
+				errorHandler <- jerr.Getf(clusterShard.Serve(), "error running cluster shard %d", s.Id)
+			}(clusterShard)
 		}
 		// Network server
 		networkServer := network_server.NewServer(false, config.GetServerPort())
@@ -46,6 +46,17 @@ var allCmd = &cobra.Command{
 		go func() {
 			errorHandler <- jerr.Get("error running network server", networkServer.Serve())
 		}()
+		devMode, _ := c.Flags().GetBool(FlagDev)
+		if !devMode {
+			clusterLead := lead.NewLead(verbose)
+			if err := clusterLead.Start(); err != nil {
+				jerr.Get("fatal error starting cluster lead", err).Fatal()
+			}
+			jlog.Logf("Cluster lead started on port: %d...\n", clusterLead.Port)
+			go func() {
+				errorHandler <- jerr.Get("error running cluster lead", clusterLead.Serve())
+			}()
+		}
 		// Error handler
 		jerr.Get("fatal memo server error encountered", <-errorHandler).Fatal()
 	},

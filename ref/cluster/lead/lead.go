@@ -22,6 +22,13 @@ type Lead struct {
 }
 
 func (l *Lead) Run() error {
+	if err := l.Start(); err != nil {
+		return jerr.Get("error starting lead", err)
+	}
+	return l.Serve()
+}
+
+func (l *Lead) Start() error {
 	l.Error = make(chan error)
 	l.ShardError = make(chan ShardError)
 	l.Clients = make(map[int]*Client)
@@ -57,6 +64,10 @@ func (l *Lead) Run() error {
 			}
 		}
 	}()
+	return nil
+}
+
+func (l *Lead) Serve() error {
 	return jerr.Get("error running lead", <-l.Error)
 }
 
