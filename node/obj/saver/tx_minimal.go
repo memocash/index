@@ -26,6 +26,7 @@ func (t *TxMinimal) SaveTxs(block *dbi.Block) error {
 
 func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
 	blockHash := block.Header.BlockHash()
+	seenTime := time.Now()
 	var objects []db.Object
 	for _, dbiTx := range block.Transactions {
 		tx := dbiTx.MsgTx
@@ -77,7 +78,7 @@ func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
 		}
 		objects = append(objects, &item.TxSeen{
 			TxHash:    txHash[:],
-			Timestamp: time.Now(),
+			Timestamp: seenTime,
 		})
 	}
 	if err := db.Save(objects); err != nil {

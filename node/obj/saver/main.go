@@ -30,5 +30,6 @@ func NewCombinedTx(verbose, initial bool) *CombinedTx {
 		NewTxMinimal(verbose),
 		NewAddress(verbose, initial),
 		NewMemo(verbose, initial),
+		NewTxProcessed(verbose),
 	})
 }
