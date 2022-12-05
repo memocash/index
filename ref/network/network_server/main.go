@@ -54,7 +54,7 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 		blockTxs[blockHashStr] = append(blockTxs[blockHashStr], txMsg)
 	}
 	blockSaver := saver.NewBlock(false)
-	combinedSaver := saver.NewCombinedAll(false)
+	combinedSaver := saver.NewCombinedTx(false, false)
 	for blockHashStr, msgTxs := range blockTxs {
 		var blockHeader *wire.BlockHeader
 		if blockHashStr != "" {
@@ -228,7 +228,7 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 		return nil, jerr.Get("error parsing block header", err)
 	} else if err := saver.NewBlock(true).SaveBlock(dbi.BlockInfo{Header: *blockHeader}); err != nil {
 		return nil, jerr.Get("error saving block", err)
-	} else if err := saver.NewCombinedAll(false).SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
+	} else if err := saver.NewCombinedTx(false, false).SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
 		return nil, jerr.Get("error saving transactions", err)
 	}
 	return &network_pb.ErrorReply{}, nil

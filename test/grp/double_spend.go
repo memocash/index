@@ -37,7 +37,7 @@ type DoubleSpend struct {
 }
 
 func (s *DoubleSpend) Init(wallet *build.Wallet) error {
-	s.TxSaver = saver.NewCombinedAll(false)
+	s.TxSaver = saver.NewCombinedTx(false, false)
 	s.DelayedTxSaver = saver.NewClearSuspect()
 	s.DelayAmount = int(config.GetBlocksToConfirm())
 	s.BlockSaver = saver.NewBlock(false)

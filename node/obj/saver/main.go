@@ -25,44 +25,10 @@ func NewCombined(savers []dbi.TxSave) *CombinedTx {
 	}
 }
 
-func NewCombinedBlockTxRaw(verbose bool) *CombinedTx {
+func NewCombinedTx(verbose, initial bool) *CombinedTx {
 	return NewCombined([]dbi.TxSave{
-		NewTxRaw(verbose),
+		NewTxMinimal(verbose),
+		NewAddress(verbose, initial),
+		NewMemo(verbose, initial),
 	})
-}
-
-func NewCombinedAll(verbose bool) *CombinedTx {
-	return NewCombined([]dbi.TxSave{
-		NewTxRaw(verbose),
-		NewTx(verbose),
-		NewUtxo(verbose),
-		NewLockHeight(verbose),
-		NewDoubleSpend(verbose),
-		NewMemo(verbose, false),
-	})
-}
-
-func NewCombinedTx(verbose bool) *CombinedTx {
-	return NewCombined([]dbi.TxSave{
-		NewTxRaw(verbose),
-		NewTx(verbose),
-	})
-}
-
-func NewCombinedOutput(verbose, initialSync bool) *CombinedTx {
-	utxo := NewUtxo(verbose)
-	lockHeight := NewLockHeight(verbose)
-	if initialSync {
-		utxo.InitialSync = true
-		lockHeight.InitialSync = true
-	}
-	var combinedTx = &CombinedTx{Savers: []dbi.TxSave{
-		utxo,
-		lockHeight,
-		NewMemo(verbose, initialSync),
-	}}
-	if !initialSync {
-		combinedTx.Savers = append(combinedTx.Savers, NewDoubleSpend(verbose))
-	}
-	return combinedTx
 }

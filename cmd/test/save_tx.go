@@ -18,11 +18,7 @@ var saveTxCmd = &cobra.Command{
 		if len(args) < 1 {
 			jerr.New("not enough arguments, must specify raw tx").Fatal()
 		}
-		txSaver := saver.NewCombined([]dbi.TxSave{
-			saver.NewTxMinimal(false),
-			saver.NewAddress(false, false),
-			saver.NewMemo(false, false),
-		})
+		txSaver := saver.NewCombinedTx(false, false)
 		txRaw, err := hex.DecodeString(args[0])
 		if err != nil {
 			jerr.Get("error decoding tx", err).Fatal()

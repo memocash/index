@@ -17,7 +17,7 @@ var nodeCmd = &cobra.Command{
 	Short: "Run Network Block Node",
 	RunE: func(c *cobra.Command, args []string) error {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
-		connection := peer.NewConnection(saver.NewCombinedBlockTxRaw(verbose), saver.NewBlock(verbose))
+		connection := peer.NewConnection(saver.NewCombinedTx(verbose, false), saver.NewBlock(verbose))
 		if err := connection.Connect(); err != nil {
 			jerr.Get("fatal error connecting to peer", err).Fatal()
 		}
@@ -31,7 +31,7 @@ var mempoolCmd = &cobra.Command{
 	Short: "Run Network Mempool Node",
 	Run: func(c *cobra.Command, args []string) {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
-		connection := peer.NewConnection(saver.NewCombinedAll(verbose), nil)
+		connection := peer.NewConnection(saver.NewCombinedTx(verbose, false), nil)
 		if err := connection.Connect(); err != nil {
 			jerr.Get("fatal error connecting to peer", err).Fatal()
 		}
