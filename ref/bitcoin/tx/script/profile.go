@@ -14,9 +14,6 @@ func (p Profile) Get() ([]byte, error) {
 	if len(text) > memo.OldMaxPostSize {
 		return nil, jerr.New("text size too large")
 	}
-	if len(text) == 0 {
-		return nil, jerr.New("empty text")
-	}
 	pkScript, err := memo.GetBaseOpReturn().
 		AddData(memo.PrefixSetProfile).
 		AddData(text).
