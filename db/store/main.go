@@ -20,6 +20,15 @@ const (
 var conns = make(map[string]*leveldb.DB)
 var connsMutex = sync.RWMutex{}
 
+func CloseAll() {
+	connsMutex.Lock()
+	defer connsMutex.Unlock()
+	for k, db := range conns {
+		db.Close()
+		delete(conns, k)
+	}
+}
+
 func getDb(topic string, shard uint) (*leveldb.DB, error) {
 	connId := fmt.Sprintf("%d:%s", shard, topic)
 	if conns[connId] == nil {

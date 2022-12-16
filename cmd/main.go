@@ -2,16 +2,21 @@ package cmd
 
 import (
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/cmd/cli"
 	"github.com/memocash/index/cmd/maint"
 	"github.com/memocash/index/cmd/network"
 	"github.com/memocash/index/cmd/peer"
 	"github.com/memocash/index/cmd/serve"
 	"github.com/memocash/index/cmd/test"
+	"github.com/memocash/index/db/store"
 	"github.com/memocash/index/ref/broadcast/broadcast_client"
 	"github.com/memocash/index/ref/config"
 	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 var pf interface {
@@ -33,6 +38,14 @@ var indexCmd = &cobra.Command{
 		if profileExecution {
 			pf = profile.Start()
 		}
+		sigc := make(chan os.Signal, 1)
+		signal.Notify(sigc, syscall.SIGTERM)
+		go func() {
+			<-sigc
+			store.CloseAll()
+			jlog.Logf("Index server caught SIGTERM, stopping...\n")
+			os.Exit(0)
+		}()
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 		if pf != nil {
