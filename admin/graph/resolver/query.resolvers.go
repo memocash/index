@@ -266,7 +266,7 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 	return txChan, nil
 }
 
-// Address is the resolver for the address field.
+// Addresses is the resolver for the address field.
 func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error) {
 	lockHashes := make([][]byte, len(addresses))
 	for _, address := range addresses {

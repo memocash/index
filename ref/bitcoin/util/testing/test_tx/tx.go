@@ -56,3 +56,7 @@ func GetFundingTx(address wallet.Address, amount int64) (*memo.Tx, error) {
 	}
 	return tx, nil
 }
+
+func SetFundingIndex(index uint32) {
+	fundingIndex = index
+}

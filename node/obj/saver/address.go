@@ -44,7 +44,7 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 				Index:  uint32(j),
 			}
 			objects = append(objects, heightInput)
-			if !a.InitialSync {
+			if !a.InitialSync && height != item.HeightMempool {
 				objectsToRemove = append(objectsToRemove, &addr.HeightInput{
 					Addr:   heightInput.Addr,
 					Height: item.HeightMempool,
@@ -66,7 +66,7 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 				Value:  tx.TxOut[h].Value,
 			}
 			objects = append(objects, heightOutput)
-			if !a.InitialSync {
+			if !a.InitialSync && height != item.HeightMempool {
 				objectsToRemove = append(objectsToRemove, &addr.HeightOutput{
 					Addr:   heightOutput.Addr,
 					Height: item.HeightMempool,

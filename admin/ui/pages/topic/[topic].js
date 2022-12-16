@@ -87,14 +87,12 @@ export default function Topic() {
                     &nbsp;
                     <input type={"submit"} value={"Update"}/>
                 </form>
-                {topicData.Items && topicData.Items.map((item, key) => {
-                    return (
-                        <p key={key}>{item.Shard}: <Link href={{
-                            pathname: "/topic/" + topic + "/" + item.Uid,
-                            query: {shard: item.Shard},
-                        }}><a>{item.Uid}</a></Link></p>
-                    )
-                })}
+                {topicData.Items && topicData.Items.map((item, key) => (
+                    <p key={key}>{item.Shard}: <Link href={{
+                        pathname: "/topic/" + topic + "/" + item.Uid,
+                        query: {shard: item.Shard},
+                    }}><a>{item.Uid}</a></Link></p>
+                ))}
                 <p>
                     <Link href={{pathname: "/topic/list"}}>
                         <a>Back to List</a>

@@ -26,8 +26,7 @@ func SaveMessages(topic string, shard uint, messages []*Message) error {
 	for _, message := range messages {
 		batch.Put(message.Uid, message.Message)
 	}
-	err = db.Write(batch, nil)
-	if err != nil {
+	if err = db.Write(batch, nil); err != nil {
 		return jerr.Get("error writing items to level db", err)
 	}
 	return nil
