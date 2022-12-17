@@ -19,11 +19,11 @@ import (
 	"github.com/memocash/index/admin/graph/sub"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/obj/get"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
-	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
@@ -268,37 +268,36 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 
 // Addresses is the resolver for the address field.
 func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error) {
-	lockHashes := make([][]byte, len(addresses))
+	addrs := make([][25]byte, len(addresses))
 	for _, address := range addresses {
-		lockScript, err := get.LockScriptFromAddress(wallet.GetAddressFromString(address))
+		walletAddr, err := wallet.GetAddrFromString(address)
 		if err != nil {
-			return nil, jerr.Get("error getting lock script for address subscription", err)
+			return nil, jerr.Get("error getting addr for address subscription", err)
 		}
-		lockHashes = append(lockHashes, script.GetLockHash(lockScript))
+		addrs = append(addrs, *walletAddr)
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	lockHeightOutputsListeners, err := item.ListenMempoolLockHeightOutputsMultiple(ctx, lockHashes)
+	addrHeightOutputsListeners, err := addr.ListenMempoolAddrHeightOutputsMultiple(ctx, addrs)
 	if err != nil {
 		cancel()
-		return nil, jerr.Get("error getting lock height outputs listener for address subscription", err)
+		return nil, jerr.Get("error getting addr height outputs listener for address subscription", err)
 	}
-	lockHeightInputsListeners, err := item.ListenMempoolLockHeightOutputInputsMultiple(ctx, lockHashes)
+	addrHeightInputsListeners, err := addr.ListenMempoolAddrHeightInputsMultiple(ctx, addrs)
 	if err != nil {
 		cancel()
-		return nil, jerr.Get("error getting lock height inputs listener for address subscription", err)
+		return nil, jerr.Get("error getting addr height inputs listener for address subscription", err)
 	}
-	var aggregateOutput = make(chan *item.LockHeightOutput)
-	var aggregateInput = make(chan *item.LockHeightOutputInput)
-
-	for _, ch := range lockHeightInputsListeners {
-		go func(c chan *item.LockHeightOutputInput) {
+	var aggregateOutput = make(chan *addr.HeightOutput)
+	var aggregateInput = make(chan *addr.HeightInput)
+	for _, ch := range addrHeightInputsListeners {
+		go func(c chan *addr.HeightInput) {
 			for msg := range c {
 				aggregateInput <- msg
 			}
 		}(ch)
 	}
-	for _, ch := range lockHeightOutputsListeners {
-		go func(c chan *item.LockHeightOutput) {
+	for _, ch := range addrHeightOutputsListeners {
+		go func(c chan *addr.HeightOutput) {
 			for msg := range c {
 				aggregateOutput <- msg
 			}
@@ -311,35 +310,28 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 			cancel()
 		}()
 		for {
+			var txHashString string
 			select {
-			case lockHeightOutput, ok := <-aggregateOutput:
+			case addrHeightOutput, ok := <-aggregateOutput:
 				if !ok {
 					return
 				}
-				txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutput.Hash)
-				if err != nil {
-					jerr.Get("error getting mempool tx raw for address subscription output", err).Print()
-					return
-				}
-				txChan <- &model.Tx{
-					Hash: hs.GetTxString(lockHeightOutput.Hash),
-					Raw:  hex.EncodeToString(txRaw.Raw),
-				}
-			case lockHeightOutputInput, ok := <-aggregateInput:
+				txHashString = chainhash.Hash(addrHeightOutput.TxHash).String()
+			case addrHeightInput, ok := <-aggregateInput:
 				if !ok {
 					return
 				}
-				txRaw, err := item.GetMempoolTxRawByHash(lockHeightOutputInput.Hash)
-				if err != nil {
-					jerr.Get("error getting mempool tx raw for address subscription input", err).Print()
-					return
-				}
-				txChan <- &model.Tx{
-					Hash: hs.GetTxString(lockHeightOutputInput.Hash),
-					Raw:  hex.EncodeToString(txRaw.Raw),
-				}
+				txHashString = chainhash.Hash(addrHeightInput.TxHash).String()
 			}
-
+			raw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHashString)
+			if err != nil {
+				jerr.Get("error getting tx raw from dataloader for address subscription resolver", err).Print()
+				return
+			}
+			txChan <- &model.Tx{
+				Hash: txHashString,
+				Raw:  raw,
+			}
 		}
 	}()
 	return txChan, nil

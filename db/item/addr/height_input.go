@@ -1,6 +1,7 @@
 package addr
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -60,4 +61,36 @@ func GetHeightInputs(addr [25]byte, start []byte) ([]*HeightInput, error) {
 		db.Set(heightInputs[i], dbClient.Messages[i])
 	}
 	return heightInputs, nil
+}
+
+func ListenMempoolAddrHeightInputsMultiple(ctx context.Context, addrs [][25]byte) ([]chan *HeightInput, error) {
+	var shardAddrGroups = make(map[uint32][][]byte)
+	for _, addr := range addrs {
+		shard := db.GetShardByte32(addr[:])
+		shardAddrGroups[shard] = append(shardAddrGroups[shard], addr[:])
+	}
+	var chanHeightInputs []chan *HeightInput
+	for shard, addrGroup := range shardAddrGroups {
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		dbClient := client.NewClient(shardConfig.GetHost())
+		chanMessage, err := dbClient.Listen(ctx, db.TopicAddrHeightInput, addrGroup)
+		if err != nil {
+			return nil, jerr.Get("error getting addr height input listen message chan", err)
+		}
+		var chanAddrHeightInput = make(chan *HeightInput)
+		go func() {
+			for {
+				msg, ok := <-chanMessage
+				if !ok {
+					close(chanAddrHeightInput)
+					return
+				}
+				var addrHeightInput = new(HeightInput)
+				db.Set(addrHeightInput, *msg)
+				chanAddrHeightInput <- addrHeightInput
+			}
+		}()
+		chanHeightInputs = append(chanHeightInputs, chanAddrHeightInput)
+	}
+	return chanHeightInputs, nil
 }

@@ -50,17 +50,6 @@ func (o *LockHeightOutput) SetUid(uid []byte) {
 
 func (o *LockHeightOutput) Deserialize([]byte) {}
 
-func ListenMempoolLockHeightOutputs(ctx context.Context, lockHash []byte) (chan *LockHeightOutput, error) {
-	lockHeightChan, err := ListenMempoolLockHeightOutputsMultiple(ctx, [][]byte{lockHash})
-	if err != nil {
-		return nil, jerr.Get("error getting lock height output listen message chan", err)
-	}
-	if len(lockHeightChan) != 1 {
-		return nil, jerr.Newf("invalid lock height output listen message chan length: %d", len(lockHeightChan))
-	}
-	return lockHeightChan[0], nil
-}
-
 func ListenMempoolLockHeightOutputsMultiple(ctx context.Context, lockHashes [][]byte) ([]chan *LockHeightOutput, error) {
 	var shardLockHashGroups = make(map[uint32][][]byte)
 	for _, lockHash := range lockHashes {
