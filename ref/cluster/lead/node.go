@@ -44,9 +44,10 @@ func (n *Node) GetBlock(height int64) (*chainhash.Hash, error) {
 	return hash, nil
 }
 
-func (n *Node) Start() {
+func (n *Node) Start(memPool bool) {
 	n.Peer = peer.NewConnection(n, n)
 	go func() {
+		n.Peer.Mempool = memPool
 		if err := n.Peer.Connect(); err != nil {
 			jerr.Get("fatal error connecting to peer", err).Fatal()
 		}

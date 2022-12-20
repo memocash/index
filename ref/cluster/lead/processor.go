@@ -58,7 +58,7 @@ func (p *Processor) Start() error {
 			jlog.Logf("Starting initial sync block processing at height: %d\n", height)
 			for {
 				if height >= syncStatusTxs.Height {
-					jlog.Logf("UTXO processing complete at height: %d\n", height)
+					jlog.Logf("Block processing complete at height: %d\n", height)
 					break
 				}
 				heightBlock, err := chain.GetHeightBlockSingle(height)
@@ -87,11 +87,10 @@ func (p *Processor) Start() error {
 				height++
 			}
 		}()
-		return nil
 	}
 	p.StopChan = make(chan struct{})
 	p.Node = NewNode()
-	p.Node.Start()
+	p.Node.Start(p.Synced)
 	jlog.Logf("Starting node listener...\n")
 	go func() {
 		for {
@@ -162,9 +161,11 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 	if !p.WaitForProcess(blockHash[:], blockSaver.NewHeight, shardBlocks, ProcessTypeTx) {
 		return false
 	}
-	jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
-		blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
-		jfmt.AddCommasInt(int(blockInfo.Size)))
+	if !block.Header.Timestamp.IsZero() {
+		jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
+			blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
+			jfmt.AddCommasInt(int(blockInfo.Size)))
+	}
 	return true
 }
 

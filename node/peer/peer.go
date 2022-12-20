@@ -32,6 +32,7 @@ type Peer struct {
 	HasExisting bool
 	HeightBack  int64
 	SyncDone    bool
+	Mempool     bool
 }
 
 func (p *Peer) Error(err error) {
@@ -80,10 +81,7 @@ func (p *Peer) Disconnect() {
 }
 
 func (p *Peer) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
-	if p.BlockSave == nil {
-		if p.TxSave == nil {
-			return
-		}
+	if p.Mempool {
 		p.peer.QueueMessage(wire.NewMsgMemPool(), nil)
 		return
 	}
@@ -189,9 +187,6 @@ func (p *Peer) OnInv(_ *peer.Peer, msg *wire.MsgInv) {
 	for _, invItem := range msg.InvList {
 		switch invItem.Type {
 		case wire.InvTypeTx:
-			if p.BlockSave != nil {
-				continue
-			}
 			err := msgGetData.AddInvVect(&wire.InvVect{
 				Type: wire.InvTypeTx,
 				Hash: invItem.Hash,
