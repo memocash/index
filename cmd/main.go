@@ -3,9 +3,7 @@ package cmd
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/index/cmd/cli"
 	"github.com/memocash/index/cmd/maint"
-	"github.com/memocash/index/cmd/network"
 	"github.com/memocash/index/cmd/peer"
 	"github.com/memocash/index/cmd/serve"
 	"github.com/memocash/index/cmd/test"
@@ -58,10 +56,8 @@ func Execute() error {
 	indexCmd.PersistentFlags().String(config.FlagConfig, "", "config file name")
 	indexCmd.PersistentFlags().Bool(config.FlagProfile, false, "profile execution")
 	indexCmd.AddCommand(
-		cli.GetCommand(),
 		test.GetCommand(),
 		peer.GetCommand(),
-		network.GetCommand(),
 		serve.GetCommand(),
 		maint.GetCommand(),
 	)
