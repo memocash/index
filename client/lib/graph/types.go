@@ -4,6 +4,7 @@ import "time"
 
 type Address struct {
 	Outputs []Output `json:"outputs"`
+	Spends  []Input  `json:"spends"`
 }
 
 type Output struct {
@@ -16,6 +17,7 @@ type Output struct {
 }
 
 type Input struct {
+	Tx        Tx     `json:"tx"`
 	Hash      string `json:"hash"`
 	Index     int    `json:"index"`
 	PrevHash  string `json:"prev_hash"`

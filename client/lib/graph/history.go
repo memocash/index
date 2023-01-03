@@ -61,15 +61,34 @@ OutputLoop:
 		}
 		txs = append(txs, output.Tx)
 	}
+SpendsLoop:
+	for _, input := range dataStruct.Data.Address.Spends {
+		for _, tx := range txs {
+			if tx.Hash == input.Tx.Hash {
+				continue SpendsLoop
+			}
+		}
+		txs = append(txs, input.Tx)
+	}
 	return txs, nil
 }
 
-const HistoryQuery = `query ($address: String!, $height: Int) {
-	address (address: $address) {
-		outputs(height: $height) {
-			hash
-			index
-			amount
+const QueryTx = `tx {
+	hash
+	seen
+	raw
+	inputs {
+		index
+		prev_hash
+		prev_index
+	}
+	outputs {
+		index
+		amount
+		lock {
+			address
+		}
+		spends {
 			tx {
 				hash
 				seen
@@ -85,30 +104,6 @@ const HistoryQuery = `query ($address: String!, $height: Int) {
 					lock {
 						address
 					}
-					spends {
-						tx {
-							hash
-							seen
-							raw
-							inputs {
-								index
-								prev_hash
-								prev_index
-							}
-							outputs {
-								index
-								amount
-								lock {
-									address
-								}
-							}
-							blocks {
-								hash
-								timestamp
-								height
-							}
-						}
-					}
 				}
 				blocks {
 					hash
@@ -116,6 +111,22 @@ const HistoryQuery = `query ($address: String!, $height: Int) {
 					height
 				}
 			}
+		}
+	}
+	blocks {
+		hash
+		timestamp
+		height
+	}
+}`
+
+const HistoryQuery = `query ($address: String!, $height: Int) {
+	address (address: $address) {
+		outputs(height: $height) {
+			` + QueryTx + `
+		}
+		spends(height: $height) {
+			` + QueryTx + `
 		}
 	}
 }`
