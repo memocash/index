@@ -3,7 +3,6 @@ package graph
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"io/ioutil"
@@ -12,12 +11,12 @@ import (
 )
 
 func GetHistory(address *wallet.Addr, startHeight int64) ([]Tx, error) {
-	jsonData := map[string]string{
+	jsonData := map[string]interface{}{
 		"query": HistoryQuery,
-		"variables": fmt.Sprintf(`{
-			"address": "%s",
-			"height": %d
-			}`, address.String(), startHeight),
+		"variables": map[string]interface{}{
+			"address": address.String(),
+			"height":  startHeight,
+		},
 	}
 	jsonValue, _ := json.Marshal(jsonData)
 	request, err := http.NewRequest("POST", "http://localhost:26770/graphql", bytes.NewBuffer(jsonValue))
@@ -36,9 +35,15 @@ func GetHistory(address *wallet.Addr, startHeight int64) ([]Tx, error) {
 		Data struct {
 			Address Address `json:"address"`
 		} `json:"data"`
+		Errors []struct {
+			Message string `json:"message"`
+		} `json:"errors"`
 	}{}
 	if err := json.Unmarshal(data, &dataStruct); err != nil {
 		return nil, jerr.Get("error unmarshalling json", err)
+	}
+	if len(dataStruct.Errors) > 0 {
+		return nil, jerr.Get("error response data", jerr.New(dataStruct.Errors[0].Message))
 	}
 	var txs []Tx
 OutputLoop:
