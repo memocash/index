@@ -11,17 +11,25 @@ type Client struct {
 	Database Database
 }
 
-func (c *Client) GetBalance(address *wallet.Addr) (int64, error) {
+func updateDb(address *wallet.Addr, c *Client) error {
 	height, err := c.Database.GetAddressHeight(address)
 	if err != nil && !jerr.HasError(err, sql.ErrNoRows.Error()) {
-		return 0, jerr.Get("error getting address height", err)
+		return jerr.Get("error getting address height", err)
 	}
 	txs, err := graph.GetHistory(address, height)
 	if err != nil {
-		return 0, jerr.Get("error getting history", err)
+		return jerr.Get("error getting history", err)
 	}
 	if err := c.Database.SaveTxs(txs); err != nil {
-		return 0, jerr.Get("error saving txs", err)
+		return jerr.Get("error saving txs", err)
+	}
+	return nil
+}
+
+func (c *Client) GetBalance(address *wallet.Addr) (int64, error) {
+	err := updateDb(address, c)
+	if err != nil {
+		return 0, jerr.Get("error updating db", err)
 	}
 	balance, err := c.Database.GetAddressBalance(address)
 	if err != nil {
@@ -31,6 +39,18 @@ func (c *Client) GetBalance(address *wallet.Addr) (int64, error) {
 		return 0, jerr.Get("error saving outputs", err)
 	}
 	return balance, nil
+}
+
+func (c *Client) GetUtxos(address *wallet.Addr) ([]graph.Output, error){
+	err := updateDb(address, c)
+	if err != nil {
+		return nil, jerr.Get("error updating db", err)
+	}
+	utxos, err := c.Database.GetUtxos(address)
+	if err != nil {
+		return nil, jerr.Get("error getting utxos", err)
+	}
+	return utxos, nil
 }
 
 func NewClient(database Database) *Client {

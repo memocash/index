@@ -72,6 +72,27 @@ func (d *Database) GetAddressHeight(address *wallet.Addr) (int64, error) {
 	return result.Height, nil
 }
 
+func (d * Database) GetUtxos(address *wallet.Addr) ([]graph.Output, error){
+	query := "" +
+		"SELECT outputs.* FROM outputs " +
+		"LEFT JOIN inputs ON (inputs.prev_hash = outputs.hash AND inputs.prev_index = outputs.`index`) " +
+		"WHERE outputs.address = ?" +
+		"AND inputs.hash IS NULL"
+	rows, err := d.Db.Query(query, address.String())
+	if err != nil {
+		return nil, jerr.Get("error getting address utxos select query", err)
+	}
+	var results []graph.Output
+	for rows.Next() {
+		var result graph.Output
+		if err := rows.Scan(&result); err != nil {
+			return nil, jerr.Get("error getting address utxos scan query", err)
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
 func (d *Database) SaveTxs(txs []graph.Tx) error {
 	for _, tx := range txs {
 		var queries = []Query{{
