@@ -24,10 +24,10 @@ func GetHistory(address *wallet.Addr, startHeight int64) ([]Tx, error) {
 	request.Header.Set("Content-Type", "application/json")
 	client := &http.Client{Timeout: time.Second * 10}
 	response, err := client.Do(request)
-	defer response.Body.Close()
 	if err != nil {
 		return nil, jerr.Get("error the HTTP request failed", err)
 	}
+	defer response.Body.Close()
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, jerr.Get("error reading response body", err)
