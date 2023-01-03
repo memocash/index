@@ -48,7 +48,10 @@ func (c *Client) GetUtxos(address *wallet.Addr) ([]graph.Output, error){
 	}
 	utxos, err := c.Database.GetUtxos(address)
 	if err != nil {
-		return nil, jerr.Get("error getting utxos", err)
+		if jerr.HasError(err, sql.ErrNoRows.Error()) {
+			return nil, nil
+		}
+		return nil, jerr.Get("error saving outputs", err)
 	}
 	return utxos, nil
 }

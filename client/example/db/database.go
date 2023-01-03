@@ -83,7 +83,7 @@ func (d *Database) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
 	var results []graph.Output
 	for rows.Next() {
 		var result graph.Output
-		if err := rows.Scan(&result); err != nil {
+		if err := rows.Scan(&result.Hash, &result.Index, &result.Lock.Address, &result.Amount); err != nil {
 			return nil, jerr.Get("error getting address utxos scan query", err)
 		}
 		results = append(results, result)
