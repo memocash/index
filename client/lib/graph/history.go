@@ -18,8 +18,14 @@ func GetHistory(address *wallet.Addr, startHeight int64) ([]Tx, error) {
 			"height":  startHeight,
 		},
 	}
-	jsonValue, _ := json.Marshal(jsonData)
+	jsonValue, err := json.Marshal(jsonData)
+	if err != nil {
+		return nil, jerr.Get("error marshaling json for get history", err)
+	}
 	request, err := http.NewRequest("POST", "http://localhost:26770/graphql", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return nil, jerr.Get("error creating new request for get history", err)
+	}
 	request.Header.Set("Content-Type", "application/json")
 	client := &http.Client{Timeout: time.Second * 10}
 	response, err := client.Do(request)
@@ -58,7 +64,7 @@ OutputLoop:
 	return txs, nil
 }
 
-const HistoryQuery = `{
+const HistoryQuery = `query ($address: String!, $height: Int) {
 	address (address: $address) {
 		outputs(height: $height) {
 			hash
