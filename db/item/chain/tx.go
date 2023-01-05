@@ -49,16 +49,16 @@ func (t *Tx) Deserialize(data []byte) {
 }
 
 func GetTxsByHashes(txHashes [][32]byte) ([]*Tx, error) {
-	var shardTxHashes = make(map[uint32][][]byte)
-	for _, txHash := range txHashes {
-		shard := uint32(db.GetShardByte(txHash[:]))
-		shardTxHashes[shard] = append(shardTxHashes[shard], jutil.ByteReverse(txHash[:]))
+	var shardPrefixes = make(map[uint32][][]byte)
+	for i := range txHashes {
+		shard := uint32(db.GetShardByte(txHashes[i][:]))
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
 	var txs []*Tx
-	for shard, txHashes := range shardTxHashes {
+	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		err := dbClient.GetByPrefixes(db.TopicChainTx, txHashes)
+		err := dbClient.GetByPrefixes(db.TopicChainTx, prefixes)
 		if err != nil {
 			return nil, jerr.Get("error getting db message chain txs by hashes", err)
 		}
