@@ -80,9 +80,9 @@ func GetHeightOutputs(addr [25]byte, start []byte) ([]*HeightOutput, error) {
 
 func ListenMempoolAddrHeightOutputsMultiple(ctx context.Context, addrs [][25]byte) ([]chan *HeightOutput, error) {
 	var shardAddrGroups = make(map[uint32][][]byte)
-	for _, addr := range addrs {
-		shard := db.GetShardByte32(addr[:])
-		shardAddrGroups[shard] = append(shardAddrGroups[shard], addr[:])
+	for i := range addrs {
+		shard := db.GetShardByte32(addrs[i][:])
+		shardAddrGroups[shard] = append(shardAddrGroups[shard], addrs[i][:])
 	}
 	var chanHeightOutputs []chan *HeightOutput
 	for shard, addrGroup := range shardAddrGroups {
