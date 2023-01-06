@@ -55,3 +55,11 @@ func GetAddrFromLockScript(lockScript []byte) (*Addr, error) {
 	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
 	return addr, nil
 }
+
+func GetAddrFromBytes(b []byte) *Addr {
+	var addr = new(Addr)
+	if len(b) == 25 {
+		copy(addr[:], b)
+	}
+	return addr
+}

@@ -63,18 +63,18 @@ func GetTxInputUid(txHash [32]byte, index uint32) []byte {
 }
 
 func GetTxInputsByHashes(txHashes [][32]byte) ([]*TxInput, error) {
-	var shardTxHashes = make(map[uint32][][]byte)
-	for _, txHash := range txHashes {
-		shard := uint32(db.GetShardByte(txHash[:]))
-		shardTxHashes[shard] = append(shardTxHashes[shard], jutil.ByteReverse(txHash[:]))
+	var shardPrefixes = make(map[uint32][][]byte)
+	for i := range txHashes {
+		shard := uint32(db.GetShardByte(txHashes[i][:]))
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
 	var txInputs []*TxInput
-	for shard, txHashes := range shardTxHashes {
+	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetWOpts(client.Opts{
 			Topic:    db.TopicChainTxInput,
-			Prefixes: txHashes,
+			Prefixes: prefixes,
 			Max:      client.HugeLimit,
 		}); err != nil {
 			return nil, jerr.Get("error getting db message chain tx inputs", err)

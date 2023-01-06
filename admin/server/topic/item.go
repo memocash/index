@@ -9,6 +9,7 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
 	"reflect"
 	"strconv"
@@ -17,6 +18,8 @@ import (
 )
 
 var typeOfBytes = reflect.TypeOf([]byte(nil))
+var typeOfBytes25 = reflect.TypeOf([25]byte{})
+var typeOfBytes32 = reflect.TypeOf([32]byte{})
 
 var itemRoute = admin.Route{
 	Pattern: admin.UrlTopicItem,
@@ -67,6 +70,14 @@ var itemRoute = admin.Route{
 						} else {
 							props[fieldName] = hex.EncodeToString(fieldValue.Bytes())
 						}
+					} else {
+						props[fieldName] = fieldValue.String()
+					}
+				case reflect.Array:
+					if fieldValue.Type() == typeOfBytes25 {
+						props[fieldName] = wallet.GetAddrFromBytes(fieldValue.Bytes()).String()
+					} else if fieldValue.Type() == typeOfBytes32 {
+						props[fieldName] = hex.EncodeToString(jutil.ByteReverse(fieldValue.Bytes()))
 					} else {
 						props[fieldName] = fieldValue.String()
 					}

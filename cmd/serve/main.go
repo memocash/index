@@ -3,7 +3,6 @@ package serve
 import "github.com/spf13/cobra"
 
 const FlagVerbose = "verbose"
-const FlagDev = "dev"
 
 var serveCmd = &cobra.Command{
 	Use: "serve",
@@ -11,13 +10,17 @@ var serveCmd = &cobra.Command{
 
 func GetCommand() *cobra.Command {
 	allCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
-	allCmd.Flags().BoolP(FlagDev, "", false, "Don't connect to bitcoin node")
+	liveCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
 	leadCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
+	networkCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
 	shardCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
 	serveCmd.AddCommand(
 		allCmd,
+		liveCmd,
 		dbCmd,
 		adminCmd,
+		broadcasterCmd,
+		networkCmd,
 		leadCmd,
 		shardCmd,
 	)

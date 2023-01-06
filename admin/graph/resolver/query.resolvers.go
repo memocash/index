@@ -269,12 +269,12 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 // Addresses is the resolver for the address field.
 func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error) {
 	addrs := make([][25]byte, len(addresses))
-	for _, address := range addresses {
-		walletAddr, err := wallet.GetAddrFromString(address)
+	for i := range addresses {
+		walletAddr, err := wallet.GetAddrFromString(addresses[i])
 		if err != nil {
 			return nil, jerr.Get("error getting addr for address subscription", err)
 		}
-		addrs = append(addrs, *walletAddr)
+		addrs[i] = *walletAddr
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	addrHeightOutputsListeners, err := addr.ListenMempoolAddrHeightOutputsMultiple(ctx, addrs)
