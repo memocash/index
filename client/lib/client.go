@@ -41,7 +41,7 @@ func (c *Client) GetBalance(address *wallet.Addr) (int64, error) {
 	return balance, nil
 }
 
-func (c *Client) GetUtxos(address *wallet.Addr) ([]graph.Output, error){
+func (c *Client) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
 	err := updateDb(address, c)
 	if err != nil {
 		return nil, jerr.Get("error updating db", err)
