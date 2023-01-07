@@ -41,7 +41,7 @@ func (p *Processor) Start() error {
 		p.Synced = true
 		go func() {
 			p.MemPoolNode = NewNode()
-			p.MemPoolNode.Start(true)
+			p.MemPoolNode.Start(true, p.Synced)
 			jlog.Logf("Started mempool node...\n")
 			for p.Process(<-p.MemPoolNode.NewBlock) {
 			}
@@ -49,7 +49,7 @@ func (p *Processor) Start() error {
 	}
 	p.StopChan = make(chan struct{})
 	p.BlockNode = NewNode()
-	p.BlockNode.Start(false)
+	p.BlockNode.Start(false, p.Synced)
 	go func() {
 		jlog.Logf("Started block node...\n")
 		for {
