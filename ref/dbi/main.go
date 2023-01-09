@@ -37,11 +37,19 @@ type Block struct {
 }
 
 func (b *Block) IsNil() bool {
-	return b == nil || (b.Header.Timestamp.IsZero() && len(b.Transactions) == 0)
+	return b == nil || (!b.HasHeader() && len(b.Transactions) == 0)
 }
 
 func (b *Block) ToWireBlock() *wire.MsgBlock {
 	return BlockToWireBlock(b)
+}
+
+func (b *Block) HasHeader() bool {
+	return BlockHeaderSet(b.Header)
+}
+
+func BlockHeaderSet(header wire.BlockHeader) bool {
+	return !header.Timestamp.IsZero() && header.Timestamp.Unix() != 0
 }
 
 type BlockInfo struct {

@@ -108,19 +108,23 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 		Size:    int64(block.SerializeSize()),
 		TxCount: len(block.Transactions),
 	}
-	blockSaver := saver.NewBlock(p.Verbose)
-	if err := blockSaver.SaveBlock(blockInfo); err != nil {
-		jerr.Get("error saving block for lead node", err).Print()
+	var height int64
+	if dbi.BlockHeaderSet(block.Header) {
+		blockSaver := saver.NewBlock(p.Verbose)
+		if err := blockSaver.SaveBlock(blockInfo); err != nil {
+			jerr.Get("error saving block for lead node", err).Print()
+			return false
+		}
+		if blockSaver.NewHeight == 0 {
+			// A block without a height can happen if you receive a new block while syncing, ignore it, don't save TXs.
+			return true
+		}
+		height = blockSaver.NewHeight
+	}
+	if !p.WaitForProcess(blockHash[:], height, shardBlocks, ProcessTypeTx) {
 		return false
 	}
-	if blockSaver.NewHeight == 0 {
-		// A block without a height can happen if you receive a new block while syncing, ignore it.
-		return true
-	}
-	if !p.WaitForProcess(blockHash[:], blockSaver.NewHeight, shardBlocks, ProcessTypeTx) {
-		return false
-	}
-	if !block.Header.Timestamp.IsZero() {
+	if dbi.BlockHeaderSet(block.Header) {
 		jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
 			blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
 			jfmt.AddCommasInt(int(blockInfo.Size)))
