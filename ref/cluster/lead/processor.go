@@ -177,6 +177,9 @@ func (p *Processor) Stop() {
 		p.On = false
 		close(p.StopChan)
 		p.BlockNode.Stop()
+		if p.MemPoolNode != nil {
+			p.MemPoolNode.Stop()
+		}
 	}
 }
 
