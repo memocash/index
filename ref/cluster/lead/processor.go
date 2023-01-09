@@ -2,7 +2,6 @@ package lead
 
 import (
 	"context"
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jfmt"
@@ -19,13 +18,14 @@ import (
 )
 
 type Processor struct {
-	On        bool
-	StopChan  chan struct{}
-	Clients   map[int]*Client
-	ErrorChan chan ShardError
-	Node      *Node
-	Verbose   bool
-	Synced    bool
+	On          bool
+	StopChan    chan struct{}
+	Clients     map[int]*Client
+	ErrorChan   chan ShardError
+	BlockNode   *Node
+	MemPoolNode *Node
+	Verbose     bool
+	Synced      bool
 }
 
 func (p *Processor) Start() error {
@@ -37,70 +37,28 @@ func (p *Processor) Start() error {
 	if err != nil && !client.IsEntryNotFoundError(err) {
 		return jerr.Get("error getting sync status txs", err)
 	}
-	syncStatusProcessInitial, err := item.GetSyncStatus(item.SyncStatusProcessInitial)
-	if err != nil && !client.IsEntryNotFoundError(err) {
-		return jerr.Get("error getting sync status initial", err)
-	}
 	if syncStatusTxs != nil {
 		p.Synced = true
 		go func() {
-			var height int64
-			if syncStatusProcessInitial != nil {
-				height = syncStatusProcessInitial.Height
-			} else {
-				oldestHeightBlock, err := chain.GetOldestHeightBlock()
-				if err != nil {
-					jerr.Get("error getting oldest height block", err).Fatal()
-					return
-				}
-				height = oldestHeightBlock.Height
-			}
-			jlog.Logf("Starting initial sync block processing at height: %d\n", height)
-			for {
-				if height >= syncStatusTxs.Height {
-					jlog.Logf("UTXO processing complete at height: %d\n", height)
-					break
-				}
-				heightBlock, err := chain.GetHeightBlockSingle(height)
-				if err != nil {
-					jerr.Get("error getting height block", err).Fatal()
-				}
-				block, err := chain.GetBlock(heightBlock.BlockHash[:])
-				if err != nil {
-					jerr.Get("error getting height block block", err).Fatal()
-				}
-				blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
-				if err != nil {
-					jerr.Get("error parsing block header", err).Fatal()
-				}
-				if !p.WaitForProcess(heightBlock.BlockHash[:], 0, nil, ProcessTypeProcessInitial) {
-					return
-				}
-				if err := db.Save([]db.Object{&item.SyncStatus{
-					Name:   item.SyncStatusProcessInitial,
-					Height: height,
-				}}); err != nil {
-					jerr.Get("error setting sync status process initial", err).Fatal()
-				}
-				jlog.Logf("Processed block: %s %s %s\n", jfmt.AddCommas(height),
-					chainhash.Hash(heightBlock.BlockHash).String(), blockHeader.Timestamp.Format("2006-01-02 15:04:05"))
-				height++
+			p.MemPoolNode = NewNode()
+			p.MemPoolNode.Start(true, p.Synced)
+			jlog.Logf("Started mempool node...\n")
+			for p.Process(<-p.MemPoolNode.NewBlock) {
 			}
 		}()
-		return nil
 	}
 	p.StopChan = make(chan struct{})
-	p.Node = NewNode()
-	p.Node.Start()
-	jlog.Logf("Starting node listener...\n")
+	p.BlockNode = NewNode()
+	p.BlockNode.Start(false, p.Synced)
 	go func() {
+		jlog.Logf("Started block node...\n")
 		for {
 			select {
-			case block := <-p.Node.NewBlock:
+			case block := <-p.BlockNode.NewBlock:
 				if p.Process(block) {
 					continue
 				}
-			case <-p.Node.SyncDone:
+			case <-p.BlockNode.SyncDone:
 				jlog.Logf("Node sync done\n")
 				p.Synced = true
 				recentBlock, err := chain.GetRecentHeightBlock()
@@ -150,21 +108,27 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 		Size:    int64(block.SerializeSize()),
 		TxCount: len(block.Transactions),
 	}
-	blockSaver := saver.NewBlock(p.Verbose)
-	if err := blockSaver.SaveBlock(blockInfo); err != nil {
-		jerr.Get("error saving block for lead node", err).Print()
+	var height int64
+	if dbi.BlockHeaderSet(block.Header) {
+		blockSaver := saver.NewBlock(p.Verbose)
+		if err := blockSaver.SaveBlock(blockInfo); err != nil {
+			jerr.Get("error saving block for lead node", err).Print()
+			return false
+		}
+		if blockSaver.NewHeight == 0 {
+			// A block without a height can happen if you receive a new block while syncing, ignore it, don't save TXs.
+			return true
+		}
+		height = blockSaver.NewHeight
+	}
+	if !p.WaitForProcess(blockHash[:], height, shardBlocks, ProcessTypeTx) {
 		return false
 	}
-	if blockSaver.NewHeight == 0 {
-		// A block without a height can happen if you receive a new block while syncing, ignore it.
-		return true
+	if dbi.BlockHeaderSet(block.Header) {
+		jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
+			blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
+			jfmt.AddCommasInt(int(blockInfo.Size)))
 	}
-	if !p.WaitForProcess(blockHash[:], blockSaver.NewHeight, shardBlocks, ProcessTypeTx) {
-		return false
-	}
-	jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
-		blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
-		jfmt.AddCommasInt(int(blockInfo.Size)))
 	return true
 }
 
@@ -216,7 +180,10 @@ func (p *Processor) Stop() {
 	if p.On {
 		p.On = false
 		close(p.StopChan)
-		p.Node.Stop()
+		p.BlockNode.Stop()
+		if p.MemPoolNode != nil {
+			p.MemPoolNode.Stop()
+		}
 	}
 }
 

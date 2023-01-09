@@ -32,6 +32,7 @@ type Peer struct {
 	HasExisting bool
 	HeightBack  int64
 	SyncDone    bool
+	Mempool     bool
 }
 
 func (p *Peer) Error(err error) {
@@ -80,10 +81,7 @@ func (p *Peer) Disconnect() {
 }
 
 func (p *Peer) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
-	if p.BlockSave == nil {
-		if p.TxSave == nil {
-			return
-		}
+	if p.Mempool {
 		p.peer.QueueMessage(wire.NewMsgMemPool(), nil)
 		return
 	}
@@ -137,8 +135,8 @@ func (p *Peer) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 		return
 	}
 	if len(msg.Headers) == 0 {
-		jlog.Logf("No headers received, disconnecting, sync done: %t\n", p.SyncDone)
 		if !p.SyncDone {
+			jlog.Logf("No headers received, disconnecting, sync done: %t\n", p.SyncDone)
 			p.SyncDone = true
 			p.Disconnect()
 		}
@@ -189,7 +187,8 @@ func (p *Peer) OnInv(_ *peer.Peer, msg *wire.MsgInv) {
 	for _, invItem := range msg.InvList {
 		switch invItem.Type {
 		case wire.InvTypeTx:
-			if p.BlockSave != nil {
+			if !p.Mempool {
+				// Don't save mempool items on block node
 				continue
 			}
 			err := msgGetData.AddInvVect(&wire.InvVect{
@@ -225,7 +224,7 @@ func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 		}
 	}
 	// Save block second in case exit/failure during saving transactions will requeue block again
-	if p.BlockSave != nil {
+	if !jutil.IsNil(p.BlockSave) {
 		err := p.BlockSave.SaveBlock(dbi.BlockInfo{
 			Header:  msg.Header,
 			Size:    int64(msg.SerializeSize()),

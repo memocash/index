@@ -34,7 +34,7 @@ func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
 		if t.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}
-		if !block.Header.Timestamp.IsZero() {
+		if block.HasHeader() {
 			var blockTx = &chain.BlockTx{
 				BlockHash: blockHash,
 				Index:     dbiTx.BlockIndex,

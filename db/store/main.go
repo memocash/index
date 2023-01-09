@@ -30,10 +30,10 @@ func CloseAll() {
 }
 
 func getDb(topic string, shard uint) (*leveldb.DB, error) {
+	connsMutex.Lock()
+	defer connsMutex.Unlock()
 	connId := fmt.Sprintf("%d:%s", shard, topic)
 	if conns[connId] == nil {
-		connsMutex.Lock()
-		defer connsMutex.Unlock()
 		if conns[connId] != nil {
 			return conns[connId], nil
 		}

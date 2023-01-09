@@ -37,7 +37,7 @@ func (s *DoubleSpend) SaveTxs(b *dbi.Block) error {
 		}
 	}
 	var blockHashBytes []byte
-	if !block.Header.Timestamp.IsZero() {
+	if dbi.BlockHeaderSet(block.Header) {
 		blockHash := block.BlockHash()
 		blockHashBytes = blockHash.CloneBytes()
 	}

@@ -70,7 +70,7 @@ func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
 		return jerr.Newf("error nil block for lock height queue txs")
 	}
 	blockHash := block.BlockHash()
-	if !block.Header.Timestamp.IsZero() {
+	if dbi.BlockHeaderSet(block.Header) {
 		t.BlockHash = blockHash.CloneBytes()
 		blockHeight, err := chain.GetBlockHeight(t.BlockHash)
 		if err != nil {

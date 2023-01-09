@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"math"
+	"time"
 )
 
 func GetBlockFromTxs(txs []*wire.MsgTx, header *wire.BlockHeader) *wire.MsgBlock {
@@ -14,6 +15,8 @@ func GetBlockFromTxs(txs []*wire.MsgTx, header *wire.BlockHeader) *wire.MsgBlock
 	}
 	if header != nil {
 		block.Header = *header
+	} else {
+		block.Header.Timestamp = time.Unix(0, 0)
 	}
 	return block
 }

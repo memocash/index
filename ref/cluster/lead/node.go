@@ -33,20 +33,22 @@ func (n *Node) SaveBlock(dbi.BlockInfo) error {
 	return nil
 }
 
-func (n *Node) GetBlock(height int64) (*chainhash.Hash, error) {
+func (n *Node) GetBlock(heightBack int64) (*chainhash.Hash, error) {
 	if n.Off {
 		return nil, nil
 	}
-	hash, err := saver.NewBlock(n.Verbose).GetBlock(height + 1)
+	hash, err := saver.NewBlock(n.Verbose).GetBlock(heightBack + 1)
 	if err != nil {
 		return nil, jerr.Get("error getting block for lead node", err)
 	}
 	return hash, nil
 }
 
-func (n *Node) Start() {
+func (n *Node) Start(memPool, syncDone bool) {
 	n.Peer = peer.NewConnection(n, n)
+	n.Peer.SyncDone = syncDone
 	go func() {
+		n.Peer.Mempool = memPool
 		if err := n.Peer.Connect(); err != nil {
 			jerr.Get("fatal error connecting to peer", err).Fatal()
 		}

@@ -35,7 +35,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 	}
 	var blockHash chainhash.Hash
 	var blockHashBytes []byte
-	if !block.Header.Timestamp.IsZero() {
+	if dbi.BlockHeaderSet(block.Header) {
 		blockHash = block.BlockHash()
 		blockHashBytes = blockHash.CloneBytes()
 	}
