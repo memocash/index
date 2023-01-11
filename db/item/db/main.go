@@ -244,3 +244,9 @@ func RawTxHashesToFixed(txHashes [][]byte) [][32]byte {
 	}
 	return fixedTxHashes
 }
+
+func RawTxHashToFixed(txHash []byte) [32]byte {
+	var fixedTxHash [32]byte
+	copy(fixedTxHash[:], txHash)
+	return fixedTxHash
+}

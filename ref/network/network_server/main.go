@@ -88,13 +88,13 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 }
 
 func (s *Server) GetTx(_ context.Context, req *network_pb.TxRequest) (*network_pb.TxReply, error) {
-	getTx := get.NewTx(req.Hash)
+	getTx := get.NewTx(db.RawTxHashToFixed(req.Hash))
 	if err := getTx.Get(); err != nil {
 		return nil, jerr.Get("error getting transaction", err)
 	}
 	return &network_pb.TxReply{Tx: &network_pb.Tx{
 		Raw:   getTx.Raw,
-		Block: getTx.BlockHash,
+		Block: getTx.BlockHash[:],
 	}}, nil
 }
 

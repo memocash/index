@@ -59,10 +59,10 @@ func GetSingleTxBlock(txHash, blockHash []byte) (*TxBlock, error) {
 	return txBlock, nil
 }
 
-func GetSingleTxBlocks(txHash []byte) ([]*TxBlock, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash), config.GetQueueShards())
+func GetSingleTxBlocks(txHash [32]byte) ([]*TxBlock, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetByPrefix(db.TopicChainTxBlock, jutil.ByteReverse(txHash)); err != nil {
+	if err := dbClient.GetByPrefix(db.TopicChainTxBlock, jutil.ByteReverse(txHash[:])); err != nil {
 		return nil, jerr.Get("error getting client message chain tx block by prefix", err)
 	}
 	var txBlocks []*TxBlock

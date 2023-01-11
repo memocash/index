@@ -8,15 +8,16 @@ import (
 )
 
 type Client struct {
+	GraphUrl string
 	Database Database
 }
 
-func updateDb(address *wallet.Addr, c *Client) error {
+func (c *Client) updateDb(address *wallet.Addr) error {
 	height, err := c.Database.GetAddressHeight(address)
 	if err != nil && !jerr.HasError(err, sql.ErrNoRows.Error()) {
 		return jerr.Get("error getting address height", err)
 	}
-	txs, err := graph.GetHistory(address, height)
+	txs, err := graph.GetHistory(c.GraphUrl, address, height)
 	if err != nil {
 		return jerr.Get("error getting history", err)
 	}
@@ -27,7 +28,7 @@ func updateDb(address *wallet.Addr, c *Client) error {
 }
 
 func (c *Client) GetBalance(address *wallet.Addr) (int64, error) {
-	err := updateDb(address, c)
+	err := c.updateDb(address)
 	if err != nil {
 		return 0, jerr.Get("error updating db", err)
 	}
@@ -42,7 +43,7 @@ func (c *Client) GetBalance(address *wallet.Addr) (int64, error) {
 }
 
 func (c *Client) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
-	err := updateDb(address, c)
+	err := c.updateDb(address)
 	if err != nil {
 		return nil, jerr.Get("error updating db", err)
 	}
@@ -56,8 +57,9 @@ func (c *Client) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
 	return utxos, nil
 }
 
-func NewClient(database Database) *Client {
+func NewClient(graphUrl string, database Database) *Client {
 	return &Client{
+		GraphUrl: graphUrl,
 		Database: database,
 	}
 }

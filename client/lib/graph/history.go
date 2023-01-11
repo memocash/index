@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func GetHistory(address *wallet.Addr, startHeight int64) ([]Tx, error) {
+func GetHistory(url string, address *wallet.Addr, startHeight int64) ([]Tx, error) {
 	jsonData := map[string]interface{}{
 		"query": HistoryQuery,
 		"variables": map[string]interface{}{
@@ -22,7 +22,7 @@ func GetHistory(address *wallet.Addr, startHeight int64) ([]Tx, error) {
 	if err != nil {
 		return nil, jerr.Get("error marshaling json for get history", err)
 	}
-	request, err := http.NewRequest("POST", "http://localhost:26770/graphql", bytes.NewBuffer(jsonValue))
+	request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		return nil, jerr.Get("error creating new request for get history", err)
 	}

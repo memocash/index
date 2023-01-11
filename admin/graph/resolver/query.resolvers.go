@@ -115,12 +115,15 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 	if !jutil.StringsInSlice([]string{"size", "tx_count"}, preloads) {
 		return modelBlock, nil
 	}
+
 	blockInfo, err := chain.GetBlockInfo(blockHash[:])
-	if err != nil {
+	if err != nil && !client.IsMessageNotSetError(err) {
 		return nil, jerr.Get("error getting block infos for query resolver", err)
 	}
-	modelBlock.Size = blockInfo.Size
-	modelBlock.TxCount = blockInfo.TxCount
+	if blockInfo != nil {
+		modelBlock.Size = blockInfo.Size
+		modelBlock.TxCount = blockInfo.TxCount
+	}
 	return modelBlock, nil
 }
 

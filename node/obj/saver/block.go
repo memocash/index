@@ -31,7 +31,7 @@ func (b *Block) SaveBlock(info dbi.BlockInfo) error {
 func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 	var objects = make([]db.Object, 1)
 	if b.Verbose {
-		jlog.Logf("saving block: %s\n", b.BlockHash.String())
+		jlog.Logf("saving block: %s (parent: %s)\n", info.Header.BlockHash(), info.Header.PrevBlock.String())
 	}
 	headerRaw := memo.GetRawBlockHeader(info.Header)
 	objects[0] = &chain.Block{

@@ -12,7 +12,7 @@ func GetClient() (*lib.Client, error) {
 	if err != nil {
 		return nil, jerr.Get("error getting database", err)
 	}
-	return lib.NewClient(database), nil
+	return lib.NewClient("http://localhost:26770/graphql", database), nil
 }
 
 func initDb(db *sql.DB) error {

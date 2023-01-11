@@ -1,10 +1,12 @@
 package tx_raw
 
 import (
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
+	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
-	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"sort"
 )
 
 type TxRaw struct {
@@ -12,47 +14,83 @@ type TxRaw struct {
 	Raw  []byte
 }
 
+func GetSingle(txHash [32]byte) (*TxRaw, error) {
+	raws, err := Get([][32]byte{txHash})
+	if err != nil {
+		return nil, jerr.Get("error getting tx raws for single", err)
+	} else if len(raws) != 1 {
+		return nil, jerr.Newf("error tx raw not found for single", err)
+	}
+	return raws[0], nil
+}
+
 func Get(txHashes [][32]byte) ([]*TxRaw, error) {
-	txBlocks, err := chain.GetTxBlocks(txHashes)
+	txs, err := chain.GetTxsByHashes(txHashes)
 	if err != nil {
-		return nil, jerr.Get("error getting tx blocks for double spend lock hashes", err)
+		return nil, jerr.Get("error getting tx inputs for raw", err)
 	}
-	var mempoolTxHashes [][32]byte
-Loop:
-	for _, txHash := range txHashes {
-		for _, txBlock := range txBlocks {
-			if txBlock.TxHash == txHash {
-				continue Loop
-			}
-		}
-		mempoolTxHashes = append(mempoolTxHashes, txHash)
-	}
-	var reqBlockTxs = make([]*item.ReqBlockTx, len(txBlocks))
-	for i := range txBlocks {
-		reqBlockTxs[i] = &item.ReqBlockTx{
-			BlockHash: txBlocks[i].BlockHash[:],
-			TxHash:    txBlocks[i].TxHash[:],
-		}
-	}
-	txBlockRaws, err := item.GetRawTxBlocksByHashes(reqBlockTxs)
+	txInputs, err := chain.GetTxInputsByHashes(txHashes)
 	if err != nil {
-		return nil, jerr.Get("error getting tx blocks for double spend check spends", err)
+		return nil, jerr.Get("error getting tx inputs for raw", err)
 	}
-	mempoolTxRaws, err := item.GetMempoolTxRawByHashes(db.FixedTxHashesToRaw(mempoolTxHashes))
+	sort.Slice(txInputs, func(i, j int) bool {
+		return txInputs[i].Index < txInputs[j].Index
+	})
+	txOutputs, err := chain.GetTxOutputsByHashes(txHashes)
 	if err != nil {
-		return nil, jerr.Get("error getting tx blocks for double spend check spends", err)
+		return nil, jerr.Get("error getting tx outputs for raw", err)
 	}
+	sort.Slice(txOutputs, func(i, j int) bool {
+		return txOutputs[i].Index < txOutputs[j].Index
+	})
 	var txRaws []*TxRaw
-	addTxRaw := func(txHash []byte, raw []byte) {
-		txRaw := &TxRaw{Raw: raw}
-		copy(txRaw.Hash[:], txHash)
-		txRaws = append(txRaws, txRaw)
-	}
-	for _, txBlockRaw := range txBlockRaws {
-		addTxRaw(txBlockRaw.TxHash, txBlockRaw.Raw)
-	}
-	for _, mempoolTxRaw := range mempoolTxRaws {
-		addTxRaw(mempoolTxRaw.TxHash, mempoolTxRaw.Raw)
+	for _, tx := range txs {
+		var msgTx = &wire.MsgTx{
+			Version:  tx.Version,
+			LockTime: tx.LockTime,
+		}
+		for i, txIn := range txInputs {
+			if txIn.TxHash != tx.TxHash {
+				continue
+			}
+			if txIn.Index != uint32(i) {
+				return nil, jerr.Newf("tx input index missing: %d %d", txIn.Index, i)
+			}
+			msgTx.TxIn = append(msgTx.TxIn, &wire.TxIn{
+				PreviousOutPoint: wire.OutPoint{
+					Hash:  txIn.PrevHash,
+					Index: txIn.PrevIndex,
+				},
+				SignatureScript: txIn.UnlockScript,
+				Sequence:        txIn.Sequence,
+			})
+		}
+		if len(msgTx.TxIn) == 0 {
+			return nil, jerr.Newf("tx inputs missing for tx: %s", chainhash.Hash(tx.TxHash))
+		}
+		for i, txOut := range txOutputs {
+			if txOut.TxHash != tx.TxHash {
+				continue
+			}
+			if txOut.Index != uint32(i) {
+				return nil, jerr.Newf("tx output index missing: %d %d", txOut.Index, i)
+			}
+			msgTx.TxOut = append(msgTx.TxOut, &wire.TxOut{
+				Value:    txOut.Value,
+				PkScript: txOut.LockScript,
+			})
+		}
+		if len(msgTx.TxOut) == 0 {
+			return nil, jerr.Newf("tx outputs missing for tx: %s", chainhash.Hash(tx.TxHash))
+		}
+		if msgTx.TxHash() != tx.TxHash {
+			return nil, jerr.Newf("tx hash mismatch for raw: %s %s",
+				msgTx.TxHash(), chainhash.Hash(tx.TxHash))
+		}
+		txRaws = append(txRaws, &TxRaw{
+			Hash: tx.TxHash,
+			Raw:  memo.GetRaw(msgTx),
+		})
 	}
 	return txRaws, nil
 }

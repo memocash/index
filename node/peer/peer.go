@@ -8,6 +8,7 @@ import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/btclog"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -244,7 +245,8 @@ func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 
 func (p *Peer) OnTx(_ *peer.Peer, msg *wire.MsgTx) {
 	if p.TxSave != nil {
-		jlog.Logf("OnTx: %s\n", msg.TxHash().String())
+		jlog.Logf("OnTx: %s, in: %s, out: %s, size: %s\n", msg.TxHash().String(), jfmt.AddCommasInt(len(msg.TxIn)),
+			jfmt.AddCommasInt(len(msg.TxOut)), jfmt.AddCommasInt(msg.SerializeSize()))
 		err := p.TxSave.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{msg}, nil)))
 		if err != nil {
 			p.Error(jerr.Get("error saving new tx", err))

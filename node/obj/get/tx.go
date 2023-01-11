@@ -1,15 +1,14 @@
 package get
 
 import (
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/node/act/tx_raw"
 )
 
 type Tx struct {
-	TxHash    []byte
-	BlockHash []byte
+	TxHash    [32]byte
+	BlockHash [32]byte
 	Raw       []byte
 }
 
@@ -19,27 +18,20 @@ func (t *Tx) Get() error {
 		return jerr.Get("error getting tx blocks", err)
 	}
 	switch l := len(txBlocks); {
-	case l == 0:
-		mempoolTx, err := item.GetMempoolTxRawByHash(t.TxHash)
-		if err != nil {
-			return jerr.Get("error getting mempool tx raw and tx block not found", err)
-		}
-		t.Raw = mempoolTx.Raw
-		return nil
-	case l != 1:
+	case l == 1:
+		t.BlockHash = txBlocks[0].BlockHash
+	case l > 1:
 		return jerr.Newf("error unexpected number of tx blocks returned: %d", len(txBlocks))
 	}
-	txRaw, err := item.GetRawBlockTxByHash(txBlocks[0].BlockHash[:], txBlocks[0].TxHash[:])
+	txRaw, err := tx_raw.GetSingle(t.TxHash)
 	if err != nil {
-		return jerr.Getf(err, "error getting raw block tx by hash: %s %s",
-			chainhash.Hash(txBlocks[0].BlockHash), chainhash.Hash(txBlocks[0].TxHash))
+		return jerr.Get("error getting tx raws for lock hashes double spend checks", err)
 	}
-	t.BlockHash = txBlocks[0].BlockHash[:]
 	t.Raw = txRaw.Raw
 	return nil
 }
 
-func NewTx(txHash []byte) *Tx {
+func NewTx(txHash [32]byte) *Tx {
 	return &Tx{
 		TxHash: txHash,
 	}
