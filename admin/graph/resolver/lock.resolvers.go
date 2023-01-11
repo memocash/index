@@ -46,7 +46,7 @@ func (r *lockResolver) Spends(ctx context.Context, obj *model.Lock, start *model
 		}
 		startUid = addr.GetHeightTxHashIndexUid(*address, int32(height64), *startHash, start.Index)
 	} else if height != nil {
-		startUid = jutil.CombineBytes(address[:], jutil.GetInt64DataBig(int64(*height)))
+		startUid = jutil.CombineBytes(address[:], jutil.GetInt32DataBig(int32(*height)))
 	}
 	heightInputs, err := addr.GetHeightInputs(*address, startUid)
 	if err != nil {
@@ -94,7 +94,7 @@ func (r *lockResolver) Outputs(ctx context.Context, obj *model.Lock, start *mode
 		}
 		startUid = addr.GetHeightTxHashIndexUid(*address, int32(height64), *startHash, start.Index)
 	} else if height != nil {
-		startUid = jutil.CombineBytes(address[:], jutil.GetInt64DataBig(int64(*height)))
+		startUid = jutil.CombineBytes(address[:], jutil.GetInt32DataBig(int32(*height)))
 	}
 	heightOutputs, err := addr.GetHeightOutputs(*address, startUid)
 	if err != nil {

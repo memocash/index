@@ -230,7 +230,8 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 	if err != nil {
 		return nil, jerr.Get("error parsing block header", err)
 	}
-	if err := saver.NewBlock(true).SaveBlock(dbi.BlockInfo{Header: *blockHeader}); err != nil {
+	blockSaver := saver.NewBlock(true)
+	if err := blockSaver.SaveBlock(dbi.BlockInfo{Header: *blockHeader}); err != nil {
 		return nil, jerr.Get("error saving block", err)
 	}
 	blockTxs, err := chain.GetBlockTxes(chain.BlockTxesRequest{BlockHash: blockHeader.BlockHash()})
@@ -264,7 +265,10 @@ BlockTxsLoop:
 		return nil, jerr.Newf("error missing tx raw for blockTx: %s", chainhash.Hash(blockTx.TxHash))
 	}
 	msgTxs = append(existingMsgTxs, msgTxs...)
-	if err := saver.NewCombinedTx(false, false).SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
+
+	block := dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))
+	block.Height = blockSaver.NewHeight
+	if err := saver.NewCombinedTx(false, false).SaveTxs(block); err != nil {
 		return nil, jerr.Get("error saving transactions", err)
 	}
 	return &network_pb.ErrorReply{}, nil
