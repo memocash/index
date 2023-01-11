@@ -32,7 +32,7 @@ var queueProfileCmd = &cobra.Command{
 				continue
 			}
 			blockTxs, err := chain.GetBlockTxes(chain.BlockTxesRequest{
-				BlockHash: heightBlock.BlockHash[:],
+				BlockHash: heightBlock.BlockHash,
 				Limit:     client.HugeLimit,
 			})
 			if err != nil {

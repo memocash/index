@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
@@ -13,6 +14,7 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/act/balance"
+	"github.com/memocash/index/node/act/tx_raw"
 	"github.com/memocash/index/node/obj/get"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -224,11 +226,45 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 			return nil, jerr.Get("error getting tx from raw", err)
 		}
 	}
-	if blockHeader, err := memo.GetBlockHeaderFromRaw(txBlock.Block.Header); err != nil {
+	blockHeader, err := memo.GetBlockHeaderFromRaw(txBlock.Block.Header)
+	if err != nil {
 		return nil, jerr.Get("error parsing block header", err)
-	} else if err := saver.NewBlock(true).SaveBlock(dbi.BlockInfo{Header: *blockHeader}); err != nil {
+	}
+	if err := saver.NewBlock(true).SaveBlock(dbi.BlockInfo{Header: *blockHeader}); err != nil {
 		return nil, jerr.Get("error saving block", err)
-	} else if err := saver.NewCombinedTx(false, false).SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
+	}
+	blockTxs, err := chain.GetBlockTxes(chain.BlockTxesRequest{BlockHash: blockHeader.BlockHash()})
+	if err != nil {
+		return nil, jerr.Get("error getting existing block txes for saving block", err)
+	}
+	sort.Slice(blockTxs, func(i, j int) bool {
+		return blockTxs[i].Index < blockTxs[j].Index
+	})
+	var txHashes = make([][32]byte, len(blockTxs))
+	for i := range blockTxs {
+		txHashes[i] = blockTxs[i].TxHash
+	}
+	txRaws, err := tx_raw.Get(txHashes)
+	if err != nil {
+		return nil, jerr.Get("error getting existing tx raws for tx block saver", err)
+	}
+	var existingMsgTxs []*wire.MsgTx
+BlockTxsLoop:
+	for _, blockTx := range blockTxs {
+		for _, txRaw := range txRaws {
+			if txRaw.Hash == blockTx.TxHash {
+				txMsg, err := memo.GetMsgFromRaw(txRaw.Raw)
+				if err != nil {
+					return nil, jerr.Get("error getting message from existing tx raw for tx block saver", err)
+				}
+				existingMsgTxs = append(existingMsgTxs, txMsg)
+				continue BlockTxsLoop
+			}
+		}
+		return nil, jerr.Newf("error missing tx raw for blockTx: %s", chainhash.Hash(blockTx.TxHash))
+	}
+	msgTxs = append(existingMsgTxs, msgTxs...)
+	if err := saver.NewCombinedTx(false, false).SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
 		return nil, jerr.Get("error saving transactions", err)
 	}
 	return &network_pb.ErrorReply{}, nil

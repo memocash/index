@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -13,8 +12,8 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/node/act/tx_raw"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"sort"
 	"time"
 )
 
@@ -131,71 +130,15 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 			}
 			txHashes[i] = *hash
 		}
-		txs, err := chain.GetTxsByHashes(txHashes)
+		txRaws, err := tx_raw.Get(txHashes)
 		if err != nil {
-			return nil, []error{jerr.Get("error getting tx inputs for raw", err)}
+			return nil, []error{jerr.Get("error getting tx raws for tx dataloader", err)}
 		}
-		txInputs, err := chain.GetTxInputsByHashes(txHashes)
-		if err != nil {
-			return nil, []error{jerr.Get("error getting tx inputs for raw", err)}
+		txRawStrings := make([]string, len(txRaws))
+		for i := range txRaws {
+			txRawStrings[i] = hex.EncodeToString(txRaws[i].Raw)
 		}
-		sort.Slice(txInputs, func(i, j int) bool {
-			return txInputs[i].Index < txInputs[j].Index
-		})
-		txOutputs, err := chain.GetTxOutputsByHashes(txHashes)
-		if err != nil {
-			return nil, []error{jerr.Get("error getting tx outputs for raw", err)}
-		}
-		sort.Slice(txOutputs, func(i, j int) bool {
-			return txOutputs[i].Index < txOutputs[j].Index
-		})
-		var txRaws []string
-		for _, tx := range txs {
-			var msgTx = &wire.MsgTx{
-				Version:  tx.Version,
-				LockTime: tx.LockTime,
-			}
-			for i, txIn := range txInputs {
-				if txIn.TxHash != tx.TxHash {
-					continue
-				}
-				if txIn.Index != uint32(i) {
-					return nil, []error{jerr.Newf("tx input index missing: %d %d", txIn.Index, i)}
-				}
-				msgTx.TxIn = append(msgTx.TxIn, &wire.TxIn{
-					PreviousOutPoint: wire.OutPoint{
-						Hash:  txIn.PrevHash,
-						Index: txIn.PrevIndex,
-					},
-					SignatureScript: txIn.UnlockScript,
-					Sequence:        txIn.Sequence,
-				})
-			}
-			if len(msgTx.TxIn) == 0 {
-				return nil, []error{jerr.Newf("tx inputs missing for tx: %s", chainhash.Hash(tx.TxHash))}
-			}
-			for i, txOut := range txOutputs {
-				if txOut.TxHash != tx.TxHash {
-					continue
-				}
-				if txOut.Index != uint32(i) {
-					return nil, []error{jerr.Newf("tx output index missing: %d %d", txOut.Index, i)}
-				}
-				msgTx.TxOut = append(msgTx.TxOut, &wire.TxOut{
-					Value:    txOut.Value,
-					PkScript: txOut.LockScript,
-				})
-			}
-			if len(msgTx.TxOut) == 0 {
-				return nil, []error{jerr.Newf("tx outputs missing for tx: %s", chainhash.Hash(tx.TxHash))}
-			}
-			if msgTx.TxHash() != tx.TxHash {
-				return nil, []error{jerr.Newf("tx hash mismatch for raw: %s %s",
-					msgTx.TxHash(), chainhash.Hash(tx.TxHash))}
-			}
-			txRaws = append(txRaws, hex.EncodeToString(memo.GetRaw(msgTx)))
-		}
-		return txRaws, nil
+		return txRawStrings, nil
 	},
 }
 

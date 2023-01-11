@@ -25,7 +25,7 @@ func (b *BlockTx) GetShard() uint {
 }
 
 func (b *BlockTx) GetUid() []byte {
-	return GetBlockTxUid(b.BlockHash[:], b.Index)
+	return GetBlockTxUid(b.BlockHash, b.Index)
 }
 
 func (b *BlockTx) SetUid(uid []byte) {
@@ -47,15 +47,15 @@ func (b *BlockTx) Deserialize(data []byte) {
 	copy(b.TxHash[:], jutil.ByteReverse(data[:32]))
 }
 
-func GetBlockTxUid(blockHash []byte, index uint32) []byte {
+func GetBlockTxUid(blockHash [32]byte, index uint32) []byte {
 	return jutil.CombineBytes(
-		jutil.ByteReverse(blockHash),
+		jutil.ByteReverse(blockHash[:]),
 		jutil.GetUint32DataBig(index),
 	)
 }
 
-func GetBlockTx(blockHash []byte, index uint32) (*BlockTx, error) {
-	shard := client.GetByteShard32(blockHash)
+func GetBlockTx(blockHash [32]byte, index uint32) (*BlockTx, error) {
+	shard := client.GetByteShard32(blockHash[:])
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetSingle(db.TopicChainBlockTx, GetBlockTxUid(blockHash, index)); err != nil {
@@ -70,13 +70,13 @@ func GetBlockTx(blockHash []byte, index uint32) (*BlockTx, error) {
 }
 
 type BlockTxesRequest struct {
-	BlockHash  []byte
+	BlockHash  [32]byte
 	StartIndex uint32
 	Limit      uint32
 }
 
 func GetBlockTxes(request BlockTxesRequest) ([]*BlockTx, error) {
-	shard := client.GetByteShard32(request.BlockHash)
+	shard := client.GetByteShard32(request.BlockHash[:])
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var limit uint32
@@ -91,7 +91,7 @@ func GetBlockTxes(request BlockTxesRequest) ([]*BlockTx, error) {
 	}
 	if err := dbClient.GetWOpts(client.Opts{
 		Topic:    db.TopicChainBlockTx,
-		Prefixes: [][]byte{jutil.ByteReverse(request.BlockHash)},
+		Prefixes: [][]byte{jutil.ByteReverse(request.BlockHash[:])},
 		Start:    startUid,
 		Max:      limit,
 	}); err != nil {

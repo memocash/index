@@ -49,13 +49,16 @@ func Get(txHashes [][32]byte) ([]*TxRaw, error) {
 			Version:  tx.Version,
 			LockTime: tx.LockTime,
 		}
-		for i, txIn := range txInputs {
+		var index uint32 = 0
+		for _, txIn := range txInputs {
 			if txIn.TxHash != tx.TxHash {
 				continue
 			}
-			if txIn.Index != uint32(i) {
-				return nil, jerr.Newf("tx input index missing: %d %d", txIn.Index, i)
+			if txIn.Index != index {
+				return nil, jerr.Newf("tx input index missing: %s %d %d",
+					chainhash.Hash(txIn.TxHash), txIn.Index, index)
 			}
+			index++
 			msgTx.TxIn = append(msgTx.TxIn, &wire.TxIn{
 				PreviousOutPoint: wire.OutPoint{
 					Hash:  txIn.PrevHash,
@@ -68,13 +71,16 @@ func Get(txHashes [][32]byte) ([]*TxRaw, error) {
 		if len(msgTx.TxIn) == 0 {
 			return nil, jerr.Newf("tx inputs missing for tx: %s", chainhash.Hash(tx.TxHash))
 		}
-		for i, txOut := range txOutputs {
+		index = 0
+		for _, txOut := range txOutputs {
 			if txOut.TxHash != tx.TxHash {
 				continue
 			}
-			if txOut.Index != uint32(i) {
-				return nil, jerr.Newf("tx output index missing: %d %d", txOut.Index, i)
+			if txOut.Index != index {
+				return nil, jerr.Newf("tx output index missing: %s %d %d",
+					chainhash.Hash(txOut.TxHash), txOut.Index, index)
 			}
+			index++
 			msgTx.TxOut = append(msgTx.TxOut, &wire.TxOut{
 				Value:    txOut.Value,
 				PkScript: txOut.LockScript,

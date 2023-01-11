@@ -6,8 +6,8 @@ import (
 )
 
 type BlockTx struct {
-	BlockHash []byte
-	TxHash    []byte
+	BlockHash [32]byte
+	TxHash    [32]byte
 	BlockTx   *chain.BlockTx
 	TxBlock   *chain.TxBlock
 }
@@ -25,7 +25,7 @@ func (b *BlockTx) Get() error {
 	return nil
 }
 
-func NewBlockTx(blockHash, txHash []byte) *BlockTx {
+func NewBlockTx(blockHash, txHash [32]byte) *BlockTx {
 	return &BlockTx{
 		BlockHash: blockHash,
 		TxHash:    txHash,

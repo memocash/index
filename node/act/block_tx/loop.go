@@ -10,7 +10,7 @@ type Loop struct {
 	Processor func([]*chain.BlockTx) error
 }
 
-func (l *Loop) Process(blockHash []byte) error {
+func (l *Loop) Process(blockHash [32]byte) error {
 	const limit = client.DefaultLimit
 	var startIndex uint32
 	for {

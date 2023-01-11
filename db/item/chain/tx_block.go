@@ -24,7 +24,7 @@ func (b *TxBlock) GetShard() uint {
 }
 
 func (b *TxBlock) GetUid() []byte {
-	return GetTxBlockUid(b.TxHash[:], b.BlockHash[:])
+	return GetTxBlockUid(b.TxHash, b.BlockHash)
 }
 
 func (b *TxBlock) SetUid(uid []byte) {
@@ -41,12 +41,12 @@ func (b *TxBlock) Serialize() []byte {
 
 func (b *TxBlock) Deserialize([]byte) {}
 
-func GetTxBlockUid(txHash []byte, blockHash []byte) []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.ByteReverse(blockHash))
+func GetTxBlockUid(txHash, blockHash [32]byte) []byte {
+	return jutil.CombineBytes(jutil.ByteReverse(txHash[:]), jutil.ByteReverse(blockHash[:]))
 }
 
-func GetSingleTxBlock(txHash, blockHash []byte) (*TxBlock, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash), config.GetQueueShards())
+func GetSingleTxBlock(txHash, blockHash [32]byte) (*TxBlock, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetSingle(db.TopicChainTxBlock, GetTxBlockUid(txHash, blockHash)); err != nil {
 		return nil, jerr.Get("error getting client message single tx block", err)
