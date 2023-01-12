@@ -24,7 +24,7 @@ func (r *blockResolver) Txs(ctx context.Context, obj *model.Block, start *uint32
 	if start != nil {
 		startIndex = *start
 	}
-	blockTxs, err := chain.GetBlockTxes(chain.BlockTxesRequest{
+	blockTxs, err := chain.GetBlockTxs(chain.BlockTxsRequest{
 		BlockHash:  *blockHash,
 		StartIndex: startIndex,
 		Limit:      client.DefaultLimit,

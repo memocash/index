@@ -38,10 +38,10 @@ func (b *Block) Deserialize(data []byte) {
 
 }
 
-func GetBlock(blockHash []byte) (*Block, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(blockHash), config.GetQueueShards())
+func GetBlock(blockHash [32]byte) (*Block, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(blockHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetSingle(db.TopicChainBlock, jutil.ByteReverse(blockHash)); err != nil {
+	if err := dbClient.GetSingle(db.TopicChainBlock, jutil.ByteReverse(blockHash[:])); err != nil {
 		return nil, jerr.Get("error getting client message block", err)
 	}
 	if len(dbClient.Messages) != 1 {

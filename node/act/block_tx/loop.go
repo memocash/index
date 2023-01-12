@@ -14,7 +14,7 @@ func (l *Loop) Process(blockHash [32]byte) error {
 	const limit = client.DefaultLimit
 	var startIndex uint32
 	for {
-		blockTxes, err := chain.GetBlockTxes(chain.BlockTxesRequest{
+		blockTxes, err := chain.GetBlockTxs(chain.BlockTxsRequest{
 			BlockHash:  blockHash,
 			StartIndex: startIndex,
 			Limit:      limit,

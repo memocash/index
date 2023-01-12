@@ -29,14 +29,23 @@ func Decompile(script []byte) []OpCode {
 			var dataLength, offset int
 			switch script[i] {
 			case txscript.OP_PUSHDATA4:
-				dataLength = int(script[i+1]) + int(script[i+2])*256 + int(script[i+3])*256*256 + int(script[i+4])*256*256*256
 				offset = 4
+				if i+offset >= len(script) {
+					return []OpCode{}
+				}
+				dataLength = int(script[i+1]) + int(script[i+2])*256 + int(script[i+3])*256*256 + int(script[i+4])*256*256*256
 			case txscript.OP_PUSHDATA2:
-				dataLength = int(script[i+1]) + int(script[i+2])*256
 				offset = 2
+				if i+offset >= len(script) {
+					return []OpCode{}
+				}
+				dataLength = int(script[i+1]) + int(script[i+2])*256
 			case txscript.OP_PUSHDATA1:
-				dataLength = int(script[i+1])
 				offset = 1
+				if i+offset >= len(script) {
+					return []OpCode{}
+				}
+				dataLength = int(script[i+1])
 			default:
 				dataLength = int(script[i])
 			}

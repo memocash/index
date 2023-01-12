@@ -31,7 +31,7 @@ var queueProfileCmd = &cobra.Command{
 			if db.GetShardByte(heightBlock.BlockHash[:]) != Shard {
 				continue
 			}
-			blockTxs, err := chain.GetBlockTxes(chain.BlockTxesRequest{
+			blockTxs, err := chain.GetBlockTxs(chain.BlockTxsRequest{
 				BlockHash: heightBlock.BlockHash,
 				Limit:     client.HugeLimit,
 			})

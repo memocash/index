@@ -10,6 +10,7 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/status"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
@@ -124,7 +125,7 @@ func (t *Block) Process() error {
 }
 
 func (t *Block) ProcessBlock(heightBlock *HeightBlock) error {
-	block, err := chain.GetBlock(heightBlock.BlockHash)
+	block, err := chain.GetBlock(db.RawTxHashToFixed(heightBlock.BlockHash))
 	if err != nil {
 		return jerr.Getf(err, "error getting block: %d %x", heightBlock.Height,
 			jutil.ByteReverse(heightBlock.BlockHash))

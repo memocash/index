@@ -69,13 +69,13 @@ func GetBlockTx(blockHash [32]byte, index uint32) (*BlockTx, error) {
 	return block, nil
 }
 
-type BlockTxesRequest struct {
+type BlockTxsRequest struct {
 	BlockHash  [32]byte
 	StartIndex uint32
 	Limit      uint32
 }
 
-func GetBlockTxes(request BlockTxesRequest) ([]*BlockTx, error) {
+func GetBlockTxs(request BlockTxsRequest) ([]*BlockTx, error) {
 	shard := client.GetByteShard32(request.BlockHash[:])
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())

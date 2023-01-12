@@ -96,7 +96,7 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 	if err != nil {
 		return nil, jerr.Get("error getting block height for query resolver", err)
 	}
-	block, err := chain.GetBlock(blockHash[:])
+	block, err := chain.GetBlock(*blockHash)
 	if err != nil {
 		return nil, jerr.Get("error getting raw block", err)
 	}
@@ -116,7 +116,7 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 		return modelBlock, nil
 	}
 
-	blockInfo, err := chain.GetBlockInfo(blockHash[:])
+	blockInfo, err := chain.GetBlockInfo(*blockHash)
 	if err != nil && !client.IsMessageNotSetError(err) {
 		return nil, jerr.Get("error getting block infos for query resolver", err)
 	}
@@ -136,7 +136,7 @@ func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	if heightBlock == nil {
 		return nil, nil
 	}
-	block, err := chain.GetBlock(heightBlock.BlockHash[:])
+	block, err := chain.GetBlock(heightBlock.BlockHash)
 	if err != nil {
 		return nil, jerr.Get("error getting raw block", err)
 	}
@@ -365,7 +365,7 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 					return
 				}
 			}
-			block, err := chain.GetBlock(blockHeight.BlockHash[:])
+			block, err := chain.GetBlock(blockHeight.BlockHash)
 			if err != nil {
 				jerr.Get("error getting block for block height subscription", err).Print()
 				return

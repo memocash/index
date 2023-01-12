@@ -25,6 +25,7 @@ func GetCommand() *cobra.Command {
 		queueProfileCmd,
 		checkLockUtxoCmd,
 		checkFollowsCmd,
+		populateP2shCmd,
 	)
 	return maintCommand
 }

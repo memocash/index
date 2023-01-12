@@ -125,7 +125,7 @@ func (s *Shard) process(blockHashByte []byte, initialSync bool) error {
 	if err != nil {
 		return jerr.Get("error parsing block hash for shard save utxos", err)
 	}
-	block, err := chain.GetBlock(blockHash[:])
+	block, err := chain.GetBlock(*blockHash)
 	if err != nil {
 		return jerr.Get("error getting block for shard save utxos", err)
 	}
