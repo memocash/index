@@ -43,18 +43,18 @@ func TestUnlockScriptAddr(t *testing.T) {
 			continue
 		}
 		if addrLock.String() != test.Address {
-			t.Error(jerr.Newf("address mismatch: %s %s", addrLock.String(), test.Address))
+			t.Error(jerr.Newf("address lock mismatch: %s %s", addrLock.String(), test.Address))
 			continue
 		}
-		/*addrUnlock, err := wallet.GetAddrFromUnlockScript(test.UnlockScript)
+		addrUnlock, err := wallet.GetAddrFromUnlockScript(test.UnlockScript)
 		if err != nil {
 			t.Error(jerr.Getf(err, "error getting address from unlock script: %s", test.Address))
 			continue
 		}
 		if addrUnlock.String() != test.Address {
-			t.Error(jerr.Newf("address mismatch: %s %s", addrUnlock.String(), test.Address))
+			t.Error(jerr.Newf("address unlock mismatch: %s %s", addrUnlock.String(), test.Address))
 			continue
-		}*/
+		}
 		jlog.Logf("success address: %s\n", test.Address)
 	}
 }

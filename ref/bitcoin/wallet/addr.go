@@ -26,6 +26,18 @@ func GetAddrFromString(addrString string) (*Addr, error) {
 }
 
 func GetAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
+	p2pkhAddr, errP2pkh := GetP2pkhAddrFromUnlockScript(unlockScript)
+	if errP2pkh == nil {
+		return p2pkhAddr, nil
+	}
+	p2shAddr, errP2sh := GetP2shAddrFromUnlockScript(unlockScript)
+	if errP2sh == nil {
+		return p2shAddr, nil
+	}
+	return nil, jerr.Get("error getting address from unlock script", jerr.Combine(errP2pkh, errP2sh))
+}
+
+func GetP2pkhAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
 	l := len(unlockScript)
 	if l < 2 {
 		return nil, jerr.Newf("error unlock script is not a standard address 0: none")
@@ -40,6 +52,27 @@ func GetAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
 	}
 	var addr = new(Addr)
 	copy(addr[1:21], btcutil.Hash160(unlockScript[s+2:]))
+	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
+	return addr, nil
+}
+
+func GetP2shAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
+	if len(unlockScript) < 2 {
+		return nil, jerr.New("error unlock script is too short for p2sh")
+	}
+	opCodes := Decompile(unlockScript)
+	if len(opCodes) == 0 {
+		return nil, jerr.Newf("error decompiling unlock script for p2sh")
+	}
+	redeemScript := opCodes[len(opCodes)-1].Data
+	chunks := Decompile(redeemScript)
+	if len(chunks) == 0 {
+		return nil, jerr.Newf("error decompiling redeem script for p2sh")
+	}
+	hash := btcutil.Hash160(redeemScript)
+	var addr = new(Addr)
+	addr[0] = 5
+	copy(addr[1:21], hash)
 	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
 	return addr, nil
 }
