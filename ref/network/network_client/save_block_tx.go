@@ -15,7 +15,7 @@ type BlockTxs struct {
 
 func SaveBlockTxs(blockTxs BlockTxs) error {
 	config := GetConfig()
-	if ! config.IsSet() {
+	if !config.IsSet() {
 		return nil
 	}
 	conn, err := grpc.Dial(config.String(), grpc.WithInsecure())

@@ -21,9 +21,9 @@ func NewPopulateP2sh() *PopulateP2sh {
 	return &PopulateP2sh{}
 }
 
-func (p *PopulateP2sh) Populate() error {
+func (p *PopulateP2sh) Populate(startHeight int64) error {
 	addressSaver := saver.NewAddress(false, false)
-	var maxHeight int64
+	var maxHeight = startHeight
 	for {
 		heightBlocks, err := chain.GetHeightBlocksAllLimit(maxHeight, false, client.HugeLimit, false)
 		if err != nil {
@@ -31,6 +31,7 @@ func (p *PopulateP2sh) Populate() error {
 		}
 		for _, heightBlock := range heightBlocks {
 			var startIndex uint32
+			var totalTxs int
 			for {
 				blockTxs, err := chain.GetBlockTxs(chain.BlockTxsRequest{
 					BlockHash:  heightBlock.BlockHash,
@@ -70,10 +71,11 @@ func (p *PopulateP2sh) Populate() error {
 				if err := addressSaver.SaveTxs(dbiBlock); err != nil {
 					return jerr.Get("error saving txs for populate p2sh", err)
 				}
+				totalTxs += len(blockTxs)
 				if len(blockTxs) < client.LargeLimit {
-					jlog.Logf("processed block p2sh: %d %s %s\n",
+					jlog.Logf("processed block p2sh: %d %s %s (%d txs)\n",
 						heightBlock.Height, chainhash.Hash(heightBlock.BlockHash),
-						blockHeader.Timestamp.Format("2006-01-02T15:04:05"))
+						blockHeader.Timestamp.Format("2006-01-02T15:04:05"), totalTxs)
 					p.BlocksProcessed++
 					break
 				}
