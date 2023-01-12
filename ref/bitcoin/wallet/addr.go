@@ -45,6 +45,18 @@ func GetAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
 }
 
 func GetAddrFromLockScript(lockScript []byte) (*Addr, error) {
+	p2pkhAddr, errP2pkh := GetP2pkhAddrFromLockScript(lockScript)
+	if errP2pkh == nil {
+		return p2pkhAddr, nil
+	}
+	p2shAddr, errP2sh := GetP2shAddrFromLockScript(lockScript)
+	if errP2sh == nil {
+		return p2shAddr, nil
+	}
+	return nil, jerr.Get("error getting address from lock script", jerr.Combine(errP2pkh, errP2sh))
+}
+
+func GetP2pkhAddrFromLockScript(lockScript []byte) (*Addr, error) {
 	if len(lockScript) != 25 ||
 		!bytes.Equal(lockScript[0:3], []byte{txscript.OP_DUP, txscript.OP_HASH160, txscript.OP_DATA_20}) ||
 		!bytes.Equal(lockScript[23:], []byte{txscript.OP_EQUALVERIFY, txscript.OP_CHECKSIG}) {
@@ -52,6 +64,19 @@ func GetAddrFromLockScript(lockScript []byte) (*Addr, error) {
 	}
 	var addr = new(Addr)
 	copy(addr[1:21], lockScript[3:23])
+	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
+	return addr, nil
+}
+
+func GetP2shAddrFromLockScript(lockScript []byte) (*Addr, error) {
+	if len(lockScript) != 23 ||
+		!bytes.Equal(lockScript[0:2], []byte{txscript.OP_HASH160, txscript.OP_DATA_20}) ||
+		lockScript[22] != txscript.OP_EQUAL {
+		return nil, jerr.New("error lock script is not a standard address")
+	}
+	var addr = new(Addr)
+	addr[0] = 5
+	copy(addr[1:21], lockScript[2:22])
 	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
 	return addr, nil
 }
