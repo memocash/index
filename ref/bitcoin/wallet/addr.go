@@ -9,10 +9,23 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 )
 
+const (
+	AddrVersionP2PKH = 0
+	AddrVersionP2SH  = 5
+)
+
 type Addr [25]byte
 
 func (a Addr) String() string {
 	return base58.Encode(a[:])
+}
+
+func (a Addr) IsP2SH() bool {
+	return a[0] == AddrVersionP2SH
+}
+
+func (a Addr) IsP2PKH() bool {
+	return a[0] == AddrVersionP2PKH
 }
 
 func GetAddrFromString(addrString string) (*Addr, error) {
@@ -71,7 +84,7 @@ func GetP2shAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
 	}
 	hash := btcutil.Hash160(redeemScript)
 	var addr = new(Addr)
-	addr[0] = 5
+	addr[0] = AddrVersionP2SH
 	copy(addr[1:21], hash)
 	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
 	return addr, nil
@@ -108,7 +121,7 @@ func GetP2shAddrFromLockScript(lockScript []byte) (*Addr, error) {
 		return nil, jerr.New("error lock script is not a standard address")
 	}
 	var addr = new(Addr)
-	addr[0] = 5
+	addr[0] = AddrVersionP2SH
 	copy(addr[1:21], lockScript[2:22])
 	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
 	return addr, nil

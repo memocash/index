@@ -73,10 +73,13 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 				}
 				totalTxs += len(blockTxs)
 				if len(blockTxs) < client.LargeLimit {
-					jlog.Logf("processed block p2sh: %d %s %s (%d txs)\n",
+					jlog.Logf("processed block p2sh: %d %s %s (tx: %d, p2sh: %d, p2pkh: %d)\n",
 						heightBlock.Height, chainhash.Hash(heightBlock.BlockHash),
-						blockHeader.Timestamp.Format("2006-01-02T15:04:05"), totalTxs)
+						blockHeader.Timestamp.Format("2006-01-02T15:04:05"), totalTxs,
+						addressSaver.P2shCount, addressSaver.P2pkhCount)
 					p.BlocksProcessed++
+					addressSaver.P2pkhCount = 0
+					addressSaver.P2shCount = 0
 					break
 				}
 			}

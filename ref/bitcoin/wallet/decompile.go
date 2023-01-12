@@ -1,6 +1,10 @@
 package wallet
 
-import "github.com/jchavannes/btcd/txscript"
+import (
+	"fmt"
+	"github.com/jchavannes/btcd/txscript"
+	"strings"
+)
 
 type OpCode struct {
 	Code byte
@@ -17,6 +21,19 @@ func (o OpCode) String() string {
 
 func IsDataOpCode(code byte) bool {
 	return code >= txscript.OP_DATA_1 && code <= txscript.OP_PUSHDATA4
+}
+
+type OpCodes []OpCode
+
+func (o OpCodes) String() string {
+	var parts []string
+	for _, opCode := range o {
+		parts = append(parts, opCode.String())
+		if len(opCode.Data) > 0 {
+			parts = append(parts, fmt.Sprintf("%x", opCode.Data))
+		}
+	}
+	return strings.Join(parts, " ")
 }
 
 func Decompile(script []byte) []OpCode {

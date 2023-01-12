@@ -6,6 +6,7 @@ import (
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/dbi"
 )
@@ -13,6 +14,8 @@ import (
 type Address struct {
 	Verbose     bool
 	InitialSync bool
+	P2shCount   int64
+	P2pkhCount  int64
 }
 
 func (a *Address) SaveTxs(b *dbi.Block) error {
@@ -32,6 +35,9 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}
 		for j := range tx.TxIn {
+			if memo.IsCoinbaseInput(tx.TxIn[j]) {
+				continue
+			}
 			address, err := wallet.GetAddrFromUnlockScript(tx.TxIn[j].SignatureScript)
 			if err != nil {
 				//jerr.Get("error getting address from unlock script", err).Print()
@@ -42,6 +48,14 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 				Height: int32(height),
 				TxHash: txHash,
 				Index:  uint32(j),
+			}
+			if address.IsP2PKH() {
+				a.P2pkhCount++
+			} else if address.IsP2SH() {
+				a.P2shCount++
+				if a.Verbose {
+					jlog.Logf("p2sh input: %s (%s)\n", address.String(), txHash.String())
+				}
 			}
 			objects = append(objects, heightInput)
 			if !a.InitialSync && height != item.HeightMempool {
@@ -64,6 +78,14 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 				TxHash: txHash,
 				Index:  uint32(h),
 				Value:  tx.TxOut[h].Value,
+			}
+			if address.IsP2PKH() {
+				a.P2pkhCount++
+			} else if address.IsP2SH() {
+				a.P2shCount++
+				if a.Verbose {
+					jlog.Logf("p2sh output: %s (%s)\n", address.String(), txHash.String())
+				}
 			}
 			objects = append(objects, heightOutput)
 			if !a.InitialSync && height != item.HeightMempool {
