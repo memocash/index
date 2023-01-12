@@ -10,4 +10,5 @@ type Database interface {
 	GetAddressHeight(address *wallet.Addr) (int64, error)
 	GetUtxos(address *wallet.Addr) ([]graph.Output, error)
 	SaveTxs(txs []graph.Tx) error
+	SetAddressHeight(address *wallet.Addr, height int64) error
 }

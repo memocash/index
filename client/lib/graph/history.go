@@ -10,7 +10,12 @@ import (
 	"time"
 )
 
-func GetHistory(url string, address *wallet.Addr, startHeight int64) ([]Tx, error) {
+type History struct {
+	Outputs []Tx
+	Spends  []Tx
+}
+
+func GetHistory(url string, address *wallet.Addr, startHeight int64) (*History, error) {
 	jsonData := map[string]interface{}{
 		"query": HistoryQuery,
 		"variables": map[string]interface{}{
@@ -51,26 +56,26 @@ func GetHistory(url string, address *wallet.Addr, startHeight int64) ([]Tx, erro
 	if len(dataStruct.Errors) > 0 {
 		return nil, jerr.Get("error response data", jerr.New(dataStruct.Errors[0].Message))
 	}
-	var txs []Tx
+	var history = new(History)
 OutputLoop:
 	for _, output := range dataStruct.Data.Address.Outputs {
-		for _, tx := range txs {
+		for _, tx := range history.Outputs {
 			if tx.Hash == output.Tx.Hash {
 				continue OutputLoop
 			}
 		}
-		txs = append(txs, output.Tx)
+		history.Outputs = append(history.Outputs, output.Tx)
 	}
 SpendsLoop:
 	for _, input := range dataStruct.Data.Address.Spends {
-		for _, tx := range txs {
+		for _, tx := range history.Spends {
 			if tx.Hash == input.Tx.Hash {
 				continue SpendsLoop
 			}
 		}
-		txs = append(txs, input.Tx)
+		history.Spends = append(history.Spends, input.Tx)
 	}
-	return txs, nil
+	return history, nil
 }
 
 const QueryTx = `tx {

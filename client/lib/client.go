@@ -17,12 +17,35 @@ func (c *Client) updateDb(address *wallet.Addr) error {
 	if err != nil && !jerr.HasError(err, sql.ErrNoRows.Error()) {
 		return jerr.Get("error getting address height", err)
 	}
-	txs, err := graph.GetHistory(c.GraphUrl, address, height)
+	history, err := graph.GetHistory(c.GraphUrl, address, height)
 	if err != nil {
 		return jerr.Get("error getting history", err)
 	}
-	if err := c.Database.SaveTxs(txs); err != nil {
-		return jerr.Get("error saving txs", err)
+	for _, txs := range [][]graph.Tx{history.Outputs, history.Spends} {
+		if err := c.Database.SaveTxs(txs); err != nil {
+			return jerr.Get("error saving txs", err)
+		}
+	}
+	var maxHeightOutput int64
+	for _, output := range history.Outputs {
+		if len(output.Blocks) > 0 && output.Blocks[0].Height > maxHeightOutput {
+			maxHeightOutput = output.Blocks[0].Height
+		}
+	}
+	var maxHeightSpends int64
+	for _, spend := range history.Spends {
+		if len(spend.Blocks) > 0 && spend.Blocks[0].Height > maxHeightSpends {
+			maxHeightSpends = spend.Blocks[0].Height
+		}
+	}
+	var maxHeight int64
+	if maxHeightOutput > maxHeightSpends {
+		maxHeight = maxHeightSpends
+	} else {
+		maxHeight = maxHeightOutput
+	}
+	if err := c.Database.SetAddressHeight(address, maxHeight); err != nil {
+		return jerr.Get("error setting address height for client update db", err)
 	}
 	return nil
 }

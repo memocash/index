@@ -91,6 +91,14 @@ func (d *Database) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
 	return results, nil
 }
 
+func (d *Database) SetAddressHeight(address *wallet.Addr, height int64) error {
+	query := "INSERT OR REPLACE INTO address_heights (address, height) VALUES (?, ?)"
+	if _, err := d.Db.Exec(query, address.String(), height); err != nil {
+		return jerr.Get("error updating address height", err)
+	}
+	return nil
+}
+
 func (d *Database) SaveTxs(txs []graph.Tx) error {
 	for _, tx := range txs {
 		var queries = []Query{{
