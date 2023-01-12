@@ -79,6 +79,17 @@ func GetTxOutputsByHashes(txHashes [][32]byte) ([]*TxOutput, error) {
 	return txOutputs, nil
 }
 
+func GetTxOutput(out memo.Out) (*TxOutput, error) {
+	txOutputs, err := GetTxOutputs([]memo.Out{out})
+	if err != nil {
+		return nil, jerr.Get("error getting tx outputs for single", err)
+	}
+	if len(txOutputs) == 0 {
+		return nil, nil
+	}
+	return txOutputs[0], nil
+}
+
 func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
 	var shardOutGroups = make(map[uint32][]memo.Out)
 	for _, out := range outs {

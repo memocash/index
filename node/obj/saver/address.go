@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/addr"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -42,6 +43,26 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 			if err != nil {
 				//jerr.Get("error getting address from unlock script", err).Print()
 				continue
+			}
+			if address.IsP2SH() {
+				txOutput, err := chain.GetTxOutput(memo.Out{
+					TxHash: tx.TxIn[j].PreviousOutPoint.Hash[:],
+					Index:  tx.TxIn[j].PreviousOutPoint.Index,
+				})
+				if err != nil {
+					return jerr.Get("error getting tx output for address p2sh", err)
+				}
+				if txOutput != nil {
+					addressOut, err := wallet.GetAddrFromLockScript(txOutput.LockScript)
+					if err != nil {
+						return jerr.Get("error getting address from output lock script for input", err)
+					}
+					if address != addressOut {
+						jerr.Newf("address mismatch for p2sh input: %s %s",
+							address.String(), addressOut.String()).Print()
+						continue
+					}
+				}
 			}
 			heightInput := &addr.HeightInput{
 				Addr:   *address,
