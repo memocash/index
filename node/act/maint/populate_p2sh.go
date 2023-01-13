@@ -12,7 +12,6 @@ import (
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/dbi"
-	"sync"
 )
 
 type PopulateP2sh struct {
@@ -23,20 +22,9 @@ func NewPopulateP2sh() *PopulateP2sh {
 	return &PopulateP2sh{}
 }
 
-type ShardProcess struct {
-	Errors []error
-	Mutex  sync.Mutex
-	Wg     sync.WaitGroup
-}
-
-func (p *ShardProcess) AddError(shard uint32, err error) {
-	p.Mutex.Lock()
-	defer p.Mutex.Unlock()
-	p.Errors = append(p.Errors, jerr.Getf(err, "error process shard: %d", shard))
-}
-
 func (p *PopulateP2sh) Populate(startHeight int64) error {
 	addressSaver := saver.NewAddress(false, true)
+	addressSaver.SkipP2pkh = true
 	var maxHeight = startHeight
 	for {
 		heightBlocks, err := chain.GetHeightBlocksAllLimit(maxHeight, false, client.HugeLimit, false)

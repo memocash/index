@@ -17,6 +17,7 @@ type Address struct {
 	InitialSync bool
 	P2shCount   int64
 	P2pkhCount  int64
+	SkipP2pkh   bool
 }
 
 func (a *Address) SaveTxs(b *dbi.Block) error {
@@ -65,6 +66,9 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 					}
 				}
 			}
+			if address.IsP2PKH() && a.SkipP2pkh {
+				continue
+			}
 			heightInput := &addr.HeightInput{
 				Addr:   *address,
 				Height: int32(height),
@@ -92,6 +96,9 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 		for h := range tx.TxOut {
 			address, err := wallet.GetAddrFromLockScript(tx.TxOut[h].PkScript)
 			if err != nil {
+				continue
+			}
+			if address.IsP2PKH() && a.SkipP2pkh {
 				continue
 			}
 			heightOutput := &addr.HeightOutput{
