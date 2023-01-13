@@ -65,23 +65,21 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 						continue
 					}
 				}
-			}
-			if address.IsP2PKH() && a.SkipP2pkh {
-				continue
+				a.P2shCount++
+				if a.Verbose {
+					jlog.Logf("p2sh input: %s (%s)\n", address.String(), txHash.String())
+				}
+			} else if address.IsP2PKH() {
+				a.P2pkhCount++
+				if a.SkipP2pkh {
+					continue
+				}
 			}
 			heightInput := &addr.HeightInput{
 				Addr:   *address,
 				Height: int32(height),
 				TxHash: txHash,
 				Index:  uint32(j),
-			}
-			if address.IsP2PKH() {
-				a.P2pkhCount++
-			} else if address.IsP2SH() {
-				a.P2shCount++
-				if a.Verbose {
-					jlog.Logf("p2sh input: %s (%s)\n", address.String(), txHash.String())
-				}
 			}
 			objects = append(objects, heightInput)
 			if !a.InitialSync && height != item.HeightMempool {
@@ -98,8 +96,16 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 			if err != nil {
 				continue
 			}
-			if address.IsP2PKH() && a.SkipP2pkh {
-				continue
+			if address.IsP2SH() {
+				a.P2shCount++
+				if a.Verbose {
+					jlog.Logf("p2sh output: %s (%s)\n", address.String(), txHash.String())
+				}
+			} else if address.IsP2PKH() {
+				a.P2pkhCount++
+				if a.SkipP2pkh {
+					continue
+				}
 			}
 			heightOutput := &addr.HeightOutput{
 				Addr:   *address,
@@ -107,14 +113,6 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 				TxHash: txHash,
 				Index:  uint32(h),
 				Value:  tx.TxOut[h].Value,
-			}
-			if address.IsP2PKH() {
-				a.P2pkhCount++
-			} else if address.IsP2SH() {
-				a.P2shCount++
-				if a.Verbose {
-					jlog.Logf("p2sh output: %s (%s)\n", address.String(), txHash.String())
-				}
 			}
 			objects = append(objects, heightOutput)
 			if !a.InitialSync && height != item.HeightMempool {
