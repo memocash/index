@@ -106,7 +106,7 @@ func GetP2pkhAddrFromLockScript(lockScript []byte) (*Addr, error) {
 	if len(lockScript) != 25 ||
 		!bytes.Equal(lockScript[0:3], []byte{txscript.OP_DUP, txscript.OP_HASH160, txscript.OP_DATA_20}) ||
 		!bytes.Equal(lockScript[23:], []byte{txscript.OP_EQUALVERIFY, txscript.OP_CHECKSIG}) {
-		return nil, jerr.New("error lock script is not a standard address")
+		return nil, jerr.New("error lock script is not a p2pkh address")
 	}
 	var addr = new(Addr)
 	copy(addr[1:21], lockScript[3:23])
@@ -118,7 +118,7 @@ func GetP2shAddrFromLockScript(lockScript []byte) (*Addr, error) {
 	if len(lockScript) != 23 ||
 		!bytes.Equal(lockScript[0:2], []byte{txscript.OP_HASH160, txscript.OP_DATA_20}) ||
 		lockScript[22] != txscript.OP_EQUAL {
-		return nil, jerr.New("error lock script is not a standard address")
+		return nil, jerr.New("error lock script is not a p2sh address")
 	}
 	var addr = new(Addr)
 	addr[0] = AddrVersionP2SH

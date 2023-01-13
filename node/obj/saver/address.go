@@ -55,7 +55,8 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 				if txOutput != nil {
 					addressOut, err := wallet.GetAddrFromLockScript(txOutput.LockScript)
 					if err != nil {
-						return jerr.Get("error getting address from output lock script for input", err)
+						//jerr.Getf(err, "error address from output lock script for input: %s:%d", txHash, j).Print()
+						continue
 					}
 					if address != addressOut {
 						jerr.Newf("address mismatch for p2sh input: %s %s",
