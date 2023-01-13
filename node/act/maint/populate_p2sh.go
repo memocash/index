@@ -7,10 +7,12 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/act/tx_raw"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/dbi"
+	"sync"
 )
 
 type PopulateP2sh struct {
@@ -21,8 +23,20 @@ func NewPopulateP2sh() *PopulateP2sh {
 	return &PopulateP2sh{}
 }
 
+type ShardProcess struct {
+	Errors []error
+	Mutex  sync.Mutex
+	Wg     sync.WaitGroup
+}
+
+func (p *ShardProcess) AddError(shard uint32, err error) {
+	p.Mutex.Lock()
+	defer p.Mutex.Unlock()
+	p.Errors = append(p.Errors, jerr.Getf(err, "error process shard: %d", shard))
+}
+
 func (p *PopulateP2sh) Populate(startHeight int64) error {
-	addressSaver := saver.NewAddress(false, false)
+	addressSaver := saver.NewAddress(false, true)
 	var maxHeight = startHeight
 	for {
 		heightBlocks, err := chain.GetHeightBlocksAllLimit(maxHeight, false, client.HugeLimit, false)
@@ -49,27 +63,42 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 				if err != nil {
 					return jerr.Get("error getting block header for populate p2sh", err)
 				}
-				var txHashes = make([][32]byte, len(blockTxs))
+				var txHashShards = make(map[uint32][][32]byte, len(blockTxs))
 				for i := range blockTxs {
 					if blockTxs[i].Index > startIndex {
 						startIndex = blockTxs[i].Index
 					}
-					txHashes[i] = blockTxs[i].TxHash
+					shard := db.GetShardByte32(blockTxs[i].TxHash[:])
+					txHashShards[shard] = append(txHashShards[shard], blockTxs[i].TxHash)
 				}
-				txRaws, err := tx_raw.Get(txHashes)
-				if err != nil {
-					return jerr.Get("error getting tx raws for populate p2sh", err)
+				var shardProcess ShardProcess
+				shardProcess.Wg.Add(len(txHashShards))
+				for shardT, txHashesT := range txHashShards {
+					go func(shard uint32, txHashes [][32]byte) {
+						txRaws, err := tx_raw.Get(txHashes)
+						if err != nil {
+							shardProcess.AddError(shard, jerr.Get("error getting tx raws for populate p2sh", err))
+							return
+						}
+						var msgTxs = make([]*wire.MsgTx, len(txRaws))
+						for i := range txRaws {
+							msgTxs[i], err = memo.GetMsgFromRaw(txRaws[i].Raw)
+							if err != nil {
+								shardProcess.AddError(shard, jerr.Get("error getting msg tx for populate p2sh", err))
+								return
+							}
+						}
+						dbiBlock := dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))
+						if err := addressSaver.SaveTxs(dbiBlock); err != nil {
+							shardProcess.AddError(shard, jerr.Get("error saving txs for populate p2sh", err))
+							return
+						}
+						shardProcess.Wg.Done()
+					}(shardT, txHashesT)
 				}
-				var msgTxs = make([]*wire.MsgTx, len(txRaws))
-				for i := range txRaws {
-					msgTxs[i], err = memo.GetMsgFromRaw(txRaws[i].Raw)
-					if err != nil {
-						return jerr.Get("error getting msg tx for populate p2sh", err)
-					}
-				}
-				dbiBlock := dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))
-				if err := addressSaver.SaveTxs(dbiBlock); err != nil {
-					return jerr.Get("error saving txs for populate p2sh", err)
+				shardProcess.Wg.Wait()
+				if len(shardProcess.Errors) > 0 {
+					return jerr.Get("error processing tx group for populate p2sh", jerr.Combine(shardProcess.Errors...))
 				}
 				totalTxs += len(blockTxs)
 				if len(blockTxs) < client.LargeLimit {
