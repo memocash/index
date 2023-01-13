@@ -28,6 +28,10 @@ func (a Addr) IsP2PKH() bool {
 	return a[0] == AddrVersionP2PKH
 }
 
+func (a Addr) Equals(b Addr) bool {
+	return a == b
+}
+
 func GetAddrFromString(addrString string) (*Addr, error) {
 	var addr = new(Addr)
 	d := base58.Decode(addrString)

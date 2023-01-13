@@ -58,7 +58,7 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 						//jerr.Getf(err, "error address from output lock script for input: %s:%d", txHash, j).Print()
 						continue
 					}
-					if address != addressOut {
+					if !address.Equals(*addressOut) {
 						jerr.Newf("address mismatch for p2sh input: %s %s",
 							address.String(), addressOut.String()).Print()
 						continue
