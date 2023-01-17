@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	SyncStatusSaveTxs        = "txs"
-	SyncStatusProcessInitial = "process-initial"
+	SyncStatusSaveTxs = "txs"
 )
 
 type SyncStatus struct {

@@ -92,7 +92,7 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 	if err != nil {
 		return nil, jerr.Get("error parsing block hash for block query resolver", err)
 	}
-	blockHeight, err := chain.GetBlockHeight(blockHash[:])
+	blockHeight, err := chain.GetBlockHeight(*blockHash)
 	if err != nil {
 		return nil, jerr.Get("error getting block height for query resolver", err)
 	}

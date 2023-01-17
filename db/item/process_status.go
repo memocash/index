@@ -2,46 +2,43 @@ package item
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
 
 const (
-	ProcessStatusTopicBlocks       = "blocks"
-	ProcessStatusTopicBlockHeights = "block-heights"
-	ProcessStatusTopicBlockTxes    = "block-txes"
+	ProcessStatusPopulateP2sh = "populate-p2sh"
 )
 
 type ProcessStatus struct {
 	Name   string
-	Height int64
 	Shard  uint
+	Status []byte
 }
 
-func (s ProcessStatus) GetUid() []byte {
-	return []byte(s.Name)
-}
-
-func (s ProcessStatus) GetShard() uint {
-	return s.Shard
-}
-
-func (s ProcessStatus) GetTopic() string {
+func (s *ProcessStatus) GetTopic() string {
 	return db.TopicProcessStatus
 }
 
-func (s ProcessStatus) Serialize() []byte {
-	return jutil.GetInt64DataBig(s.Height)
+func (s *ProcessStatus) GetShard() uint {
+	return s.Shard
+}
+
+func (s *ProcessStatus) GetUid() []byte {
+	return []byte(s.Name)
 }
 
 func (s *ProcessStatus) SetUid(uid []byte) {
 	s.Name = string(uid)
 }
 
+func (s *ProcessStatus) Serialize() []byte {
+	return s.Status
+}
+
 func (s *ProcessStatus) Deserialize(data []byte) {
-	s.Height = jutil.GetInt64Big(data)
+	s.Status = data
 }
 
 func (s *ProcessStatus) Save() error {

@@ -56,7 +56,7 @@ func (t *LockHeight) SaveTxs(b *dbi.Block) error {
 type LockHeightSaveRun struct {
 	Verbose     bool
 	InitialSync bool
-	BlockHash   []byte
+	BlockHash   [32]byte
 	Height      int64
 	ObjectCount int
 	NoLockHash  int
@@ -71,7 +71,7 @@ func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
 	}
 	blockHash := block.BlockHash()
 	if dbi.BlockHeaderSet(block.Header) {
-		t.BlockHash = blockHash.CloneBytes()
+		t.BlockHash = blockHash
 		blockHeight, err := chain.GetBlockHeight(t.BlockHash)
 		if err != nil {
 			return jerr.Get("error getting block height for lock height", err)

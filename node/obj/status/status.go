@@ -16,25 +16,22 @@ func (s *Status) error(err error) {
 	jerr.Get("error saving tx queue", err).Print()
 }
 
-func (s *Status) SetHeight(height int64) error {
-	err := s.setProcessStatus()
-	if err != nil {
+func (s *Status) SetStatus(status []byte) error {
+	if err := s.setProcessStatus(); err != nil {
 		return jerr.Get("error setting process status", err)
 	}
-	s.Status.Height = height
-	err = s.Status.Save()
-	if err != nil {
+	s.Status.Status = status
+	if err := s.Status.Save(); err != nil {
 		return jerr.Get("error saving status", err)
 	}
 	return nil
 }
 
-func (s *Status) GetHeight() (int64, error) {
-	err := s.setProcessStatus()
-	if err != nil {
-		return 0, jerr.Get("error setting process status", err)
+func (s *Status) GetStatus() ([]byte, error) {
+	if err := s.setProcessStatus(); err != nil {
+		return nil, jerr.Get("error setting process status", err)
 	}
-	return s.Status.Height, nil
+	return s.Status.Status, nil
 }
 
 func (s *Status) setProcessStatus() error {
@@ -42,7 +39,7 @@ func (s *Status) setProcessStatus() error {
 		return nil
 	}
 	processStatus, err := item.GetProcessStatus(s.Shard, s.Topic)
-	if err != nil && ! client.IsMessageNotSetError(err) {
+	if err != nil && !client.IsMessageNotSetError(err) {
 		return jerr.Get("error getting process status from db", err)
 	}
 	if processStatus != nil {
@@ -59,4 +56,3 @@ func NewStatus(topic string, shard uint) *Status {
 		Shard: shard,
 	}
 }
-

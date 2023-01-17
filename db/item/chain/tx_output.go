@@ -53,6 +53,24 @@ func (t *TxOutput) Deserialize(data []byte) {
 	t.LockScript = data[8:]
 }
 
+func GetAllTxOutputs(shard uint32, startUid []byte) ([]*TxOutput, error) {
+	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic: db.TopicChainTxOutput,
+		Start: startUid,
+		Max:   client.HugeLimit,
+	}); err != nil {
+		return nil, jerr.Get("error getting db message chain tx outputs for all", err)
+	}
+	var txOutputs = make([]*TxOutput, len(dbClient.Messages))
+	for i := range dbClient.Messages {
+		txOutputs[i] = new(TxOutput)
+		db.Set(txOutputs[i], dbClient.Messages[i])
+	}
+	return txOutputs, nil
+}
+
 func GetTxOutputsByHashes(txHashes [][32]byte) ([]*TxOutput, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {

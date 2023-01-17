@@ -42,10 +42,10 @@ func (b *BlockHeight) Serialize() []byte {
 
 func (b *BlockHeight) Deserialize([]byte) {}
 
-func GetBlockHeight(blockHash []byte) (*BlockHeight, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(blockHash), config.GetQueueShards())
+func GetBlockHeight(blockHash [32]byte) (*BlockHeight, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(blockHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetByPrefix(db.TopicChainBlockHeight, jutil.ByteReverse(blockHash)); err != nil {
+	if err := dbClient.GetByPrefix(db.TopicChainBlockHeight, jutil.ByteReverse(blockHash[:])); err != nil {
 		return nil, jerr.Get("error getting client message for block height", err)
 	}
 	if len(dbClient.Messages) == 0 {

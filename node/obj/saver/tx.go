@@ -91,9 +91,9 @@ func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
 	}
 	if len(blockHashBytes) > 0 {
 		var blockHeight int64
-		itemBlockHeight, err := chain.GetBlockHeight(blockHashBytes)
+		itemBlockHeight, err := chain.GetBlockHeight(blockHash)
 		if err != nil {
-			parentBlockHeight, err := chain.GetBlockHeight(block.Header.PrevBlock[:])
+			parentBlockHeight, err := chain.GetBlockHeight(block.Header.PrevBlock)
 			if err != nil {
 				return jerr.Getf(err, "error getting block height for tx save block: %s", hs.GetTxString(blockHashBytes))
 			}

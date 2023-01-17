@@ -44,7 +44,7 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 		parentHeight = b.PrevBlockHeight
 		hasParent = true
 	} else {
-		parentBlockHeight, err := chain.GetBlockHeight(info.Header.PrevBlock[:])
+		parentBlockHeight, err := chain.GetBlockHeight(info.Header.PrevBlock)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return jerr.Get("error getting parent block height for potential orphan", err)
 		}

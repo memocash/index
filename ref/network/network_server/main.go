@@ -354,7 +354,7 @@ func (s *Server) GetBlockByHash(_ context.Context, req *network_pb.BlockHashRequ
 	if err != nil {
 		return nil, jerr.Get("error getting block hash for network server block by hash", err)
 	}
-	blockHeight, err := chain.GetBlockHeight(blockHash[:])
+	blockHeight, err := chain.GetBlockHeight(*blockHash)
 	if err != nil && !client.IsEntryNotFoundError(err) {
 		return nil, jerr.Get("error getting block height by hash", err)
 	}
