@@ -13,12 +13,15 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
 	"sync"
+	"time"
 )
 
 type PopulateP2shDirect struct {
 	status   map[uint]*item.ProcessStatus
 	hasError bool
 	mu       sync.Mutex
+	Checked  int64
+	Saved    int64
 }
 
 func NewPopulateP2shDirect() *PopulateP2shDirect {
@@ -89,12 +92,18 @@ func (p *PopulateP2shDirect) Populate(newRun bool) error {
 		wg.Wait()
 		success <- true
 	}()
-	select {
-	case err := <-errChan:
-		p.SetHasError(true)
-		return jerr.Get("error populating p2sh direct", err)
-	case <-success:
-		return nil
+	for {
+		select {
+		case err := <-errChan:
+			p.SetHasError(true)
+			return jerr.Get("error populating p2sh direct", err)
+		case <-success:
+			return nil
+		case <-time.NewTimer(time.Second * 10).C:
+			p.mu.Lock()
+			jlog.Logf("Populating p2sh direct: %d checked, %d saved\n", p.Checked, p.Saved)
+			p.mu.Unlock()
+		}
 	}
 }
 
@@ -160,6 +169,10 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 	if err := db.Save(objectsToSave); err != nil {
 		return false, jerr.Get("error saving objects", err)
 	}
+	p.mu.Lock()
+	p.Saved += int64(len(objectsToSave))
+	p.Checked += int64(len(txOutputs))
+	p.mu.Unlock()
 	if err := shardStatus.Save(); err != nil {
 		return false, jerr.Get("error saving process status", err)
 	}

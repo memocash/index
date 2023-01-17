@@ -7,6 +7,7 @@ import (
 const (
 	FlagVerbose = "verbose"
 	FlagDelete  = "delete"
+	FlagRestart = "restart"
 )
 
 var maintCommand = &cobra.Command{
@@ -18,6 +19,7 @@ func GetCommand() *cobra.Command {
 	txLostCleanupCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
 	checkLockUtxoCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
 	checkFollowsCmd.Flags().BoolP(FlagDelete, "", false, "Delete items")
+	populateP2shDirectCmd.Flags().BoolP(FlagRestart, "", false, "Restart from beginning")
 	maintCommand.AddCommand(
 		txLostCleanupCmd,
 		populateDoubleSpendSeenCmd,
@@ -26,6 +28,7 @@ func GetCommand() *cobra.Command {
 		checkLockUtxoCmd,
 		checkFollowsCmd,
 		populateP2shCmd,
+		populateP2shDirectCmd,
 	)
 	return maintCommand
 }

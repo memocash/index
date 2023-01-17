@@ -24,3 +24,17 @@ var populateP2shCmd = &cobra.Command{
 		jlog.Logf("Populated p2sh, blocks processed: %d\n", populateP2sh.BlocksProcessed)
 	},
 }
+
+var populateP2shDirectCmd = &cobra.Command{
+	Use:   "populate-p2sh-direct",
+	Short: "populate-p2sh-direct",
+	Run: func(c *cobra.Command, args []string) {
+		restart, _ := c.Flags().GetBool(FlagRestart)
+		populateP2sh := maint.NewPopulateP2shDirect()
+		jlog.Logf("Starting populate p2sh...\n")
+		if err := populateP2sh.Populate(restart); err != nil {
+			jerr.Get("error populate p2sh", err).Fatal()
+		}
+		jlog.Logf("Populated p2sh, blocks processed: %d\n", populateP2sh.BlocksProcessed)
+	},
+}
