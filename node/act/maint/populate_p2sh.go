@@ -63,6 +63,7 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 				shardProcess.Wg.Add(len(txHashShards))
 				for shardT, txHashesT := range txHashShards {
 					go func(shard uint32, txHashes [][32]byte) {
+						defer shardProcess.Wg.Done()
 						txRaws, err := tx_raw.Get(txHashes)
 						if err != nil {
 							shardProcess.AddError(shard, jerr.Get("error getting tx raws for populate p2sh", err))
@@ -81,7 +82,6 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 							shardProcess.AddError(shard, jerr.Get("error saving txs for populate p2sh", err))
 							return
 						}
-						shardProcess.Wg.Done()
 					}(shardT, txHashesT)
 				}
 				shardProcess.Wg.Wait()
