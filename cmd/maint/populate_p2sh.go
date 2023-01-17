@@ -35,6 +35,6 @@ var populateP2shDirectCmd = &cobra.Command{
 		if err := populateP2sh.Populate(restart); err != nil {
 			jerr.Get("error populate p2sh", err).Fatal()
 		}
-		jlog.Logf("Populated p2sh, blocks processed: %d\n", populateP2sh.BlocksProcessed)
+		jlog.Logf("Populated p2sh direct completed. Checked: %d, saved: %d.\n", populateP2sh.Checked, populateP2sh.Saved)
 	},
 }

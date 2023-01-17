@@ -58,8 +58,7 @@ func NewProcessStatus(shard uint, name string) *ProcessStatus {
 func GetProcessStatus(shard uint, name string) (*ProcessStatus, error) {
 	shardConfig := config.GetShardConfig(uint32(shard), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	err := dbClient.GetSingle(db.TopicProcessStatus, []byte(name))
-	if err != nil {
+	if err := dbClient.GetSingle(db.TopicProcessStatus, []byte(name)); err != nil {
 		return nil, jerr.Get("error getting db message process status", err)
 	}
 	if len(dbClient.Messages) == 0 || len(dbClient.Messages[0].Uid) == 0 {

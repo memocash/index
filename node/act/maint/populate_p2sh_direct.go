@@ -25,7 +25,9 @@ type PopulateP2shDirect struct {
 }
 
 func NewPopulateP2shDirect() *PopulateP2shDirect {
-	return &PopulateP2shDirect{}
+	return &PopulateP2shDirect{
+		status: make(map[uint]*item.ProcessStatus),
+	}
 }
 
 func (p *PopulateP2shDirect) SetShardStatus(shard uint32, status []byte) {
@@ -62,7 +64,7 @@ func (p *PopulateP2shDirect) Populate(newRun bool) error {
 	if !newRun {
 		for _, shardConfig := range shardConfigs {
 			syncStatus, err := item.GetProcessStatus(uint(shardConfig.Shard), item.ProcessStatusPopulateP2sh)
-			if err != nil && !client.IsEntryNotFoundError(err) {
+			if err != nil && !client.IsMessageNotSetError(err) {
 				return jerr.Get("error getting sync status", err)
 			} else if syncStatus != nil {
 				p.SetShardStatus(shardConfig.Shard, syncStatus.Status)
@@ -102,6 +104,9 @@ func (p *PopulateP2shDirect) Populate(newRun bool) error {
 		case <-time.NewTimer(time.Second * 10).C:
 			p.mu.Lock()
 			jlog.Logf("Populating p2sh direct: %d checked, %d saved\n", p.Checked, p.Saved)
+			for shard, status := range p.status {
+				jlog.Logf("Shard %d status: %x\n", shard, status.Status)
+			}
 			p.mu.Unlock()
 		}
 	}
