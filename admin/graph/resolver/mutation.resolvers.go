@@ -6,6 +6,8 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"github.com/jchavannes/jgo/jlog"
+	"github.com/memocash/index/ref/bitcoin/memo"
 
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
@@ -19,6 +21,11 @@ func (r *mutationResolver) Broadcast(ctx context.Context, raw string) (bool, err
 		return false, jerr.Get("error decoding raw tx for graphql broadcast", err)
 	}
 	client := broadcast_client.NewBroadcast()
+	msgTx, err := memo.GetMsgFromRaw(rawBytes)
+	if err != nil {
+		return false, jerr.Get("error getting msg tx from raw for broadcast mutation", err)
+	}
+	jlog.Logf("Broadcasting tx: %s\n", msgTx.TxHash())
 	if err := client.Broadcast(ctx, rawBytes); err != nil {
 		return false, jerr.Get("error broadcasting tx for graphql", err)
 	}

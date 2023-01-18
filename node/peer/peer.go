@@ -87,6 +87,9 @@ func (p *Peer) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 		return
 	}
 	msgGetHeaders := wire.NewMsgGetHeaders()
+	if jutil.IsNil(p.BlockSave) {
+		return
+	}
 	blockHash, err := p.BlockSave.GetBlock(0)
 	if err != nil {
 		p.Error(jerr.Get("error getting node block", err))
