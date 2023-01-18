@@ -18,7 +18,7 @@ func Sign(msg *wire.MsgTx, inputs []memo.TxInput, keyRing wallet.KeyRing) error 
 			return jerr.Get("error signing input signature", err)
 		}
 		privateKey := keyRing.GetKey(inputs[i].PkHash)
-		if ! privateKey.IsSet() {
+		if !privateKey.IsSet() {
 			return jerr.Newf("error unable to get private key from key ring for input: %s",
 				inputs[i].GetHashIndexString())
 		}
@@ -32,6 +32,11 @@ func Sign(msg *wire.MsgTx, inputs []memo.TxInput, keyRing wallet.KeyRing) error 
 }
 
 func InputSignature(tx *wire.MsgTx, index int, keyRing wallet.KeyRing, spendOuts []memo.TxInput) ([]byte, error) {
+	if len(spendOuts[index].PkScript) == 0 {
+		return nil, jerr.Newf("error no pk script for input signature: %s", spendOuts[index].GetHashIndexString())
+	} else if len(spendOuts[index].PkHash) == 0 {
+		return nil, jerr.Newf("error no pk hash for input signature: %s", spendOuts[index].GetHashIndexString())
+	}
 	sig, err := txscript.RawTxInECDSASignature(
 		tx, index, spendOuts[index].PkScript, txscript.SigHashAll|wallet.SigHashForkID,
 		keyRing.GetKey(spendOuts[index].PkHash).GetBtcEcPrivateKey(), spendOuts[index].Value)
