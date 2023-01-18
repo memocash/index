@@ -97,6 +97,11 @@ export default function Page(props) {
                     <h3>Peer</h3>
                     <ul>
                         <li>
+                            <Link href="/tx/broadcast">
+                                <a>Broadcast</a>
+                            </Link>
+                        </li>
+                        <li>
                             <Link href="/peer/list">
                                 <a>Peer List</a>
                             </Link>
