@@ -3,6 +3,7 @@ package dbi
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
+	"time"
 )
 
 type TxSave interface {
@@ -33,6 +34,7 @@ type OutputSave interface {
 type Block struct {
 	Header       wire.BlockHeader
 	Height       int64
+	Seen         time.Time
 	Transactions []Tx
 }
 
