@@ -4,6 +4,7 @@ type Tx struct {
 	Hash  string `json:"hash"`
 	Index uint32 `json:"index"`
 	Raw   string `json:"raw"`
+	Seen  Date   `json:"seen"`
 }
 
 type TxOutput struct {

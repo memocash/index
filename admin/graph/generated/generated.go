@@ -345,7 +345,6 @@ type TxResolver interface {
 	Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block, error)
 	Suspect(ctx context.Context, obj *model.Tx) (*model.TxSuspect, error)
 	Lost(ctx context.Context, obj *model.Tx) (*model.TxLost, error)
-	Seen(ctx context.Context, obj *model.Tx) (*model.Date, error)
 }
 type TxInputResolver interface {
 	Tx(ctx context.Context, obj *model.TxInput) (*model.Tx, error)
@@ -7798,7 +7797,7 @@ func (ec *executionContext) _Tx_seen(ctx context.Context, field graphql.Collecte
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Tx().Seen(rctx, obj)
+		return obj.Seen, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7807,17 +7806,17 @@ func (ec *executionContext) _Tx_seen(ctx context.Context, field graphql.Collecte
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.Date)
+	res := resTmp.(model.Date)
 	fc.Result = res
-	return ec.marshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
+	return ec.marshalODate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Tx_seen(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Tx",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Date does not have child fields")
 		},
@@ -12206,22 +12205,9 @@ func (ec *executionContext) _Tx(ctx context.Context, sel ast.SelectionSet, obj *
 
 			})
 		case "seen":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tx_seen(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Tx_seen(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13527,6 +13513,16 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	res := graphql.MarshalBoolean(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalODate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, v interface{}) (model.Date, error) {
+	res, err := model.UnmarshalDate(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalODate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v model.Date) graphql.Marshaler {
+	res := model.MarshalDate(v)
 	return res
 }
 
