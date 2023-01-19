@@ -4,7 +4,16 @@ package resolver
 import (
 	"context"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/jchavannes/jgo/jutil"
 )
+
+func HasField(ctx context.Context, preload string) bool {
+	return jutil.StringInSlice(preload, GetPreloads(ctx))
+}
+
+func HasFieldAny(ctx context.Context, preloads []string) bool {
+	return jutil.StringsInSlice(preloads, GetPreloads(ctx))
+}
 
 func GetPreloads(ctx context.Context) []string {
 	return GetNestedPreloads(
@@ -13,6 +22,7 @@ func GetPreloads(ctx context.Context) []string {
 		"",
 	)
 }
+
 func GetNestedPreloads(ctx *graphql.OperationContext, fields []graphql.CollectedField, prefix string) (preloads []string) {
 	for _, column := range fields {
 		prefixColumn := GetPreloadString(prefix, column.Name)
@@ -21,6 +31,7 @@ func GetNestedPreloads(ctx *graphql.OperationContext, fields []graphql.Collected
 	}
 	return
 }
+
 func GetPreloadString(prefix, name string) string {
 	if len(prefix) > 0 {
 		return prefix + "." + name

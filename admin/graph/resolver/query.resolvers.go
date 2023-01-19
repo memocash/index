@@ -11,7 +11,6 @@ import (
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
@@ -34,9 +33,8 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 		return nil, jerr.Get("error getting tx hash from hash", err)
 	}
 	txHashString := txHash.String()
-	preloads := GetPreloads(ctx)
 	var raw string
-	if jutil.StringsInSlice([]string{"raw", "inputs", "outputs"}, preloads) {
+	if HasFieldAny(ctx, []string{"raw"}) {
 		if raw, err = dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHashString); err != nil {
 			return nil, jerr.Get("error getting tx raw from dataloader for tx query resolver", err)
 		}
@@ -111,11 +109,9 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 		Height:    &height,
 		Raw:       hex.EncodeToString(block.Raw),
 	}
-	preloads := GetPreloads(ctx)
-	if !jutil.StringsInSlice([]string{"size", "tx_count"}, preloads) {
+	if !HasFieldAny(ctx, []string{"size", "tx_count"}) {
 		return modelBlock, nil
 	}
-
 	blockInfo, err := chain.GetBlockInfo(*blockHash)
 	if err != nil && !client.IsMessageNotSetError(err) {
 		return nil, jerr.Get("error getting block infos for query resolver", err)
@@ -175,7 +171,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 		return nil, jerr.Get("error getting raw blocks", err)
 	}
 	var blockInfos []*chain.BlockInfo
-	if jutil.StringsInSlice([]string{"size", "tx_count"}, GetPreloads(ctx)) {
+	if HasFieldAny(ctx, []string{"size", "tx_count"}) {
 		if blockInfos, err = chain.GetBlockInfos(blockHashes); err != nil {
 			return nil, jerr.Get("error getting block infos for blocks query resolver", err)
 		}

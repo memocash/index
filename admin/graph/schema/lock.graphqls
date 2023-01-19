@@ -2,6 +2,5 @@ type Lock {
     address: String
     profile: Profile
     balance: Int64!
-    spends(start: HashIndex, height: Int): [TxInput!]
-    outputs(start: HashIndex, height: Int): [TxOutput!]
+    txs(start: Date, tx: String): [Tx!]
 }

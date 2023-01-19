@@ -8,7 +8,6 @@ import (
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
@@ -18,8 +17,7 @@ import (
 
 // Output is the resolver for the output field.
 func (r *doubleSpendResolver) Output(ctx context.Context, obj *model.DoubleSpend) (*model.TxOutput, error) {
-	preloads := GetPreloads(ctx)
-	if !jutil.StringsInSlice([]string{"amount", "script"}, preloads) {
+	if !HasFieldAny(ctx, []string{"amount", "script"}) {
 		return &model.TxOutput{
 			Hash:  obj.Hash,
 			Index: obj.Index,

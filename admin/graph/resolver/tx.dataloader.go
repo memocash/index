@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
@@ -143,8 +142,7 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 }
 
 func GetBlockLoaderConfig(ctx context.Context) dataloader.BlockLoaderConfig {
-	preloads := GetPreloads(ctx)
-	if !jutil.StringsInSlice([]string{"size", "tx_count"}, preloads) {
+	if !HasFieldAny(ctx, []string{"size", "tx_count"}) {
 		return blockLoaderConfigNoInfo
 	}
 	return blockLoaderConfigWithInfo
@@ -245,9 +243,8 @@ func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
 }
 
 func TxLoader(ctx context.Context, txHash string) (*model.Tx, error) {
-	preloads := GetPreloads(ctx)
 	var raw string
-	if jutil.StringsInSlice([]string{"raw", "inputs", "outputs"}, preloads) {
+	if HasFieldAny(ctx, []string{"raw"}) {
 		var err error
 		if raw, err = dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHash); err != nil {
 			return nil, jerr.Get("error getting tx raw from dataloader for post resolver", err)
@@ -257,4 +254,22 @@ func TxLoader(ctx context.Context, txHash string) (*model.Tx, error) {
 		Hash: txHash,
 		Raw:  raw,
 	}, nil
+}
+
+func TxsLoader(ctx context.Context, txHashes []string) ([]*model.Tx, error) {
+	var modelTxs = make([]*model.Tx, len(txHashes))
+	var rawTxs []string
+	if HasFieldAny(ctx, []string{"raw"}) {
+		var errs []error
+		if rawTxs, errs = dataloader.NewTxRawLoader(txRawLoaderConfig).LoadAll(txHashes); len(errs) > 0 {
+			return nil, jerr.Get("error getting tx raw from dataloader for lock txs resolver", jerr.Combine(errs...))
+		}
+	}
+	for i := range txHashes {
+		modelTxs[i] = &model.Tx{Hash: txHashes[i]}
+		if len(rawTxs) > 0 {
+			modelTxs[i].Raw = rawTxs[i]
+		}
+	}
+	return modelTxs, nil
 }
