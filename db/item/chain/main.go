@@ -15,5 +15,6 @@ func GetTopics() []db.Object {
 		&TxBlock{},
 		&TxInput{},
 		&TxOutput{},
+		&TxSeen{},
 	}
 }

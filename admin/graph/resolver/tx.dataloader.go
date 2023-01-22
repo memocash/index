@@ -98,7 +98,7 @@ var txSeenLoaderConfig = dataloader.TxSeenLoaderConfig{
 			}
 			txHashes[i] = *hash
 		}
-		txSeens, err := item.GetTxSeens(txHashes)
+		txSeens, err := chain.GetTxSeens(txHashes)
 		if err != nil && !client.IsResourceUnavailableError(err) {
 			return nil, []error{jerr.Get("error getting tx seens", err)}
 		}

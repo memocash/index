@@ -7,7 +7,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/server"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -106,7 +106,7 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 		block.Transactions[i] = *dbi.WireTxToTx(msgTx, req.Block.Txs[i].Index)
 		txHashes[i] = block.Transactions[i].Hash
 	}
-	txSeens, err := item.GetTxSeens(txHashes)
+	txSeens, err := chain.GetTxSeens(txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx seens for shard save txs", err)
 	}

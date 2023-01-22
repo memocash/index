@@ -3,7 +3,6 @@ package double_spend
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/act/tx_raw"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -75,7 +74,7 @@ func AttachSeensToSpendCheckSpends(doubleSpendChecks []*DoubleSpendCheck) error 
 			txHashes = append(txHashes, spend.TxHash)
 		}
 	}
-	txSeens, err := item.GetTxSeens(txHashes)
+	txSeens, err := chain.GetTxSeens(txHashes)
 	if err != nil {
 		return jerr.Get("error getting tx seens for double spend check spends", err)
 	}

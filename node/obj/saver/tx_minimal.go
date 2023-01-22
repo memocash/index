@@ -3,7 +3,6 @@ package saver
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/dbi"
@@ -76,7 +75,7 @@ func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
 				LockScript: tx.TxOut[k].PkScript,
 			})
 		}
-		objects = append(objects, &item.TxSeen{
+		objects = append(objects, &chain.TxSeen{
 			TxHash:    txHash,
 			Timestamp: seenTime,
 		})

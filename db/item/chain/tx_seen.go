@@ -1,4 +1,4 @@
-package item
+package chain
 
 import (
 	"bytes"
@@ -24,7 +24,7 @@ func (s *TxSeen) GetShard() uint {
 }
 
 func (s *TxSeen) GetTopic() string {
-	return db.TopicTxSeen
+	return db.TopicChainTxSeen
 }
 
 func (s *TxSeen) Serialize() []byte {
@@ -59,7 +59,7 @@ func GetTxSeens(txHashes [][32]byte) ([]*TxSeen, error) {
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetByPrefixes(db.TopicTxSeen, prefixes); err != nil {
+		if err := dbClient.GetByPrefixes(db.TopicChainTxSeen, prefixes); err != nil {
 			return nil, jerr.Get("error getting client message tx seens", err)
 		}
 		for _, msg := range dbClient.Messages {

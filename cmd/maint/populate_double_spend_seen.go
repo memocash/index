@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/spf13/cobra"
@@ -49,7 +50,7 @@ var populateDoubleSpendSeenCmd = &cobra.Command{
 				})
 				txSeenTxHashes = append(txSeenTxHashes, doubleSpendOutput.TxHash)
 			}
-			txSeens, err := item.GetTxSeens(db.RawTxHashesToFixed(txSeenTxHashes))
+			txSeens, err := chain.GetTxSeens(db.RawTxHashesToFixed(txSeenTxHashes))
 			if err != nil {
 				jerr.Get("fatal error getting tx seens for populate double spend seens", err).Fatal()
 			}

@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/dbi"
@@ -63,7 +64,7 @@ func (t *TxRaw) QueueTxs(block *dbi.Block) error {
 				Raw:    raw,
 			})
 		}
-		objects = append(objects, &item.TxSeen{
+		objects = append(objects, &chain.TxSeen{
 			TxHash:    txHash,
 			Timestamp: seenTime,
 		})
