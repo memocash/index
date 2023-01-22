@@ -366,10 +366,8 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []dbi.Tx) error {
 		for _, tx := range txs {
 			for _, in := range tx.MsgTx.TxIn {
 				if bytes.Equal(in.PreviousOutPoint.Hash.CloneBytes(), txLost.TxHash) {
-					txHash := tx.MsgTx.TxHash()
-					txHashBytes := txHash.CloneBytes()
 					for _, newTxLost := range newTxLosts {
-						if bytes.Equal(newTxLost.TxHash, txHashBytes) &&
+						if bytes.Equal(newTxLost.TxHash, tx.Hash[:]) &&
 							bytes.Equal(newTxLost.DoubleSpend, txLost.DoubleSpend) {
 							continue LostTxLoop
 						}
@@ -381,9 +379,9 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []dbi.Tx) error {
 						parentTxHash = txLost.TxHash
 					}
 					jlog.Logf("Adding TxLost from Parent: %s (parent: %s %s)\n",
-						txHash, hs.GetTxString(txLost.TxHash), hs.GetTxString(txLost.DoubleSpend))
+						chainhash.Hash(tx.Hash), hs.GetTxString(txLost.TxHash), hs.GetTxString(txLost.DoubleSpend))
 					newTxLosts = append(newTxLosts, item.TxLost{
-						TxHash:      txHashBytes,
+						TxHash:      tx.Hash[:],
 						DoubleSpend: parentTxHash,
 					})
 					continue LostTxLoop
@@ -461,9 +459,8 @@ TxLoop:
 					}
 				}
 			}
-			txHash := tx.MsgTx.TxHash()
 			newItemObjects = append(newItemObjects, &item.TxSuspect{
-				TxHash: txHash.CloneBytes(),
+				TxHash: tx.Hash[:],
 			})
 			continue TxLoop
 		}

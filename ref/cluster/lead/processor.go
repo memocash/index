@@ -91,8 +91,7 @@ func (p *Processor) ProcessBlock(block *dbi.Block) bool {
 	seen := time.Now()
 	var shardBlocks = make(map[uint32]*cluster_pb.Block)
 	for i, tx := range block.Transactions {
-		txHash := tx.MsgTx.TxHash()
-		shard := db.GetShardByte32(txHash[:])
+		shard := db.GetShardByte32(tx.Hash[:])
 		if _, ok := shardBlocks[shard]; !ok {
 			shardBlocks[shard] = &cluster_pb.Block{
 				Header: memo.GetRawBlockHeader(block.Header),

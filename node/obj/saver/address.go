@@ -61,7 +61,7 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 			}
 			objects = append(objects, &addr.SeenTx{
 				Addr:   address,
-				Seen:   b.Seen,
+				Seen:   transaction.Seen,
 				TxHash: txHash,
 			})
 		}

@@ -12,8 +12,7 @@ type ClearMempoolTxRaw struct {
 func (r *ClearMempoolTxRaw) SaveTxs(b *dbi.Block) error {
 	var mempoolTxRawsToRemove = make([]*item.MempoolTxRaw, len(b.Transactions))
 	for i := range b.Transactions {
-		txHash := b.Transactions[i].MsgTx.TxHash()
-		mempoolTxRawsToRemove[i] = &item.MempoolTxRaw{TxHash: txHash.CloneBytes()}
+		mempoolTxRawsToRemove[i] = &item.MempoolTxRaw{TxHash: b.Transactions[i].Hash[:]}
 	}
 	if err := item.RemoveMempoolTxRaws(mempoolTxRawsToRemove); err != nil {
 		return jerr.Get("error removing mempool tx raws", err)

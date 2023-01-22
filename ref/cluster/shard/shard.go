@@ -7,6 +7,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/server"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -88,19 +89,37 @@ func (s *Shard) Ping(_ context.Context, req *cluster_pb.PingReq) (*cluster_pb.Pi
 func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb.EmptyResp, error) {
 	header, err := memo.GetBlockHeaderFromRaw(req.Block.Header)
 	if err != nil {
-		return nil, jerr.Get("error getting block header", err)
+		return nil, jerr.Get("error getting block header for shard save txs", err)
 	}
 	var block = &dbi.Block{
-		Header: *header,
-		Height: req.Height,
-		Seen:   time.Unix(0, req.Seen),
+		Header:       *header,
+		Height:       req.Height,
+		Seen:         time.Unix(0, req.Seen),
+		Transactions: make([]dbi.Tx, len(req.Block.Txs)),
 	}
-	for _, tx := range req.Block.Txs {
-		msgTx, err := memo.GetMsgFromRaw(tx.Raw)
+	var txHashes = make([][32]byte, len(req.Block.Txs))
+	for i := range req.Block.Txs {
+		msgTx, err := memo.GetMsgFromRaw(req.Block.Txs[i].Raw)
 		if err != nil {
-			return nil, jerr.Get("error getting msg tx", err)
+			return nil, jerr.Get("error getting msg tx for shard save txs", err)
 		}
-		block.Transactions = append(block.Transactions, *dbi.WireTxToTx(msgTx, tx.Index))
+		block.Transactions[i] = *dbi.WireTxToTx(msgTx, req.Block.Txs[i].Index)
+		txHashes[i] = block.Transactions[i].Hash
+	}
+	txSeens, err := item.GetTxSeens(txHashes)
+	if err != nil {
+		return nil, jerr.Get("error getting tx seens for shard save txs", err)
+	}
+TransactionsLoop:
+	for i := range block.Transactions {
+		for _, txSeen := range txSeens {
+			if txSeen.TxHash == block.Transactions[i].Hash {
+				block.Transactions[i].Seen = txSeen.Timestamp
+				block.Transactions[i].Saved = true
+				continue TransactionsLoop
+			}
+		}
+		block.Transactions[i].Seen = block.Seen
 	}
 	if err := saver.NewCombinedTx(s.Verbose, req.IsInitial).SaveTxs(block); err != nil {
 		return nil, jerr.Get("error saving block txs shard txs", err)

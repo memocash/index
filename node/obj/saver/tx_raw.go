@@ -64,7 +64,7 @@ func (t *TxRaw) QueueTxs(block *dbi.Block) error {
 			})
 		}
 		objects = append(objects, &item.TxSeen{
-			TxHash:    txHashBytes,
+			TxHash:    txHash,
 			Timestamp: seenTime,
 		})
 		txsSize += block.Transactions[i].MsgTx.SerializeSize()

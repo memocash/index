@@ -49,14 +49,14 @@ var populateDoubleSpendSeenCmd = &cobra.Command{
 				})
 				txSeenTxHashes = append(txSeenTxHashes, doubleSpendOutput.TxHash)
 			}
-			txSeens, err := item.GetTxSeens(txSeenTxHashes)
+			txSeens, err := item.GetTxSeens(db.RawTxHashesToFixed(txSeenTxHashes))
 			if err != nil {
 				jerr.Get("fatal error getting tx seens for populate double spend seens", err).Fatal()
 			}
 			var objects []db.Object
 			for _, newDoubleSpendSeen := range newDoubleSpendSeens {
 				for i := range txSeens {
-					if bytes.Equal(txSeens[i].TxHash, newDoubleSpendSeen.TxHash) {
+					if bytes.Equal(txSeens[i].TxHash[:], newDoubleSpendSeen.TxHash) {
 						newDoubleSpendSeen.Timestamp = txSeens[i].Timestamp
 						if verbose {
 							jlog.Logf("New Double Spend Seen: %s:%-3d - %s (shard: %d)\n",

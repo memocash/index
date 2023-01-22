@@ -67,11 +67,10 @@ type BlockInfo struct {
 
 type Tx struct {
 	BlockIndex uint32
+	Hash       [32]byte
+	Seen       time.Time
+	Saved      bool
 	MsgTx      *wire.MsgTx
-}
-
-func (t *Tx) Hash() chainhash.Hash {
-	return t.MsgTx.TxHash()
 }
 
 type Input struct {
@@ -123,6 +122,7 @@ func WireBlockToBlock(wireBlock *wire.MsgBlock) *Block {
 func WireTxToTx(wireTx *wire.MsgTx, index uint32) *Tx {
 	tx := &Tx{
 		MsgTx:      wireTx,
+		Hash:       wireTx.TxHash(),
 		BlockIndex: index,
 	}
 	return tx
