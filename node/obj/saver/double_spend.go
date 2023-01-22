@@ -3,7 +3,6 @@ package saver
 import (
 	"bytes"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
@@ -26,10 +25,9 @@ func (s *DoubleSpend) SaveTxs(b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
-	block := b.ToWireBlock()
 	var inputOuts []memo.Out
-	for _, msgTx := range block.Transactions {
-		for _, in := range msgTx.TxIn {
+	for _, tx := range b.Transactions {
+		for _, in := range tx.MsgTx.TxIn {
 			inputOuts = append(inputOuts, memo.Out{
 				TxHash: in.PreviousOutPoint.Hash.CloneBytes(),
 				Index:  in.PreviousOutPoint.Index,
@@ -37,8 +35,8 @@ func (s *DoubleSpend) SaveTxs(b *dbi.Block) error {
 		}
 	}
 	var blockHashBytes []byte
-	if dbi.BlockHeaderSet(block.Header) {
-		blockHash := block.BlockHash()
+	if dbi.BlockHeaderSet(b.Header) {
+		blockHash := b.Header.BlockHash()
 		blockHashBytes = blockHash.CloneBytes()
 	}
 	existingOutputInputs, err := chain.GetOutputInputs(inputOuts)
@@ -49,7 +47,8 @@ func (s *DoubleSpend) SaveTxs(b *dbi.Block) error {
 	var doubleSpendInputs []*item.DoubleSpendInput
 	var doubleSpendOutputs []*item.DoubleSpendOutput
 	var doubleSpendSeens []*item.DoubleSpendSeen
-	for _, msgTx := range block.Transactions {
+	for _, tx := range b.Transactions {
+		var msgTx = tx.MsgTx
 		txHash := msgTx.TxHash()
 		if s.Verbose {
 			jlog.Logf("Double spend tx: %s\n", txHash)
@@ -130,7 +129,7 @@ func (s *DoubleSpend) SaveTxs(b *dbi.Block) error {
 	if err := s.CheckLost(doubleSpendChecks); err != nil {
 		return jerr.Get("error checking lost txs for double spend", err)
 	}
-	if err := s.AddLostAndSuspectByParents(block.Transactions); err != nil {
+	if err := s.AddLostAndSuspectByParents(b.Transactions); err != nil {
 		return jerr.Get("error adding lost and suspect by parents double spends", err)
 	}
 	return nil
@@ -349,10 +348,10 @@ func (s *DoubleSpend) CheckLost(doubleSpendChecks []*double_spend.DoubleSpendChe
 	return nil
 }
 
-func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
+func (s *DoubleSpend) AddLostAndSuspectByParents(txs []dbi.Tx) error {
 	var parentTxHashes [][]byte
 	for _, tx := range txs {
-		for _, in := range tx.TxIn {
+		for _, in := range tx.MsgTx.TxIn {
 			parentTxHashes = append(parentTxHashes, in.PreviousOutPoint.Hash.CloneBytes())
 		}
 	}
@@ -365,9 +364,9 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 	for _, txLost := range parentTxLosts {
 	LostTxLoop:
 		for _, tx := range txs {
-			for _, in := range tx.TxIn {
+			for _, in := range tx.MsgTx.TxIn {
 				if bytes.Equal(in.PreviousOutPoint.Hash.CloneBytes(), txLost.TxHash) {
-					txHash := tx.TxHash()
+					txHash := tx.MsgTx.TxHash()
 					txHashBytes := txHash.CloneBytes()
 					for _, newTxLost := range newTxLosts {
 						if bytes.Equal(newTxLost.TxHash, txHashBytes) &&
@@ -433,7 +432,7 @@ func (s *DoubleSpend) AddLostAndSuspectByParents(txs []*wire.MsgTx) error {
 TxLoop:
 	for _, tx := range txs {
 	InputLoop:
-		for _, in := range tx.TxIn {
+		for _, in := range tx.MsgTx.TxIn {
 			var parentTxSuspectFound *item.TxSuspect
 			for _, parentTxSuspect := range parentTxSuspects {
 				if bytes.Equal(parentTxSuspect.TxHash, in.PreviousOutPoint.Hash.CloneBytes()) {
@@ -462,7 +461,7 @@ TxLoop:
 					}
 				}
 			}
-			txHash := tx.TxHash()
+			txHash := tx.MsgTx.TxHash()
 			newItemObjects = append(newItemObjects, &item.TxSuspect{
 				TxHash: txHash.CloneBytes(),
 			})

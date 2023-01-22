@@ -7,8 +7,6 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item"
-	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/server"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -36,22 +34,11 @@ type Shard struct {
 	cluster_pb.UnimplementedClusterServer
 }
 
-func (s *Shard) CheckProcessBlocks() {
-	for blockHash, block := range s.Blocks {
-		if time.Since(block.Added) > time.Minute*5 {
-			jlog.Logf("block not processed, removing from shard: %s\n", blockHash)
-			delete(s.Blocks, blockHash)
-		}
-	}
-	for len(s.Blocks) > 10 {
-		var oldest ProcessBlock
-		for _, block := range s.Blocks {
-			if oldest.Added.IsZero() || block.Added.Before(oldest.Added) {
-				oldest = block
-			}
-		}
-		jlog.Logf("too many blocks in shard, removing oldest: %s\n", oldest.Block.BlockHash())
-		delete(s.Blocks, oldest.Block.BlockHash())
+func NewShard(shardId int, verbose bool) *Shard {
+	return &Shard{
+		Id:      shardId,
+		Verbose: verbose,
+		Blocks:  make(map[chainhash.Hash]ProcessBlock),
 	}
 }
 
@@ -106,6 +93,7 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 	var block = &dbi.Block{
 		Header: *header,
 		Height: req.Height,
+		Seen:   time.Unix(0, req.Seen),
 	}
 	for _, tx := range req.Block.Txs {
 		msgTx, err := memo.GetMsgFromRaw(tx.Raw)
@@ -118,70 +106,4 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 		return nil, jerr.Get("error saving block txs shard txs", err)
 	}
 	return &cluster_pb.EmptyResp{}, nil
-}
-
-func (s *Shard) process(blockHashByte []byte, initialSync bool) error {
-	blockHash, err := chainhash.NewHash(blockHashByte)
-	if err != nil {
-		return jerr.Get("error parsing block hash for shard save utxos", err)
-	}
-	block, err := chain.GetBlock(*blockHash)
-	if err != nil {
-		return jerr.Get("error getting block for shard save utxos", err)
-	}
-	blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
-	if err != nil {
-		return jerr.Get("error getting block header from raw for shard save utxos", err)
-	}
-	var startTxHash []byte
-	for {
-		blockTxsRaw, err := item.GetBlockTxesRaw(item.BlockTxesRawRequest{
-			Shard:       uint32(s.Id),
-			BlockHash:   blockHash[:],
-			StartTxHash: startTxHash,
-			Limit:       client.ExLargeLimit,
-		})
-		if err != nil {
-			return jerr.Get("error getting block txs raw for shard processor", err)
-		}
-		var txs = make([]*wire.MsgTx, len(blockTxsRaw))
-		for i := range blockTxsRaw {
-			txs[i], err = memo.GetMsgFromRaw(blockTxsRaw[i].Raw)
-			if err != nil {
-				return jerr.Get("error getting msg tx from raw for process shard utxos", err)
-			}
-		}
-		txSaver := saver.NewCombinedTx(s.Verbose, initialSync)
-		if err := txSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(txs, blockHeader))); err != nil {
-			return jerr.Get("error saving block txs shard utxos", err)
-		}
-		if len(blockTxsRaw) == client.ExLargeLimit {
-			startTxHash = blockTxsRaw[len(blockTxsRaw)-1].TxHash
-		} else {
-			break
-		}
-	}
-	return nil
-}
-
-func (s *Shard) ProcessInitial(_ context.Context, req *cluster_pb.ProcessReq) (*cluster_pb.EmptyResp, error) {
-	if err := s.process(req.BlockHash, true); err != nil {
-		return nil, jerr.Get("error processing block initial for shard", err)
-	}
-	return &cluster_pb.EmptyResp{}, nil
-}
-
-func (s *Shard) Process(_ context.Context, req *cluster_pb.ProcessReq) (*cluster_pb.EmptyResp, error) {
-	if err := s.process(req.BlockHash, false); err != nil {
-		return nil, jerr.Get("error processing block for shard", err)
-	}
-	return &cluster_pb.EmptyResp{}, nil
-}
-
-func NewShard(shardId int, verbose bool) *Shard {
-	return &Shard{
-		Id:      shardId,
-		Verbose: verbose,
-		Blocks:  make(map[chainhash.Hash]ProcessBlock),
-	}
 }

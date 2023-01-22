@@ -2,7 +2,6 @@ package saver
 
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
@@ -22,21 +21,20 @@ func (t *TxRaw) SaveTxs(b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
-	block := b.ToWireBlock()
-	if err := t.QueueTxs(block); err != nil {
+	if err := t.QueueTxs(b); err != nil {
 		return jerr.Get("error queueing msg txs", err)
 	}
 	return nil
 }
 
-func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
+func (t *TxRaw) QueueTxs(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block")
 	}
 	var blockHash chainhash.Hash
 	var blockHashBytes []byte
 	if dbi.BlockHeaderSet(block.Header) {
-		blockHash = block.BlockHash()
+		blockHash = block.Header.BlockHash()
 		blockHashBytes = blockHash.CloneBytes()
 	}
 	if len(blockHashBytes) > 0 {
@@ -47,7 +45,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 	var objects []db.Object
 	var txsSize int
 	for i := range block.Transactions {
-		raw := memo.GetRaw(block.Transactions[i])
+		raw := memo.GetRaw(block.Transactions[i].MsgTx)
 		txHash := chainhash.DoubleHashH(raw)
 		txHashBytes := txHash.CloneBytes()
 		if t.Verbose {
@@ -69,7 +67,7 @@ func (t *TxRaw) QueueTxs(block *wire.MsgBlock) error {
 			TxHash:    txHashBytes,
 			Timestamp: seenTime,
 		})
-		txsSize += block.Transactions[i].SerializeSize()
+		txsSize += block.Transactions[i].MsgTx.SerializeSize()
 		if len(objects) >= 25000 || txsSize > 250000000 {
 			if err := db.Save(objects); err != nil {
 				return jerr.Get("error saving db tx objects (at limit)", err)

@@ -3,7 +3,6 @@ package saver
 import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
-	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -22,13 +21,9 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
-	block := b.ToWireBlock()
-	var height = b.Height
-	if height == 0 {
-		height = item.HeightMempool
-	}
 	var objects []db.Object
-	for _, tx := range block.Transactions {
+	for _, transaction := range b.Transactions {
+		var tx = transaction.MsgTx
 		txHash := tx.TxHash()
 		if a.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())

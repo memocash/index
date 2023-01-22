@@ -3,6 +3,7 @@ package dbi
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"time"
 )
 
@@ -42,12 +43,16 @@ func (b *Block) IsNil() bool {
 	return b == nil || (!b.HasHeader() && len(b.Transactions) == 0)
 }
 
-func (b *Block) ToWireBlock() *wire.MsgBlock {
-	return BlockToWireBlock(b)
-}
-
 func (b *Block) HasHeader() bool {
 	return BlockHeaderSet(b.Header)
+}
+
+func (b *Block) Size() int64 {
+	n := int64(memo.BlockHeaderLength + wire.VarIntSerializeSize(uint64(len(b.Transactions))))
+	for _, tx := range b.Transactions {
+		n += int64(tx.MsgTx.SerializeSize())
+	}
+	return n
 }
 
 func BlockHeaderSet(header wire.BlockHeader) bool {
@@ -104,7 +109,10 @@ func WireBlockToBlock(wireBlock *wire.MsgBlock) *Block {
 	if wireBlock == nil {
 		return &Block{}
 	}
-	block := &Block{Header: wireBlock.Header}
+	block := &Block{
+		Header: wireBlock.Header,
+		Seen:   time.Now(),
+	}
 	for i, wireTx := range wireBlock.Transactions {
 		tx := WireTxToTx(wireTx, uint32(i))
 		block.Transactions = append(block.Transactions, *tx)

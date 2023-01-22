@@ -1,7 +1,6 @@
 package saver
 
 import (
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
@@ -25,25 +24,24 @@ func (t *Tx) SaveTxs(b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
-	block := b.ToWireBlock()
-	err := t.QueueTxs(block)
-	if err != nil {
+	if err := t.QueueTxs(b); err != nil {
 		return jerr.Get("error queueing msg txs", err)
 	}
 	return nil
 }
 
-func (t *Tx) QueueTxs(block *wire.MsgBlock) error {
+func (t *Tx) QueueTxs(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block or empty header")
 	}
-	blockHash := block.BlockHash()
+	blockHash := block.Header.BlockHash()
 	var blockHashBytes []byte
 	if dbi.BlockHeaderSet(block.Header) {
 		blockHashBytes = blockHash.CloneBytes()
 	}
 	var objects []db.Object
-	for _, tx := range block.Transactions {
+	for _, transaction := range block.Transactions {
+		var tx = transaction.MsgTx
 		txHash := tx.TxHash()
 		txHashBytes := txHash.CloneBytes()
 		if t.Verbose {

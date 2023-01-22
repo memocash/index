@@ -7,8 +7,6 @@ option go_package = "github.com/memocash/index/ref/cluster/proto/cluster_pb";
 service Cluster {
     rpc Ping (PingReq) returns (PingResp);
     rpc SaveTxs (SaveReq) returns (EmptyResp);
-    rpc ProcessInitial (ProcessReq) returns (EmptyResp);
-    rpc Process (ProcessReq) returns (EmptyResp);
 }
 
 message PingReq {
@@ -22,11 +20,8 @@ message PingResp {
 message SaveReq {
     Block block = 1;
     int64 height = 2;
-    bool is_initial = 3;
-}
-
-message ProcessReq {
-    bytes block_hash = 1;
+    int64 seen = 3;
+    bool is_initial = 4;
 }
 
 message EmptyResp {}

@@ -2,7 +2,6 @@ package lead
 
 import (
 	"context"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jlog"
@@ -15,6 +14,7 @@ import (
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
 	"github.com/memocash/index/ref/dbi"
 	"sync"
+	"time"
 )
 
 type Processor struct {
@@ -43,7 +43,7 @@ func (p *Processor) Start() error {
 			p.MemPoolNode = NewNode()
 			p.MemPoolNode.Start(true, p.Synced)
 			jlog.Logf("Started mempool node...\n")
-			for p.Process(<-p.MemPoolNode.NewBlock) {
+			for p.ProcessBlock(<-p.MemPoolNode.NewBlock) {
 			}
 		}()
 	}
@@ -55,7 +55,7 @@ func (p *Processor) Start() error {
 		for {
 			select {
 			case block := <-p.BlockNode.NewBlock:
-				if p.Process(block) {
+				if p.ProcessBlock(block) {
 					continue
 				}
 			case <-p.BlockNode.SyncDone:
@@ -84,13 +84,14 @@ func (p *Processor) Start() error {
 	return nil
 }
 
-func (p *Processor) Process(block *wire.MsgBlock) bool {
+func (p *Processor) ProcessBlock(block *dbi.Block) bool {
 	if !p.On {
 		return false
 	}
+	seen := time.Now()
 	var shardBlocks = make(map[uint32]*cluster_pb.Block)
 	for i, tx := range block.Transactions {
-		txHash := tx.TxHash()
+		txHash := tx.MsgTx.TxHash()
 		shard := db.GetShardByte32(txHash[:])
 		if _, ok := shardBlocks[shard]; !ok {
 			shardBlocks[shard] = &cluster_pb.Block{
@@ -99,13 +100,13 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 		}
 		shardBlocks[shard].Txs = append(shardBlocks[shard].Txs, &cluster_pb.Tx{
 			Index: uint32(i),
-			Raw:   memo.GetRaw(tx),
+			Raw:   memo.GetRaw(tx.MsgTx),
 		})
 	}
-	blockHash := block.BlockHash()
+	blockHash := block.Header.BlockHash()
 	blockInfo := dbi.BlockInfo{
 		Header:  block.Header,
-		Size:    int64(block.SerializeSize()),
+		Size:    block.Size(),
 		TxCount: len(block.Transactions),
 	}
 	var height int64
@@ -121,7 +122,7 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 		}
 		height = blockSaver.NewHeight
 	}
-	if !p.WaitForProcess(blockHash[:], height, shardBlocks, ProcessTypeTx) {
+	if !p.SaveBlockShards(height, seen, shardBlocks) {
 		return false
 	}
 	if dbi.BlockHeaderSet(block.Header) {
@@ -132,42 +133,26 @@ func (p *Processor) Process(block *wire.MsgBlock) bool {
 	return true
 }
 
-type ProcessType string
-
-const (
-	ProcessTypeTx             ProcessType = "tx"
-	ProcessTypeProcessInitial ProcessType = "process-initial"
-	ProcessTypeProcess        ProcessType = "process"
-)
-
-func (p *Processor) WaitForProcess(blockHash []byte, height int64, shardBlocks map[uint32]*cluster_pb.Block, processType ProcessType) bool {
+func (p *Processor) SaveBlockShards(height int64, seen time.Time, shardBlocks map[uint32]*cluster_pb.Block) bool {
 	var wg sync.WaitGroup
 	var hadError bool
 	for _, c := range p.Clients {
 		wg.Add(1)
 		go func(c *Client) {
 			defer wg.Done()
-			if _, ok := shardBlocks[c.Config.Shard]; !ok && processType == ProcessTypeTx {
+			if _, ok := shardBlocks[c.Config.Shard]; !ok {
 				return
 			}
-			var err error
-			switch processType {
-			case ProcessTypeTx:
-				_, err = c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
-					Block:     shardBlocks[c.Config.Shard],
-					IsInitial: !p.Synced,
-					Height:    height,
-				})
-			case ProcessTypeProcessInitial:
-				_, err = c.Client.ProcessInitial(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
-			case ProcessTypeProcess:
-				_, err = c.Client.Process(context.Background(), &cluster_pb.ProcessReq{BlockHash: blockHash[:]})
-			}
-			if err != nil {
+			if _, err := c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
+				Block:     shardBlocks[c.Config.Shard],
+				IsInitial: !p.Synced,
+				Height:    height,
+				Seen:      seen.UnixNano(),
+			}); err != nil {
 				hadError = true
 				p.ErrorChan <- ShardError{
 					Shard: c.Config.Int(),
-					Error: jerr.Getf(err, "error cluster shard process: %s - %d", processType, c.Config.Shard),
+					Error: jerr.Getf(err, "error cluster shard process: %d", c.Config.Shard),
 				}
 			}
 		}(c)

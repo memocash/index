@@ -20,8 +20,6 @@ const _ = grpc.SupportPackageIsVersion7
 type ClusterClient interface {
 	Ping(ctx context.Context, in *PingReq, opts ...grpc.CallOption) (*PingResp, error)
 	SaveTxs(ctx context.Context, in *SaveReq, opts ...grpc.CallOption) (*EmptyResp, error)
-	ProcessInitial(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*EmptyResp, error)
-	Process(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*EmptyResp, error)
 }
 
 type clusterClient struct {
@@ -50,32 +48,12 @@ func (c *clusterClient) SaveTxs(ctx context.Context, in *SaveReq, opts ...grpc.C
 	return out, nil
 }
 
-func (c *clusterClient) ProcessInitial(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*EmptyResp, error) {
-	out := new(EmptyResp)
-	err := c.cc.Invoke(ctx, "/cluster_pb.Cluster/ProcessInitial", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clusterClient) Process(ctx context.Context, in *ProcessReq, opts ...grpc.CallOption) (*EmptyResp, error) {
-	out := new(EmptyResp)
-	err := c.cc.Invoke(ctx, "/cluster_pb.Cluster/Process", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ClusterServer is the server API for Cluster service.
 // All implementations must embed UnimplementedClusterServer
 // for forward compatibility
 type ClusterServer interface {
 	Ping(context.Context, *PingReq) (*PingResp, error)
 	SaveTxs(context.Context, *SaveReq) (*EmptyResp, error)
-	ProcessInitial(context.Context, *ProcessReq) (*EmptyResp, error)
-	Process(context.Context, *ProcessReq) (*EmptyResp, error)
 	mustEmbedUnimplementedClusterServer()
 }
 
@@ -88,12 +66,6 @@ func (UnimplementedClusterServer) Ping(context.Context, *PingReq) (*PingResp, er
 }
 func (UnimplementedClusterServer) SaveTxs(context.Context, *SaveReq) (*EmptyResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SaveTxs not implemented")
-}
-func (UnimplementedClusterServer) ProcessInitial(context.Context, *ProcessReq) (*EmptyResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProcessInitial not implemented")
-}
-func (UnimplementedClusterServer) Process(context.Context, *ProcessReq) (*EmptyResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Process not implemented")
 }
 func (UnimplementedClusterServer) mustEmbedUnimplementedClusterServer() {}
 
@@ -144,42 +116,6 @@ func _Cluster_SaveTxs_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Cluster_ProcessInitial_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ProcessReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClusterServer).ProcessInitial(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cluster_pb.Cluster/ProcessInitial",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClusterServer).ProcessInitial(ctx, req.(*ProcessReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Cluster_Process_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ProcessReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClusterServer).Process(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cluster_pb.Cluster/Process",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClusterServer).Process(ctx, req.(*ProcessReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // Cluster_ServiceDesc is the grpc.ServiceDesc for Cluster service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -194,14 +130,6 @@ var Cluster_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SaveTxs",
 			Handler:    _Cluster_SaveTxs_Handler,
-		},
-		{
-			MethodName: "ProcessInitial",
-			Handler:    _Cluster_ProcessInitial_Handler,
-		},
-		{
-			MethodName: "Process",
-			Handler:    _Cluster_Process_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

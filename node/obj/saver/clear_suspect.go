@@ -11,10 +11,9 @@ type ClearSuspect struct {
 }
 
 func (s *ClearSuspect) SaveTxs(b *dbi.Block) error {
-	block := b.ToWireBlock()
-	var txHashes = make([][]byte, len(block.Transactions))
-	for i := range block.Transactions {
-		txHash := block.Transactions[i].TxHash()
+	var txHashes = make([][]byte, len(b.Transactions))
+	for i := range b.Transactions {
+		txHash := b.Transactions[i].MsgTx.TxHash()
 		txHashes[i] = txHash.CloneBytes()
 	}
 	doubleSpendInputs, err := item.GetDoubleSpendInputsByTxHashes(txHashes)
