@@ -89,6 +89,9 @@ func (p *Processor) ProcessBlock(block *dbi.Block) bool {
 		return false
 	}
 	seen := time.Now()
+	if block.HasHeader() && block.Header.Timestamp.Before(seen) {
+		seen = block.Header.Timestamp
+	}
 	var shardBlocks = make(map[uint32]*cluster_pb.Block)
 	for i, tx := range block.Transactions {
 		shard := db.GetShardByte32(tx.Hash[:])
