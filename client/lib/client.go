@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/client/lib/graph"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"time"
 )
 
 type Client struct {
@@ -13,39 +14,25 @@ type Client struct {
 }
 
 func (c *Client) updateDb(address *wallet.Addr) error {
-	height, err := c.Database.GetAddressHeight(address)
+	lastUpdate, err := c.Database.GetAddressLastUpdate(address)
 	if err != nil && !jerr.HasError(err, sql.ErrNoRows.Error()) {
-		return jerr.Get("error getting address height", err)
+		return jerr.Get("error getting address last update", err)
 	}
-	history, err := graph.GetHistory(c.GraphUrl, address, height)
+	txs, err := graph.GetHistory(c.GraphUrl, address, lastUpdate)
 	if err != nil {
-		return jerr.Get("error getting history", err)
+		return jerr.Get("error getting history txs", err)
 	}
-	for _, txs := range [][]graph.Tx{history.Outputs, history.Spends} {
-		if err := c.Database.SaveTxs(txs); err != nil {
-			return jerr.Get("error saving txs", err)
+	if err := c.Database.SaveTxs(txs); err != nil {
+		return jerr.Get("error saving txs", err)
+	}
+	var maxTime time.Time
+	for _, tx := range txs {
+		if tx.Seen.After(maxTime) {
+			maxTime = tx.Seen
 		}
 	}
-	var maxHeightOutput int64
-	for _, output := range history.Outputs {
-		if len(output.Blocks) > 0 && output.Blocks[0].Height > maxHeightOutput {
-			maxHeightOutput = output.Blocks[0].Height
-		}
-	}
-	var maxHeightSpends int64
-	for _, spend := range history.Spends {
-		if len(spend.Blocks) > 0 && spend.Blocks[0].Height > maxHeightSpends {
-			maxHeightSpends = spend.Blocks[0].Height
-		}
-	}
-	var maxHeight int64
-	if maxHeightOutput > maxHeightSpends {
-		maxHeight = maxHeightSpends
-	} else {
-		maxHeight = maxHeightOutput
-	}
-	if err := c.Database.SetAddressHeight(address, maxHeight); err != nil {
-		return jerr.Get("error setting address height for client update db", err)
+	if err := c.Database.SetAddressLastUpdate(address, maxTime); err != nil {
+		return jerr.Get("error setting address last update for client update db", err)
 	}
 	return nil
 }

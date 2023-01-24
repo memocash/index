@@ -50,24 +50,18 @@ func (d *Database) GetAddressBalance(address *wallet.Addr) (int64, error) {
 	return result.Balance, nil
 }
 
-func (d *Database) GetAddressHeight(address *wallet.Addr) (int64, error) {
+func (d *Database) GetAddressLastUpdate(address *wallet.Addr) (time.Time, error) {
 	query := "" +
-		"SELECT " +
-		"   outputs.address, " +
-		"   MAX(blocks.height) AS height " +
-		"FROM outputs " +
-		"JOIN block_txs ON (block_txs.tx_hash = outputs.hash) " +
-		"JOIN blocks on (blocks.hash = block_txs.block_hash) " +
-		"WHERE outputs.address = ? " +
-		"GROUP BY outputs.address "
+		"SELECT time " +
+		"FROM address_updates " +
+		"WHERE address = ? "
 	var result struct {
-		Address string `db:"address"`
-		Height  int64  `db:"height"`
+		Time int64 `db:"time"`
 	}
-	if err := d.Db.QueryRow(query, address.String()).Scan(&result.Address, &result.Height); err != nil {
-		return 0, jerr.Get("error getting address height exec query", err)
+	if err := d.Db.QueryRow(query, address.String()).Scan(&result.Time); err != nil {
+		return time.Time{}, jerr.Get("error getting address time exec query", err)
 	}
-	return result.Height, nil
+	return time.Unix(result.Time, 0), nil
 }
 
 func (d *Database) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
@@ -91,10 +85,13 @@ func (d *Database) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
 	return results, nil
 }
 
-func (d *Database) SetAddressHeight(address *wallet.Addr, height int64) error {
-	query := "INSERT OR REPLACE INTO address_heights (address, height) VALUES (?, ?)"
-	if _, err := d.Db.Exec(query, address.String(), height); err != nil {
-		return jerr.Get("error updating address height", err)
+func (d *Database) SetAddressLastUpdate(address *wallet.Addr, t time.Time) error {
+	if t.Unix() <= 0 {
+		return nil
+	}
+	query := "INSERT OR REPLACE INTO address_updates (address, time) VALUES (?, ?)"
+	if _, err := d.Db.Exec(query, address.String(), t.Unix()); err != nil {
+		return jerr.Get("error updating address last update", err)
 	}
 	return nil
 }

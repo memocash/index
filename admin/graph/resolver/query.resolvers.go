@@ -33,16 +33,14 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 		return nil, jerr.Get("error getting tx hash from hash", err)
 	}
 	txHashString := txHash.String()
-	var raw string
-	if HasFieldAny(ctx, []string{"raw"}) {
-		if raw, err = dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHashString); err != nil {
-			return nil, jerr.Get("error getting tx raw from dataloader for tx query resolver", err)
-		}
+	if !HasFieldAny(ctx, []string{"raw"}) {
+		return &model.Tx{Hash: txHashString}, nil
 	}
-	return &model.Tx{
-		Hash: txHashString,
-		Raw:  raw,
-	}, nil
+	txWithRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHashString)
+	if err != nil {
+		return nil, jerr.Get("error getting tx raw from dataloader for tx query resolver", err)
+	}
+	return txWithRaw, nil
 }
 
 // Txs is the resolver for the txs field.

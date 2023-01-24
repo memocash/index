@@ -5,12 +5,14 @@ package dataloader
 import (
 	"sync"
 	"time"
+
+	"github.com/memocash/index/admin/graph/model"
 )
 
 // TxRawLoaderConfig captures the config to create a new TxRawLoader
 type TxRawLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
-	Fetch func(keys []string) ([]string, []error)
+	Fetch func(keys []string) ([]*model.Tx, []error)
 
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
@@ -31,7 +33,7 @@ func NewTxRawLoader(config TxRawLoaderConfig) *TxRawLoader {
 // TxRawLoader batches and caches requests
 type TxRawLoader struct {
 	// this method provides the data for the loader
-	fetch func(keys []string) ([]string, []error)
+	fetch func(keys []string) ([]*model.Tx, []error)
 
 	// how long to done before sending a batch
 	wait time.Duration
@@ -42,7 +44,7 @@ type TxRawLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[string]string
+	cache map[string]*model.Tx
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
@@ -54,25 +56,25 @@ type TxRawLoader struct {
 
 type txRawLoaderBatch struct {
 	keys    []string
-	data    []string
+	data    []*model.Tx
 	error   []error
 	closing bool
 	done    chan struct{}
 }
 
-// Load a string by key, batching and caching will be applied automatically
-func (l *TxRawLoader) Load(key string) (string, error) {
+// Load a Tx by key, batching and caching will be applied automatically
+func (l *TxRawLoader) Load(key string) (*model.Tx, error) {
 	return l.LoadThunk(key)()
 }
 
-// LoadThunk returns a function that when called will block waiting for a string.
+// LoadThunk returns a function that when called will block waiting for a Tx.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *TxRawLoader) LoadThunk(key string) func() (string, error) {
+func (l *TxRawLoader) LoadThunk(key string) func() (*model.Tx, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
-		return func() (string, error) {
+		return func() (*model.Tx, error) {
 			return it, nil
 		}
 	}
@@ -83,10 +85,10 @@ func (l *TxRawLoader) LoadThunk(key string) func() (string, error) {
 	pos := batch.keyIndex(l, key)
 	l.mu.Unlock()
 
-	return func() (string, error) {
+	return func() (*model.Tx, error) {
 		<-batch.done
 
-		var data string
+		var data *model.Tx
 		if pos < len(batch.data) {
 			data = batch.data[pos]
 		}
@@ -111,47 +113,50 @@ func (l *TxRawLoader) LoadThunk(key string) func() (string, error) {
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *TxRawLoader) LoadAll(keys []string) ([]string, []error) {
-	results := make([]func() (string, error), len(keys))
+func (l *TxRawLoader) LoadAll(keys []string) ([]*model.Tx, []error) {
+	results := make([]func() (*model.Tx, error), len(keys))
 
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
 
-	strings := make([]string, len(keys))
+	txs := make([]*model.Tx, len(keys))
 	errors := make([]error, len(keys))
 	for i, thunk := range results {
-		strings[i], errors[i] = thunk()
+		txs[i], errors[i] = thunk()
 	}
-	return strings, errors
+	return txs, errors
 }
 
-// LoadAllThunk returns a function that when called will block waiting for a strings.
+// LoadAllThunk returns a function that when called will block waiting for a Txs.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *TxRawLoader) LoadAllThunk(keys []string) func() ([]string, []error) {
-	results := make([]func() (string, error), len(keys))
+func (l *TxRawLoader) LoadAllThunk(keys []string) func() ([]*model.Tx, []error) {
+	results := make([]func() (*model.Tx, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
-	return func() ([]string, []error) {
-		strings := make([]string, len(keys))
+	return func() ([]*model.Tx, []error) {
+		txs := make([]*model.Tx, len(keys))
 		errors := make([]error, len(keys))
 		for i, thunk := range results {
-			strings[i], errors[i] = thunk()
+			txs[i], errors[i] = thunk()
 		}
-		return strings, errors
+		return txs, errors
 	}
 }
 
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *TxRawLoader) Prime(key string, value string) bool {
+func (l *TxRawLoader) Prime(key string, value *model.Tx) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
-		l.unsafeSet(key, value)
+		// make a copy when writing to the cache, its easy to pass a pointer in from a loop var
+		// and end up with the whole cache pointing to the same value.
+		cpy := *value
+		l.unsafeSet(key, &cpy)
 	}
 	l.mu.Unlock()
 	return !found
@@ -164,9 +169,9 @@ func (l *TxRawLoader) Clear(key string) {
 	l.mu.Unlock()
 }
 
-func (l *TxRawLoader) unsafeSet(key string, value string) {
+func (l *TxRawLoader) unsafeSet(key string, value *model.Tx) {
 	if l.cache == nil {
-		l.cache = map[string]string{}
+		l.cache = map[string]*model.Tx{}
 	}
 	l.cache[key] = value
 }

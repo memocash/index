@@ -17,7 +17,7 @@ func GetClient() (*lib.Client, error) {
 
 func initDb(db *sql.DB) error {
 	for _, definition := range []string{
-		TableAddressHeights,
+		TableAddressUpdates,
 		TableBlocks,
 		TableBlockTxs,
 		TableInputs,
@@ -43,9 +43,9 @@ func execQueries(db *sql.DB, queries []Query) error {
 const tIndex = "`index`"
 
 const (
-	TableAddressHeights = `CREATE TABLE IF NOT EXISTS address_heights (
+	TableAddressUpdates = `CREATE TABLE IF NOT EXISTS address_updates (
 		address CHAR,
-		height INT,
+		time INT,
 		UNIQUE(address)
     )`
 	TableTxs = `CREATE TABLE IF NOT EXISTS txs (

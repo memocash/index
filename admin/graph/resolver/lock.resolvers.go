@@ -55,24 +55,27 @@ func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Da
 	for i := range seenTxs {
 		txHashes[i] = chainhash.Hash(seenTxs[i].TxHash).String()
 	}
-	var modelTxs = make([]*model.Tx, len(txHashes))
-	var rawTxs []string
+	var txsWithRaw []*model.Tx
 	if HasFieldAny(ctx, []string{"raw"}) {
 		var errs []error
-		rawTxs, errs = dataloader.NewTxRawLoader(txRawLoaderConfig).LoadAll(txHashes)
+		txsWithRaw, errs = dataloader.NewTxRawLoader(txRawLoaderConfig).LoadAll(txHashes)
 		for _, err := range errs {
 			if err != nil {
 				return nil, jerr.Get("error getting tx raw from dataloader for lock txs resolver", err)
 			}
 		}
 	}
+	var modelTxs = make([]*model.Tx, len(seenTxs))
 	for i := range seenTxs {
 		modelTxs[i] = &model.Tx{
 			Hash: chainhash.Hash(seenTxs[i].TxHash).String(),
 			Seen: model.Date(seenTxs[i].Seen),
 		}
-		if len(rawTxs) > 0 {
-			modelTxs[i].Raw = rawTxs[i]
+		for _, txWithRaw := range txsWithRaw {
+			if txWithRaw.Hash == modelTxs[i].Hash {
+				modelTxs[i].Raw = txWithRaw.Raw
+				break
+			}
 		}
 	}
 	return modelTxs, nil

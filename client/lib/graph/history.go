@@ -10,17 +10,14 @@ import (
 	"time"
 )
 
-type History struct {
-	Outputs []Tx
-	Spends  []Tx
-}
+type History []Tx
 
-func GetHistory(url string, address *wallet.Addr, startHeight int64) (*History, error) {
+func GetHistory(url string, address *wallet.Addr, lastUpdate time.Time) ([]Tx, error) {
 	jsonData := map[string]interface{}{
 		"query": HistoryQuery,
 		"variables": map[string]interface{}{
 			"address": address.String(),
-			"height":  startHeight,
+			"start":   lastUpdate.Format(time.RFC3339),
 		},
 	}
 	jsonValue, err := json.Marshal(jsonData)
@@ -54,31 +51,12 @@ func GetHistory(url string, address *wallet.Addr, startHeight int64) (*History, 
 		return nil, jerr.Get("error unmarshalling json", err)
 	}
 	if len(dataStruct.Errors) > 0 {
-		return nil, jerr.Get("error response data", jerr.New(dataStruct.Errors[0].Message))
+		return nil, jerr.Get("error index client history response data", jerr.New(dataStruct.Errors[0].Message))
 	}
-	var history = new(History)
-OutputLoop:
-	for _, output := range dataStruct.Data.Address.Outputs {
-		for _, tx := range history.Outputs {
-			if tx.Hash == output.Tx.Hash {
-				continue OutputLoop
-			}
-		}
-		history.Outputs = append(history.Outputs, output.Tx)
-	}
-SpendsLoop:
-	for _, input := range dataStruct.Data.Address.Spends {
-		for _, tx := range history.Spends {
-			if tx.Hash == input.Tx.Hash {
-				continue SpendsLoop
-			}
-		}
-		history.Spends = append(history.Spends, input.Tx)
-	}
-	return history, nil
+	return dataStruct.Data.Address.Txs, nil
 }
 
-const QueryTx = `tx {
+const QueryTx = `{
 	hash
 	seen
 	raw
@@ -125,13 +103,8 @@ const QueryTx = `tx {
 	}
 }`
 
-const HistoryQuery = `query ($address: String!, $height: Int) {
+const HistoryQuery = `query ($address: String!, $start: Date) {
 	address (address: $address) {
-		outputs(height: $height) {
-			` + QueryTx + `
-		}
-		spends(height: $height) {
-			` + QueryTx + `
-		}
+		txs(start: $start) ` + QueryTx + `
 	}
 }`

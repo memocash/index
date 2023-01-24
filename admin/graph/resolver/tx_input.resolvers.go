@@ -23,7 +23,7 @@ func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx
 		if err != nil {
 			return nil, jerr.Get("error getting tx raw for output from loader", err)
 		}
-		tx.Raw = txRaw
+		tx.Raw = txRaw.Raw
 	}
 	return tx, nil
 }

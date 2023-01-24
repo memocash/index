@@ -10,7 +10,7 @@ go run github.com/vektah/dataloaden TxSuspectLoader string *github.com/memocash/
 go run github.com/vektah/dataloaden BlockLoader string []*github.com/memocash/index/admin/graph/model.Block
 go run github.com/vektah/dataloaden TxSeenLoader string *github.com/memocash/index/admin/graph/model.Date
 go run github.com/vektah/dataloaden TxOutputLoader github.com/memocash/index/admin/graph/model.HashIndex *github.com/memocash/index/admin/graph/model.TxOutput
-go run github.com/vektah/dataloaden TxRawLoader string string
+go run github.com/vektah/dataloaden TxRawLoader string *github.com/memocash/index/admin/graph/model.Tx
 go run github.com/vektah/dataloaden ProfileLoader string *github.com/memocash/index/admin/graph/model.Profile
 go run github.com/vektah/dataloaden AddressBalanceLoader string int64
 go run github.com/vektah/dataloaden PostLoader string *github.com/memocash/index/admin/graph/model.Post

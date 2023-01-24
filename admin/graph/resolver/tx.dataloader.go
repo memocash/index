@@ -120,7 +120,7 @@ var txSeenLoaderConfig = dataloader.TxSeenLoaderConfig{
 var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,
-	Fetch: func(keys []string) ([]string, []error) {
+	Fetch: func(keys []string) ([]*model.Tx, []error) {
 		var txHashes = make([][32]byte, len(keys))
 		for i := range keys {
 			hash, err := chainhash.NewHashFromStr(keys[i])
@@ -133,11 +133,14 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 		if err != nil {
 			return nil, []error{jerr.Get("error getting tx raws for tx dataloader", err)}
 		}
-		txRawStrings := make([]string, len(txRaws))
+		txsWithRaw := make([]*model.Tx, len(txRaws))
 		for i := range txRaws {
-			txRawStrings[i] = hex.EncodeToString(txRaws[i].Raw)
+			txsWithRaw[i] = &model.Tx{
+				Hash: chainhash.Hash(txRaws[i].Hash).String(),
+				Raw:  hex.EncodeToString(txRaws[i].Raw),
+			}
 		}
-		return txRawStrings, nil
+		return txsWithRaw, nil
 	},
 }
 
@@ -243,24 +246,20 @@ func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
 }
 
 func TxLoader(ctx context.Context, txHash string) (*model.Tx, error) {
-	var raw string
+	var tx = &model.Tx{Hash: txHash}
 	if HasFieldAny(ctx, []string{"raw"}) {
-		var err error
-		if raw, err = dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHash); err != nil {
+		txWithRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHash)
+		if err != nil {
 			return nil, jerr.Get("error getting tx raw from dataloader for post resolver", err)
 		}
+		tx.Raw = txWithRaw.Raw
 	}
-	var seen model.Date
 	if HasField(ctx, "seen") {
 		txSeen, err := dataloader.NewTxSeenLoader(txSeenLoaderConfig).Load(txHash)
 		if err != nil {
 			return nil, jerr.Get("error getting tx seen for tx loader", err)
 		}
-		seen = *txSeen
+		tx.Seen = *txSeen
 	}
-	return &model.Tx{
-		Hash: txHash,
-		Raw:  raw,
-		Seen: seen,
-	}, nil
+	return tx, nil
 }

@@ -3,8 +3,7 @@ package graph
 import "time"
 
 type Address struct {
-	Outputs []Output `json:"outputs"`
-	Spends  []Input  `json:"spends"`
+	Txs []Tx `json:"txs"`
 }
 
 type Output struct {
