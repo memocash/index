@@ -201,9 +201,11 @@ func GetAddress2WalletEmpty() build.Wallet {
 }
 
 func GetWallet(key wallet.PrivateKey, amount int64, index uint32) build.Wallet {
+	pkScript, _ := script.P2pkh{PkHash: key.GetPkHash()}.Get()
 	return build.Wallet{
 		Getter: gen.GetWrapper(&TestGetter{UTXOs: []memo.UTXO{{
 			Input: memo.TxInput{
+				PkScript:     pkScript,
 				PkHash:       key.GetPkHash(),
 				PrevOutHash:  GenericTxHash0,
 				PrevOutIndex: index,

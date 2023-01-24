@@ -59,8 +59,11 @@ func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Da
 	var rawTxs []string
 	if HasFieldAny(ctx, []string{"raw"}) {
 		var errs []error
-		if rawTxs, errs = dataloader.NewTxRawLoader(txRawLoaderConfig).LoadAll(txHashes); len(errs) > 0 {
-			return nil, jerr.Get("error getting tx raw from dataloader for lock txs resolver", jerr.Combine(errs...))
+		rawTxs, errs = dataloader.NewTxRawLoader(txRawLoaderConfig).LoadAll(txHashes)
+		for _, err := range errs {
+			if err != nil {
+				return nil, jerr.Get("error getting tx raw from dataloader for lock txs resolver", err)
+			}
 		}
 	}
 	for i := range seenTxs {

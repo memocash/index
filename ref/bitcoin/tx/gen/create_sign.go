@@ -7,9 +7,8 @@ import (
 )
 
 func (c *Create) Sign(msg *wire.MsgTx, keyRing wallet.KeyRing) error {
-	err := Sign(msg, c.getTxInputs(), keyRing)
-	if err != nil {
-		return jerr.Get("error signing tx", err)
+	if err := Sign(msg, c.getTxInputs(), keyRing); err != nil {
+		return jerr.Get("error signing tx in create", err)
 	}
 	return nil
 }

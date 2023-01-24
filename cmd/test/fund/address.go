@@ -30,7 +30,7 @@ var addressCmd = &cobra.Command{
 		}
 		fundingTx, err := test_tx.GetFundingTx(address, amount)
 		if err != nil {
-			jerr.Get("error getting funding tx for addressCmd", err).Fatal()
+			jerr.Get("error getting funding tx for address cmd", err).Fatal()
 		}
 		txInfo := parse.GetTxInfo(fundingTx)
 		txInfo.Print()

@@ -6,7 +6,6 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/dbi"
-	"time"
 )
 
 type TxMinimal struct {
@@ -25,7 +24,6 @@ func (t *TxMinimal) SaveTxs(block *dbi.Block) error {
 
 func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
 	blockHash := block.Header.BlockHash()
-	seenTime := time.Now()
 	var objects []db.Object
 	for _, dbiTx := range block.Transactions {
 		tx := dbiTx.MsgTx
@@ -45,6 +43,9 @@ func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
 				BlockHash: blockHash,
 				Index:     dbiTx.BlockIndex,
 			})
+		}
+		if dbiTx.Saved {
+			continue
 		}
 		objects = append(objects, &chain.Tx{
 			TxHash:   txHash,
@@ -77,7 +78,7 @@ func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
 		}
 		objects = append(objects, &chain.TxSeen{
 			TxHash:    txHash,
-			Timestamp: seenTime,
+			Timestamp: dbiTx.Seen,
 		})
 	}
 	if err := db.Save(objects); err != nil {
