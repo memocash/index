@@ -23,9 +23,6 @@ func (c *Create) setInputs() error {
 		}
 		c.PotentialInputs = append(c.PotentialInputs[:i], c.PotentialInputs[i+1:]...)
 		i--
-		if potentialInput.AncestorsNC >= memo.MaxAncestors {
-			continue
-		}
 		c.InputsToUse = append(c.InputsToUse, potentialInput)
 		hasEnoughInputValue, err := c.isEnoughInputValue()
 		if err != nil {
