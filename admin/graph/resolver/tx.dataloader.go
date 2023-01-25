@@ -247,7 +247,7 @@ func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
 
 func TxLoader(ctx context.Context, txHash string) (*model.Tx, error) {
 	var tx = &model.Tx{Hash: txHash}
-	if HasFieldAny(ctx, []string{"raw"}) {
+	if HasField(ctx, "raw") {
 		txWithRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHash)
 		if err != nil {
 			return nil, jerr.Get("error getting tx raw from dataloader for post resolver", err)

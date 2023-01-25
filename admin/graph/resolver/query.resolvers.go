@@ -28,19 +28,11 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
-	txHash, err := chainhash.NewHashFromStr(hash)
+	tx, err := TxLoader(ctx, hash)
 	if err != nil {
-		return nil, jerr.Get("error getting tx hash from hash", err)
+		return nil, jerr.Get("error getting tx from dataloader for tx query resolver", err)
 	}
-	txHashString := txHash.String()
-	if !HasFieldAny(ctx, []string{"raw"}) {
-		return &model.Tx{Hash: txHashString}, nil
-	}
-	txWithRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHashString)
-	if err != nil {
-		return nil, jerr.Get("error getting tx raw from dataloader for tx query resolver", err)
-	}
-	return txWithRaw, nil
+	return tx, nil
 }
 
 // Txs is the resolver for the txs field.

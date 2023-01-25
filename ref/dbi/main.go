@@ -112,8 +112,12 @@ func WireBlockToBlock(wireBlock *wire.MsgBlock) *Block {
 		Header: wireBlock.Header,
 		Seen:   time.Now(),
 	}
+	if block.HasHeader() && block.Header.Timestamp.Before(block.Seen) {
+		block.Seen = block.Header.Timestamp
+	}
 	for i, wireTx := range wireBlock.Transactions {
 		tx := WireTxToTx(wireTx, uint32(i))
+		tx.Seen = block.Seen
 		block.Transactions = append(block.Transactions, *tx)
 	}
 	return block
