@@ -27,7 +27,7 @@ func NewDatabase(db *sql.DB) (*Database, error) {
 	}, nil
 }
 
-func (d *Database) GetAddressBalance(address *wallet.Addr) (int64, error) {
+func (d *Database) GetAddressBalance(address wallet.Addr) (int64, error) {
 	query := "" +
 		"SELECT " +
 		"   outputs.address, " +
@@ -46,7 +46,7 @@ func (d *Database) GetAddressBalance(address *wallet.Addr) (int64, error) {
 	return result.Balance, nil
 }
 
-func (d *Database) GetAddressLastUpdate(address *wallet.Addr) (time.Time, error) {
+func (d *Database) GetAddressLastUpdate(address wallet.Addr) (time.Time, error) {
 	query := "" +
 		"SELECT time " +
 		"FROM address_updates " +
@@ -60,7 +60,7 @@ func (d *Database) GetAddressLastUpdate(address *wallet.Addr) (time.Time, error)
 	return time.Unix(result.Time, 0), nil
 }
 
-func (d *Database) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
+func (d *Database) GetUtxos(address wallet.Addr) ([]graph.Output, error) {
 	query := "" +
 		"SELECT outputs.* FROM outputs " +
 		"LEFT JOIN inputs ON (inputs.prev_hash = outputs.hash AND inputs.prev_index = outputs.`index`) " +
@@ -81,7 +81,7 @@ func (d *Database) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
 	return results, nil
 }
 
-func (d *Database) SetAddressLastUpdate(address *wallet.Addr, t time.Time) error {
+func (d *Database) SetAddressLastUpdate(address wallet.Addr, t time.Time) error {
 	if t.Unix() <= 0 {
 		return nil
 	}

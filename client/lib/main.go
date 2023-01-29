@@ -7,9 +7,9 @@ import (
 )
 
 type Database interface {
-	GetAddressBalance(*wallet.Addr) (int64, error)
-	GetAddressLastUpdate(*wallet.Addr) (time.Time, error)
-	GetUtxos(*wallet.Addr) ([]graph.Output, error)
+	GetAddressBalance(wallet.Addr) (int64, error)
+	GetAddressLastUpdate(wallet.Addr) (time.Time, error)
+	GetUtxos(wallet.Addr) ([]graph.Output, error)
 	SaveTxs([]graph.Tx) error
-	SetAddressLastUpdate(*wallet.Addr, time.Time) error
+	SetAddressLastUpdate(wallet.Addr, time.Time) error
 }

@@ -28,7 +28,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("%v; error getting client", err)
 		}
-		utxos, err := client.GetUtxos(address)
+		utxos, err := client.GetUtxos(*address)
 		if err != nil {
 			log.Fatalf("%v; error getting utxos", err)
 		}
@@ -45,7 +45,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("%v; error getting client", err)
 		}
-		balance, err := client.GetBalance(address)
+		balance, err := client.GetBalance(*address)
 		if err != nil {
 			log.Fatalf("%v; error getting balance", err)
 		}
