@@ -1,8 +1,8 @@
-package db
+package sql
 
 import (
 	"database/sql"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/client/lib/graph"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"time"
@@ -18,13 +18,9 @@ type Database struct {
 	Db *sql.DB
 }
 
-func NewDatabase() (*Database, error) {
-	db, err := sql.Open("sqlite3", "./example.db")
-	if err != nil {
-		return nil, jerr.Get("error opening database", err)
-	}
+func NewDatabase(db *sql.DB) (*Database, error) {
 	if err := initDb(db); err != nil {
-		return nil, jerr.Get("error initializing database", err)
+		return nil, fmt.Errorf("%w; error initializing database", err)
 	}
 	return &Database{
 		Db: db,
@@ -45,7 +41,7 @@ func (d *Database) GetAddressBalance(address *wallet.Addr) (int64, error) {
 		Balance int64
 	}
 	if err := d.Db.QueryRow(query, address.String()).Scan(&result.Address, &result.Balance); err != nil {
-		return 0, jerr.Get("error getting address balance exec query", err)
+		return 0, fmt.Errorf("%w; error getting address balance exec query", err)
 	}
 	return result.Balance, nil
 }
@@ -59,7 +55,7 @@ func (d *Database) GetAddressLastUpdate(address *wallet.Addr) (time.Time, error)
 		Time int64 `db:"time"`
 	}
 	if err := d.Db.QueryRow(query, address.String()).Scan(&result.Time); err != nil {
-		return time.Time{}, jerr.Get("error getting address time exec query", err)
+		return time.Time{}, fmt.Errorf("%w; error address last update exec query", err)
 	}
 	return time.Unix(result.Time, 0), nil
 }
@@ -72,13 +68,13 @@ func (d *Database) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
 		"AND inputs.hash IS NULL"
 	rows, err := d.Db.Query(query, address.String())
 	if err != nil {
-		return nil, jerr.Get("error getting address utxos select query", err)
+		return nil, fmt.Errorf("%w; error getting address utxos select query", err)
 	}
 	var results []graph.Output
 	for rows.Next() {
 		var result graph.Output
 		if err := rows.Scan(&result.Hash, &result.Index, &result.Lock.Address, &result.Amount); err != nil {
-			return nil, jerr.Get("error getting address utxos scan query", err)
+			return nil, fmt.Errorf("%w; error getting address utxos scan query", err)
 		}
 		results = append(results, result)
 	}
@@ -91,7 +87,7 @@ func (d *Database) SetAddressLastUpdate(address *wallet.Addr, t time.Time) error
 	}
 	query := "INSERT OR REPLACE INTO address_updates (address, time) VALUES (?, ?)"
 	if _, err := d.Db.Exec(query, address.String(), t.Unix()); err != nil {
-		return jerr.Get("error updating address last update", err)
+		return fmt.Errorf("%w; error updating address last update", err)
 	}
 	return nil
 }
@@ -129,7 +125,7 @@ func (d *Database) SaveTxs(txs []graph.Tx) error {
 			})
 		}
 		if err := execQueries(d.Db, queries); err != nil {
-			return jerr.Get("error saving txs", err)
+			return fmt.Errorf("%w; error saving txs", err)
 		}
 	}
 	return nil

@@ -1,51 +1,66 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/client/example/db"
+	_ "github.com/mattn/go-sqlite3"
+	driver "github.com/memocash/index/client/drivers/sql"
+	"github.com/memocash/index/client/lib"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 	"os"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		jerr.New("error no command provided").Fatal()
+		log.Fatal("error no command provided")
 	}
 	switch os.Args[1] {
 	case "utxos":
 		if len(os.Args) < 3 {
-			jerr.New("no address provided").Fatal()
+			log.Fatal("no address provided")
 		}
 		address, err := wallet.GetAddrFromString(os.Args[2])
 		if err != nil {
-			jerr.Get("error getting address from string", err).Fatal()
+			log.Fatalf("%v; error getting address from string", err)
 		}
-		client, err := db.GetClient()
+		client, err := GetClient()
 		if err != nil {
-			jerr.Get("error getting client", err).Fatal()
+			log.Fatalf("%v; error getting client", err)
 		}
-		utxos,err := client.GetUtxos(address)
+		utxos, err := client.GetUtxos(address)
 		if err != nil {
-			jerr.Get("error getting utxos", err).Fatal()
+			log.Fatalf("%v; error getting utxos", err)
 		}
 		fmt.Printf("Utxos: %d\n", len(utxos))
 	case "balance":
 		if len(os.Args) < 3 {
-			jerr.New("no address provided").Fatal()
+			log.Fatal("no address provided")
 		}
 		address, err := wallet.GetAddrFromString(os.Args[2])
 		if err != nil {
-			jerr.Get("error getting address from string", err).Fatal()
+			log.Fatalf("%v; error getting address from string", err)
 		}
-		client, err := db.GetClient()
+		client, err := GetClient()
 		if err != nil {
-			jerr.Get("error getting client", err).Fatal()
+			log.Fatalf("%v; error getting client", err)
 		}
 		balance, err := client.GetBalance(address)
 		if err != nil {
-			jerr.Get("error getting balance", err).Fatal()
+			log.Fatalf("%v; error getting balance", err)
 		}
 		fmt.Printf("Balance: %d\n", balance)
 	}
+}
+
+func GetClient() (*lib.Client, error) {
+	db, err := sql.Open("sqlite3", "./example.db")
+	if err != nil {
+		return nil, fmt.Errorf("%w; error opening database", err)
+	}
+	database, err := driver.NewDatabase(db)
+	if err != nil {
+		return nil, fmt.Errorf("%w; error getting database", err)
+	}
+	return lib.NewClient("http://localhost:26770/graphql", database), nil
 }

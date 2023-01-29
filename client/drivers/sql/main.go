@@ -1,19 +1,9 @@
-package db
+package sql
 
 import (
 	"database/sql"
-	"github.com/jchavannes/jgo/jerr"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/memocash/index/client/lib"
+	"fmt"
 )
-
-func GetClient() (*lib.Client, error) {
-	database, err := NewDatabase()
-	if err != nil {
-		return nil, jerr.Get("error getting database", err)
-	}
-	return lib.NewClient("http://localhost:26770/graphql", database), nil
-}
 
 func initDb(db *sql.DB) error {
 	for _, definition := range []string{
@@ -25,7 +15,7 @@ func initDb(db *sql.DB) error {
 		TableTxs,
 	} {
 		if _, err := db.Exec(definition); err != nil {
-			return jerr.Get("error creating table", err)
+			return fmt.Errorf("%w; error creating table", err)
 		}
 	}
 	return nil
@@ -34,7 +24,7 @@ func initDb(db *sql.DB) error {
 func execQueries(db *sql.DB, queries []Query) error {
 	for _, query := range queries {
 		if _, err := db.Exec(query.Query, query.Variables...); err != nil {
-			return jerr.Getf(err, "error executing query: %s", query.Name)
+			return fmt.Errorf("%w; error executing query: %s", err, query.Name)
 		}
 	}
 	return nil
