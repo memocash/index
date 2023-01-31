@@ -52,7 +52,7 @@ func GetFundingTx(address wallet.Address, amount int64) (*memo.Tx, error) {
 		Amount:  memo.GetMaxSendForUTXOs(utxos),
 	})
 	if err != nil {
-		return nil, jerr.Get("error building send tx", err)
+		return nil, jerr.Get("error building test funding tx", err)
 	}
 	return tx, nil
 }

@@ -2,9 +2,11 @@ package lib
 
 import (
 	"database/sql"
-	"github.com/jchavannes/jgo/jerr"
+	"errors"
+	"fmt"
 	"github.com/memocash/index/client/lib/graph"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"time"
 )
 
 type Client struct {
@@ -12,70 +14,63 @@ type Client struct {
 	Database Database
 }
 
-func (c *Client) updateDb(address *wallet.Addr) error {
-	height, err := c.Database.GetAddressHeight(address)
-	if err != nil && !jerr.HasError(err, sql.ErrNoRows.Error()) {
-		return jerr.Get("error getting address height", err)
+func (c *Client) updateDb(address wallet.Addr) error {
+	lastUpdate, err := c.Database.GetAddressLastUpdate(address)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("error getting address last update; %w", err)
 	}
-	history, err := graph.GetHistory(c.GraphUrl, address, height)
+	txs, err := graph.GetHistory(c.GraphUrl, address, lastUpdate)
 	if err != nil {
-		return jerr.Get("error getting history", err)
+		return fmt.Errorf("error getting history txs; %w", err)
 	}
-	for _, txs := range [][]graph.Tx{history.Outputs, history.Spends} {
-		if err := c.Database.SaveTxs(txs); err != nil {
-			return jerr.Get("error saving txs", err)
+	if err := c.Database.SaveTxs(txs); err != nil {
+		return fmt.Errorf("error saving txs; %w", err)
+	}
+	var maxTime time.Time
+	for _, tx := range txs {
+		if tx.Seen.After(maxTime) {
+			maxTime = tx.Seen
 		}
 	}
-	var maxHeightOutput int64
-	for _, output := range history.Outputs {
-		if len(output.Blocks) > 0 && output.Blocks[0].Height > maxHeightOutput {
-			maxHeightOutput = output.Blocks[0].Height
-		}
-	}
-	var maxHeightSpends int64
-	for _, spend := range history.Spends {
-		if len(spend.Blocks) > 0 && spend.Blocks[0].Height > maxHeightSpends {
-			maxHeightSpends = spend.Blocks[0].Height
-		}
-	}
-	var maxHeight int64
-	if maxHeightOutput > maxHeightSpends {
-		maxHeight = maxHeightSpends
-	} else {
-		maxHeight = maxHeightOutput
-	}
-	if err := c.Database.SetAddressHeight(address, maxHeight); err != nil {
-		return jerr.Get("error setting address height for client update db", err)
+	if err := c.Database.SetAddressLastUpdate(address, maxTime); err != nil {
+		return fmt.Errorf("error setting address last update for client update db; %w", err)
 	}
 	return nil
 }
 
-func (c *Client) GetBalance(address *wallet.Addr) (int64, error) {
+func (c *Client) Broadcast(txRaw string) error {
+	if err := graph.Broadcast(c.GraphUrl, txRaw); err != nil {
+		return fmt.Errorf("error broadcasting lib client tx; %w", err)
+	}
+	return nil
+}
+
+func (c *Client) GetBalance(address wallet.Addr) (int64, error) {
 	err := c.updateDb(address)
 	if err != nil {
-		return 0, jerr.Get("error updating db", err)
+		return 0, fmt.Errorf("error updating db; %w", err)
 	}
 	balance, err := c.Database.GetAddressBalance(address)
 	if err != nil {
-		if jerr.HasError(err, sql.ErrNoRows.Error()) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
 		}
-		return 0, jerr.Get("error saving outputs", err)
+		return 0, fmt.Errorf("error getting address balance from database; %w", err)
 	}
 	return balance, nil
 }
 
-func (c *Client) GetUtxos(address *wallet.Addr) ([]graph.Output, error) {
+func (c *Client) GetUtxos(address wallet.Addr) ([]graph.Output, error) {
 	err := c.updateDb(address)
 	if err != nil {
-		return nil, jerr.Get("error updating db", err)
+		return nil, fmt.Errorf("error updating db; %w", err)
 	}
 	utxos, err := c.Database.GetUtxos(address)
 	if err != nil {
-		if jerr.HasError(err, sql.ErrNoRows.Error()) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, jerr.Get("error saving outputs", err)
+		return nil, fmt.Errorf("error getting utxos from database; %w", err)
 	}
 	return utxos, nil
 }

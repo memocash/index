@@ -121,8 +121,10 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 	if err != nil {
 		return false, jerr.Getf(err, "error getting tx outputs for populate p2sh shard: %d", shard)
 	}
-	var txHeights = make(map[[32]byte]uint32)
-	var objectsToSave []db.Object
+	seenTime := time.Now()
+	var objMap = make(map[[57]byte]*addr.SeenTx)
+	var outAddrMap = make(map[[36]byte]wallet.Addr)
+	var spendOuts []memo.Out
 	for _, txOutput := range txOutputs {
 		uid := txOutput.GetUid()
 		if jutil.ByteGT(uid, shardStatus.Status) {
@@ -132,47 +134,35 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 		if err != nil || !address.IsP2SH() {
 			continue
 		}
-		var height int64
-		if _, ok := txHeights[txOutput.TxHash]; !ok {
-			txBlocks, err := chain.GetSingleTxBlocks(txOutput.TxHash)
-			if err != nil {
-				return false, jerr.Getf(err, "error getting tx block for tx: %s", txOutput.TxHash)
-			}
-			if len(txBlocks) > 0 {
-				blockHeight, err := chain.GetBlockHeight(txBlocks[0].BlockHash)
-				if err != nil {
-					return false, jerr.Getf(err, "error getting block height for block: %s", txBlocks[0].BlockHash)
-				}
-				height = blockHeight.Height
-			} else {
-				height = item.HeightMempool
-			}
-		}
-		objectsToSave = append(objectsToSave, &addr.HeightOutput{
+		objMap[getAddrTxHashId(*address, txOutput.TxHash)] = &addr.SeenTx{
 			Addr:   *address,
-			Height: int32(height),
 			TxHash: txOutput.TxHash,
-			Index:  txOutput.Index,
-			Value:  txOutput.Value,
-		})
-		spends, err := chain.GetOutputInput(memo.Out{
+			Seen:   seenTime,
+		}
+		outAddrMap[getTxOutId(txOutput.TxHash, txOutput.Index)] = *address
+		spendOuts = append(spendOuts, memo.Out{
 			TxHash: txOutput.TxHash[:],
 			Index:  txOutput.Index,
 		})
-		if err != nil && !client.IsEntryNotFoundError(err) {
-			return false, jerr.Getf(err, "error getting output input for tx: %s", txOutput.TxHash)
-		}
-		for _, spend := range spends {
-			objectsToSave = append(objectsToSave, &addr.HeightInput{
-				Addr:   *address,
-				Height: int32(height),
-				TxHash: spend.Hash,
-				Index:  spend.Index,
-			})
+	}
+	spends, err := chain.GetOutputInputs(spendOuts)
+	if err != nil && !client.IsEntryNotFoundError(err) {
+		return false, jerr.Getf(err, "error getting output input for txs: %d", len(spendOuts))
+	}
+	for _, spend := range spends {
+		address := outAddrMap[getTxOutId(spend.PrevHash, spend.PrevIndex)]
+		objMap[getAddrTxHashId(address, spend.Hash)] = &addr.SeenTx{
+			Addr:   address,
+			TxHash: spend.Hash,
+			Seen:   seenTime,
 		}
 	}
+	var objectsToSave = make([]db.Object, 0, len(objMap))
+	for _, obj := range objMap {
+		objectsToSave = append(objectsToSave, obj)
+	}
 	if err := db.Save(objectsToSave); err != nil {
-		return false, jerr.Get("error saving objects", err)
+		return false, jerr.Get("error saving objects for p2sh populate single", err)
 	}
 	p.mu.Lock()
 	p.Saved += int64(len(objectsToSave))
@@ -183,4 +173,16 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 	}
 	p.SetShardStatus(shard, shardStatus.Status)
 	return len(txOutputs) < client.HugeLimit, nil
+}
+
+func getAddrTxHashId(addr [25]byte, txHash [32]byte) [57]byte {
+	var id [57]byte
+	_ = append(append(id[:0], addr[:]...), txHash[:]...)
+	return id
+}
+
+func getTxOutId(txHash [32]byte, index uint32) [36]byte {
+	var id [36]byte
+	_ = append(append(id[:0], txHash[:]...), jutil.GetUint32Data(index)...)
+	return id
 }

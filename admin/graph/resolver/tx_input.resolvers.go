@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
@@ -16,16 +15,15 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx, error) {
-	preloads := GetPreloads(ctx)
 	var tx = &model.Tx{
 		Hash: obj.Hash,
 	}
-	if jutil.StringsInSlice([]string{"outputs", "inputs", "raw"}, preloads) {
+	if HasFieldAny(ctx, []string{"raw"}) {
 		txRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(obj.Hash)
 		if err != nil {
 			return nil, jerr.Get("error getting tx raw for output from loader", err)
 		}
-		tx.Raw = txRaw
+		tx.Raw = txRaw.Raw
 	}
 	return tx, nil
 }

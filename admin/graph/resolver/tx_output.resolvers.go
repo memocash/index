@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
@@ -19,16 +18,15 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {
-	preloads := GetPreloads(ctx)
 	var tx = &model.Tx{
 		Hash: obj.Hash,
 	}
-	if jutil.StringsInSlice([]string{"outputs", "inputs", "raw"}, preloads) {
+	if HasFieldAny(ctx, []string{"raw"}) {
 		txRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(obj.Hash)
 		if err != nil {
 			return nil, jerr.Get("error getting tx raw for output from loader", err)
 		}
-		tx.Raw = txRaw
+		tx.Raw = txRaw.Raw
 	}
 	return tx, nil
 }
@@ -36,7 +34,7 @@ func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.
 // Spends is the resolver for the spends field.
 func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error) {
 	var dataloaderConfig dataloader.TxOutputSpendLoaderConfig
-	if jutil.StringInSlice("script", GetPreloads(ctx)) {
+	if HasField(ctx, "script") {
 		dataloaderConfig = txOutputSpendWithScriptLoaderConfig
 	} else {
 		dataloaderConfig = txOutputSpendLoaderConfig
@@ -68,7 +66,7 @@ func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*mode
 	var modelLock = &model.Lock{
 		Address: wallet.GetAddressStringFromPkScript(lockScript),
 	}
-	if jutil.StringInSlice("balance", GetPreloads(ctx)) {
+	if HasField(ctx, "balance") {
 		balance := get.NewBalance(lockScript)
 		if err := balance.GetBalance(); err != nil {
 			return nil, jerr.Get("error getting lock balance for tx output resolver", err)

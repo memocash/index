@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -127,15 +126,6 @@ func (r *txResolver) Lost(ctx context.Context, obj *model.Tx) (*model.TxLost, er
 		return nil, jerr.Get("error getting tx lost for tx from loader", err)
 	}
 	return txLost, nil
-}
-
-// Seen is the resolver for the seen field.
-func (r *txResolver) Seen(ctx context.Context, obj *model.Tx) (*model.Date, error) {
-	txSeen, err := dataloader.NewTxSeenLoader(txSeenLoaderConfig).Load(obj.Hash)
-	if err != nil {
-		return nil, jerr.Get("error getting tx seen for tx from loader", err)
-	}
-	return txSeen, nil
 }
 
 // Tx returns generated.TxResolver implementation.

@@ -43,7 +43,7 @@ func (s *DoubleSpend) Init(wallet *build.Wallet) error {
 	s.BlockSaver = saver.NewBlock(false)
 	fundingTx, err := test_tx.GetFundingTx(wallet.Address, FundingValue)
 	if err != nil {
-		return jerr.Get("error getting funding tx for address", err)
+		return jerr.Get("error getting funding tx for address double spend grp", err)
 	}
 	if err := s.SaveBlock([]*memo.Tx{fundingTx}); err != nil {
 		return jerr.Get("error saving funding tx", err)

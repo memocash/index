@@ -32,7 +32,6 @@ func GetTopics() []db.Object {
 		&ProcessStatus{},
 		&TxLost{},
 		&TxProcessed{},
-		&TxSeen{},
 		&TxSuspect{},
 	},
 		addr.GetTopics(),

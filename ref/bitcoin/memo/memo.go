@@ -26,6 +26,8 @@ const (
 
 	AddressStringLength = 35
 	TxStringLength      = 64
+
+	BlockHeaderLength = 80
 )
 
 // https://bitcoin.stackexchange.com/questions/1195/how-to-calculate-transaction-size-before-sending-legacy-non-segwit-p2pkh-p2sh

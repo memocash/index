@@ -2,7 +2,6 @@ package lead
 
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/node/obj/saver"
@@ -13,7 +12,7 @@ import (
 type Node struct {
 	Off      bool
 	Peer     *peer.Peer
-	NewBlock chan *wire.MsgBlock
+	NewBlock chan *dbi.Block
 	SyncDone chan struct{}
 	Verbose  bool
 }
@@ -22,7 +21,7 @@ func (n *Node) SaveTxs(b *dbi.Block) error {
 	if n.Off {
 		return nil
 	}
-	n.NewBlock <- b.ToWireBlock()
+	n.NewBlock <- b
 	return nil
 }
 
@@ -67,7 +66,7 @@ func (n *Node) Stop() {
 
 func NewNode() *Node {
 	return &Node{
-		NewBlock: make(chan *wire.MsgBlock),
+		NewBlock: make(chan *dbi.Block),
 		SyncDone: make(chan struct{}),
 	}
 }

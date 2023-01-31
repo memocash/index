@@ -240,8 +240,8 @@ github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65 h1:DdWODy0K
 github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65/go.mod h1:0wKxri3IqwwE2j63qzxS5lXbI2cTEbKj95DQ7nmlRI4=
 github.com/jchavannes/gorm v0.0.0-20190714222221-6e209826f9bd h1:SyXcDofoDn1nwNxiiFOFY/t8fV8ZfGqBrHMxhdrsP1w=
 github.com/jchavannes/gorm v0.0.0-20190714222221-6e209826f9bd/go.mod h1:utXzNh8giZEFprSHsuauEeZXuH6BVCbzuo0uKS+c37s=
-github.com/jchavannes/jgo v0.0.0-20221119004210-985695b87671 h1:zMSge31nEzsXB9FlTo37z4cZDXEmgtuNLn+8+wvF4IE=
-github.com/jchavannes/jgo v0.0.0-20221119004210-985695b87671/go.mod h1:J1NTAoh6LjpbL9q1kGE5MnOcDqgk4MAsZxONoQzY+2k=
+github.com/jchavannes/jgo v0.0.0-20230124190857-0be599aa3e55 h1:GADguvPSDXyJE20cPS5RoyZy+06OcZC7BRU2o3XwH10=
+github.com/jchavannes/jgo v0.0.0-20230124190857-0be599aa3e55/go.mod h1:J1NTAoh6LjpbL9q1kGE5MnOcDqgk4MAsZxONoQzY+2k=
 github.com/jessevdk/go-flags v1.4.0 h1:4IU2WS7AumrZ/40jfhf4QVDMsQwqA7VEHozFRrGARJA=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jinzhu/gorm v1.9.16 h1:+IyIjPEABKRpsu/F8OvDPy9fyQlgsg2luMV2ZIH5i5o=

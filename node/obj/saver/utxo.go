@@ -25,14 +25,14 @@ func (u *Utxo) SaveTxs(b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
-	block := b.ToWireBlock()
 	var lockUtxos []*item.LockUtxo
 	var txOutputs []*chain.TxOutput
 	var txInputs []*chain.TxInput
 	var lockAddresses []*item.LockAddress
 	var ins []memo.Out
 	var lockHashes [][]byte
-	for _, msgTx := range block.Transactions {
+	for _, tx := range b.Transactions {
+		var msgTx = tx.MsgTx
 		txHash := msgTx.TxHash()
 		txHashBytes := txHash.CloneBytes()
 		meta := parse.GetMeta(msgTx)

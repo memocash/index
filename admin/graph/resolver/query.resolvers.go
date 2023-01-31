@@ -11,7 +11,6 @@ import (
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
@@ -29,22 +28,11 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
-	txHash, err := chainhash.NewHashFromStr(hash)
+	tx, err := TxLoader(ctx, hash)
 	if err != nil {
-		return nil, jerr.Get("error getting tx hash from hash", err)
+		return nil, jerr.Get("error getting tx from dataloader for tx query resolver", err)
 	}
-	txHashString := txHash.String()
-	preloads := GetPreloads(ctx)
-	var raw string
-	if jutil.StringsInSlice([]string{"raw", "inputs", "outputs"}, preloads) {
-		if raw, err = dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHashString); err != nil {
-			return nil, jerr.Get("error getting tx raw from dataloader for tx query resolver", err)
-		}
-	}
-	return &model.Tx{
-		Hash: txHashString,
-		Raw:  raw,
-	}, nil
+	return tx, nil
 }
 
 // Txs is the resolver for the txs field.
@@ -111,11 +99,9 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 		Height:    &height,
 		Raw:       hex.EncodeToString(block.Raw),
 	}
-	preloads := GetPreloads(ctx)
-	if !jutil.StringsInSlice([]string{"size", "tx_count"}, preloads) {
+	if !HasFieldAny(ctx, []string{"size", "tx_count"}) {
 		return modelBlock, nil
 	}
-
 	blockInfo, err := chain.GetBlockInfo(*blockHash)
 	if err != nil && !client.IsMessageNotSetError(err) {
 		return nil, jerr.Get("error getting block infos for query resolver", err)
@@ -175,7 +161,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 		return nil, jerr.Get("error getting raw blocks", err)
 	}
 	var blockInfos []*chain.BlockInfo
-	if jutil.StringsInSlice([]string{"size", "tx_count"}, GetPreloads(ctx)) {
+	if HasFieldAny(ctx, []string{"size", "tx_count"}) {
 		if blockInfos, err = chain.GetBlockInfos(blockHashes); err != nil {
 			return nil, jerr.Get("error getting block infos for blocks query resolver", err)
 		}
@@ -280,31 +266,14 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 		addrs[i] = *walletAddr
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	addrHeightOutputsListeners, err := addr.ListenMempoolAddrHeightOutputsMultiple(ctx, addrs)
+	addrSeenTxsListeners, err := addr.ListenMempoolAddrSeenTxsMultiple(ctx, addrs)
 	if err != nil {
 		cancel()
-		return nil, jerr.Get("error getting addr height outputs listener for address subscription", err)
+		return nil, jerr.Get("error getting addr seen txs listener for address subscription", err)
 	}
-	addrHeightInputsListeners, err := addr.ListenMempoolAddrHeightInputsMultiple(ctx, addrs)
-	if err != nil {
+	if len(addrSeenTxsListeners) == 0 {
 		cancel()
-		return nil, jerr.Get("error getting addr height inputs listener for address subscription", err)
-	}
-	var aggregateOutput = make(chan *addr.HeightOutput)
-	var aggregateInput = make(chan *addr.HeightInput)
-	for _, ch := range addrHeightInputsListeners {
-		go func(c chan *addr.HeightInput) {
-			for msg := range c {
-				aggregateInput <- msg
-			}
-		}(ch)
-	}
-	for _, ch := range addrHeightOutputsListeners {
-		go func(c chan *addr.HeightOutput) {
-			for msg := range c {
-				aggregateOutput <- msg
-			}
-		}(ch)
+		return nil, jerr.New("error no addr seen txs listeners for address subscription")
 	}
 	var txChan = make(chan *model.Tx)
 	go func() {
@@ -312,28 +281,26 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 			close(txChan)
 			cancel()
 		}()
+		var aggregator = make(chan *addr.SeenTx)
+		for _, ch := range addrSeenTxsListeners {
+			go func(c chan *addr.SeenTx) {
+				for msg := range c {
+					aggregator <- msg
+				}
+			}(ch)
+		}
 		for {
-			var txHashString string
 			select {
-			case addrHeightOutput, ok := <-aggregateOutput:
-				if !ok {
-					return
-				}
-				txHashString = chainhash.Hash(addrHeightOutput.TxHash).String()
-			case addrHeightInput, ok := <-aggregateInput:
-				if !ok {
-					return
-				}
-				txHashString = chainhash.Hash(addrHeightInput.TxHash).String()
-			}
-			raw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHashString)
-			if err != nil {
-				jerr.Get("error getting tx raw from dataloader for address subscription resolver", err).Print()
+			case <-ctx.Done():
 				return
-			}
-			txChan <- &model.Tx{
-				Hash: txHashString,
-				Raw:  raw,
+			case msg := <-aggregator:
+				if msg == nil {
+					return
+				}
+				txChan <- &model.Tx{
+					Hash: chainhash.Hash(msg.TxHash).String(),
+					Seen: model.Date(msg.Seen),
+				}
 			}
 		}
 	}()

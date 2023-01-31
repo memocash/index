@@ -38,7 +38,6 @@ const (
 	TopicTx                    = "tx"
 	TopicTxLost                = "tx_lost"
 	TopicTxProcessed           = "tx_processed"
-	TopicTxSeen                = "tx_seen"
 	TopicTxSuspect             = "tx_suspect"
 
 	TopicMemoAddrHeightFollow     = "memo_addr_height_follow"
@@ -69,9 +68,11 @@ const (
 	TopicChainTxBlock         = "chain_tx_block"
 	TopicChainTxInput         = "chain_tx_input"
 	TopicChainTxOutput        = "chain_tx_output"
+	TopicChainTxSeen          = "chain_tx_seen"
 
 	TopicAddrHeightOutput = "addr_height_output"
 	TopicAddrHeightInput  = "addr_height_input"
+	TopicAddrSeenTx       = "addr_seen_tx"
 )
 
 type Object interface {

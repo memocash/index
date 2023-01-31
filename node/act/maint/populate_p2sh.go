@@ -23,7 +23,7 @@ func NewPopulateP2sh() *PopulateP2sh {
 }
 
 func (p *PopulateP2sh) Populate(startHeight int64) error {
-	addressSaver := saver.NewAddress(false, true)
+	addressSaver := saver.NewAddress(false)
 	addressSaver.SkipP2pkh = true
 	var maxHeight = startHeight
 	for {

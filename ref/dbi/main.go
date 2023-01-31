@@ -3,6 +3,8 @@ package dbi
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"time"
 )
 
 type TxSave interface {
@@ -33,6 +35,7 @@ type OutputSave interface {
 type Block struct {
 	Header       wire.BlockHeader
 	Height       int64
+	Seen         time.Time
 	Transactions []Tx
 }
 
@@ -40,12 +43,16 @@ func (b *Block) IsNil() bool {
 	return b == nil || (!b.HasHeader() && len(b.Transactions) == 0)
 }
 
-func (b *Block) ToWireBlock() *wire.MsgBlock {
-	return BlockToWireBlock(b)
-}
-
 func (b *Block) HasHeader() bool {
 	return BlockHeaderSet(b.Header)
+}
+
+func (b *Block) Size() int64 {
+	n := int64(memo.BlockHeaderLength + wire.VarIntSerializeSize(uint64(len(b.Transactions))))
+	for _, tx := range b.Transactions {
+		n += int64(tx.MsgTx.SerializeSize())
+	}
+	return n
 }
 
 func BlockHeaderSet(header wire.BlockHeader) bool {
@@ -60,11 +67,10 @@ type BlockInfo struct {
 
 type Tx struct {
 	BlockIndex uint32
+	Hash       [32]byte
+	Seen       time.Time
+	Saved      bool
 	MsgTx      *wire.MsgTx
-}
-
-func (t *Tx) Hash() chainhash.Hash {
-	return t.MsgTx.TxHash()
 }
 
 type Input struct {
@@ -102,9 +108,16 @@ func WireBlockToBlock(wireBlock *wire.MsgBlock) *Block {
 	if wireBlock == nil {
 		return &Block{}
 	}
-	block := &Block{Header: wireBlock.Header}
+	block := &Block{
+		Header: wireBlock.Header,
+		Seen:   time.Now(),
+	}
+	if block.HasHeader() && block.Header.Timestamp.Before(block.Seen) {
+		block.Seen = block.Header.Timestamp
+	}
 	for i, wireTx := range wireBlock.Transactions {
 		tx := WireTxToTx(wireTx, uint32(i))
+		tx.Seen = block.Seen
 		block.Transactions = append(block.Transactions, *tx)
 	}
 	return block
@@ -113,6 +126,7 @@ func WireBlockToBlock(wireBlock *wire.MsgBlock) *Block {
 func WireTxToTx(wireTx *wire.MsgTx, index uint32) *Tx {
 	tx := &Tx{
 		MsgTx:      wireTx,
+		Hash:       wireTx.TxHash(),
 		BlockIndex: index,
 	}
 	return tx

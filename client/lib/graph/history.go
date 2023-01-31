@@ -3,44 +3,41 @@ package graph
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/wallet"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
 
-type History struct {
-	Outputs []Tx
-	Spends  []Tx
-}
+type History []Tx
 
-func GetHistory(url string, address *wallet.Addr, startHeight int64) (*History, error) {
+func GetHistory(url string, address wallet.Addr, lastUpdate time.Time) ([]Tx, error) {
 	jsonData := map[string]interface{}{
-		"query": HistoryQuery,
+		"query": historyQuery,
 		"variables": map[string]interface{}{
 			"address": address.String(),
-			"height":  startHeight,
+			"start":   lastUpdate.Format(time.RFC3339),
 		},
 	}
 	jsonValue, err := json.Marshal(jsonData)
 	if err != nil {
-		return nil, jerr.Get("error marshaling json for get history", err)
+		return nil, fmt.Errorf("error marshaling json for get history; %w", err)
 	}
 	request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		return nil, jerr.Get("error creating new request for get history", err)
+		return nil, fmt.Errorf("error creating new request for get history; %w", err)
 	}
 	request.Header.Set("Content-Type", "application/json")
 	client := &http.Client{Timeout: time.Second * 10}
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, jerr.Get("error the HTTP request failed", err)
+		return nil, fmt.Errorf("error the HTTP request failed; %w", err)
 	}
 	defer response.Body.Close()
-	data, err := ioutil.ReadAll(response.Body)
+	data, err := io.ReadAll(response.Body)
 	if err != nil {
-		return nil, jerr.Get("error reading response body", err)
+		return nil, fmt.Errorf("error reading response body; %w", err)
 	}
 	var dataStruct = struct {
 		Data struct {
@@ -51,34 +48,15 @@ func GetHistory(url string, address *wallet.Addr, startHeight int64) (*History, 
 		} `json:"errors"`
 	}{}
 	if err := json.Unmarshal(data, &dataStruct); err != nil {
-		return nil, jerr.Get("error unmarshalling json", err)
+		return nil, fmt.Errorf("error unmarshalling json; %w", err)
 	}
 	if len(dataStruct.Errors) > 0 {
-		return nil, jerr.Get("error response data", jerr.New(dataStruct.Errors[0].Message))
+		return nil, fmt.Errorf("error index client history response data; %w", fmt.Errorf(dataStruct.Errors[0].Message))
 	}
-	var history = new(History)
-OutputLoop:
-	for _, output := range dataStruct.Data.Address.Outputs {
-		for _, tx := range history.Outputs {
-			if tx.Hash == output.Tx.Hash {
-				continue OutputLoop
-			}
-		}
-		history.Outputs = append(history.Outputs, output.Tx)
-	}
-SpendsLoop:
-	for _, input := range dataStruct.Data.Address.Spends {
-		for _, tx := range history.Spends {
-			if tx.Hash == input.Tx.Hash {
-				continue SpendsLoop
-			}
-		}
-		history.Spends = append(history.Spends, input.Tx)
-	}
-	return history, nil
+	return dataStruct.Data.Address.Txs, nil
 }
 
-const QueryTx = `tx {
+const txQuery = `{
 	hash
 	seen
 	raw
@@ -125,13 +103,8 @@ const QueryTx = `tx {
 	}
 }`
 
-const HistoryQuery = `query ($address: String!, $height: Int) {
+const historyQuery = `query ($address: String!, $start: Date) {
 	address (address: $address) {
-		outputs(height: $height) {
-			` + QueryTx + `
-		}
-		spends(height: $height) {
-			` + QueryTx + `
-		}
+		txs(start: $start) ` + txQuery + `
 	}
 }`

@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
@@ -91,22 +90,22 @@ var txSeenLoaderConfig = dataloader.TxSeenLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,
 	Fetch: func(keys []string) ([]*model.Date, []error) {
-		var txHashes = make([][]byte, len(keys))
+		var txHashes = make([][32]byte, len(keys))
 		for i := range keys {
 			hash, err := chainhash.NewHashFromStr(keys[i])
 			if err != nil {
 				return nil, []error{jerr.Get("error parsing spend tx hash for output", err)}
 			}
-			txHashes[i] = hash.CloneBytes()
+			txHashes[i] = *hash
 		}
-		txSeens, err := item.GetTxSeens(txHashes)
+		txSeens, err := chain.GetTxSeens(txHashes)
 		if err != nil && !client.IsResourceUnavailableError(err) {
 			return nil, []error{jerr.Get("error getting tx seens", err)}
 		}
 		var modelTxSeens = make([]*model.Date, len(txHashes))
 		for i := range txHashes {
 			for _, txSeen := range txSeens {
-				if bytes.Equal(txSeen.TxHash, txHashes[i]) {
+				if txSeen.TxHash == txHashes[i] {
 					if modelTxSeens[i] == nil || time.Time(*modelTxSeens[i]).After(txSeen.Timestamp) {
 						var modelDate = model.Date(txSeen.Timestamp)
 						modelTxSeens[i] = &modelDate
@@ -121,7 +120,7 @@ var txSeenLoaderConfig = dataloader.TxSeenLoaderConfig{
 var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 	Wait:     2 * time.Millisecond,
 	MaxBatch: 100,
-	Fetch: func(keys []string) ([]string, []error) {
+	Fetch: func(keys []string) ([]*model.Tx, []error) {
 		var txHashes = make([][32]byte, len(keys))
 		for i := range keys {
 			hash, err := chainhash.NewHashFromStr(keys[i])
@@ -134,17 +133,19 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 		if err != nil {
 			return nil, []error{jerr.Get("error getting tx raws for tx dataloader", err)}
 		}
-		txRawStrings := make([]string, len(txRaws))
+		txsWithRaw := make([]*model.Tx, len(txRaws))
 		for i := range txRaws {
-			txRawStrings[i] = hex.EncodeToString(txRaws[i].Raw)
+			txsWithRaw[i] = &model.Tx{
+				Hash: chainhash.Hash(txRaws[i].Hash).String(),
+				Raw:  hex.EncodeToString(txRaws[i].Raw),
+			}
 		}
-		return txRawStrings, nil
+		return txsWithRaw, nil
 	},
 }
 
 func GetBlockLoaderConfig(ctx context.Context) dataloader.BlockLoaderConfig {
-	preloads := GetPreloads(ctx)
-	if !jutil.StringsInSlice([]string{"size", "tx_count"}, preloads) {
+	if !HasFieldAny(ctx, []string{"size", "tx_count"}) {
 		return blockLoaderConfigNoInfo
 	}
 	return blockLoaderConfigWithInfo
@@ -245,16 +246,20 @@ func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
 }
 
 func TxLoader(ctx context.Context, txHash string) (*model.Tx, error) {
-	preloads := GetPreloads(ctx)
-	var raw string
-	if jutil.StringsInSlice([]string{"raw", "inputs", "outputs"}, preloads) {
-		var err error
-		if raw, err = dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHash); err != nil {
+	var tx = &model.Tx{Hash: txHash}
+	if HasField(ctx, "raw") {
+		txWithRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHash)
+		if err != nil {
 			return nil, jerr.Get("error getting tx raw from dataloader for post resolver", err)
 		}
+		tx.Raw = txWithRaw.Raw
 	}
-	return &model.Tx{
-		Hash: txHash,
-		Raw:  raw,
-	}, nil
+	if HasField(ctx, "seen") {
+		txSeen, err := dataloader.NewTxSeenLoader(txSeenLoaderConfig).Load(txHash)
+		if err != nil {
+			return nil, jerr.Get("error getting tx seen for tx loader", err)
+		}
+		tx.Seen = *txSeen
+	}
+	return tx, nil
 }

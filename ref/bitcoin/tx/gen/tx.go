@@ -14,16 +14,16 @@ func Tx(request TxRequest) (*memo.Tx, error) {
 	}
 	msgTx, err := create.Build()
 	if err != nil {
-		return nil, jerr.Get("error building tx", err)
+		return nil, jerr.Get("error building tx in generator", err)
 	}
 	err = create.Sign(msgTx, request.KeyRing)
 	if err != nil {
-		return nil, jerr.Get("error signing tx", err)
+		return nil, jerr.Get("error signing tx in generator", err)
 	}
 	memoTx := GetMemoTx(msgTx, create.InputsToUse, create.Outputs)
 	err = create.markSpentAndChangeForGetter(memoTx)
 	if err != nil {
-		return nil, jerr.Get("error marking spent and change for getter", err)
+		return nil, jerr.Get("error marking spent and change for getter in generator", err)
 	}
 	return memoTx, nil
 }

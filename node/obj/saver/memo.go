@@ -21,7 +21,6 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
-	block := b.ToWireBlock()
 	var height = b.Height
 	if height == 0 {
 		height = item.HeightMempool
@@ -30,7 +29,8 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 	if err != nil {
 		return jerr.Get("error getting op returns", err)
 	}
-	for _, tx := range block.Transactions {
+	for _, transaction := range b.Transactions {
+		var tx = transaction.MsgTx
 		txHash := tx.TxHash()
 		if t.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())

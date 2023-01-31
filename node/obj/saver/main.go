@@ -28,7 +28,7 @@ func NewCombined(savers []dbi.TxSave) *CombinedTx {
 func NewCombinedTx(verbose, initial bool) *CombinedTx {
 	return NewCombined([]dbi.TxSave{
 		NewTxMinimal(verbose),
-		NewAddress(verbose, initial),
+		NewAddress(verbose),
 		NewMemo(verbose, initial),
 		NewTxProcessed(verbose),
 	})

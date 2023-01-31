@@ -26,6 +26,6 @@ func UnmarshalDate(v interface{}) (Date, error) {
 		}
 		return Date(t), nil
 	default:
-		return Date{}, jerr.New("error unexpected hash index type not string")
+		return Date{}, jerr.Newf("error unexpected date type not string: %T", v)
 	}
 }

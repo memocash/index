@@ -262,6 +262,52 @@ function Inputs({tx}) {
     )
 }
 
+const ShortTxHash = (txHash) => {
+    if (txHash.length < 16) {
+        return txHash
+    }
+    return txHash.substr(0, 8) + "..." + txHash.substr(txHash.length - 8)
+}
+
+const GetOutputScriptInfo = (script) => {
+    let info = ""
+    if (script.substr(0, 4) === "6a02") {
+        switch (script.substr(4, 4)) {
+            case "6d01":
+                return "Memo name: " + Buffer.from(script.substr(10), "hex")
+            case "6d02":
+                return "Memo post: " + Buffer.from(script.substr(10), "hex")
+            case "6d03":
+                const replyTxHash = script.substr(10, 64).match(/.{2}/g).reverse().join("")
+                return (<>Memo reply (<Link href={"/tx/" + replyTxHash}><a>{ShortTxHash(replyTxHash)}</a></Link>): {
+                    "" + Buffer.from(script.substr(76), "hex")}</>)
+            case "6d04":
+                if (script.length < 12) {
+                    info = "Bad memo like"
+                    break
+                }
+                const likeTxHash = script.substr(10).match(/.{2}/g).reverse().join("")
+                return (<>Memo like: <Link href={"/tx/" + likeTxHash}><a>{ShortTxHash(likeTxHash)}</a></Link></>)
+            case "6d0a":
+                const picUrl = "" + Buffer.from(script.substr(10), "hex")
+                return (<>Memo profile pic: <Link href={picUrl}><a>{picUrl}</a></Link></>)
+            case "6d0c":
+                let size = parseInt(script.substr(8, 2), 16)
+                size *= 2
+                if (size + 10 > script.length) {
+                    info = "Bad topic message"
+                    break
+                }
+                console.log("size:", size)
+                return "Memo topic message (" + Buffer.from(script.substr(10, size), "hex") + "): " +
+                    Buffer.from(script.substr(10 + size), "hex")
+            case "6d0d":
+                return "Memo topic follow: " + Buffer.from(script.substr(8), "hex")
+        }
+    }
+    return "Unknown" + (info.length ? ": " + info : "")
+}
+
 function Outputs({tx}) {
     return (
         <div className={column.width50}>
@@ -273,10 +319,10 @@ function Outputs({tx}) {
                             {output.index}
                         </div>
                         <div className={column.width85}>
-                            Address: {output.lock.address.includes(": ") ? output.lock.address :
-                            <Link href={"/address/" + output.lock.address}>
+                            {output.lock.address.includes(": ") ? <>{GetOutputScriptInfo(output.script)}</> : <>
+                                Address: <Link href={"/address/" + output.lock.address}>
                                 <a>{output.lock.address}</a>
-                            </Link>}
+                            </Link></>}
                             <br/>
                             Amount: {output.amount}
                             <br/>

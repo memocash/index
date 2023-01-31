@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
@@ -28,10 +27,9 @@ func (t *LockHeight) SaveTxs(b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block for lock height")
 	}
-	block := b.ToWireBlock()
 	saveRun := NewLockHeightSaveRun(t.Verbose, t.InitialSync)
 	saveRun.CheckTxHash = t.CheckTxHash
-	if err := saveRun.SetHashHeightInOuts(block); err != nil {
+	if err := saveRun.SetHashHeightInOuts(b); err != nil {
 		return jerr.Get("error setting hash height for lock height saver run", err)
 	}
 	if err := saveRun.SaveOutputs(); err != nil {
@@ -65,11 +63,11 @@ type LockHeightSaveRun struct {
 	CheckTxHash []byte
 }
 
-func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
+func (t *LockHeightSaveRun) SetHashHeightInOuts(block *dbi.Block) error {
 	if block == nil {
 		return jerr.Newf("error nil block for lock height queue txs")
 	}
-	blockHash := block.BlockHash()
+	blockHash := block.Header.BlockHash()
 	if dbi.BlockHeaderSet(block.Header) {
 		t.BlockHash = blockHash
 		blockHeight, err := chain.GetBlockHeight(t.BlockHash)
@@ -81,7 +79,8 @@ func (t *LockHeightSaveRun) SetHashHeightInOuts(block *wire.MsgBlock) error {
 	if t.Height == 0 {
 		t.Height = item.HeightMempool
 	}
-	for _, tx := range block.Transactions {
+	for _, transaction := range block.Transactions {
+		var tx = transaction.MsgTx
 		txHash := tx.TxHash()
 		txHashBytes := txHash.CloneBytes()
 		if t.Verbose || (len(t.CheckTxHash) > 0 && bytes.Equal(t.CheckTxHash, txHashBytes)) {
