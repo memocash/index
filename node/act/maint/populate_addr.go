@@ -128,6 +128,7 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 	}
 	seenTime := time.Now()
 	var objMap = make(map[[57]byte]*addr.SeenTx)
+	var checked int
 	if p.Inputs {
 		txInputs, err := chain.GetAllTxInputs(shard, shardStatus.Status)
 		if err != nil {
@@ -148,6 +149,7 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 				Seen:   seenTime,
 			}
 		}
+		checked = len(txInputs)
 	} else {
 		txOutputs, err := chain.GetAllTxOutputs(shard, shardStatus.Status)
 		if err != nil {
@@ -168,6 +170,7 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 				Seen:   seenTime,
 			}
 		}
+		checked = len(txOutputs)
 	}
 	var objectsToSave = make([]db.Object, 0, len(objMap))
 	for _, obj := range objMap {
@@ -178,11 +181,11 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 	}
 	p.mu.Lock()
 	p.Saved += int64(len(objectsToSave))
-	p.Checked += int64(len(txOutputs))
+	p.Checked += int64(checked)
 	p.mu.Unlock()
 	if err := shardStatus.Save(); err != nil {
 		return false, jerr.Get("error saving process status", err)
 	}
 	p.SetShardStatus(shard, shardStatus.Status)
-	return len(txOutputs) < client.HugeLimit, nil
+	return checked < client.HugeLimit, nil
 }
