@@ -58,6 +58,24 @@ func (t *TxInput) Deserialize(data []byte) {
 	t.UnlockScript = data[40:]
 }
 
+func GetAllTxInputs(shard uint32, startUid []byte) ([]*TxInput, error) {
+	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic: db.TopicChainTxInput,
+		Start: startUid,
+		Max:   client.HugeLimit,
+	}); err != nil {
+		return nil, jerr.Get("error getting db message chain tx inputs for all", err)
+	}
+	var txInputs = make([]*TxInput, len(dbClient.Messages))
+	for i := range dbClient.Messages {
+		txInputs[i] = new(TxInput)
+		db.Set(txInputs[i], dbClient.Messages[i])
+	}
+	return txInputs, nil
+}
+
 func GetTxInputUid(txHash [32]byte, index uint32) []byte {
 	return db.GetTxHashIndexUid(txHash[:], index)
 }

@@ -21,18 +21,28 @@ type PopulateAddr struct {
 	mu       sync.Mutex
 	Checked  int64
 	Saved    int64
+	Inputs   bool
 }
 
-func NewPopulateAddr() *PopulateAddr {
+func NewPopulateAddr(inputs bool) *PopulateAddr {
 	return &PopulateAddr{
 		status: make(map[uint]*item.ProcessStatus),
+		Inputs: inputs,
+	}
+}
+
+func (p *PopulateAddr) GetStatusName() string {
+	if p.Inputs {
+		return item.ProcessStatusPopulateAddrInputs
+	} else {
+		return item.ProcessStatusPopulateAddr
 	}
 }
 
 func (p *PopulateAddr) SetShardStatus(shard uint32, status []byte) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.status[uint(shard)] = item.NewProcessStatus(uint(shard), item.ProcessStatusPopulateAddr)
+	p.status[uint(shard)] = item.NewProcessStatus(uint(shard), p.GetStatusName())
 	p.status[uint(shard)].Status = status
 }
 
@@ -62,7 +72,7 @@ func (p *PopulateAddr) Populate(newRun bool) error {
 	shardConfigs := config.GetQueueShards()
 	if !newRun {
 		for _, shardConfig := range shardConfigs {
-			syncStatus, err := item.GetProcessStatus(uint(shardConfig.Shard), item.ProcessStatusPopulateAddr)
+			syncStatus, err := item.GetProcessStatus(uint(shardConfig.Shard), p.GetStatusName())
 			if err != nil && !client.IsMessageNotSetError(err) {
 				return jerr.Get("error getting sync status", err)
 			} else if syncStatus != nil {
@@ -114,27 +124,49 @@ func (p *PopulateAddr) Populate(newRun bool) error {
 func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 	shardStatus := p.GetShardStatus(shard)
 	if shardStatus == nil {
-		shardStatus = item.NewProcessStatus(uint(shard), item.ProcessStatusPopulateAddr)
-	}
-	txOutputs, err := chain.GetAllTxOutputs(shard, shardStatus.Status)
-	if err != nil {
-		return false, jerr.Getf(err, "error getting tx outputs for populate addr shard: %d", shard)
+		shardStatus = item.NewProcessStatus(uint(shard), p.GetStatusName())
 	}
 	seenTime := time.Now()
 	var objMap = make(map[[57]byte]*addr.SeenTx)
-	for _, txOutput := range txOutputs {
-		uid := txOutput.GetUid()
-		if jutil.ByteGT(uid, shardStatus.Status) {
-			shardStatus.Status = uid
-		}
-		address, err := wallet.GetAddrFromLockScript(txOutput.LockScript)
+	if p.Inputs {
+		txInputs, err := chain.GetAllTxInputs(shard, shardStatus.Status)
 		if err != nil {
-			continue
+			return false, jerr.Getf(err, "error getting tx outputs for populate addr shard: %d", shard)
 		}
-		objMap[getAddrTxHashId(*address, txOutput.TxHash)] = &addr.SeenTx{
-			Addr:   *address,
-			TxHash: txOutput.TxHash,
-			Seen:   seenTime,
+		for _, txInput := range txInputs {
+			uid := txInput.GetUid()
+			if jutil.ByteGT(uid, shardStatus.Status) {
+				shardStatus.Status = uid
+			}
+			address, err := wallet.GetAddrFromUnlockScript(txInput.UnlockScript)
+			if err != nil {
+				continue
+			}
+			objMap[getAddrTxHashId(*address, txInput.TxHash)] = &addr.SeenTx{
+				Addr:   *address,
+				TxHash: txInput.TxHash,
+				Seen:   seenTime,
+			}
+		}
+	} else {
+		txOutputs, err := chain.GetAllTxOutputs(shard, shardStatus.Status)
+		if err != nil {
+			return false, jerr.Getf(err, "error getting tx outputs for populate addr shard: %d", shard)
+		}
+		for _, txOutput := range txOutputs {
+			uid := txOutput.GetUid()
+			if jutil.ByteGT(uid, shardStatus.Status) {
+				shardStatus.Status = uid
+			}
+			address, err := wallet.GetAddrFromLockScript(txOutput.LockScript)
+			if err != nil {
+				continue
+			}
+			objMap[getAddrTxHashId(*address, txOutput.TxHash)] = &addr.SeenTx{
+				Addr:   *address,
+				TxHash: txOutput.TxHash,
+				Seen:   seenTime,
+			}
 		}
 	}
 	var objectsToSave = make([]db.Object, 0, len(objMap))
