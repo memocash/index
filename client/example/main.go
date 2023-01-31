@@ -22,15 +22,15 @@ func main() {
 		}
 		address, err := wallet.GetAddrFromString(os.Args[2])
 		if err != nil {
-			log.Fatalf("%v; error getting address from string", err)
+			log.Fatalf("error getting address from string; %v", err)
 		}
 		client, err := GetClient()
 		if err != nil {
-			log.Fatalf("%v; error getting client", err)
+			log.Fatalf("error getting client; %v", err)
 		}
 		utxos, err := client.GetUtxos(*address)
 		if err != nil {
-			log.Fatalf("%v; error getting utxos", err)
+			log.Fatalf("error getting utxos; %v", err)
 		}
 		fmt.Printf("Utxos: %d\n", len(utxos))
 	case "balance":
@@ -39,15 +39,15 @@ func main() {
 		}
 		address, err := wallet.GetAddrFromString(os.Args[2])
 		if err != nil {
-			log.Fatalf("%v; error getting address from string", err)
+			log.Fatalf("error getting address from string; %v", err)
 		}
 		client, err := GetClient()
 		if err != nil {
-			log.Fatalf("%v; error getting client", err)
+			log.Fatalf("error getting client; %v", err)
 		}
 		balance, err := client.GetBalance(*address)
 		if err != nil {
-			log.Fatalf("%v; error getting balance", err)
+			log.Fatalf("error getting balance; %v", err)
 		}
 		fmt.Printf("Balance: %d\n", balance)
 	}
@@ -56,11 +56,11 @@ func main() {
 func GetClient() (*lib.Client, error) {
 	db, err := sql.Open("sqlite3", "./example.db")
 	if err != nil {
-		return nil, fmt.Errorf("%w; error opening database", err)
+		return nil, fmt.Errorf("error opening database; %w", err)
 	}
-	database, err := driver.NewDatabase(db)
+	database, err := driver.NewDatabase(db, "example")
 	if err != nil {
-		return nil, fmt.Errorf("%w; error getting database", err)
+		return nil, fmt.Errorf("error getting database; %w", err)
 	}
 	return lib.NewClient("http://localhost:26770/graphql", database), nil
 }
