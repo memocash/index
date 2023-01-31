@@ -89,6 +89,10 @@ func (k PrivateKey) GetAddress() Address {
 	return k.GetPublicKey().GetAddress()
 }
 
+func (k PrivateKey) GetAddr() Addr {
+	return *GetAddrFromPkHash(k.GetPkHash())
+}
+
 func (k PrivateKey) GetBtcEcPrivateKey() *btcec.PrivateKey {
 	priv, _ := btcec.PrivKeyFromBytes(btcec.S256(), k.Secret)
 	return priv

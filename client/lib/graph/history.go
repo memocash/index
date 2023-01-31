@@ -14,7 +14,7 @@ type History []Tx
 
 func GetHistory(url string, address wallet.Addr, lastUpdate time.Time) ([]Tx, error) {
 	jsonData := map[string]interface{}{
-		"query": HistoryQuery,
+		"query": historyQuery,
 		"variables": map[string]interface{}{
 			"address": address.String(),
 			"start":   lastUpdate.Format(time.RFC3339),
@@ -56,7 +56,7 @@ func GetHistory(url string, address wallet.Addr, lastUpdate time.Time) ([]Tx, er
 	return dataStruct.Data.Address.Txs, nil
 }
 
-const QueryTx = `{
+const txQuery = `{
 	hash
 	seen
 	raw
@@ -103,8 +103,8 @@ const QueryTx = `{
 	}
 }`
 
-const HistoryQuery = `query ($address: String!, $start: Date) {
+const historyQuery = `query ($address: String!, $start: Date) {
 	address (address: $address) {
-		txs(start: $start) ` + QueryTx + `
+		txs(start: $start) ` + txQuery + `
 	}
 }`

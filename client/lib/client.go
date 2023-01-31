@@ -38,6 +38,13 @@ func (c *Client) updateDb(address wallet.Addr) error {
 	return nil
 }
 
+func (c *Client) Broadcast(txRaw string) error {
+	if err := graph.Broadcast(c.GraphUrl, txRaw); err != nil {
+		return fmt.Errorf("error broadcasting lib client tx; %w", err)
+	}
+	return nil
+}
+
 func (c *Client) GetBalance(address wallet.Addr) (int64, error) {
 	err := c.updateDb(address)
 	if err != nil {

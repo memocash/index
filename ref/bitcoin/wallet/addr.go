@@ -32,6 +32,26 @@ func (a Addr) Equals(b Addr) bool {
 	return a == b
 }
 
+func (a Addr) GetPkHash() []byte {
+	if !a.IsP2PKH() {
+		return nil
+	}
+	return a.fingerPrint()
+}
+
+func (a Addr) fingerPrint() []byte {
+	return a[1:21]
+}
+
+func (a Addr) OldAddress() Address {
+	if a.IsP2PKH() {
+		return GetAddressFromPkHash(a.fingerPrint())
+	} else if a.IsP2SH() {
+		return GetAddressFromScriptHash(a.fingerPrint())
+	}
+	return Address{}
+}
+
 func GetAddrFromString(addrString string) (*Addr, error) {
 	var addr = new(Addr)
 	d := base58.Decode(addrString)
@@ -112,10 +132,14 @@ func GetP2pkhAddrFromLockScript(lockScript []byte) (*Addr, error) {
 		!bytes.Equal(lockScript[23:], []byte{txscript.OP_EQUALVERIFY, txscript.OP_CHECKSIG}) {
 		return nil, jerr.New("error lock script is not a p2pkh address")
 	}
+	return GetAddrFromPkHash(lockScript[3:23]), nil
+}
+
+func GetAddrFromPkHash(pkHash []byte) *Addr {
 	var addr = new(Addr)
-	copy(addr[1:21], lockScript[3:23])
+	copy(addr[1:21], pkHash)
 	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
-	return addr, nil
+	return addr
 }
 
 func GetP2shAddrFromLockScript(lockScript []byte) (*Addr, error) {
