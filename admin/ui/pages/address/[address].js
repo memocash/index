@@ -13,8 +13,7 @@ export default function LockHash() {
     const [address, setAddress] = useState({
         address: "",
         balance: 0,
-        spends: [],
-        outputs: [],
+        txs: [],
     })
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
@@ -23,24 +22,8 @@ export default function LockHash() {
         address(address: $address) {
             address
             balance
-            spends {
+            txs {
                 hash
-                index
-                output {
-                    amount
-                }
-                tx {
-                    lost {
-                        hash
-                    }
-                    suspect {
-                        hash
-                    }
-                }
-            }
-            outputs {
-                hash
-                index
             }
         }
     }
@@ -91,38 +74,12 @@ export default function LockHash() {
                     </div>
                     <div className={column.container}>
                         <div className={column.width50}>
-                            <h3>Spends ({address.spends.length})</h3>
-                            {address.spends.map((input) => {
+                            <h3>Txs ({address.txs.length})</h3>
+                            {address.txs.map((tx) => {
                                 return (
-                                    <div key={input} className={column.container}>
-                                        <div className={column.width25}>{input.output ? input.output.amount.toLocaleString() : "Unknown"}</div>
-                                        <div className={column.width75}>
-                                            <Link href={"/tx/" + input.hash}>
-                                                <a><PreInline>{input.hash}:{input.index}</PreInline></a>
-                                            </Link>
-                                            {input.tx.lost ?
-                                                <div className={[column.red, column.bold].join(" ")}>
-                                                    LOST
-                                                </div>
-                                                : (input.tx.suspect ?
-                                                    <div className={[column.orange, column.bold].join(" ")}>
-                                                        SUSPECT
-                                                    </div>
-                                                    : null)}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </div>
-                    <div className={column.container}>
-                        <div className={column.width50}>
-                            <h3>Outputs ({address.outputs.length})</h3>
-                            {address.outputs.map((output) => {
-                                return (
-                                    <div key={output} className={column.container}>
-                                        <Link href={"/tx/" + output.hash}>
-                                            <a><PreInline>{output.hash}:{output.index}</PreInline></a>
+                                    <div key={tx} className={column.container}>
+                                        <Link href={"/tx/" + tx.hash}>
+                                            <a><PreInline>{tx.hash}</PreInline></a>
                                         </Link>
                                     </div>
                                 )
