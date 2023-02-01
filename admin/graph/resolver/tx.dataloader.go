@@ -112,6 +112,9 @@ var txSeenLoaderConfig = dataloader.TxSeenLoaderConfig{
 					}
 				}
 			}
+			if modelTxSeens[i] == nil {
+				return nil, []error{jerr.Newf("tx seen not found for hash: %s", txHashes[i])}
+			}
 		}
 		return modelTxSeens, nil
 	},
