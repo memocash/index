@@ -1,18 +1,13 @@
 # Memo Index
 
-### Checkout repo
-```bash
+### Install Go
+
+https://go.dev/doc/install
+
+### Checkout repo and run server
+```sh
 git clone git@github.com:memocash/index.git
 cd index
 go build
-```
-
-### Generate some test data
-```bash
-./index test double_spend
-```
-
-### Run server
-```bash
-./index serve all
+./index serve live
 ```
