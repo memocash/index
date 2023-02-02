@@ -34,10 +34,10 @@ func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Da
 		return nil, jerr.Get("error decoding lock hash for lock txs resolver", err)
 	}
 	var startUid []byte
-	if start != nil {
+	if start != nil && !time.Time(*start).IsZero() {
 		startUid = jutil.CombineBytes(
 			address[:],
-			jutil.GetTimeByte(time.Time(*start)),
+			jutil.ByteReverse(jutil.GetTimeByte(time.Time(*start))),
 		)
 		if tx != nil {
 			txHash, err := chainhash.NewHashFromStr(*tx)
