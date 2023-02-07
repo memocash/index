@@ -1,6 +1,7 @@
 package memo
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -80,4 +81,27 @@ func GetPosts(txHashes [][32]byte) ([]*Post, error) {
 		}
 	}
 	return posts, nil
+}
+
+func ListenPosts(ctx context.Context) (chan *Post, error) {
+	var postChan = make(chan *Post)
+	cancelCtx := db.NewCancelContext(ctx, func() {
+		close(postChan)
+	})
+	for _, shardConfig := range config.GetQueueShards() {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoPost, nil)
+		if err != nil {
+			return nil, jerr.Get("error listening to db memo posts (all)", err)
+		}
+		go func() {
+			for msg := range chanMessage {
+				var post = new(Post)
+				db.Set(post, *msg)
+				postChan <- post
+			}
+			cancelCtx.Cancel()
+		}()
+	}
+	return postChan, nil
 }
