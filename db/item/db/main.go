@@ -189,7 +189,7 @@ func Remove(objects []Object) error {
 }
 
 func GetTxHashIndexUid(txHash []byte, index uint32) []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetUint32Data(index))
+	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetUint32DataBig(index))
 }
 
 func Set(obj Object, msg client.Message) {
