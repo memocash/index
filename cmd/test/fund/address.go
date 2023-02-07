@@ -19,7 +19,7 @@ var addressCmd = &cobra.Command{
 		if len(args) < 2 {
 			jerr.New("not enough arguments, must specify address and amount").Fatal()
 		}
-		txSaver := saver.NewCombinedTx(false, false)
+		txSaver := saver.NewCombinedTx(false)
 		address := wallet.GetAddressFromString(args[0])
 		if !address.IsSet() {
 			jerr.New("invalid address").Fatal()

@@ -14,7 +14,7 @@ import (
 
 var memoFollowHandler = &Handler{
 	prefix: memo.PrefixFollow,
-	handle: func(info parse.OpReturn, initialSync bool) error {
+	handle: func(info parse.OpReturn) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -36,29 +36,22 @@ var memoFollowHandler = &Handler{
 			return nil
 		}
 		followAddr := followAddress.GetAddr()
-		var addrMemoFollow = &dbMemo.AddrHeightFollow{
+		var addrMemoFollow = &dbMemo.AddrFollow{
 			Addr:       info.Addr,
-			Height:     info.Height,
+			Seen:       info.Seen,
 			TxHash:     info.TxHash,
 			FollowAddr: followAddr,
 			Unfollow:   unfollow,
 		}
-		var addrMemoFollowed = &dbMemo.AddrHeightFollowed{
+		var addrMemoFollowed = &dbMemo.AddrFollowed{
 			FollowAddr: followAddr,
-			Height:     info.Height,
+			Seen:       info.Seen,
 			TxHash:     info.TxHash,
 			Addr:       info.Addr,
 			Unfollow:   unfollow,
 		}
 		if err := db.Save([]db.Object{addrMemoFollow, addrMemoFollowed}); err != nil {
 			return jerr.Get("error saving db lock memo follow object", err)
-		}
-		if !initialSync && info.Height != item.HeightMempool {
-			addrMemoFollow.Height = item.HeightMempool
-			addrMemoFollowed.Height = item.HeightMempool
-			if err := db.Remove([]db.Object{addrMemoFollow, addrMemoFollowed}); err != nil {
-				return jerr.Get("error removing db addr memo follow/followed", err)
-			}
 		}
 		return nil
 	},

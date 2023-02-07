@@ -9,72 +9,73 @@ import (
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
+	"time"
 )
 
-type RoomHeightPost struct {
+type RoomPost struct {
 	RoomHash []byte
-	Height   int64
+	Seen     time.Time
 	TxHash   [32]byte
 }
 
-func (p *RoomHeightPost) GetTopic() string {
-	return db.TopicMemoRoomHeightPost
+func (p *RoomPost) GetTopic() string {
+	return db.TopicMemoRoomPost
 }
 
-func (p *RoomHeightPost) GetShard() uint {
+func (p *RoomPost) GetShard() uint {
 	return client.GetByteShard(p.RoomHash)
 }
 
-func (p *RoomHeightPost) GetUid() []byte {
+func (p *RoomPost) GetUid() []byte {
 	return jutil.CombineBytes(
 		p.RoomHash,
-		jutil.ByteFlip(jutil.GetInt64DataBig(p.Height)),
+		jutil.GetTimeByteBig(p.Seen),
 		jutil.ByteReverse(p.TxHash[:]),
 	)
 }
 
-func (p *RoomHeightPost) SetUid(uid []byte) {
+func (p *RoomPost) SetUid(uid []byte) {
 	if len(uid) < memo.TxHashLength*2+memo.Int8Size {
 		return
 	}
 	p.RoomHash = uid[:32]
-	p.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
+	p.Seen = jutil.GetByteTimeBig(uid[32:40])
 	copy(p.TxHash[:], jutil.ByteReverse(uid[40:72]))
 }
 
-func (p *RoomHeightPost) Serialize() []byte {
+func (p *RoomPost) Serialize() []byte {
 	return nil
 }
 
-func (p *RoomHeightPost) Deserialize([]byte) {}
+func (p *RoomPost) Deserialize([]byte) {}
 
 func GetRoomHash(room string) []byte {
 	sum := sha256.Sum256([]byte(room))
 	return sum[:]
 }
 
-func GetRoomHeightPosts(ctx context.Context, room string) ([]*RoomHeightPost, error) {
+func GetRoomPosts(ctx context.Context, room string) ([]*RoomPost, error) {
 	roomHash := GetRoomHash(room)
 	shard := client.GetByteShard32(roomHash)
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicMemoRoomHeightPost,
+		Topic:    db.TopicMemoRoomPost,
 		Prefixes: [][]byte{roomHash},
 		Max:      client.ExLargeLimit,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db memo room height posts", err)
+		return nil, jerr.Get("error getting db memo room posts", err)
 	}
-	var roomHeightPosts = make([]*RoomHeightPost, len(dbClient.Messages))
+	var roomPosts = make([]*RoomPost, len(dbClient.Messages))
 	for i := range dbClient.Messages {
-		roomHeightPosts[i] = new(RoomHeightPost)
-		db.Set(roomHeightPosts[i], dbClient.Messages[i])
+		roomPosts[i] = new(RoomPost)
+		db.Set(roomPosts[i], dbClient.Messages[i])
 	}
-	return roomHeightPosts, nil
+	return roomPosts, nil
 }
 
-func ListenRoomPosts(ctx context.Context, rooms []string) (chan *RoomHeightPost, error) {
+func ListenRoomPosts(ctx context.Context, rooms []string) (chan *RoomPost, error) {
 	if len(rooms) == 0 {
 		return nil, nil
 	}
@@ -85,24 +86,24 @@ func ListenRoomPosts(ctx context.Context, rooms []string) (chan *RoomHeightPost,
 		shardPrefixes[shard] = append(shardPrefixes[shard], roomHash)
 	}
 	shardConfigs := config.GetQueueShards()
-	var roomHeightPostChan = make(chan *RoomHeightPost)
+	var roomPostChan = make(chan *RoomPost)
 	cancelCtx := db.NewCancelContext(ctx, func() {
-		close(roomHeightPostChan)
+		close(roomPostChan)
 	})
 	for shard, prefixes := range shardPrefixes {
 		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoRoomHeightPost, prefixes)
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoRoomPost, prefixes)
 		if err != nil {
-			return nil, jerr.Get("error listening to db memo room height post by prefix", err)
+			return nil, jerr.Get("error listening to db memo room post by prefix", err)
 		}
 		go func() {
 			for msg := range chanMessage {
-				var roomHeightPost = new(RoomHeightPost)
-				db.Set(roomHeightPost, *msg)
-				roomHeightPostChan <- roomHeightPost
+				var roomPost = new(RoomPost)
+				db.Set(roomPost, *msg)
+				roomPostChan <- roomPost
 			}
 			cancelCtx.Cancel()
 		}()
 	}
-	return roomHeightPostChan, nil
+	return roomPostChan, nil
 }

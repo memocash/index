@@ -25,11 +25,11 @@ func NewCombined(savers []dbi.TxSave) *CombinedTx {
 	}
 }
 
-func NewCombinedTx(verbose, initial bool) *CombinedTx {
+func NewCombinedTx(verbose bool) *CombinedTx {
 	return NewCombined([]dbi.TxSave{
 		NewTxMinimal(verbose),
 		NewAddress(verbose),
-		NewMemo(verbose, initial),
+		NewMemo(verbose),
 		NewTxProcessed(verbose),
 	})
 }

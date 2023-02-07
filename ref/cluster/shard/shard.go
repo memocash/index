@@ -121,7 +121,7 @@ TransactionsLoop:
 		}
 		block.Transactions[i].Seen = block.Seen
 	}
-	if err := saver.NewCombinedTx(s.Verbose, req.IsInitial).SaveTxs(block); err != nil {
+	if err := saver.NewCombinedTx(s.Verbose).SaveTxs(block); err != nil {
 		return nil, jerr.Get("error saving block txs shard txs", err)
 	}
 	return &cluster_pb.EmptyResp{}, nil

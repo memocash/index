@@ -8,42 +8,43 @@ import (
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
+	"time"
 )
 
-type RoomHeightFollow struct {
+type RoomFollow struct {
 	RoomHash []byte
-	Height   int64
+	Seen     time.Time
 	TxHash   [32]byte
 	Unfollow bool
 	Addr     [25]byte
 }
 
-func (f *RoomHeightFollow) GetTopic() string {
-	return db.TopicMemoRoomHeightFollow
+func (f *RoomFollow) GetTopic() string {
+	return db.TopicMemoRoomFollow
 }
 
-func (f *RoomHeightFollow) GetShard() uint {
+func (f *RoomFollow) GetShard() uint {
 	return client.GetByteShard(f.RoomHash)
 }
 
-func (f *RoomHeightFollow) GetUid() []byte {
+func (f *RoomFollow) GetUid() []byte {
 	return jutil.CombineBytes(
 		f.RoomHash,
-		jutil.ByteFlip(jutil.GetInt64DataBig(f.Height)),
+		jutil.GetTimeByteBig(f.Seen),
 		jutil.ByteReverse(f.TxHash[:]),
 	)
 }
 
-func (f *RoomHeightFollow) SetUid(uid []byte) {
+func (f *RoomFollow) SetUid(uid []byte) {
 	if len(uid) != memo.TxHashLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
 	f.RoomHash = uid[:32]
-	f.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[32:40]))
+	f.Seen = jutil.GetByteTimeBig(uid[32:40])
 	copy(f.TxHash[:], jutil.ByteReverse(uid[40:72]))
 }
 
-func (f *RoomHeightFollow) Serialize() []byte {
+func (f *RoomFollow) Serialize() []byte {
 	var unfollow byte
 	if f.Unfollow {
 		unfollow = 1
@@ -54,7 +55,7 @@ func (f *RoomHeightFollow) Serialize() []byte {
 	)
 }
 
-func (f *RoomHeightFollow) Deserialize(data []byte) {
+func (f *RoomFollow) Deserialize(data []byte) {
 	if len(data) < 1+memo.AddressLength+1 {
 		return
 	}
@@ -62,22 +63,22 @@ func (f *RoomHeightFollow) Deserialize(data []byte) {
 	copy(f.Addr[:], data[1:26])
 }
 
-func GetRoomHeightFollows(ctx context.Context, room string) ([]*RoomHeightFollow, error) {
+func GetRoomFollows(ctx context.Context, room string) ([]*RoomFollow, error) {
 	roomHash := GetRoomHash(room)
 	shardConfig := config.GetShardConfig(client.GetByteShard32(roomHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicMemoRoomHeightFollow,
+		Topic:    db.TopicMemoRoomFollow,
 		Prefixes: [][]byte{roomHash},
 		Max:      client.ExLargeLimit,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db memo room height follows", err)
+		return nil, jerr.Get("error getting db memo room follows", err)
 	}
-	var roomHeightFollows = make([]*RoomHeightFollow, len(dbClient.Messages))
+	var roomFollows = make([]*RoomFollow, len(dbClient.Messages))
 	for i := range dbClient.Messages {
-		roomHeightFollows[i] = new(RoomHeightFollow)
-		db.Set(roomHeightFollows[i], dbClient.Messages[i])
+		roomFollows[i] = new(RoomFollow)
+		db.Set(roomFollows[i], dbClient.Messages[i])
 	}
-	return roomHeightFollows, nil
+	return roomFollows, nil
 }

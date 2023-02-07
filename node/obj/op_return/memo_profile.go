@@ -13,7 +13,7 @@ import (
 
 var memoProfileHandler = &Handler{
 	prefix: memo.PrefixSetProfile,
-	handle: func(info parse.OpReturn, initialSync bool) error {
+	handle: func(info parse.OpReturn) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -24,20 +24,14 @@ var memoProfileHandler = &Handler{
 			return nil
 		}
 		var profile = jutil.GetUtf8String(info.PushData[1])
-		var addrMemoProfile = &dbMemo.AddrHeightProfile{
+		var addrMemoProfile = &dbMemo.AddrProfile{
 			Addr:    info.Addr,
-			Height:  info.Height,
+			Seen:    info.Seen,
 			TxHash:  info.TxHash,
 			Profile: profile,
 		}
 		if err := db.Save([]db.Object{addrMemoProfile}); err != nil {
 			return jerr.Get("error saving db addr memo profile object", err)
-		}
-		if !initialSync && info.Height != item.HeightMempool {
-			addrMemoProfile.Height = item.HeightMempool
-			if err := db.Remove([]db.Object{addrMemoProfile}); err != nil {
-				return jerr.Get("error removing db addr memo profile", err)
-			}
 		}
 		return nil
 	},

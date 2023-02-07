@@ -56,7 +56,7 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 		blockTxs[blockHashStr] = append(blockTxs[blockHashStr], txMsg)
 	}
 	blockSaver := saver.NewBlock(false)
-	combinedSaver := saver.NewCombinedTx(false, false)
+	combinedSaver := saver.NewCombinedTx(false)
 	for blockHashStr, msgTxs := range blockTxs {
 		var blockHeader *wire.BlockHeader
 		if blockHashStr != "" {
@@ -268,7 +268,7 @@ BlockTxsLoop:
 
 	block := dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))
 	block.Height = blockSaver.NewHeight
-	if err := saver.NewCombinedTx(false, false).SaveTxs(block); err != nil {
+	if err := saver.NewCombinedTx(false).SaveTxs(block); err != nil {
 		return nil, jerr.Get("error saving transactions", err)
 	}
 	return &network_pb.ErrorReply{}, nil

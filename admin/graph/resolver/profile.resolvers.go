@@ -5,6 +5,7 @@ package resolver
 
 import (
 	"context"
+	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
@@ -94,7 +95,7 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 	if err != nil {
 		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
 	}
-	memoPostLikes, err := memo.GetPostHeightLikes([][32]byte{*postTxHash})
+	memoPostLikes, err := memo.GetPostLikes([][32]byte{*postTxHash})
 	if err != nil {
 		return nil, jerr.Get("error getting memo post likeds for post resolver", err)
 	}
@@ -198,16 +199,16 @@ func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.
 }
 
 // Following is the resolver for the following field.
-func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error) {
+func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error) {
 	address, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting address from string for profile following resolver: %s", obj.Address)
 	}
-	var startInt int64
+	var startTime time.Time
 	if start != nil {
-		startInt = int64(*start)
+		startTime = time.Time(*start)
 	}
-	addrMemoFollows, err := memo.GetAddrHeightFollowsSingle(ctx, *address, startInt)
+	addrMemoFollows, err := memo.GetAddrFollowsSingle(ctx, *address, startTime)
 	if err != nil {
 		return nil, jerr.Get("error getting address memo follows for address", err)
 	}
@@ -224,16 +225,16 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 }
 
 // Followers is the resolver for the followers field.
-func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error) {
+func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error) {
 	address, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting address from string for profile followers resolver: %s", obj.Address)
 	}
-	var startInt int64
+	var startTime time.Time
 	if start != nil {
-		startInt = int64(*start)
+		startTime = time.Time(*start)
 	}
-	addrMemoFolloweds, err := memo.GetAddrHeightFollowedsSingle(ctx, *address, startInt)
+	addrMemoFolloweds, err := memo.GetAddrFollowedsSingle(ctx, *address, startTime)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting addr memo follows for address: %s", obj.Address)
 	}
@@ -250,12 +251,12 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 }
 
 // Posts is the resolver for the posts field.
-func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *int) ([]*model.Post, error) {
+func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Post, error) {
 	addr, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error decoding address for profile resolver: %s", obj.Address)
 	}
-	addrMemoPosts, err := memo.GetAddrHeightPosts(ctx, [][25]byte{*addr})
+	addrMemoPosts, err := memo.GetAddrPosts(ctx, [][25]byte{*addr})
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting addr memo posts for profile resolver: %s", obj.Address)
 	}
@@ -279,12 +280,12 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 }
 
 // Rooms is the resolver for the rooms field.
-func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *int) ([]*model.RoomFollow, error) {
+func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.RoomFollow, error) {
 	addr, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
 		return nil, jerr.Get("error decoding lock for room follows in profile resolver", err)
 	}
-	lockRoomFollows, err := memo.GetAddrHeightRoomFollows(ctx, [][25]byte{*addr})
+	lockRoomFollows, err := memo.GetAddrRoomFollows(ctx, [][25]byte{*addr})
 	var roomFollows = make([]*model.RoomFollow, len(lockRoomFollows))
 	for i := range lockRoomFollows {
 		roomFollows[i] = &model.RoomFollow{

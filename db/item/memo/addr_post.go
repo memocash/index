@@ -8,58 +8,59 @@ import (
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
+	"time"
 )
 
-type AddrHeightPost struct {
+type AddrPost struct {
 	Addr   [25]byte
-	Height int64
+	Seen   time.Time
 	TxHash [32]byte
 }
 
-func (p *AddrHeightPost) GetTopic() string {
-	return db.TopicMemoAddrHeightPost
+func (p *AddrPost) GetTopic() string {
+	return db.TopicMemoAddrPost
 }
 
-func (p *AddrHeightPost) GetShard() uint {
+func (p *AddrPost) GetShard() uint {
 	return client.GetByteShard(p.Addr[:])
 }
 
-func (p *AddrHeightPost) GetUid() []byte {
+func (p *AddrPost) GetUid() []byte {
 	return jutil.CombineBytes(
 		p.Addr[:],
-		jutil.ByteFlip(jutil.GetInt64DataBig(p.Height)),
+		jutil.GetTimeByteBig(p.Seen),
 		jutil.ByteReverse(p.TxHash[:]),
 	)
 }
 
-func (p *AddrHeightPost) SetUid(uid []byte) {
+func (p *AddrPost) SetUid(uid []byte) {
 	if len(uid) != memo.AddressLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
 	copy(p.Addr[:], uid[:25])
-	p.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[25:33]))
+	p.Seen = jutil.GetByteTimeBig(uid[25:33])
 	copy(p.TxHash[:], jutil.ByteReverse(uid[33:65]))
 }
 
-func (p *AddrHeightPost) Serialize() []byte {
+func (p *AddrPost) Serialize() []byte {
 	return nil
 }
 
-func (p *AddrHeightPost) Deserialize([]byte) {}
+func (p *AddrPost) Deserialize([]byte) {}
 
-func GetAddrHeightPosts(ctx context.Context, addrs [][25]byte) ([]*AddrHeightPost, error) {
+func GetAddrPosts(ctx context.Context, addrs [][25]byte) ([]*AddrPost, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, addr := range addrs {
 		shard := client.GetByteShard32(addr[:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addr[:])
 	}
 	shardConfigs := config.GetQueueShards()
-	var addrPosts []*AddrHeightPost
+	var addrPosts []*AddrPost
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicMemoAddrHeightPost,
+			Topic:    db.TopicMemoAddrPost,
 			Prefixes: prefixes,
 			Max:      client.ExLargeLimit,
 			Context:  ctx,
@@ -67,7 +68,7 @@ func GetAddrHeightPosts(ctx context.Context, addrs [][25]byte) ([]*AddrHeightPos
 			return nil, jerr.Get("error getting db addr memo post by prefix", err)
 		}
 		for _, msg := range dbClient.Messages {
-			var addrPost = new(AddrHeightPost)
+			var addrPost = new(AddrPost)
 			db.Set(addrPost, msg)
 			addrPosts = append(addrPosts, addrPost)
 		}

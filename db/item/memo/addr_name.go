@@ -8,53 +8,54 @@ import (
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
+	"time"
 )
 
-type AddrHeightName struct {
+type AddrName struct {
 	Addr   [25]byte
-	Height int64
+	Seen   time.Time
 	TxHash [32]byte
 	Name   string
 }
 
-func (n *AddrHeightName) GetUid() []byte {
+func (n *AddrName) GetUid() []byte {
 	return jutil.CombineBytes(
 		n.Addr[:],
-		jutil.ByteFlip(jutil.GetInt64DataBig(n.Height)),
+		jutil.GetTimeByteBig(n.Seen),
 		jutil.ByteReverse(n.TxHash[:]),
 	)
 }
 
-func (n *AddrHeightName) GetShard() uint {
+func (n *AddrName) GetShard() uint {
 	return client.GetByteShard(n.Addr[:])
 }
 
-func (n *AddrHeightName) GetTopic() string {
-	return db.TopicMemoAddrHeightName
+func (n *AddrName) GetTopic() string {
+	return db.TopicMemoAddrName
 }
 
-func (n *AddrHeightName) Serialize() []byte {
+func (n *AddrName) Serialize() []byte {
 	return []byte(n.Name)
 }
 
-func (n *AddrHeightName) SetUid(uid []byte) {
+func (n *AddrName) SetUid(uid []byte) {
 	if len(uid) != memo.AddressLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
 	copy(n.Addr[:], uid[:25])
-	n.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[25:33]))
+	n.Seen = jutil.GetByteTimeBig(uid[25:33])
 	copy(n.TxHash[:], jutil.ByteReverse(uid[33:65]))
 }
 
-func (n *AddrHeightName) Deserialize(data []byte) {
+func (n *AddrName) Deserialize(data []byte) {
 	n.Name = string(data)
 }
 
-func GetAddrHeightName(ctx context.Context, addr [25]byte) (*AddrHeightName, error) {
+func GetAddrName(ctx context.Context, addr [25]byte) (*AddrName, error) {
 	shardConfig := config.GetShardConfig(client.GetByteShard32(addr[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicMemoAddrHeightName,
+		Topic:    db.TopicMemoAddrName,
 		Prefixes: [][]byte{addr[:]},
 		Max:      1,
 		Context:  ctx,
@@ -64,12 +65,12 @@ func GetAddrHeightName(ctx context.Context, addr [25]byte) (*AddrHeightName, err
 	if len(dbClient.Messages) == 0 {
 		return nil, jerr.Get("error no addr memo names found", client.EntryNotFoundError)
 	}
-	var addrName = new(AddrHeightName)
+	var addrName = new(AddrName)
 	db.Set(addrName, dbClient.Messages[0])
 	return addrName, nil
 }
 
-func ListenAddrHeightNames(ctx context.Context, addrs [][25]byte) (chan *AddrHeightName, error) {
+func ListenAddrNames(ctx context.Context, addrs [][25]byte) (chan *AddrName, error) {
 	if len(addrs) == 0 {
 		return nil, nil
 	}
@@ -79,20 +80,20 @@ func ListenAddrHeightNames(ctx context.Context, addrs [][25]byte) (chan *AddrHei
 		shardPrefixes[shard] = append(shardPrefixes[shard], addr[:])
 	}
 	shardConfigs := config.GetQueueShards()
-	var addrNameChan = make(chan *AddrHeightName)
+	var addrNameChan = make(chan *AddrName)
 	cancelCtx := db.NewCancelContext(ctx, func() {
 		close(addrNameChan)
 	})
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoAddrHeightName, prefixes)
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoAddrName, prefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db addr memo names by prefix", err)
 		}
 		go func() {
 			for msg := range chanMessage {
-				var addrName = new(AddrHeightName)
+				var addrName = new(AddrName)
 				db.Set(addrName, *msg)
 				addrNameChan <- addrName
 			}

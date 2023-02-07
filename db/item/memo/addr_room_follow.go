@@ -8,42 +8,43 @@ import (
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
+	"time"
 )
 
-type AddrHeightRoomFollow struct {
+type AddrRoomFollow struct {
 	Addr     [25]byte
-	Height   int64
+	Seen     time.Time
 	TxHash   [32]byte
 	Unfollow bool
 	Room     string
 }
 
-func (f *AddrHeightRoomFollow) GetTopic() string {
-	return db.TopicMemoAddrHeightRoomFollow
+func (f *AddrRoomFollow) GetTopic() string {
+	return db.TopicMemoAddrRoomFollow
 }
 
-func (f *AddrHeightRoomFollow) GetShard() uint {
+func (f *AddrRoomFollow) GetShard() uint {
 	return client.GetByteShard(f.Addr[:])
 }
 
-func (f *AddrHeightRoomFollow) GetUid() []byte {
+func (f *AddrRoomFollow) GetUid() []byte {
 	return jutil.CombineBytes(
 		f.Addr[:],
-		jutil.ByteFlip(jutil.GetInt64DataBig(f.Height)),
+		jutil.GetTimeByteBig(f.Seen),
 		jutil.ByteReverse(f.TxHash[:]),
 	)
 }
 
-func (f *AddrHeightRoomFollow) SetUid(uid []byte) {
+func (f *AddrRoomFollow) SetUid(uid []byte) {
 	if len(uid) != memo.AddressLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
 	copy(f.Addr[:], uid[:25])
-	f.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[25:33]))
+	f.Seen = jutil.GetByteTimeBig(uid[25:33])
 	copy(f.TxHash[:], jutil.ByteReverse(uid[33:65]))
 }
 
-func (f *AddrHeightRoomFollow) Serialize() []byte {
+func (f *AddrRoomFollow) Serialize() []byte {
 	var unfollow byte
 	if f.Unfollow {
 		unfollow = 1
@@ -54,7 +55,7 @@ func (f *AddrHeightRoomFollow) Serialize() []byte {
 	)
 }
 
-func (f *AddrHeightRoomFollow) Deserialize(data []byte) {
+func (f *AddrRoomFollow) Deserialize(data []byte) {
 	if len(data) < 1 {
 		return
 	}
@@ -62,19 +63,19 @@ func (f *AddrHeightRoomFollow) Deserialize(data []byte) {
 	f.Room = string(data[1:])
 }
 
-func GetAddrHeightRoomFollows(ctx context.Context, addrs [][25]byte) ([]*AddrHeightRoomFollow, error) {
+func GetAddrRoomFollows(ctx context.Context, addrs [][25]byte) ([]*AddrRoomFollow, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, addr := range addrs {
 		shard := client.GetByteShard32(addr[:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addr[:])
 	}
 	shardConfigs := config.GetQueueShards()
-	var addrFollows []*AddrHeightRoomFollow
+	var addrFollows []*AddrRoomFollow
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicMemoAddrHeightRoomFollow,
+			Topic:    db.TopicMemoAddrRoomFollow,
 			Prefixes: prefixes,
 			Max:      client.ExLargeLimit,
 			Context:  ctx,
@@ -82,7 +83,7 @@ func GetAddrHeightRoomFollows(ctx context.Context, addrs [][25]byte) ([]*AddrHei
 			return nil, jerr.Get("error getting db memo addr room follow by prefix", err)
 		}
 		for _, msg := range dbClient.Messages {
-			var addrFollow = new(AddrHeightRoomFollow)
+			var addrFollow = new(AddrRoomFollow)
 			db.Set(addrFollow, msg)
 			addrFollows = append(addrFollows, addrFollow)
 		}
@@ -90,7 +91,7 @@ func GetAddrHeightRoomFollows(ctx context.Context, addrs [][25]byte) ([]*AddrHei
 	return addrFollows, nil
 }
 
-func ListenAddrHeightRoomFollows(ctx context.Context, addrs [][25]byte) (chan *AddrHeightRoomFollow, error) {
+func ListenAddrRoomFollows(ctx context.Context, addrs [][25]byte) (chan *AddrRoomFollow, error) {
 	if len(addrs) == 0 {
 		return nil, nil
 	}
@@ -100,19 +101,19 @@ func ListenAddrHeightRoomFollows(ctx context.Context, addrs [][25]byte) (chan *A
 		shardPrefixes[shard] = append(shardPrefixes[shard], addr[:])
 	}
 	shardConfigs := config.GetQueueShards()
-	var addrRoomFollowChan = make(chan *AddrHeightRoomFollow)
+	var addrRoomFollowChan = make(chan *AddrRoomFollow)
 	cancelCtx := db.NewCancelContext(ctx, func() {
 		close(addrRoomFollowChan)
 	})
 	for shard, prefixes := range shardPrefixes {
 		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoAddrHeightRoomFollow, prefixes)
+		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoAddrRoomFollow, prefixes)
 		if err != nil {
 			return nil, jerr.Get("error listening to db memo addr room follow by prefix", err)
 		}
 		go func() {
 			for msg := range chanMessage {
-				var addrRoomFollow = new(AddrHeightRoomFollow)
+				var addrRoomFollow = new(AddrRoomFollow)
 				db.Set(addrRoomFollow, *msg)
 				addrRoomFollowChan <- addrRoomFollow
 			}

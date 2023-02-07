@@ -27,7 +27,7 @@ func (i *SeenTx) GetShard() uint {
 func (i *SeenTx) GetUid() []byte {
 	return jutil.CombineBytes(
 		i.Addr[:],
-		jutil.ByteReverse(jutil.GetTimeByte(i.Seen)),
+		jutil.GetTimeByteBig(i.Seen),
 		jutil.ByteReverse(i.TxHash[:]),
 	)
 }
@@ -37,7 +37,7 @@ func (i *SeenTx) SetUid(uid []byte) {
 		return
 	}
 	copy(i.Addr[:], uid[:25])
-	i.Seen = jutil.GetByteTime(jutil.ByteReverse(uid[25:33]))
+	i.Seen = jutil.GetByteTimeBig(uid[25:33])
 	copy(i.TxHash[:], jutil.ByteReverse(uid[33:65]))
 }
 

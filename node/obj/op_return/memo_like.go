@@ -13,7 +13,7 @@ import (
 
 var memoLikeHandler = &Handler{
 	prefix: memo.PrefixLike,
-	handle: func(info parse.OpReturn, initialSync bool) error {
+	handle: func(info parse.OpReturn) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -34,15 +34,15 @@ var memoLikeHandler = &Handler{
 		}
 		var postTxHash [32]byte
 		copy(postTxHash[:], info.PushData[1])
-		var memoLike = &dbMemo.AddrHeightLike{
+		var memoLike = &dbMemo.AddrLike{
 			Addr:       info.Addr,
-			Height:     info.Height,
+			Seen:       info.Seen,
 			LikeTxHash: info.TxHash,
 			PostTxHash: postTxHash,
 		}
-		var memoLiked = &dbMemo.PostHeightLike{
+		var memoLiked = &dbMemo.PostLike{
 			PostTxHash: postTxHash,
-			Height:     info.Height,
+			Seen:       info.Seen,
 			LikeTxHash: info.TxHash,
 			Addr:       info.Addr,
 		}
@@ -68,12 +68,6 @@ var memoLikeHandler = &Handler{
 		}
 		if err := db.Save(objects); err != nil {
 			return jerr.Get("error saving db memo like object", err)
-		}
-		if !initialSync && info.Height != item.HeightMempool {
-			memoLike.Height = item.HeightMempool
-			if err := db.Remove([]db.Object{memoLike}); err != nil {
-				return jerr.Get("error removing db memo like", err)
-			}
 		}
 		return nil
 	},

@@ -16,13 +16,13 @@ import (
 
 // Posts is the resolver for the posts field.
 func (r *roomResolver) Posts(ctx context.Context, obj *model.Room, start *int) ([]*model.Post, error) {
-	roomHeightPosts, err := memo.GetRoomHeightPosts(ctx, obj.Name)
+	roomPosts, err := memo.GetRoomPosts(ctx, obj.Name)
 	if err != nil {
 		return nil, jerr.Get("error getting room height posts for room resolver", err)
 	}
-	var txHashes = make([][32]byte, len(roomHeightPosts))
-	for i := range roomHeightPosts {
-		txHashes[i] = roomHeightPosts[i].TxHash
+	var txHashes = make([][32]byte, len(roomPosts))
+	for i := range roomPosts {
+		txHashes[i] = roomPosts[i].TxHash
 	}
 	memoPosts, err := memo.GetPosts(txHashes)
 	if err != nil {
@@ -41,7 +41,7 @@ func (r *roomResolver) Posts(ctx context.Context, obj *model.Room, start *int) (
 
 // Followers is the resolver for the followers field.
 func (r *roomResolver) Followers(ctx context.Context, obj *model.Room, start *int) ([]*model.RoomFollow, error) {
-	lockRoomFollows, err := memo.GetRoomHeightFollows(ctx, obj.Name)
+	lockRoomFollows, err := memo.GetRoomFollows(ctx, obj.Name)
 	if err != nil {
 		return nil, jerr.Get("error getting room height follows for followers in room resolver", err)
 	}
