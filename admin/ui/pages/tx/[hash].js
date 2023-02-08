@@ -303,6 +303,10 @@ const GetOutputScriptInfo = (script) => {
                     Buffer.from(script.substr(10 + size), "hex")
             case "6d0d":
                 return "Memo topic follow: " + Buffer.from(script.substr(8), "hex")
+            case "6d24":
+                return "Memo direct message: " + Buffer.from(script.substr(52), "hex")
+            case "6d05":
+                return "Memo profile text: " + Buffer.from(script.substr(10), "hex")
         }
     }
     return "Unknown" + (info.length ? ": " + info : "")
