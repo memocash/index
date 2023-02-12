@@ -54,7 +54,8 @@ func (s *Shard) Start() error {
 	s.Error = make(chan error)
 	var err error
 	clusterConfig := config.GetShardConfig(uint32(s.Id), config.GetClusterShards())
-	if s.listener, err = net.Listen("tcp", clusterConfig.GetHost()); err != nil {
+	jlog.Logf("Starting cluster server shard %d on port %d...\n", s.Id, clusterConfig.Port)
+	if s.listener, err = net.Listen("tcp", server.GetListenHost(clusterConfig.Port)); err != nil {
 		return jerr.Get("failed to listen cluster shard", err)
 	}
 	s.grpc = grpc.NewServer(grpc.MaxRecvMsgSize(client.MaxMessageSize), grpc.MaxSendMsgSize(client.MaxMessageSize))
@@ -67,9 +68,9 @@ func (s *Shard) Start() error {
 	if len(queueShards) < s.Id {
 		return jerr.Newf("fatal error shard specified greater than num queue shards: %d %d", s.Id, len(queueShards))
 	}
-	queueServer := server.NewServer(uint(queueShards[s.Id].Port), uint(s.Id))
+	queueServer := server.NewServer(queueShards[s.Id].Port, uint(s.Id))
 	go func() {
-		jlog.Logf("Starting queue server shard %d on port %d...\n", queueServer.Shard, queueServer.Port)
+		jlog.Logf("Starting cluster queue server shard %d on port %d...\n", queueServer.Shard, queueServer.Port)
 		s.Error <- jerr.Getf(queueServer.Run(), "error running queue server for shard: %d", s.Id)
 	}()
 	return nil
