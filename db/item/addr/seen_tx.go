@@ -38,6 +38,10 @@ func (i *SeenTx) SetUid(uid []byte) {
 	}
 	copy(i.Addr[:], uid[:25])
 	i.Seen = jutil.GetByteTime(jutil.ByteReverse(uid[25:33]))
+	const year = time.Hour * 24 * 365
+	if i.Seen.Before(time.Now().Add(-year*20)) || i.Seen.After(time.Now().Add(year)) {
+		i.Seen = jutil.GetByteTime(uid[25:33])
+	}
 	copy(i.TxHash[:], jutil.ByteReverse(uid[33:65]))
 }
 
