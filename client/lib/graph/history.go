@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"io"
 	"net/http"
@@ -13,12 +14,15 @@ import (
 type History []Tx
 
 func GetHistory(url string, address wallet.Addr, lastUpdate time.Time) ([]Tx, error) {
+	var variables = map[string]interface{}{
+		"address": address.String(),
+	}
+	if !jutil.IsTimeZero(lastUpdate) {
+		variables["start"] = lastUpdate.Format(time.RFC3339)
+	}
 	jsonData := map[string]interface{}{
-		"query": historyQuery,
-		"variables": map[string]interface{}{
-			"address": address.String(),
-			"start":   lastUpdate.Format(time.RFC3339),
-		},
+		"query":     historyQuery,
+		"variables": variables,
 	}
 	jsonValue, err := json.Marshal(jsonData)
 	if err != nil {
