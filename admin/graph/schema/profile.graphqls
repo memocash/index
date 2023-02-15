@@ -6,7 +6,7 @@ type Profile {
     pic: SetPic
     following(start: Int): [Follow]
     followers(start: Int): [Follow]
-    posts(start: Int): [Post]
+    posts(start: Int, newest: Boolean): [Post]
     rooms(start: Int): [RoomFollow!]
 }
 
