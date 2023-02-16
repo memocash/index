@@ -78,7 +78,9 @@ func (p *Peer) Connect() error {
 }
 
 func (p *Peer) Disconnect() {
-	p.peer.Disconnect()
+	if p != nil && p.peer != nil {
+		p.peer.Disconnect()
+	}
 }
 
 func (p *Peer) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {

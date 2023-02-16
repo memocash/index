@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
+	"sort"
 	"time"
 )
 
@@ -57,6 +58,9 @@ func GetTxSeens(txHashes [][32]byte) ([]*TxSeen, error) {
 	}
 	var txSeens []*TxSeen
 	for shard, prefixes := range shardPrefixes {
+		sort.Slice(prefixes, func(i, j int) bool {
+			return jutil.ByteLT(prefixes[i], prefixes[j])
+		})
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetByPrefixes(db.TopicChainTxSeen, prefixes); err != nil {

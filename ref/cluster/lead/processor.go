@@ -166,7 +166,10 @@ func (p *Processor) SaveBlockShards(height int64, seen time.Time, shardBlocks ma
 func (p *Processor) Stop() {
 	if p.On {
 		p.On = false
-		close(p.StopChan)
+		if p.StopChan != nil {
+			close(p.StopChan)
+		}
+		p.StopChan = nil
 		p.BlockNode.Stop()
 		if p.MemPoolNode != nil {
 			p.MemPoolNode.Stop()
