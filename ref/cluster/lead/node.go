@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/node/peer"
 	"github.com/memocash/index/ref/dbi"
+	"time"
 )
 
 type Node struct {
@@ -44,17 +45,24 @@ func (n *Node) GetBlock(heightBack int64) (*chainhash.Hash, error) {
 }
 
 func (n *Node) Start(memPool, syncDone bool) {
-	n.Peer = peer.NewConnection(n, n)
-	n.Peer.SyncDone = syncDone
 	go func() {
-		n.Peer.Mempool = memPool
-		if err := n.Peer.Connect(); err != nil {
-			jerr.Get("fatal error connecting to peer", err).Fatal()
-		}
-		jlog.Logf("node peer disconnected\n")
-		n.Off = true
-		if n.Peer.SyncDone {
-			n.SyncDone <- struct{}{}
+		for {
+			n.Peer = peer.NewConnection(n, n)
+			n.Peer.SyncDone = syncDone
+			n.Peer.Mempool = memPool
+			n.Off = false
+			if err := n.Peer.Connect(); err != nil {
+				jerr.Get("fatal error connecting to peer", err).Fatal()
+			}
+			jlog.Logf("node peer disconnected\n")
+			n.Off = true
+			if n.Peer.SyncDone {
+				n.SyncDone <- struct{}{}
+				break
+			}
+			const sleepSeconds = 5
+			jlog.Logf("reconnecting node peer after %d seconds\n", sleepSeconds)
+			time.Sleep(time.Second * sleepSeconds)
 		}
 	}()
 }

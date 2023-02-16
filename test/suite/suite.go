@@ -28,11 +28,11 @@ func (s *Suite) Start() error {
 	if len(shards) != 2 {
 		return jerr.Newf("expected 2 shards, got %d", len(shards))
 	}
-	s.Queue0 = run.NewQueue(uint(shards[0].Port), 0)
+	s.Queue0 = run.NewQueue(shards[0].Port, 0)
 	if err := s.Queue0.Start(); err != nil {
 		return jerr.Get("error starting queue 0 server", err)
 	}
-	s.Queue1 = run.NewQueue(uint(shards[1].Port), 1)
+	s.Queue1 = run.NewQueue(shards[1].Port, 1)
 	if err := s.Queue1.Start(); err != nil {
 		return jerr.Get("error starting queue 1 server", err)
 	}

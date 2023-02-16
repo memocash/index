@@ -13,7 +13,7 @@ import (
 )
 
 type Server struct {
-	Port        uint
+	Port        int
 	Shard       uint
 	Stopped     bool
 	listener    net.Listener
@@ -200,7 +200,7 @@ func (s *Server) Run() error {
 func (s *Server) Start() error {
 	s.Stopped = false
 	var err error
-	if s.listener, err = net.Listen("tcp", GetHost(s.Port)); err != nil {
+	if s.listener, err = net.Listen("tcp", GetListenHost(s.Port)); err != nil {
 		return jerr.Get("failed to listen", err)
 	}
 	go s.StartMessageChan()
@@ -224,7 +224,7 @@ func (s *Server) Stop() {
 	}
 }
 
-func NewServer(port uint, shard uint) *Server {
+func NewServer(port int, shard uint) *Server {
 	return &Server{
 		Port:  port,
 		Shard: shard,

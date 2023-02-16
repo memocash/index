@@ -28,35 +28,57 @@ func (r *Post) Listen(ctx context.Context, txHashes []string) (<-chan *model.Pos
 	ctx, r.Cancel = context.WithCancel(ctx)
 	var postChan = make(chan *model.Post)
 	r.PostHashChan = make(chan [32]byte)
-	postChildListener, err := memo.ListenPostChildren(ctx, txHashesBytes)
-	if err != nil {
-		r.Cancel()
-		return nil, jerr.Get("error getting memo post child listener for post subscription", err)
-	}
-	postLikesListener, err := memo.ListenPostLikes(ctx, txHashesBytes)
-	if err != nil {
-		r.Cancel()
-		return nil, jerr.Get("error getting memo post likes listener for post subscription", err)
-	}
-	go func() {
-		defer r.Cancel()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case postChild, ok := <-postChildListener:
-				if !ok {
-					return
-				}
-				r.PostHashChan <- postChild.PostTxHash
-			case postLike, ok := <-postLikesListener:
-				if !ok {
-					return
-				}
-				r.PostHashChan <- postLike.PostTxHash
-			}
+	if len(txHashes) == 0 {
+		postListener, err := memo.ListenPosts(ctx)
+		if err != nil {
+			r.Cancel()
+			return nil, jerr.Get("error getting memo post child listener for post subscription", err)
 		}
-	}()
+		go func() {
+			defer r.Cancel()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case post, ok := <-postListener:
+					if !ok {
+						return
+					}
+					r.PostHashChan <- post.TxHash
+				}
+			}
+		}()
+	} else {
+		postChildListener, err := memo.ListenPostChildren(ctx, txHashesBytes)
+		if err != nil {
+			r.Cancel()
+			return nil, jerr.Get("error getting memo post child listener for post subscription", err)
+		}
+		postLikesListener, err := memo.ListenPostLikes(ctx, txHashesBytes)
+		if err != nil {
+			r.Cancel()
+			return nil, jerr.Get("error getting memo post likes listener for post subscription", err)
+		}
+		go func() {
+			defer r.Cancel()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case postChild, ok := <-postChildListener:
+					if !ok {
+						return
+					}
+					r.PostHashChan <- postChild.PostTxHash
+				case postLike, ok := <-postLikesListener:
+					if !ok {
+						return
+					}
+					r.PostHashChan <- postLike.PostTxHash
+				}
+			}
+		}()
+	}
 	go func() {
 		defer func() {
 			close(r.PostHashChan)

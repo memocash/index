@@ -48,7 +48,7 @@ func (p *AddrPost) Serialize() []byte {
 
 func (p *AddrPost) Deserialize([]byte) {}
 
-func GetAddrPosts(ctx context.Context, addrs [][25]byte) ([]*AddrPost, error) {
+func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool) ([]*AddrPost, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, addr := range addrs {
 		shard := client.GetByteShard32(addr[:])
@@ -63,6 +63,7 @@ func GetAddrPosts(ctx context.Context, addrs [][25]byte) ([]*AddrPost, error) {
 			Topic:    db.TopicMemoAddrPost,
 			Prefixes: prefixes,
 			Max:      client.ExLargeLimit,
+			Newest:   newest,
 			Context:  ctx,
 		}); err != nil {
 			return nil, jerr.Get("error getting db addr memo post by prefix", err)

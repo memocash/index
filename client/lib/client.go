@@ -48,7 +48,7 @@ func (c *Client) Broadcast(txRaw string) error {
 func (c *Client) GetBalance(address wallet.Addr) (int64, error) {
 	err := c.updateDb(address)
 	if err != nil {
-		return 0, fmt.Errorf("error updating db; %w", err)
+		return 0, fmt.Errorf("error updating db for get balance; %w", err)
 	}
 	balance, err := c.Database.GetAddressBalance(address)
 	if err != nil {
@@ -63,7 +63,7 @@ func (c *Client) GetBalance(address wallet.Addr) (int64, error) {
 func (c *Client) GetUtxos(address wallet.Addr) ([]graph.Output, error) {
 	err := c.updateDb(address)
 	if err != nil {
-		return nil, fmt.Errorf("error updating db; %w", err)
+		return nil, fmt.Errorf("error updating db for get utxos; %w", err)
 	}
 	utxos, err := c.Database.GetUtxos(address)
 	if err != nil {

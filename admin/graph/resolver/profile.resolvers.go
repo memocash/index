@@ -251,12 +251,12 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 }
 
 // Posts is the resolver for the posts field.
-func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Post, error) {
+func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *model.Date, newest *bool) ([]*model.Post, error) {
 	addr, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error decoding address for profile resolver: %s", obj.Address)
 	}
-	addrMemoPosts, err := memo.GetAddrPosts(ctx, [][25]byte{*addr})
+	addrMemoPosts, err := memo.GetAddrPosts(ctx, [][25]byte{*addr}, newest != nil && *newest)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting addr memo posts for profile resolver: %s", obj.Address)
 	}

@@ -6,8 +6,8 @@ import (
 	"github.com/memocash/index/db/client"
 )
 
-func GetHost(port uint) string {
-	return fmt.Sprintf("127.0.0.1:%d", port)
+func GetListenHost(port int) string {
+	return fmt.Sprintf("0.0.0.0:%d", port)
 }
 
 type Db interface {

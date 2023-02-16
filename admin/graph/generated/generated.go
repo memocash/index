@@ -131,7 +131,7 @@ type ComplexityRoot struct {
 		Lock      func(childComplexity int) int
 		Name      func(childComplexity int) int
 		Pic       func(childComplexity int) int
-		Posts     func(childComplexity int, start *model.Date) int
+		Posts     func(childComplexity int, start *model.Date, newest *bool) int
 		Profile   func(childComplexity int) int
 		Rooms     func(childComplexity int, start *model.Date) int
 	}
@@ -289,7 +289,7 @@ type ProfileResolver interface {
 
 	Following(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error)
 	Followers(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error)
-	Posts(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Post, error)
+	Posts(ctx context.Context, obj *model.Profile, start *model.Date, newest *bool) ([]*model.Post, error)
 	Rooms(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.RoomFollow, error)
 }
 type QueryResolver interface {
@@ -738,7 +738,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Profile.Posts(childComplexity, args["start"].(*model.Date)), true
+		return e.complexity.Profile.Posts(childComplexity, args["start"].(*model.Date), args["newest"].(*bool)), true
 
 	case "Profile.profile":
 		if e.complexity.Profile.Profile == nil {
@@ -1474,7 +1474,7 @@ var sources = []*ast.Source{
     pic: SetPic
     following(start: Date): [Follow]
     followers(start: Date): [Follow]
-    posts(start: Date): [Post]
+    posts(start: Date, newest: Boolean): [Post]
     rooms(start: Date): [RoomFollow!]
 }
 
@@ -1726,6 +1726,15 @@ func (ec *executionContext) field_Profile_posts_args(ctx context.Context, rawArg
 		}
 	}
 	args["start"] = arg0
+	var arg1 *bool
+	if tmp, ok := rawArgs["newest"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newest"))
+		arg1, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["newest"] = arg1
 	return args, nil
 }
 
@@ -4526,7 +4535,7 @@ func (ec *executionContext) _Profile_posts(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Profile().Posts(rctx, obj, fc.Args["start"].(*model.Date))
+		return ec.resolvers.Profile().Posts(rctx, obj, fc.Args["start"].(*model.Date), fc.Args["newest"].(*bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
