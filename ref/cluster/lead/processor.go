@@ -12,32 +12,46 @@ import (
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
+	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
+	"google.golang.org/grpc"
 	"sync"
 	"time"
 )
 
 type Processor struct {
-	On          bool
-	StopChan    chan struct{}
 	Clients     map[int]*Client
-	ErrorChan   chan ShardError
+	ErrorChan   chan error
 	BlockNode   *Node
 	MemPoolNode *Node
 	Verbose     bool
 	Synced      bool
 }
 
-func (p *Processor) Start() error {
-	if p.On {
+func (p *Processor) Run() error {
+	p.Clients = make(map[int]*Client)
+	clusterShards := config.GetClusterShards()
+	for _, clusterShard := range clusterShards {
+		conn, err := grpc.Dial(clusterShard.GetHost(), grpc.WithInsecure())
+		if err != nil {
+			return jerr.Get("error did not connect cluster client", err)
+		}
+		p.Clients[clusterShard.Int()] = &Client{
+			Config: clusterShard,
+			Client: cluster_pb.NewClusterClient(conn)}
+	}
+	var syncStatusComplete *item.SyncStatus
+	if err := ExecWithRetry(func() error {
+		var err error
+		syncStatusComplete, err = item.GetSyncStatus(item.SyncStatusComplete)
+		if err != nil && !client.IsEntryNotFoundError(err) {
+			return jerr.Get("error getting sync status complete", err)
+		}
 		return nil
+	}); err != nil {
+		return jerr.Get("error getting sync status complete exec with retry", err)
 	}
-	p.On = true
-	syncStatusTxs, err := item.GetSyncStatus(item.SyncStatusSaveTxs)
-	if err != nil && !client.IsEntryNotFoundError(err) {
-		return jerr.Get("error getting sync status txs", err)
-	}
-	if syncStatusTxs != nil {
+	if syncStatusComplete != nil {
 		p.Synced = true
 		go func() {
 			p.MemPoolNode = NewNode()
@@ -45,9 +59,9 @@ func (p *Processor) Start() error {
 			jlog.Logf("Started mempool node...\n")
 			for p.ProcessBlock(<-p.MemPoolNode.NewBlock) {
 			}
+			jlog.Log("Stopping mempool node")
 		}()
 	}
-	p.StopChan = make(chan struct{})
 	p.BlockNode = NewNode()
 	p.BlockNode.Start(false, p.Synced)
 	go func() {
@@ -63,31 +77,26 @@ func (p *Processor) Start() error {
 				p.Synced = true
 				recentBlock, err := chain.GetRecentHeightBlock()
 				if err != nil {
-					jerr.Get("error getting recent height block", err).Fatal()
+					p.ErrorChan <- jerr.Get("error getting recent height block", err)
 				}
 				if err := db.Save([]db.Object{&item.SyncStatus{
-					Name:   item.SyncStatusSaveTxs,
+					Name:   item.SyncStatusComplete,
 					Height: recentBlock.Height,
 				}}); err != nil {
-					jerr.Get("error setting sync status txs", err).Fatal()
+					p.ErrorChan <- jerr.Get("error setting sync status complete", err)
 				}
-				p.On = false
-				if err := p.Start(); err != nil {
-					jerr.Get("error starting lead processor after block sync complete", err).Fatal()
+				if err := p.Run(); err != nil {
+					p.ErrorChan <- jerr.Get("error starting lead processor after block sync complete", err)
 				}
-			case <-p.StopChan:
 			}
-			jlog.Log("Stopping node listener")
+			jlog.Log("Stopping block node")
 			return
 		}
 	}()
-	return nil
+	return jerr.Get("error lead processing run", <-p.ErrorChan)
 }
 
 func (p *Processor) ProcessBlock(block *dbi.Block) bool {
-	if !p.On {
-		return false
-	}
 	seen := time.Now()
 	if block.HasHeader() && block.Header.Timestamp.Before(seen) {
 		seen = block.Header.Timestamp
@@ -145,17 +154,18 @@ func (p *Processor) SaveBlockShards(height int64, seen time.Time, shardBlocks ma
 			if _, ok := shardBlocks[c.Config.Shard]; !ok {
 				return
 			}
-			if _, err := c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
-				Block:     shardBlocks[c.Config.Shard],
-				IsInitial: !p.Synced,
-				Height:    height,
-				Seen:      seen.UnixNano(),
-			}); err != nil {
-				hadError = true
-				p.ErrorChan <- ShardError{
-					Shard: c.Config.Int(),
-					Error: jerr.Getf(err, "error cluster shard process: %d", c.Config.Shard),
+			if err := ExecWithRetry(func() error {
+				if _, err := c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
+					Block:     shardBlocks[c.Config.Shard],
+					IsInitial: !p.Synced,
+					Height:    height,
+					Seen:      seen.UnixNano(),
+				}); err != nil {
+					return jerr.Get("error saving block shard txs", err)
 				}
+				return nil
+			}); err != nil {
+				p.ErrorChan <- jerr.Getf(err, "error client exec with retry save txs: %d", c.Config.Shard)
 			}
 		}(c)
 	}
@@ -163,24 +173,9 @@ func (p *Processor) SaveBlockShards(height int64, seen time.Time, shardBlocks ma
 	return !hadError
 }
 
-func (p *Processor) Stop() {
-	if p.On {
-		p.On = false
-		if p.StopChan != nil {
-			close(p.StopChan)
-		}
-		p.StopChan = nil
-		p.BlockNode.Stop()
-		if p.MemPoolNode != nil {
-			p.MemPoolNode.Stop()
-		}
-	}
-}
-
-func NewProcessor(verbose bool, clients map[int]*Client, errorChan chan ShardError) *Processor {
+func NewProcessor(verbose bool) *Processor {
 	return &Processor{
+		ErrorChan: make(chan error),
 		Verbose:   verbose,
-		Clients:   clients,
-		ErrorChan: errorChan,
 	}
 }

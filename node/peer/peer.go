@@ -67,7 +67,7 @@ func (p *Peer) Connect() error {
 		return jerr.Get("error getting new outbound peer", err)
 	}
 	p.peer = newPeer
-	jlog.Logf("Starting node: %s\n", connectionString)
+	jlog.Logf("Starting node listener: %s\n", connectionString)
 	conn, err := net.Dial("tcp", connectionString)
 	if err != nil {
 		return jerr.Get("error getting network connection", err)

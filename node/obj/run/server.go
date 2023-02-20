@@ -48,13 +48,10 @@ func (s *Server) Run() error {
 		errorHandler <- jerr.Get("error running network server", networkServer.Serve())
 	}()
 	if !s.Dev {
-		clusterLead := lead.NewLead(s.Verbose)
-		if err := clusterLead.Start(); err != nil {
-			return jerr.Get("fatal error starting cluster lead", err)
-		}
-		jlog.Logf("Cluster lead started on port: %d...\n", clusterLead.Port)
+		processor := lead.NewProcessor(s.Verbose)
+		jlog.Logf("Cluster lead processor starting...\n")
 		go func() {
-			errorHandler <- jerr.Get("error running cluster lead", clusterLead.Serve())
+			errorHandler <- jerr.Get("error running cluster lead processor", processor.Run())
 		}()
 	}
 	return <-errorHandler

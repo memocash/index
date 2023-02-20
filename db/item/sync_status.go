@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	SyncStatusSaveTxs = "txs"
+	SyncStatusComplete = "complete"
 )
 
 type SyncStatus struct {

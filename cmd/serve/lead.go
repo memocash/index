@@ -11,7 +11,7 @@ var leadCmd = &cobra.Command{
 	Short: "lead",
 	Run: func(c *cobra.Command, args []string) {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
-		l := lead.NewLead(verbose)
-		jerr.Get("fatal error running leader", l.Run()).Fatal()
+		p := lead.NewProcessor(verbose)
+		jerr.Get("fatal error running lead processor", p.Run()).Fatal()
 	},
 }
