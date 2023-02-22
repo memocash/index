@@ -65,9 +65,9 @@ func (f *AddrFollow) Deserialize(data []byte) {
 
 func GetAddrFollows(ctx context.Context, addrs [][25]byte) ([]*AddrFollow, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
-	for _, addr := range addrs {
-		shard := client.GetByteShard32(addr[:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], addr[:])
+	for i := range addrs {
+		shard := client.GetByteShard32(addrs[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
 	shardConfigs := config.GetQueueShards()
 	var addrFollows []*AddrFollow
@@ -122,9 +122,9 @@ func ListenAddrFollows(ctx context.Context, addrs [][25]byte) (chan *AddrFollow,
 		return nil, nil
 	}
 	var shardPrefixes = make(map[uint32][][]byte)
-	for _, addr := range addrs {
-		shard := client.GetByteShard32(addr[:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], addr[:])
+	for i := range addrs {
+		shard := client.GetByteShard32(addrs[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
 	shardConfigs := config.GetQueueShards()
 	var addrFollowChan = make(chan *AddrFollow)

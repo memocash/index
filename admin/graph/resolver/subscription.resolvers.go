@@ -33,7 +33,7 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 		addrs[i] = *walletAddr
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	addrSeenTxsListeners, err := addr.ListenMempoolAddrSeenTxsMultiple(ctx, addrs)
+	addrSeenTxsListeners, err := addr.ListenAddrSeenTxsMultiple(ctx, addrs)
 	if err != nil {
 		cancel()
 		return nil, jerr.Get("error getting addr seen txs listener for address subscription", err)

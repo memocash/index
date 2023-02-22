@@ -75,9 +75,9 @@ func ListenAddrNames(ctx context.Context, addrs [][25]byte) (chan *AddrName, err
 		return nil, nil
 	}
 	var shardPrefixes = make(map[uint32][][]byte)
-	for _, addr := range addrs {
-		shard := client.GetByteShard32(addr[:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], addr[:])
+	for i := range addrs {
+		shard := client.GetByteShard32(addrs[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
 	shardConfigs := config.GetQueueShards()
 	var addrNameChan = make(chan *AddrName)

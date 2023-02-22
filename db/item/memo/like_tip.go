@@ -48,9 +48,9 @@ func (t *LikeTip) Deserialize(data []byte) {
 
 func GetLikeTips(likeTxHashes [][32]byte) ([]*LikeTip, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
-	for _, likeTxHash := range likeTxHashes {
-		shard := db.GetShardByte32(likeTxHash[:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(likeTxHash[:]))
+	for i := range likeTxHashes {
+		shard := db.GetShardByte32(likeTxHashes[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(likeTxHashes[i][:]))
 	}
 	var likeTips []*LikeTip
 	for shard, prefixes := range shardPrefixes {

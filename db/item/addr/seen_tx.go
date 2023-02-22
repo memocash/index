@@ -66,11 +66,11 @@ func GetSeenTxs(addr [25]byte, start []byte) ([]*SeenTx, error) {
 	return heightInputs, nil
 }
 
-func ListenMempoolAddrSeenTxsMultiple(ctx context.Context, addrs [][25]byte) ([]chan *SeenTx, error) {
+func ListenAddrSeenTxsMultiple(ctx context.Context, addrs [][25]byte) ([]chan *SeenTx, error) {
 	var shardAddrGroups = make(map[uint32][][]byte)
-	for _, addr := range addrs {
-		shard := db.GetShardByte32(addr[:])
-		shardAddrGroups[shard] = append(shardAddrGroups[shard], addr[:])
+	for i := range addrs {
+		shard := db.GetShardByte32(addrs[i][:])
+		shardAddrGroups[shard] = append(shardAddrGroups[shard], addrs[i][:])
 	}
 	var chanSeenTxs []chan *SeenTx
 	for shard, addrGroup := range shardAddrGroups {

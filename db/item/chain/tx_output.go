@@ -73,9 +73,9 @@ func GetAllTxOutputs(shard uint32, startUid []byte) ([]*TxOutput, error) {
 
 func GetTxOutputsByHashes(txHashes [][32]byte) ([]*TxOutput, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
-	for _, txHash := range txHashes {
-		shard := uint32(db.GetShardByte(txHash[:]))
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash[:]))
+	for i := range txHashes {
+		shard := uint32(db.GetShardByte(txHashes[i][:]))
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
 	var txOutputs []*TxOutput
 	for shard, txHashes := range shardPrefixes {

@@ -63,9 +63,9 @@ func GetPost(txHash [32]byte) (*Post, error) {
 
 func GetPosts(txHashes [][32]byte) ([]*Post, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
-	for _, txHash := range txHashes {
-		shard := db.GetShardByte32(txHash[:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHash[:]))
+	for i := range txHashes {
+		shard := db.GetShardByte32(txHashes[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
 	var posts []*Post
 	for shard, prefixes := range shardPrefixes {

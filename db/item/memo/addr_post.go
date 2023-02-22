@@ -50,9 +50,9 @@ func (p *AddrPost) Deserialize([]byte) {}
 
 func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool) ([]*AddrPost, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
-	for _, addr := range addrs {
-		shard := client.GetByteShard32(addr[:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], addr[:])
+	for i := range addrs {
+		shard := client.GetByteShard32(addrs[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
 	shardConfigs := config.GetQueueShards()
 	var addrPosts []*AddrPost

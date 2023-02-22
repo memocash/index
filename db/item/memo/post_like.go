@@ -56,9 +56,9 @@ func (l *PostLike) Deserialize(data []byte) {
 
 func GetPostLikes(postTxHashes [][32]byte) ([]*PostLike, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
-	for _, postTxHash := range postTxHashes {
-		shard := db.GetShardByte32(postTxHash[:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash[:]))
+	for i := range postTxHashes {
+		shard := db.GetShardByte32(postTxHashes[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHashes[i][:]))
 	}
 	var likeds []*PostLike
 	for shard, prefixes := range shardPrefixes {
@@ -81,9 +81,9 @@ func ListenPostLikes(ctx context.Context, postTxHashes [][32]byte) (chan *PostLi
 		return nil, nil
 	}
 	var shardPrefixes = make(map[uint32][][]byte)
-	for _, postTxHash := range postTxHashes {
-		shard := client.GetByteShard32(postTxHash[:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHash[:]))
+	for i := range postTxHashes {
+		shard := client.GetByteShard32(postTxHashes[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHashes[i][:]))
 	}
 	shardConfigs := config.GetQueueShards()
 	var likedChan = make(chan *PostLike)

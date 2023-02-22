@@ -232,8 +232,8 @@ func NewCancelContext(ctx context.Context, done func()) *CancelContext {
 
 func FixedTxHashesToRaw(fixedTxHashes [][32]byte) [][]byte {
 	var txHashes = make([][]byte, len(fixedTxHashes))
-	for i, fixedTxHash := range fixedTxHashes {
-		txHashes[i] = fixedTxHash[:]
+	for i := range fixedTxHashes {
+		txHashes[i] = fixedTxHashes[i][:]
 	}
 	return txHashes
 }
