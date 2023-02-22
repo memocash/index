@@ -27,7 +27,7 @@ func (i *SeenTx) GetShard() uint {
 func (i *SeenTx) GetUid() []byte {
 	return jutil.CombineBytes(
 		i.Addr[:],
-		jutil.GetTimeByteBig(i.Seen),
+		jutil.GetTimeByteNanoBig(i.Seen),
 		jutil.ByteReverse(i.TxHash[:]),
 	)
 }
@@ -37,19 +37,8 @@ func (i *SeenTx) SetUid(uid []byte) {
 		return
 	}
 	copy(i.Addr[:], uid[:25])
+	i.Seen = jutil.GetByteTimeNanoBig(uid[25:33])
 	copy(i.TxHash[:], jutil.ByteReverse(uid[33:65]))
-	i.Seen = jutil.GetByteTimeBig(uid[25:33])
-	// TODO: Remove this once server is updated
-	const year = time.Hour * 24 * 365
-	if i.Seen.Before(time.Now().Add(-year*20)) || i.Seen.After(time.Now().Add(year)) {
-		if err := db.Remove([]db.Object{i}); err != nil {
-			jerr.Get("error removing invalid seen tx", err).Print()
-		}
-		i.Seen = jutil.GetByteTime(uid[25:33])
-		if err := db.Save([]db.Object{i}); err != nil {
-			jerr.Get("error saving valid updated seen tx", err).Print()
-		}
-	}
 }
 
 func (i *SeenTx) Serialize() []byte {

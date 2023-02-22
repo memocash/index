@@ -26,7 +26,7 @@ func (l *AddrLike) GetShard() uint {
 func (l *AddrLike) GetUid() []byte {
 	return jutil.CombineBytes(
 		l.Addr[:],
-		jutil.GetTimeByteBig(l.Seen),
+		jutil.GetTimeByteNanoBig(l.Seen),
 		jutil.ByteReverse(l.LikeTxHash[:]),
 	)
 }
@@ -36,7 +36,7 @@ func (l *AddrLike) SetUid(uid []byte) {
 		return
 	}
 	copy(l.Addr[:], uid[:25])
-	l.Seen = jutil.GetByteTimeBig(uid[25:33])
+	l.Seen = jutil.GetByteTimeNanoBig(uid[25:33])
 	copy(l.LikeTxHash[:], jutil.ByteReverse(uid[33:65]))
 }
 

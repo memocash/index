@@ -30,7 +30,7 @@ func (f *RoomFollow) GetShard() uint {
 func (f *RoomFollow) GetUid() []byte {
 	return jutil.CombineBytes(
 		f.RoomHash,
-		jutil.GetTimeByteBig(f.Seen),
+		jutil.GetTimeByteNanoBig(f.Seen),
 		jutil.ByteReverse(f.TxHash[:]),
 	)
 }
@@ -40,7 +40,7 @@ func (f *RoomFollow) SetUid(uid []byte) {
 		return
 	}
 	f.RoomHash = uid[:32]
-	f.Seen = jutil.GetByteTimeBig(uid[32:40])
+	f.Seen = jutil.GetByteTimeNanoBig(uid[32:40])
 	copy(f.TxHash[:], jutil.ByteReverse(uid[40:72]))
 }
 

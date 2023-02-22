@@ -21,7 +21,7 @@ type AddrName struct {
 func (n *AddrName) GetUid() []byte {
 	return jutil.CombineBytes(
 		n.Addr[:],
-		jutil.GetTimeByteBig(n.Seen),
+		jutil.GetTimeByteNanoBig(n.Seen),
 		jutil.ByteReverse(n.TxHash[:]),
 	)
 }
@@ -43,7 +43,7 @@ func (n *AddrName) SetUid(uid []byte) {
 		return
 	}
 	copy(n.Addr[:], uid[:25])
-	n.Seen = jutil.GetByteTimeBig(uid[25:33])
+	n.Seen = jutil.GetByteTimeNanoBig(uid[25:33])
 	copy(n.TxHash[:], jutil.ByteReverse(uid[33:65]))
 }
 

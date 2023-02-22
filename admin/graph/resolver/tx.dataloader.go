@@ -143,6 +143,9 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 				Raw:  hex.EncodeToString(txRaws[i].Raw),
 			}
 		}
+		if len(txsWithRaw) != len(keys) {
+			return nil, []error{jerr.Newf("tx raw not found for hash: %s", keys)}
+		}
 		return txsWithRaw, nil
 	},
 }

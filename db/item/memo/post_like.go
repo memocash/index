@@ -29,7 +29,7 @@ func (l *PostLike) GetShard() uint {
 func (l *PostLike) GetUid() []byte {
 	return jutil.CombineBytes(
 		jutil.ByteReverse(l.PostTxHash[:]),
-		jutil.GetTimeByteBig(l.Seen),
+		jutil.GetTimeByteNanoBig(l.Seen),
 		jutil.ByteReverse(l.LikeTxHash[:]),
 	)
 }
@@ -39,7 +39,7 @@ func (l *PostLike) SetUid(uid []byte) {
 		panic("invalid uid size for memo liked")
 	}
 	copy(l.PostTxHash[:], jutil.ByteReverse(uid[:32]))
-	l.Seen = jutil.GetByteTimeBig(uid[32:40])
+	l.Seen = jutil.GetByteTimeNanoBig(uid[32:40])
 	copy(l.LikeTxHash[:], jutil.ByteReverse(uid[40:72]))
 }
 

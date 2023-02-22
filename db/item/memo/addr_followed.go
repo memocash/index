@@ -30,7 +30,7 @@ func (f *AddrFollowed) GetShard() uint {
 func (f *AddrFollowed) GetUid() []byte {
 	return jutil.CombineBytes(
 		f.FollowAddr[:],
-		jutil.GetTimeByteBig(f.Seen),
+		jutil.GetTimeByteNanoBig(f.Seen),
 		jutil.ByteReverse(f.TxHash[:]),
 	)
 }
@@ -40,7 +40,7 @@ func (f *AddrFollowed) SetUid(uid []byte) {
 		return
 	}
 	copy(f.FollowAddr[:], uid[:25])
-	f.Seen = jutil.GetByteTimeBig(uid[25:33])
+	f.Seen = jutil.GetByteTimeNanoBig(uid[25:33])
 	copy(f.TxHash[:], jutil.ByteReverse(uid[33:65]))
 }
 
@@ -96,7 +96,7 @@ func GetAddrFollowedsSingle(ctx context.Context, followAddr [25]byte, start time
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var startByte []byte
 	if !jutil.IsTimeZero(start) {
-		startByte = jutil.CombineBytes(followAddr[:], jutil.GetTimeByteBig(start))
+		startByte = jutil.CombineBytes(followAddr[:], jutil.GetTimeByteNanoBig(start))
 	} else {
 		startByte = followAddr[:]
 	}

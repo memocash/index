@@ -1,7 +1,6 @@
 package chain
 
 import (
-	"bytes"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -17,7 +16,10 @@ type TxSeen struct {
 }
 
 func (s *TxSeen) GetUid() []byte {
-	return GetTxSeenUid(s.TxHash[:], s.Timestamp)
+	return jutil.CombineBytes(
+		jutil.ByteReverse(s.TxHash[:]),
+		jutil.GetTimeByteNanoBig(s.Timestamp),
+	)
 }
 
 func (s *TxSeen) GetShard() uint {
@@ -37,18 +39,10 @@ func (s *TxSeen) SetUid(uid []byte) {
 		return
 	}
 	copy(s.TxHash[:], jutil.ByteReverse(uid[:32]))
-	if bytes.Equal(uid[36:40], []byte{0x0, 0x0, 0x0, 0x0}) {
-		s.Timestamp = jutil.GetByteTime(uid[32:40])
-	} else {
-		s.Timestamp = jutil.GetByteTimeNano(uid[32:40])
-	}
+	s.Timestamp = jutil.GetByteTimeNanoBig(uid[32:40])
 }
 
 func (s *TxSeen) Deserialize([]byte) {}
-
-func GetTxSeenUid(txHash []byte, timestamp time.Time) []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetTimeByteNano(timestamp))
-}
 
 func GetTxSeens(txHashes [][32]byte) ([]*TxSeen, error) {
 	var shardPrefixes = make(map[uint32][][]byte)

@@ -29,7 +29,7 @@ func (p *AddrProfile) GetShard() uint {
 func (p *AddrProfile) GetUid() []byte {
 	return jutil.CombineBytes(
 		p.Addr[:],
-		jutil.GetTimeByteBig(p.Seen),
+		jutil.GetTimeByteNanoBig(p.Seen),
 		jutil.ByteReverse(p.TxHash[:]),
 	)
 }
@@ -39,7 +39,7 @@ func (p *AddrProfile) SetUid(uid []byte) {
 		return
 	}
 	copy(p.Addr[:], uid[:25])
-	p.Seen = jutil.GetByteTimeBig(uid[25:33])
+	p.Seen = jutil.GetByteTimeNanoBig(uid[25:33])
 	copy(p.TxHash[:], jutil.ByteReverse(uid[33:65]))
 }
 

@@ -9,7 +9,7 @@ require (
 	github.com/jchavannes/btclog v1.1.0
 	github.com/jchavannes/btcutil v1.1.4
 	github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65
-	github.com/jchavannes/jgo v0.0.0-20230207194100-08de035df971
+	github.com/jchavannes/jgo v0.0.0-20230222214331-95b230651774
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/pkg/profile v1.6.0
 	github.com/spf13/cobra v1.2.1
