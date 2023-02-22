@@ -110,6 +110,9 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 		block.Transactions[i] = *dbi.WireTxToTx(msgTx, req.Block.Txs[i].Index)
 		txHashes[i] = block.Transactions[i].Hash
 	}
+	for i := range block.Transactions {
+		block.Transactions[i].Seen = block.Seen
+	}
 	seensStart := time.Now()
 	var seensDuration time.Duration
 	if !req.IsInitial {
@@ -118,16 +121,14 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 			return nil, jerr.Get("error getting tx seens for shard save txs", err)
 		}
 		seensDuration = time.Since(seensStart)
-	TransactionsLoop:
 		for i := range block.Transactions {
 			for _, txSeen := range txSeens {
 				if txSeen.TxHash == block.Transactions[i].Hash {
 					block.Transactions[i].Seen = txSeen.Timestamp
 					block.Transactions[i].Saved = true
-					continue TransactionsLoop
+					break
 				}
 			}
-			block.Transactions[i].Seen = block.Seen
 		}
 	}
 	combinedSaver := saver.NewCombinedTx(s.Verbose)
