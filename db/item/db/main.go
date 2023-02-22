@@ -70,9 +70,7 @@ const (
 	TopicChainTxOutput        = "chain_tx_output"
 	TopicChainTxSeen          = "chain_tx_seen"
 
-	TopicAddrHeightOutput = "addr_height_output"
-	TopicAddrHeightInput  = "addr_height_input"
-	TopicAddrSeenTx       = "addr_seen_tx"
+	TopicAddrSeenTx = "addr_seen_tx"
 )
 
 type Object interface {
