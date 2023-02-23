@@ -21,7 +21,6 @@ const (
 	TopicProcessError   = "process_error"
 	TopicProcessStatus  = "process_status"
 	TopicSyncStatus     = "sync_status"
-	TopicTxProcessed    = "tx_processed"
 
 	TopicMemoAddrFollow     = "memo_addr_follow"
 	TopicMemoAddrFollowed   = "memo_addr_followed"
@@ -51,6 +50,7 @@ const (
 	TopicChainTxBlock         = "chain_tx_block"
 	TopicChainTxInput         = "chain_tx_input"
 	TopicChainTxOutput        = "chain_tx_output"
+	TopicChainTxProcessed     = "chain_tx_processed"
 	TopicChainTxSeen          = "chain_tx_seen"
 
 	TopicAddrHeightOutput = "addr_height_output"

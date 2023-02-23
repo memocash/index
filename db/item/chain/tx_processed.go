@@ -24,7 +24,7 @@ func (s *TxProcessed) GetShard() uint {
 }
 
 func (s *TxProcessed) GetTopic() string {
-	return db.TopicTxProcessed
+	return db.TopicChainTxProcessed
 }
 
 func (s *TxProcessed) Serialize() []byte {
@@ -50,7 +50,7 @@ func WaitForTxProcessed(ctx context.Context, txHash []byte) (*TxProcessed, error
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Context:  ctx,
-		Topic:    db.TopicTxProcessed,
+		Topic:    db.TopicChainTxProcessed,
 		Prefixes: [][]byte{jutil.ByteReverse(txHash)},
 		Wait:     true,
 	}); err != nil {
