@@ -9,7 +9,6 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/act/tx_raw"
@@ -113,7 +112,7 @@ func (s *Server) GetTxBlock(_ context.Context, req *network_pb.TxBlockRequest) (
 }
 
 func (s *Server) ListenTx(ctx context.Context, req *network_pb.TxRequest) (*network_pb.ListenTxReply, error) {
-	txProcessed, err := item.WaitForTxProcessed(ctx, req.GetHash())
+	txProcessed, err := chain.WaitForTxProcessed(ctx, req.GetHash())
 	if err != nil {
 		return nil, jerr.Get("error waiting for tx processed", err)
 	}

@@ -17,7 +17,6 @@ func GetTopics() []db.Object {
 		&PeerFound{},
 		&ProcessError{},
 		&ProcessStatus{},
-		&TxProcessed{},
 	},
 		addr.GetTopics(),
 		chain.GetTopics(),
