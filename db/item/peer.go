@@ -14,19 +14,19 @@ type Peer struct {
 	Services uint64
 }
 
-func (p Peer) GetUid() []byte {
+func (p *Peer) GetUid() []byte {
 	return jutil.CombineBytes(jutil.GetUintData(uint(p.Port)), p.Ip)
 }
 
-func (p Peer) GetShard() uint {
+func (p *Peer) GetShard() uint {
 	return client.GetByteShard(p.Ip)
 }
 
-func (p Peer) GetTopic() string {
+func (p *Peer) GetTopic() string {
 	return db.TopicPeer
 }
 
-func (p Peer) Serialize() []byte {
+func (p *Peer) Serialize() []byte {
 	return jutil.GetUint64Data(p.Services)
 }
 

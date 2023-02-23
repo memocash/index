@@ -19,7 +19,7 @@ type PeerFound struct {
 	FinderPort uint16
 }
 
-func (p PeerFound) GetUid() []byte {
+func (p *PeerFound) GetUid() []byte {
 	return jutil.CombineBytes(
 		jutil.BytePadPrefix(p.Ip, IpBytePadSize),
 		jutil.GetUintData(uint(p.Port)),
@@ -28,15 +28,15 @@ func (p PeerFound) GetUid() []byte {
 	)
 }
 
-func (p PeerFound) GetShard() uint {
+func (p *PeerFound) GetShard() uint {
 	return client.GetByteShard(p.Ip)
 }
 
-func (p PeerFound) GetTopic() string {
+func (p *PeerFound) GetTopic() string {
 	return db.TopicPeerFound
 }
 
-func (p PeerFound) Serialize() []byte {
+func (p *PeerFound) Serialize() []byte {
 	return nil
 }
 

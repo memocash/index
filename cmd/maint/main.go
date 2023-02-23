@@ -15,19 +15,12 @@ var maintCommand = &cobra.Command{
 }
 
 func GetCommand() *cobra.Command {
-	populateDoubleSpendSeenCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
-	txLostCleanupCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
-	checkLockUtxoCmd.Flags().BoolP(FlagVerbose, "v", false, "Additional logging")
 	checkFollowsCmd.Flags().BoolP(FlagDelete, "", false, "Delete items")
 	populateP2shDirectCmd.Flags().BoolP(FlagRestart, "", false, "Restart from beginning")
 	populateAddrOutputsCmd.Flags().BoolP(FlagRestart, "", false, "Restart from beginning")
 	populateAddrInputsCmd.Flags().BoolP(FlagRestart, "", false, "Restart from beginning")
 	maintCommand.AddCommand(
-		txLostCleanupCmd,
-		populateDoubleSpendSeenCmd,
-		populateHeightBlockShardCmd,
 		queueProfileCmd,
-		checkLockUtxoCmd,
 		checkFollowsCmd,
 		populateP2shCmd,
 		populateP2shDirectCmd,

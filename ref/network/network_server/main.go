@@ -1,7 +1,6 @@
 package network_server
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -13,13 +12,10 @@ import (
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
-	"github.com/memocash/index/node/act/balance"
 	"github.com/memocash/index/node/act/tx_raw"
 	"github.com/memocash/index/node/obj/get"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/script"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 	"github.com/memocash/index/ref/network/gen/network_pb"
@@ -152,70 +148,25 @@ func (s *Server) GetOutputInputs(_ context.Context, req *network_pb.OutputInputs
 
 func (s *Server) GetBlockTxs(_ context.Context, req *network_pb.BlockTxRequest) (*network_pb.BlockTxResponse, error) {
 	var blockTxs []*network_pb.BlockTx
-	for _, shard := range config.GetQueueShards() {
-		blockTxsRaw, err := item.GetBlockTxesRaw(item.BlockTxesRawRequest{
-			Shard:       shard.Shard,
-			BlockHash:   req.Block,
-			StartTxHash: req.Start,
-			Limit:       client.LargeLimit,
-		})
-		if err != nil {
-			return nil, jerr.Get("error getting block txs raw from queue for server", err)
-		}
-		for _, blockTxRaw := range blockTxsRaw {
-			blockTxs = append(blockTxs, &network_pb.BlockTx{
-				Block: blockTxRaw.BlockHash,
-				Tx:    blockTxRaw.TxHash,
-				Raw:   blockTxRaw.Raw,
-			})
-		}
-	}
+	// TODO: Reimplement if needed
 	return &network_pb.BlockTxResponse{Txs: blockTxs}, nil
 }
 
 func (s *Server) GetMempoolTxs(_ context.Context, req *network_pb.MempoolTxRequest) (*network_pb.MempoolTxResponse, error) {
-	mempoolTxsRaw, err := item.GetMempoolTxs(req.Start, 0)
-	if err != nil {
-		return nil, jerr.Get("error getting mempool txs", err)
-	}
 	var resp = new(network_pb.MempoolTxResponse)
-	resp.Txs = make([]*network_pb.MempoolTx, len(mempoolTxsRaw))
-	for i := range mempoolTxsRaw {
-		resp.Txs[i] = &network_pb.MempoolTx{
-			Tx: mempoolTxsRaw[i].TxHash,
-		}
-	}
+	// TODO: Reimplement if needed
 	return resp, nil
 }
 
 func (s *Server) GetDoubleSpends(_ context.Context, req *network_pb.DoubleSpendRequest) (*network_pb.DoubleSpendResponse, error) {
-	doubleSpendOutputs, err := item.GetDoubleSpendOutputs(&item.DoubleSpendOutput{TxHash: req.Start}, 0)
-	if err != nil {
-		return nil, jerr.Get("error getting mempool txs", err)
-	}
 	var resp = new(network_pb.DoubleSpendResponse)
-	resp.Txs = make([]*network_pb.DoubleSpend, len(doubleSpendOutputs))
-	for i := range doubleSpendOutputs {
-		resp.Txs[i] = &network_pb.DoubleSpend{
-			Tx: doubleSpendOutputs[i].TxHash,
-		}
-	}
+	// TODO: Reimplement if needed
 	return resp, nil
 }
 
 func (s *Server) GetBalance(_ context.Context, address *network_pb.Address) (*network_pb.BalanceReply, error) {
-	bal := balance.NewBalance()
-	err := bal.Get(address.GetAddress())
-	if err != nil {
-		return nil, jerr.Get("error getting balance for address", err)
-	}
-	return &network_pb.BalanceReply{
-		Address:   bal.Address,
-		Balance:   bal.Balance,
-		Spendable: bal.Spendable,
-		Spends:    int32(bal.Spends),
-		Utxos:     int32(bal.UtxoCount),
-	}, nil
+	// TODO: Reimplement if needed
+	return &network_pb.BalanceReply{}, nil
 }
 
 func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*network_pb.ErrorReply, error) {
@@ -396,31 +347,7 @@ func (s *Server) GetBlockByHeight(_ context.Context, req *network_pb.BlockReques
 
 func (s *Server) GetUtxos(_ context.Context, req *network_pb.UtxosRequest) (*network_pb.UtxosResponse, error) {
 	var utxos []*network_pb.Output
-	for _, pkHash := range req.GetPkHashes() {
-		lockHash := script.GetLockHashForAddress(wallet.GetAddressFromPkHash(pkHash))
-		var lastUid []byte
-		for {
-			dbUtxos, err := item.GetLockUtxos(lockHash, lastUid)
-			if err != nil {
-				return nil, jerr.Get("error getting lock outputs", err)
-			}
-			for _, dbUtxo := range dbUtxos {
-				if bytes.Equal(dbUtxo.GetUid(), lastUid) {
-					continue
-				}
-				utxos = append(utxos, &network_pb.Output{
-					Tx:     dbUtxo.Hash,
-					Index:  dbUtxo.Index,
-					Value:  dbUtxo.Value,
-					PkHash: pkHash,
-				})
-			}
-			if len(dbUtxos) < client.DefaultLimit {
-				break
-			}
-			lastUid = dbUtxos[len(dbUtxos)-1].GetUid()
-		}
-	}
+	// TODO: Reimplement if needed
 	return &network_pb.UtxosResponse{
 		Outputs: utxos,
 	}, nil

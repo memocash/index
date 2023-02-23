@@ -12,7 +12,6 @@ import (
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
-	"github.com/memocash/index/node/obj/get"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
@@ -67,11 +66,8 @@ func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*mode
 		Address: wallet.GetAddressStringFromPkScript(lockScript),
 	}
 	if HasField(ctx, "balance") {
-		balance := get.NewBalance(lockScript)
-		if err := balance.GetBalance(); err != nil {
-			return nil, jerr.Get("error getting lock balance for tx output resolver", err)
-		}
-		modelLock.Balance = balance.Balance
+		// TODO: Reimplement if needed
+		return nil, jerr.Get("error balance no longer implemented", err)
 	}
 	return modelLock, nil
 }

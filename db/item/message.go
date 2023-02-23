@@ -15,19 +15,19 @@ type Message struct {
 	Created time.Time
 }
 
-func (t Message) GetUid() []byte {
+func (t *Message) GetUid() []byte {
 	return jutil.GetUintData(t.Id)
 }
 
-func (t Message) GetShard() uint {
+func (t *Message) GetShard() uint {
 	return client.GetByteShard(t.GetUid())
 }
 
-func (t Message) GetTopic() string {
+func (t *Message) GetTopic() string {
 	return db.TopicMessage
 }
 
-func (t Message) Serialize() []byte {
+func (t *Message) Serialize() []byte {
 	return jutil.CombineBytes(jutil.GetTimeByteNanoBig(t.Created), []byte(t.Message))
 }
 

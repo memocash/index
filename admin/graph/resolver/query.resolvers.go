@@ -7,8 +7,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"time"
-
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -16,11 +14,8 @@ import (
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
-	"github.com/memocash/index/node/obj/get"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
 )
 
 // Tx is the resolver for the tx field.
@@ -39,33 +34,25 @@ func (r *queryResolver) Txs(ctx context.Context, hashes []string) ([]*model.Tx, 
 
 // Address is the resolver for the address field.
 func (r *queryResolver) Address(ctx context.Context, address string) (*model.Lock, error) {
-	balance, err := get.NewBalanceFromAddress(address)
-	if err != nil {
-		return nil, jerr.Get("error getting address from string for balance", err)
-	}
-	if err := balance.GetBalanceByUtxos(); err != nil {
-		return nil, jerr.Get("error getting address balance from network", err)
+	if HasField(ctx, "balance") {
+		// TODO: Reimplement if needed
+		return nil, jerr.New("error balance no longer implemented")
 	}
 	return &model.Lock{
-		Address: balance.Address,
-		Balance: balance.Balance,
+		Address: address,
 	}, nil
 }
 
 // Addresses is the resolver for the addresses field.
 func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error) {
+	if HasField(ctx, "balance") {
+		// TODO: Reimplement if needed
+		return nil, jerr.New("error balance no longer implemented")
+	}
 	var locks []*model.Lock
 	for _, address := range addresses {
-		balance, err := get.NewBalanceFromAddress(address)
-		if err != nil {
-			return nil, jerr.Get("error getting address from string for balances", err)
-		}
-		if err := balance.GetBalance(); err != nil {
-			return nil, jerr.Get("error getting address balance from network (multi)", err)
-		}
 		locks = append(locks, &model.Lock{
-			Address: balance.Address,
-			Balance: balance.Balance,
+			Address: address,
 		})
 	}
 	return locks, nil
@@ -191,26 +178,8 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 
 // DoubleSpends is the resolver for the double_spends field.
 func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *model.Date) ([]*model.DoubleSpend, error) {
-	var startTime time.Time
-	if start != nil {
-		startTime = time.Time(*start)
-	}
-	var newestBool bool
-	if newest != nil {
-		newestBool = *newest
-	}
-	doubleSpendSeens, err := item.GetDoubleSpendSeensAllLimit(startTime, client.DefaultLimit, newestBool)
-	if err != nil {
-		return nil, jerr.Get("error getting double spend outputs", err)
-	}
-	var modelDoubleSpends = make([]*model.DoubleSpend, len(doubleSpendSeens))
-	for i := range doubleSpendSeens {
-		modelDoubleSpends[i] = &model.DoubleSpend{
-			Hash:      hs.GetTxString(doubleSpendSeens[i].TxHash),
-			Index:     doubleSpendSeens[i].Index,
-			Timestamp: model.Date(doubleSpendSeens[i].Timestamp),
-		}
-	}
+	var modelDoubleSpends []*model.DoubleSpend
+	// TODO: Reimplement if needed
 	return modelDoubleSpends, nil
 }
 

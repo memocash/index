@@ -15,25 +15,21 @@ type FoundPeer struct {
 	FoundPort uint16
 }
 
-func (p FoundPeer) GetUid() []byte {
+func (p *FoundPeer) GetTopic() string {
+	return db.TopicFoundPeer
+}
+
+func (p *FoundPeer) GetShard() uint {
+	return client.GetByteShard(p.FoundIp)
+}
+
+func (p *FoundPeer) GetUid() []byte {
 	return jutil.CombineBytes(
 		jutil.BytePadPrefix(p.Ip, IpBytePadSize),
 		jutil.GetUintData(uint(p.Port)),
 		jutil.BytePadPrefix(p.FoundIp, IpBytePadSize),
 		jutil.GetUintData(uint(p.FoundPort)),
 	)
-}
-
-func (p FoundPeer) GetShard() uint {
-	return client.GetByteShard(p.FoundIp)
-}
-
-func (p FoundPeer) GetTopic() string {
-	return db.TopicFoundPeer
-}
-
-func (p FoundPeer) Serialize() []byte {
-	return nil
 }
 
 func (p *FoundPeer) SetUid(uid []byte) {
@@ -44,6 +40,10 @@ func (p *FoundPeer) SetUid(uid []byte) {
 	p.Port = uint16(jutil.GetUint(uid[IpBytePadSize : IpBytePadSize+4]))
 	p.FoundIp = jutil.ByteUnPad(uid[IpBytePadSize+4 : IpBytePadSize+4+IpBytePadSize])
 	p.FoundPort = uint16(jutil.GetUint(uid[IpBytePadSize+4+IpBytePadSize:]))
+}
+
+func (p *FoundPeer) Serialize() []byte {
+	return nil
 }
 
 func (p *FoundPeer) Deserialize([]byte) {}
