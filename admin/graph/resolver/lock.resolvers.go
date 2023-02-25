@@ -37,7 +37,7 @@ func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Da
 	if start != nil && !time.Time(*start).IsZero() {
 		startUid = jutil.CombineBytes(
 			address[:],
-			jutil.ByteReverse(jutil.GetTimeByte(time.Time(*start))),
+			jutil.GetTimeByteNanoBig(time.Time(*start)),
 		)
 		if tx != nil {
 			txHash, err := chainhash.NewHashFromStr(*tx)
