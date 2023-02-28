@@ -24,12 +24,6 @@ export default function Hash() {
             hash
             raw
             seen
-            suspect {
-                hash
-            }
-            lost {
-                hash
-            }
             inputs {
                 index
                 prev_hash
@@ -44,14 +38,6 @@ export default function Hash() {
                     lock {
                         address
                     }
-                    tx {
-                        suspect {
-                            hash
-                        }
-                        lost {
-                            hash
-                        }
-                    }
                 }
             }
             outputs {
@@ -61,14 +47,6 @@ export default function Hash() {
                 spends {
                     hash
                     index
-                    tx {
-                        suspect {
-                            hash
-                        }
-                        lost {
-                            hash
-                        }
-                    }
                 }
                 lock {
                     address
@@ -150,20 +128,6 @@ export default function Hash() {
                         <div className={column.width15}>First Seen</div>
                         <div className={column.width85}>{tx.seen ? tx.seen : "-"}</div>
                     </div>
-                    <div className={column.container}>
-                        <div className={column.width15}>Lost/suspect</div>
-                        <div className={column.width85}>
-                            {tx.lost ?
-                                <div className={[column.red, column.bold].join(" ")}>
-                                    LOST
-                                </div>
-                                : (tx.suspect ?
-                                    <div className={[column.orange, column.bold].join(" ")}>
-                                        SUSPECT
-                                    </div>
-                                    : "OK!")}
-                        </div>
-                    </div>
                     <BlockInfo tx={tx}/>
                     <div className={column.container}>
                         <Inputs tx={tx}/>
@@ -239,17 +203,6 @@ function Inputs({tx}) {
                             <Link href={"/tx/" + input.prev_hash}>
                                 <a><PreInline>{input.prev_hash}:{input.prev_index}</PreInline></a>
                             </Link>
-                            <div>
-                                {input.output.tx.lost ?
-                                    <span className={[column.red, column.bold].join(" ")}>
-                                        LOST
-                                    </span>
-                                    : (input.output.tx.suspect ?
-                                        <span className={[column.orange, column.bold].join(" ")}>
-                                            SUSPECT
-                                        </span>
-                                        : "")}
-                            </div>
                         </>) : (isCoinbase(input) ? "Coinbase" : (
                             <Link href={"/tx/" + input.prev_hash}>
                                 <a><PreInline>{input.prev_hash}:{input.prev_index}</PreInline></a>
@@ -349,15 +302,6 @@ function Outputs({tx}) {
                                                     <PreInline>{spend.hash}:{spend.index}</PreInline>
                                                 </a>
                                             </Link>
-                                            {spend.tx.lost ?
-                                                <div className={[column.red, column.bold].join(" ")}>
-                                                    LOST
-                                                </div>
-                                                : (spend.tx.suspect ?
-                                                    <div className={[column.orange, column.bold].join(" ")}>
-                                                        SUSPECT
-                                                    </div>
-                                                    : null)}
                                         </div>
                                     )
                                 })}
