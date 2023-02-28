@@ -126,14 +126,14 @@ type ComplexityRoot struct {
 
 	Profile struct {
 		Address   func(childComplexity int) int
-		Followers func(childComplexity int, start *int) int
-		Following func(childComplexity int, start *int) int
+		Followers func(childComplexity int, start *model.Date) int
+		Following func(childComplexity int, start *model.Date) int
 		Lock      func(childComplexity int) int
 		Name      func(childComplexity int) int
 		Pic       func(childComplexity int) int
-		Posts     func(childComplexity int, start *int, newest *bool) int
+		Posts     func(childComplexity int, start *model.Date, newest *bool) int
 		Profile   func(childComplexity int) int
-		Rooms     func(childComplexity int, start *int) int
+		Rooms     func(childComplexity int, start *model.Date) int
 	}
 
 	Query struct {
@@ -287,10 +287,10 @@ type PostResolver interface {
 type ProfileResolver interface {
 	Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error)
 
-	Following(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error)
-	Followers(ctx context.Context, obj *model.Profile, start *int) ([]*model.Follow, error)
-	Posts(ctx context.Context, obj *model.Profile, start *int, newest *bool) ([]*model.Post, error)
-	Rooms(ctx context.Context, obj *model.Profile, start *int) ([]*model.RoomFollow, error)
+	Following(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error)
+	Followers(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error)
+	Posts(ctx context.Context, obj *model.Profile, start *model.Date, newest *bool) ([]*model.Post, error)
+	Rooms(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.RoomFollow, error)
 }
 type QueryResolver interface {
 	Tx(ctx context.Context, hash string) (*model.Tx, error)
@@ -693,7 +693,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Profile.Followers(childComplexity, args["start"].(*int)), true
+		return e.complexity.Profile.Followers(childComplexity, args["start"].(*model.Date)), true
 
 	case "Profile.following":
 		if e.complexity.Profile.Following == nil {
@@ -705,7 +705,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Profile.Following(childComplexity, args["start"].(*int)), true
+		return e.complexity.Profile.Following(childComplexity, args["start"].(*model.Date)), true
 
 	case "Profile.lock":
 		if e.complexity.Profile.Lock == nil {
@@ -738,7 +738,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Profile.Posts(childComplexity, args["start"].(*int), args["newest"].(*bool)), true
+		return e.complexity.Profile.Posts(childComplexity, args["start"].(*model.Date), args["newest"].(*bool)), true
 
 	case "Profile.profile":
 		if e.complexity.Profile.Profile == nil {
@@ -757,7 +757,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Profile.Rooms(childComplexity, args["start"].(*int)), true
+		return e.complexity.Profile.Rooms(childComplexity, args["start"].(*model.Date)), true
 
 	case "Query.address":
 		if e.complexity.Query.Address == nil {
@@ -1472,10 +1472,10 @@ var sources = []*ast.Source{
     name: SetName
     profile: SetProfile
     pic: SetPic
-    following(start: Int): [Follow]
-    followers(start: Int): [Follow]
-    posts(start: Int, newest: Boolean): [Post]
-    rooms(start: Int): [RoomFollow!]
+    following(start: Date): [Follow]
+    followers(start: Date): [Follow]
+    posts(start: Date, newest: Boolean): [Post]
+    rooms(start: Date): [RoomFollow!]
 }
 
 type SetName {
@@ -1687,10 +1687,10 @@ func (ec *executionContext) field_Mutation_broadcast_args(ctx context.Context, r
 func (ec *executionContext) field_Profile_followers_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
+	var arg0 *model.Date
 	if tmp, ok := rawArgs["start"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg0, err = ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1702,10 +1702,10 @@ func (ec *executionContext) field_Profile_followers_args(ctx context.Context, ra
 func (ec *executionContext) field_Profile_following_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
+	var arg0 *model.Date
 	if tmp, ok := rawArgs["start"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg0, err = ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1717,10 +1717,10 @@ func (ec *executionContext) field_Profile_following_args(ctx context.Context, ra
 func (ec *executionContext) field_Profile_posts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
+	var arg0 *model.Date
 	if tmp, ok := rawArgs["start"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg0, err = ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1741,10 +1741,10 @@ func (ec *executionContext) field_Profile_posts_args(ctx context.Context, rawArg
 func (ec *executionContext) field_Profile_rooms_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
+	var arg0 *model.Date
 	if tmp, ok := rawArgs["start"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg0, err = ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -4399,7 +4399,7 @@ func (ec *executionContext) _Profile_following(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Profile().Following(rctx, obj, fc.Args["start"].(*int))
+		return ec.resolvers.Profile().Following(rctx, obj, fc.Args["start"].(*model.Date))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4467,7 +4467,7 @@ func (ec *executionContext) _Profile_followers(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Profile().Followers(rctx, obj, fc.Args["start"].(*int))
+		return ec.resolvers.Profile().Followers(rctx, obj, fc.Args["start"].(*model.Date))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4535,7 +4535,7 @@ func (ec *executionContext) _Profile_posts(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Profile().Posts(rctx, obj, fc.Args["start"].(*int), fc.Args["newest"].(*bool))
+		return ec.resolvers.Profile().Posts(rctx, obj, fc.Args["start"].(*model.Date), fc.Args["newest"].(*bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4607,7 +4607,7 @@ func (ec *executionContext) _Profile_rooms(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Profile().Rooms(rctx, obj, fc.Args["start"].(*int))
+		return ec.resolvers.Profile().Rooms(rctx, obj, fc.Args["start"].(*model.Date))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

@@ -1,14 +1,13 @@
 package wallet
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"github.com/jchavannes/btcd/btcec"
 	"github.com/jchavannes/btcutil"
 	"github.com/jchavannes/btcutil/base58"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/ref/bitcoin/util"
-	"math/rand"
 )
 
 func GetPrivateKey(secretHex string) PrivateKey {
@@ -19,7 +18,6 @@ func GetPrivateKey(secretHex string) PrivateKey {
 }
 
 func GeneratePrivateKey() PrivateKey {
-	util.SeedRandom()
 	b := make([]byte, 32)
 	rand.Read(b)
 	return PrivateKey{

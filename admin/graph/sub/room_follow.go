@@ -25,7 +25,7 @@ func (r *RoomFollow) Listen(ctx context.Context, addresses []string) (<-chan *mo
 	}
 	ctx, r.Cancel = context.WithCancel(ctx)
 	var roomFollowChan = make(chan *model.RoomFollow)
-	lockRoomFollowListener, err := memo.ListenAddrHeightRoomFollows(ctx, addrs)
+	lockRoomFollowListener, err := memo.ListenAddrRoomFollows(ctx, addrs)
 	if err != nil {
 		r.Cancel()
 		return nil, jerr.Get("error getting memo lock room follow listener for room follow subscription", err)

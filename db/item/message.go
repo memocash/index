@@ -15,20 +15,20 @@ type Message struct {
 	Created time.Time
 }
 
-func (t Message) GetUid() []byte {
+func (t *Message) GetUid() []byte {
 	return jutil.GetUintData(t.Id)
 }
 
-func (t Message) GetShard() uint {
+func (t *Message) GetShard() uint {
 	return client.GetByteShard(t.GetUid())
 }
 
-func (t Message) GetTopic() string {
+func (t *Message) GetTopic() string {
 	return db.TopicMessage
 }
 
-func (t Message) Serialize() []byte {
-	return jutil.CombineBytes(jutil.GetTimeByteNano(t.Created), []byte(t.Message))
+func (t *Message) Serialize() []byte {
+	return jutil.CombineBytes(jutil.GetTimeByteNanoBig(t.Created), []byte(t.Message))
 }
 
 func (t *Message) SetUid(uid []byte) {
@@ -39,7 +39,7 @@ func (t *Message) Deserialize(data []byte) {
 	if len(data) < 8 {
 		return
 	}
-	t.Created = jutil.GetByteTimeNano(data[:8])
+	t.Created = jutil.GetByteTimeNanoBig(data[:8])
 	t.Message = string(data[8:])
 }
 

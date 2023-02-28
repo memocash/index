@@ -88,11 +88,11 @@ func (p *Profile) SetupFollowingLockHashes(ctx context.Context, preloads []strin
 	}, preloads) {
 		return nil
 	}
-	lockMemoFollows, err := memo.GetAddrHeightFollows(ctx, p.Addresses)
+	lockMemoFollows, err := memo.GetAddrFollows(ctx, p.Addresses)
 	if err != nil {
 		return jerr.Get("error getting lock memo follows for profile lock hashes", err)
 	}
-	var lastMemoFollow *memo.AddrHeightFollow
+	var lastMemoFollow *memo.AddrFollow
 	for _, lockMemoFollow := range lockMemoFollows {
 		if lastMemoFollow != nil && lockMemoFollow.FollowAddr == lastMemoFollow.FollowAddr {
 			continue
@@ -121,11 +121,11 @@ func (p *Profile) SetupFollowersLockHashes(ctx context.Context, preloads []strin
 	}, preloads) {
 		return nil
 	}
-	lockMemoFolloweds, err := memo.GetAddrHeightFolloweds(ctx, p.Addresses)
+	lockMemoFolloweds, err := memo.GetAddrFolloweds(ctx, p.Addresses)
 	if err != nil {
 		return jerr.Get("error getting lock memo followeds for profile lock hashes", err)
 	}
-	var lastLockMemoFollowed *memo.AddrHeightFollowed
+	var lastLockMemoFollowed *memo.AddrFollowed
 	for _, lockMemoFollowed := range lockMemoFolloweds {
 		if lastLockMemoFollowed != nil && lockMemoFollowed.Addr == lastLockMemoFollowed.Addr {
 			continue
@@ -147,7 +147,7 @@ func (p *Profile) SetupFollowersLockHashes(ctx context.Context, preloads []strin
 }
 
 func (p *Profile) ListenFollowing(ctx context.Context, addrs [][25]byte) error {
-	addrMemoFollowingListener, err := memo.ListenAddrHeightFollows(ctx, addrs)
+	addrMemoFollowingListener, err := memo.ListenAddrFollows(ctx, addrs)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting lock memo following listener for profile subscription", err)
@@ -170,7 +170,7 @@ func (p *Profile) ListenFollowing(ctx context.Context, addrs [][25]byte) error {
 }
 
 func (p *Profile) ListenFollowers(ctx context.Context, addrs [][25]byte) error {
-	lockMemoFollowerListener, err := memo.ListenAddrHeightFolloweds(ctx, addrs)
+	lockMemoFollowerListener, err := memo.ListenAddrFolloweds(ctx, addrs)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting memo followers listener for profile subscription", err)
@@ -193,7 +193,7 @@ func (p *Profile) ListenFollowers(ctx context.Context, addrs [][25]byte) error {
 }
 
 func (p *Profile) ListenNames(ctx context.Context, addrs [][25]byte) error {
-	lockMemoNameListener, err := memo.ListenAddrHeightNames(ctx, addrs)
+	lockMemoNameListener, err := memo.ListenAddrNames(ctx, addrs)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting addr memo name listener for profile subscription", err)
@@ -216,7 +216,7 @@ func (p *Profile) ListenNames(ctx context.Context, addrs [][25]byte) error {
 }
 
 func (p *Profile) ListenProfiles(ctx context.Context, addrs [][25]byte) error {
-	lockMemoProfileListener, err := memo.ListenAddrHeightProfiles(ctx, addrs)
+	lockMemoProfileListener, err := memo.ListenAddrProfiles(ctx, addrs)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting addr memo profile listener for profile subscription", err)
@@ -239,7 +239,7 @@ func (p *Profile) ListenProfiles(ctx context.Context, addrs [][25]byte) error {
 }
 
 func (p *Profile) ListenPics(ctx context.Context, addrs [][25]byte) error {
-	lockMemoProfilePicListener, err := memo.ListenAddrHeightProfilePics(ctx, addrs)
+	lockMemoProfilePicListener, err := memo.ListenAddrProfilePics(ctx, addrs)
 	if err != nil {
 		p.Cancel()
 		return jerr.Get("error getting addr memo profile pic listener for profile subscription", err)

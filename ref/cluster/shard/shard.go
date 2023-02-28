@@ -2,6 +2,7 @@ package shard
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
@@ -17,6 +18,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -88,6 +90,7 @@ func (s *Shard) Ping(_ context.Context, req *cluster_pb.PingReq) (*cluster_pb.Pi
 }
 
 func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb.EmptyResp, error) {
+	overallStart := time.Now()
 	header, err := memo.GetBlockHeaderFromRaw(req.Block.Header)
 	if err != nil {
 		return nil, jerr.Get("error getting block header for shard save txs", err)
@@ -107,23 +110,40 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 		block.Transactions[i] = *dbi.WireTxToTx(msgTx, req.Block.Txs[i].Index)
 		txHashes[i] = block.Transactions[i].Hash
 	}
-	txSeens, err := chain.GetTxSeens(txHashes)
-	if err != nil {
-		return nil, jerr.Get("error getting tx seens for shard save txs", err)
-	}
-TransactionsLoop:
 	for i := range block.Transactions {
-		for _, txSeen := range txSeens {
-			if txSeen.TxHash == block.Transactions[i].Hash {
-				block.Transactions[i].Seen = txSeen.Timestamp
-				block.Transactions[i].Saved = true
-				continue TransactionsLoop
-			}
-		}
 		block.Transactions[i].Seen = block.Seen
 	}
-	if err := saver.NewCombinedTx(s.Verbose, req.IsInitial).SaveTxs(block); err != nil {
+	seensStart := time.Now()
+	var seensDuration time.Duration
+	if !req.IsInitial {
+		txSeens, err := chain.GetTxSeens(txHashes)
+		if err != nil {
+			return nil, jerr.Get("error getting tx seens for shard save txs", err)
+		}
+		seensDuration = time.Since(seensStart)
+		for i := range block.Transactions {
+			for _, txSeen := range txSeens {
+				if txSeen.TxHash == block.Transactions[i].Hash {
+					block.Transactions[i].Seen = txSeen.Timestamp
+					block.Transactions[i].Saved = true
+					break
+				}
+			}
+		}
+	}
+	combinedSaver := saver.NewCombinedTx(s.Verbose)
+	if err := combinedSaver.SaveTxs(block); err != nil {
 		return nil, jerr.Get("error saving block txs shard txs", err)
+	}
+	if s.Verbose {
+		overallDuration := time.Since(overallStart)
+		combinedSaver.SaveTimes["seens"] = seensDuration
+		combinedSaver.SaveTimes["overall"] = overallDuration
+		var saveTimes []string
+		for name, duration := range combinedSaver.SaveTimes {
+			saveTimes = append(saveTimes, fmt.Sprintf("%s: %s", name, duration))
+		}
+		jlog.Logf("Save times: %s\n", strings.Join(saveTimes, ", "))
 	}
 	return &cluster_pb.EmptyResp{}, nil
 }

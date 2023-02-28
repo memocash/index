@@ -113,20 +113,14 @@ func (r *txResolver) Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block,
 
 // Suspect is the resolver for the suspect field.
 func (r *txResolver) Suspect(ctx context.Context, obj *model.Tx) (*model.TxSuspect, error) {
-	txSuspect, err := dataloader.NewTxSuspectLoader(txSuspectLoaderConfig).Load(obj.Hash)
-	if err != nil {
-		return nil, jerr.Get("error getting tx suspect for tx from loader", err)
-	}
-	return txSuspect, nil
+	// TODO: Reimplement if needed
+	return nil, jerr.New("error tx lost no longer implemented")
 }
 
 // Lost is the resolver for the lost field.
 func (r *txResolver) Lost(ctx context.Context, obj *model.Tx) (*model.TxLost, error) {
-	txLost, err := dataloader.NewTxLostLoader(txLostLoaderConfig).Load(obj.Hash)
-	if err != nil {
-		return nil, jerr.Get("error getting tx lost for tx from loader", err)
-	}
-	return txLost, nil
+	// TODO: Reimplement if needed
+	return nil, jerr.New("error tx lost no longer implemented")
 }
 
 // Tx returns generated.TxResolver implementation.

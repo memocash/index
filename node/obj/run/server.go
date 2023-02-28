@@ -1,10 +1,13 @@
 package run
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	admin "github.com/memocash/index/admin/server"
 	"github.com/memocash/index/node"
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/broadcast/broadcast_server"
 	"github.com/memocash/index/ref/cluster/lead"
 	"github.com/memocash/index/ref/cluster/shard"
 	"github.com/memocash/index/ref/config"
@@ -48,13 +51,25 @@ func (s *Server) Run() error {
 		errorHandler <- jerr.Get("error running network server", networkServer.Serve())
 	}()
 	if !s.Dev {
-		clusterLead := lead.NewLead(s.Verbose)
-		if err := clusterLead.Start(); err != nil {
-			return jerr.Get("fatal error starting cluster lead", err)
-		}
-		jlog.Logf("Cluster lead started on port: %d...\n", clusterLead.Port)
+		processor := lead.NewProcessor(s.Verbose)
+		jlog.Logf("Cluster lead processor starting...\n")
 		go func() {
-			errorHandler <- jerr.Get("error running cluster lead", clusterLead.Serve())
+			errorHandler <- jerr.Get("error running cluster lead processor", processor.Run())
+		}()
+		broadcastServer := broadcast_server.NewServer(config.GetBroadcastRpc().Port, func(ctx context.Context, raw []byte) error {
+			txMsg, err := memo.GetMsgFromRaw(raw)
+			if err != nil {
+				return jerr.Get("error parsing raw tx", err)
+			}
+			jlog.Logf("Broadcasting transaction: %s\n", txMsg.TxHash())
+			if err := processor.BlockNode.Peer.BroadcastTx(ctx, txMsg); err != nil {
+				return jerr.Get("error broadcasting tx to connection peer", err)
+			}
+			return nil
+		})
+		go func() {
+			jlog.Logf("Running broadcast server on port: %d\n", broadcastServer.Port)
+			errorHandler <- jerr.Get("fatal error running broadcast server", broadcastServer.Run())
 		}()
 	}
 	return <-errorHandler

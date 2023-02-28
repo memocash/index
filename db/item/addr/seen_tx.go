@@ -27,7 +27,7 @@ func (i *SeenTx) GetShard() uint {
 func (i *SeenTx) GetUid() []byte {
 	return jutil.CombineBytes(
 		i.Addr[:],
-		jutil.ByteReverse(jutil.GetTimeByte(i.Seen)),
+		jutil.GetTimeByteNanoBig(i.Seen),
 		jutil.ByteReverse(i.TxHash[:]),
 	)
 }
@@ -37,19 +37,8 @@ func (i *SeenTx) SetUid(uid []byte) {
 		return
 	}
 	copy(i.Addr[:], uid[:25])
+	i.Seen = jutil.GetByteTimeNanoBig(uid[25:33])
 	copy(i.TxHash[:], jutil.ByteReverse(uid[33:65]))
-	i.Seen = jutil.GetByteTime(jutil.ByteReverse(uid[25:33]))
-	// TODO: Remove this once server is updated
-	const year = time.Hour * 24 * 365
-	if i.Seen.Before(time.Now().Add(-year*20)) || i.Seen.After(time.Now().Add(year)) {
-		if err := db.Remove([]db.Object{i}); err != nil {
-			jerr.Get("error removing invalid seen tx", err).Print()
-		}
-		i.Seen = jutil.GetByteTime(uid[25:33])
-		if err := db.Save([]db.Object{i}); err != nil {
-			jerr.Get("error saving valid updated seen tx", err).Print()
-		}
-	}
 }
 
 func (i *SeenTx) Serialize() []byte {
@@ -77,11 +66,11 @@ func GetSeenTxs(addr [25]byte, start []byte) ([]*SeenTx, error) {
 	return heightInputs, nil
 }
 
-func ListenMempoolAddrSeenTxsMultiple(ctx context.Context, addrs [][25]byte) ([]chan *SeenTx, error) {
+func ListenAddrSeenTxsMultiple(ctx context.Context, addrs [][25]byte) ([]chan *SeenTx, error) {
 	var shardAddrGroups = make(map[uint32][][]byte)
-	for _, addr := range addrs {
-		shard := db.GetShardByte32(addr[:])
-		shardAddrGroups[shard] = append(shardAddrGroups[shard], addr[:])
+	for i := range addrs {
+		shard := db.GetShardByte32(addrs[i][:])
+		shardAddrGroups[shard] = append(shardAddrGroups[shard], addrs[i][:])
 	}
 	var chanSeenTxs []chan *SeenTx
 	for shard, addrGroup := range shardAddrGroups {

@@ -13,17 +13,12 @@ import (
 )
 
 type Memo struct {
-	Verbose     bool
-	InitialSync bool
+	Verbose bool
 }
 
-func (t *Memo) SaveTxs(b *dbi.Block) error {
+func (m *Memo) SaveTxs(b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block")
-	}
-	var height = b.Height
-	if height == 0 {
-		height = item.HeightMempool
 	}
 	opReturnHandlers, err := op_return.GetHandlers()
 	if err != nil {
@@ -32,7 +27,7 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 	for _, transaction := range b.Transactions {
 		var tx = transaction.MsgTx
 		txHash := tx.TxHash()
-		if t.Verbose {
+		if m.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}
 		var addr *wallet.Addr
@@ -72,12 +67,13 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 					return jerr.Get("error getting pushed data", err)
 				}
 				if err := opReturnHandler.Handle(parse.OpReturn{
-					Height:   height,
+					Seen:     transaction.Seen,
+					Saved:    transaction.Saved,
 					TxHash:   txHash,
 					Addr:     *addr,
 					PushData: pushData,
 					Outputs:  tx.TxOut,
-				}, t.InitialSync); err != nil {
+				}); err != nil {
 					return jerr.Get("error handling op return", err)
 				}
 			}
@@ -86,9 +82,8 @@ func (t *Memo) SaveTxs(b *dbi.Block) error {
 	return nil
 }
 
-func NewMemo(verbose, initialSync bool) *Memo {
+func NewMemo(verbose bool) *Memo {
 	return &Memo{
-		Verbose:     verbose,
-		InitialSync: initialSync,
+		Verbose: verbose,
 	}
 }

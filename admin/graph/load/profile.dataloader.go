@@ -28,7 +28,7 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 			}
 			addrString := addr.String()
 			var profile = &model.Profile{Address: addrString}
-			addrMemoName, err := memo.GetAddrHeightName(ctx, *addr)
+			addrMemoName, err := memo.GetAddrName(ctx, *addr)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting memo name", err)
 				continue
@@ -40,7 +40,7 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 					Address: addrString,
 				}
 			}
-			addrMemoProfile, err := memo.GetAddrHeightProfile(ctx, *addr)
+			addrMemoProfile, err := memo.GetAddrProfile(ctx, *addr)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting addr memo profile", err)
 				continue
@@ -52,7 +52,7 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 					Address: addrString,
 				}
 			}
-			addrMemoProfilePic, err := memo.GetAddrHeightProfilePic(ctx, *addr)
+			addrMemoProfilePic, err := memo.GetAddrProfilePic(ctx, *addr)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = jerr.Get("error getting addr memo profile pic", err)
 				continue

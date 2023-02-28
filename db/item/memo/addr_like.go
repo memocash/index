@@ -5,45 +5,46 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"time"
 )
 
-type AddrHeightLike struct {
+type AddrLike struct {
 	Addr       [25]byte
-	Height     int64
+	Seen       time.Time
 	LikeTxHash [32]byte
 	PostTxHash [32]byte
 }
 
-func (l *AddrHeightLike) GetTopic() string {
-	return db.TopicMemoAddrHeightLike
+func (l *AddrLike) GetTopic() string {
+	return db.TopicMemoAddrLike
 }
 
-func (l *AddrHeightLike) GetShard() uint {
+func (l *AddrLike) GetShard() uint {
 	return client.GetByteShard(l.Addr[:])
 }
 
-func (l *AddrHeightLike) GetUid() []byte {
+func (l *AddrLike) GetUid() []byte {
 	return jutil.CombineBytes(
 		l.Addr[:],
-		jutil.ByteFlip(jutil.GetInt64DataBig(l.Height)),
+		jutil.GetTimeByteNanoBig(l.Seen),
 		jutil.ByteReverse(l.LikeTxHash[:]),
 	)
 }
 
-func (l *AddrHeightLike) SetUid(uid []byte) {
+func (l *AddrLike) SetUid(uid []byte) {
 	if len(uid) != memo.AddressLength+memo.Int8Size+memo.TxHashLength {
 		return
 	}
 	copy(l.Addr[:], uid[:25])
-	l.Height = jutil.GetInt64Big(jutil.ByteFlip(uid[25:33]))
+	l.Seen = jutil.GetByteTimeNanoBig(uid[25:33])
 	copy(l.LikeTxHash[:], jutil.ByteReverse(uid[33:65]))
 }
 
-func (l *AddrHeightLike) Serialize() []byte {
+func (l *AddrLike) Serialize() []byte {
 	return l.PostTxHash[:]
 }
 
-func (l *AddrHeightLike) Deserialize(data []byte) {
+func (l *AddrLike) Deserialize(data []byte) {
 	if len(data) != memo.TxHashLength {
 		return
 	}

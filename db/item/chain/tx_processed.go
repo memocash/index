@@ -1,4 +1,4 @@
-package item
+package chain
 
 import (
 	"context"
@@ -15,19 +15,19 @@ type TxProcessed struct {
 	Timestamp time.Time
 }
 
-func (s TxProcessed) GetUid() []byte {
+func (s *TxProcessed) GetUid() []byte {
 	return GetTxProcessedUid(s.TxHash, s.Timestamp)
 }
 
-func (s TxProcessed) GetShard() uint {
+func (s *TxProcessed) GetShard() uint {
 	return client.GetByteShard(s.TxHash)
 }
 
-func (s TxProcessed) GetTopic() string {
-	return db.TopicTxProcessed
+func (s *TxProcessed) GetTopic() string {
+	return db.TopicChainTxProcessed
 }
 
-func (s TxProcessed) Serialize() []byte {
+func (s *TxProcessed) Serialize() []byte {
 	return nil
 }
 
@@ -36,13 +36,13 @@ func (s *TxProcessed) SetUid(uid []byte) {
 		return
 	}
 	s.TxHash = jutil.ByteReverse(uid[:32])
-	s.Timestamp = jutil.GetByteTimeNano(uid[32:40])
+	s.Timestamp = jutil.GetByteTimeNanoBig(uid[32:40])
 }
 
 func (s *TxProcessed) Deserialize([]byte) {}
 
 func GetTxProcessedUid(txHash []byte, timestamp time.Time) []byte {
-	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetTimeByteNano(timestamp))
+	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetTimeByteNanoBig(timestamp))
 }
 
 func WaitForTxProcessed(ctx context.Context, txHash []byte) (*TxProcessed, error) {
@@ -50,7 +50,7 @@ func WaitForTxProcessed(ctx context.Context, txHash []byte) (*TxProcessed, error
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Context:  ctx,
-		Topic:    db.TopicTxProcessed,
+		Topic:    db.TopicChainTxProcessed,
 		Prefixes: [][]byte{jutil.ByteReverse(txHash)},
 		Wait:     true,
 	}); err != nil {

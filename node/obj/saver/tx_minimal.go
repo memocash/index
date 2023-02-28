@@ -1,6 +1,7 @@
 package saver
 
 import (
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item/chain"
@@ -27,7 +28,7 @@ func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
 	var objects []db.Object
 	for _, dbiTx := range block.Transactions {
 		tx := dbiTx.MsgTx
-		txHash := tx.TxHash()
+		txHash := chainhash.Hash(dbiTx.Hash)
 		if t.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}

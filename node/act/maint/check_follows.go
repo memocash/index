@@ -20,7 +20,7 @@ func (c *CheckFollows) Check() error {
 		var startUid []byte
 		for {
 			if err := dbClient.GetWOpts(client.Opts{
-				Topic: db.TopicMemoAddrHeightFollow,
+				Topic: db.TopicMemoAddrFollow,
 				Start: startUid,
 				Max:   client.ExLargeLimit,
 			}); err != nil {
@@ -28,7 +28,7 @@ func (c *CheckFollows) Check() error {
 			}
 			for _, msg := range dbClient.Messages {
 				c.Processed++
-				var addrMemoFollow = new(memo.AddrHeightFollow)
+				var addrMemoFollow = new(memo.AddrFollow)
 				db.Set(addrMemoFollow, msg)
 				startUid = addrMemoFollow.GetUid()
 				if len(addrMemoFollow.FollowAddr) == 0 {
@@ -36,9 +36,9 @@ func (c *CheckFollows) Check() error {
 					if !c.Delete {
 						continue
 					}
-					var addrMemoFollowed = &memo.AddrHeightFollowed{
+					var addrMemoFollowed = &memo.AddrFollowed{
 						FollowAddr: addrMemoFollow.FollowAddr,
-						Height:     addrMemoFollow.Height,
+						Seen:       addrMemoFollow.Seen,
 						TxHash:     addrMemoFollow.TxHash,
 						Addr:       addrMemoFollow.Addr,
 						Unfollow:   addrMemoFollow.Unfollow,

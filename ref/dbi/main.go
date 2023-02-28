@@ -3,6 +3,7 @@ package dbi
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"time"
 )
@@ -56,7 +57,7 @@ func (b *Block) Size() int64 {
 }
 
 func BlockHeaderSet(header wire.BlockHeader) bool {
-	return !header.Timestamp.IsZero() && header.Timestamp.Unix() != 0
+	return !jutil.IsTimeZero(header.Timestamp)
 }
 
 type BlockInfo struct {

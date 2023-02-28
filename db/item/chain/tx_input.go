@@ -36,7 +36,7 @@ func (t *TxInput) SetUid(uid []byte) {
 		return
 	}
 	copy(t.TxHash[:], jutil.ByteReverse(uid[:32]))
-	t.Index = jutil.GetUint32(uid[32:36])
+	t.Index = jutil.GetUint32Big(uid[32:36])
 }
 
 func (t *TxInput) Serialize() []byte {

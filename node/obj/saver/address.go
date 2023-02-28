@@ -1,6 +1,7 @@
 package saver
 
 import (
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item/addr"
@@ -24,7 +25,7 @@ func (a *Address) SaveTxs(b *dbi.Block) error {
 	var objects []db.Object
 	for _, transaction := range b.Transactions {
 		var tx = transaction.MsgTx
-		txHash := tx.TxHash()
+		txHash := chainhash.Hash(transaction.Hash)
 		if a.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}

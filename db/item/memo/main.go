@@ -4,21 +4,21 @@ import "github.com/memocash/index/db/item/db"
 
 func GetTopics() []db.Object {
 	return []db.Object{
-		&PostHeightLike{},
+		&PostLike{},
 		&LikeTip{},
-		&AddrHeightFollow{},
-		&AddrHeightFollowed{},
-		&AddrHeightLike{},
-		&AddrHeightName{},
-		&AddrHeightPost{},
-		&AddrHeightProfile{},
-		&AddrHeightProfilePic{},
-		&AddrHeightRoomFollow{},
+		&AddrFollow{},
+		&AddrFollowed{},
+		&AddrLike{},
+		&AddrName{},
+		&AddrPost{},
+		&AddrProfile{},
+		&AddrProfilePic{},
+		&AddrRoomFollow{},
 		&Post{},
 		&PostChild{},
 		&PostParent{},
 		&PostRoom{},
-		&RoomHeightFollow{},
-		&RoomHeightPost{},
+		&RoomFollow{},
+		&RoomPost{},
 	}
 }

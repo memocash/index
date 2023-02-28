@@ -54,7 +54,7 @@ func (r *Post) Listen(ctx context.Context, txHashes []string) (<-chan *model.Pos
 			r.Cancel()
 			return nil, jerr.Get("error getting memo post child listener for post subscription", err)
 		}
-		postLikesListener, err := memo.ListenPostHeightLikes(ctx, txHashesBytes)
+		postLikesListener, err := memo.ListenPostLikes(ctx, txHashesBytes)
 		if err != nil {
 			r.Cancel()
 			return nil, jerr.Get("error getting memo post likes listener for post subscription", err)

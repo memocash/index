@@ -3,7 +3,6 @@ package save
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/memo"
@@ -11,10 +10,10 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-func MemoPost(info parse.OpReturn, post string, initialSync bool) error {
-	var lockMemoPost = &memo.AddrHeightPost{
+func MemoPost(info parse.OpReturn, post string) error {
+	var lockMemoPost = &memo.AddrPost{
 		Addr:   info.Addr,
-		Height: info.Height,
+		Seen:   info.Seen,
 		TxHash: info.TxHash,
 	}
 	var objects = []db.Object{lockMemoPost}
@@ -29,7 +28,7 @@ func MemoPost(info parse.OpReturn, post string, initialSync bool) error {
 			Post:   post,
 		}
 		objects = append(objects, memoPost)
-		memoPostLikes, err := memo.GetPostHeightLikes([][32]byte{info.TxHash})
+		memoPostLikes, err := memo.GetPostLikes([][32]byte{info.TxHash})
 		if err != nil {
 			return jerr.Get("error getting memo likeds for post op return handler", err)
 		}
@@ -61,12 +60,6 @@ func MemoPost(info parse.OpReturn, post string, initialSync bool) error {
 	}
 	if err := db.Save(objects); err != nil {
 		return jerr.Get("error saving db memo post object", err)
-	}
-	if !initialSync && info.Height != item.HeightMempool {
-		lockMemoPost.Height = item.HeightMempool
-		if err := db.Remove([]db.Object{lockMemoPost}); err != nil {
-			return jerr.Get("error removing db memo post", err)
-		}
 	}
 	return nil
 }

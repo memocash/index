@@ -4,10 +4,10 @@ type Profile {
     name: SetName
     profile: SetProfile
     pic: SetPic
-    following(start: Int): [Follow]
-    followers(start: Int): [Follow]
-    posts(start: Int, newest: Boolean): [Post]
-    rooms(start: Int): [RoomFollow!]
+    following(start: Date): [Follow]
+    followers(start: Date): [Follow]
+    posts(start: Date, newest: Boolean): [Post]
+    rooms(start: Date): [RoomFollow!]
 }
 
 type SetName {

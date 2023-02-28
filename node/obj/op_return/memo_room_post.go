@@ -14,7 +14,7 @@ import (
 
 var memoRoomPostHandler = &Handler{
 	prefix: memo.PrefixTopicMessage,
-	handle: func(info parse.OpReturn, initialSync bool) error {
+	handle: func(info parse.OpReturn) error {
 		if len(info.PushData) != 3 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -26,7 +26,7 @@ var memoRoomPostHandler = &Handler{
 		}
 		var room = jutil.GetUtf8String(info.PushData[1])
 		var post = jutil.GetUtf8String(info.PushData[2])
-		if err := save.MemoPost(info, post, initialSync); err != nil {
+		if err := save.MemoPost(info, post); err != nil {
 			return jerr.Get("error saving memo post for memo chat room post handler", err)
 		}
 		var memoPostRoom = &dbMemo.PostRoom{
@@ -37,19 +37,13 @@ var memoRoomPostHandler = &Handler{
 		if err := db.Save([]db.Object{memoPostRoom}); err != nil {
 			return jerr.Get("error saving db memo room post object", err)
 		}
-		var memoRoomHeightPost = &dbMemo.RoomHeightPost{
+		var memoRoomHeightPost = &dbMemo.RoomPost{
 			RoomHash: dbMemo.GetRoomHash(room),
-			Height:   info.Height,
+			Seen:     info.Seen,
 			TxHash:   info.TxHash,
 		}
 		if err := db.Save([]db.Object{memoRoomHeightPost}); err != nil {
 			return jerr.Get("error saving db memo room height post object", err)
-		}
-		if !initialSync && info.Height != item.HeightMempool {
-			memoRoomHeightPost.Height = item.HeightMempool
-			if err := db.Remove([]db.Object{memoRoomHeightPost}); err != nil {
-				return jerr.Get("error removing db memo room height post", err)
-			}
 		}
 		return nil
 	},

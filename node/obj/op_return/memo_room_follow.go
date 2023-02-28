@@ -14,7 +14,7 @@ import (
 
 var memoRoomFollowHandler = &Handler{
 	prefix: memo.PrefixTopicFollow,
-	handle: func(info parse.OpReturn, initialSync bool) error {
+	handle: func(info parse.OpReturn) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -27,29 +27,22 @@ var memoRoomFollowHandler = &Handler{
 		unfollow := bytes.Equal(info.PushData[0], memo.PrefixTopicUnfollow)
 		var room = jutil.GetUtf8String(info.PushData[1])
 		roomHash := dbMemo.GetRoomHash(room)
-		var lockRoomFollow = &dbMemo.AddrHeightRoomFollow{
+		var lockRoomFollow = &dbMemo.AddrRoomFollow{
 			Addr:     info.Addr,
-			Height:   info.Height,
+			Seen:     info.Seen,
 			TxHash:   info.TxHash,
 			Room:     room,
 			Unfollow: unfollow,
 		}
-		var roomFollow = &dbMemo.RoomHeightFollow{
+		var roomFollow = &dbMemo.RoomFollow{
 			RoomHash: roomHash,
-			Height:   info.Height,
+			Seen:     info.Seen,
 			TxHash:   info.TxHash,
 			Addr:     info.Addr,
 			Unfollow: unfollow,
 		}
 		if err := db.Save([]db.Object{lockRoomFollow, roomFollow}); err != nil {
 			return jerr.Get("error saving db memo room height follow objects", err)
-		}
-		if !initialSync && info.Height != item.HeightMempool {
-			lockRoomFollow.Height = item.HeightMempool
-			roomFollow.Height = item.HeightMempool
-			if err := db.Remove([]db.Object{lockRoomFollow, roomFollow}); err != nil {
-				return jerr.Get("error removing db memo room height follow objects", err)
-			}
 		}
 		return nil
 	},
