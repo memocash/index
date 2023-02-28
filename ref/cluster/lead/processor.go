@@ -57,7 +57,7 @@ func (p *Processor) Run() error {
 			p.MemPoolNode = NewNode()
 			p.MemPoolNode.Start(true, p.Synced)
 			jlog.Logf("Started mempool node...\n")
-			for p.ProcessBlock(<-p.MemPoolNode.NewBlock) {
+			for p.ProcessBlock(<-p.MemPoolNode.NewBlock, "mempool") {
 			}
 			jlog.Log("Stopping mempool node")
 		}()
@@ -69,7 +69,7 @@ func (p *Processor) Run() error {
 		for {
 			select {
 			case block := <-p.BlockNode.NewBlock:
-				if p.ProcessBlock(block) {
+				if p.ProcessBlock(block, "block node") {
 					continue
 				}
 			case <-p.BlockNode.SyncDone:
@@ -96,7 +96,7 @@ func (p *Processor) Run() error {
 	return jerr.Get("error lead processing run", <-p.ErrorChan)
 }
 
-func (p *Processor) ProcessBlock(block *dbi.Block) bool {
+func (p *Processor) ProcessBlock(block *dbi.Block, loc string) bool {
 	seen := time.Now()
 	if block.HasHeader() && block.Header.Timestamp.Before(seen) {
 		seen = block.Header.Timestamp
@@ -137,7 +137,7 @@ func (p *Processor) ProcessBlock(block *dbi.Block) bool {
 		return false
 	}
 	if dbi.BlockHeaderSet(block.Header) {
-		jlog.Logf("Saved block: %s %s, %7s txs, size: %14s\n",
+		jlog.Logf("Saved block (%s): %s %s, %7s txs, size: %14s\n", loc,
 			blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
 			jfmt.AddCommasInt(int(blockInfo.Size)))
 	}
