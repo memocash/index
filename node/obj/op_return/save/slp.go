@@ -31,12 +31,32 @@ func SlpGenesis(info parse.OpReturn) error {
 		return jerr.Get("error saving slp genesis", err)
 	}
 	if err := SlpOutput(info, genesis.TxHash, memo.SlpMintTokenIndex, genesis.Quantity); err != nil {
-		return jerr.Get("error saving slp output", err)
+		return jerr.Get("error saving slp output for genesis", err)
 	}
 	return nil
 }
 
 func SlpMint(info parse.OpReturn) error {
+	const ExpectedPushDataCount = 6
+	if len(info.PushData) < ExpectedPushDataCount {
+		return jerr.Newf("invalid mint, incorrect push data (%d), expected %d", len(info.PushData), ExpectedPushDataCount)
+	}
+	tokenHash, err := chainhash.NewHash(jutil.ByteReverse(info.PushData[3]))
+	if err != nil {
+		return jerr.Get("error creating token hash", err)
+	}
+	var mint = &slp.Mint{
+		TxHash:     info.TxHash,
+		TokenHash:  *tokenHash,
+		BatonIndex: uint32(jutil.GetUint64(info.PushData[4])),
+		Quantity:   jutil.GetUint64(info.PushData[5]),
+	}
+	if db.Save([]db.Object{mint}); err != nil {
+		return jerr.Get("error saving mint", err)
+	}
+	if err := SlpOutput(info, mint.TokenHash, memo.SlpMintTokenIndex, mint.Quantity); err != nil {
+		return jerr.Get("error saving slp output for mint", err)
+	}
 	return nil
 }
 

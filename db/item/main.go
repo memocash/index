@@ -5,6 +5,7 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/memo"
+	"github.com/memocash/index/db/item/slp"
 	"sort"
 )
 
@@ -21,6 +22,7 @@ func GetTopics() []db.Object {
 		addr.GetTopics(),
 		chain.GetTopics(),
 		memo.GetTopics(),
+		slp.GetTopics(),
 	)
 }
 
