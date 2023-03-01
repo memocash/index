@@ -105,3 +105,23 @@ type RoomFollow struct {
 	Unfollow bool   `json:"unfollow"`
 	TxHash   string `json:"tx_hash"`
 }
+
+type SlpBaton struct {
+	Hash  string `json:"hash"`
+	Index uint32 `json:"index"`
+}
+
+type SlpGenesis struct {
+	Hash     string `json:"hash"`
+	Decimals string `json:"decimals"`
+	Ticker   string `json:"ticker"`
+	Name     string `json:"name"`
+	DocURL   string `json:"doc_url"`
+	DocHash  string `json:"doc_hash"`
+}
+
+type SlpOutput struct {
+	Hash   string `json:"hash"`
+	Index  uint32 `json:"index"`
+	Amount int64  `json:"amount"`
+}

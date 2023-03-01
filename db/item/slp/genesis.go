@@ -10,15 +10,14 @@ import (
 
 type Genesis struct {
 	TxHash     [32]byte
-	Addr       [25]byte
 	TokenType  uint8
 	Decimals   uint8
 	BatonIndex uint32
 	Quantity   uint64
-	DocHash    [32]byte
 	Ticker     string
 	Name       string
 	DocUrl     string
+	DocHash    [32]byte
 }
 
 func (g *Genesis) GetTopic() string {
@@ -45,7 +44,6 @@ func (g *Genesis) Serialize() []byte {
 	g.Name = strings.ReplaceAll(g.Name, string([]byte{0x00}), string([]byte{0x01}))
 	g.DocUrl = strings.ReplaceAll(g.DocUrl, string([]byte{0x00}), string([]byte{0x01}))
 	return jutil.CombineBytes(
-		g.Addr[:],
 		[]byte{g.TokenType, g.Decimals},
 		jutil.GetUint32Data(g.BatonIndex),
 		jutil.GetUint64Data(g.Quantity),
@@ -55,16 +53,15 @@ func (g *Genesis) Serialize() []byte {
 }
 
 func (g *Genesis) Deserialize(data []byte) {
-	if len(data) < memo.AddressLength+2+4+8+memo.TxHashLength+3 {
+	if len(data) < 2+4+8+memo.TxHashLength+3 {
 		return
 	}
-	copy(g.Addr[:], data[:25])
-	g.TokenType = data[25]
-	g.Decimals = data[26]
-	g.BatonIndex = jutil.GetUint32(data[27:31])
-	g.Quantity = jutil.GetUint64(data[31:39])
-	copy(g.DocHash[:], data[39:71])
-	split := strings.Split(string(data[71:]), string([]byte{0x00}))
+	g.TokenType = data[0]
+	g.Decimals = data[1]
+	g.BatonIndex = jutil.GetUint32(data[2:6])
+	g.Quantity = jutil.GetUint64(data[6:14])
+	copy(g.DocHash[:], data[14:46])
+	split := strings.Split(string(data[46:]), string([]byte{0x00}))
 	if len(split) == 3 {
 		g.Ticker = split[0]
 		g.Name = split[1]

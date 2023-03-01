@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/slp"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 )
 
@@ -17,7 +18,6 @@ func SlpGenesis(info parse.OpReturn) error {
 	docHash, _ := chainhash.NewHash(info.PushData[6])
 	var genesis = &slp.Genesis{
 		TxHash:     info.TxHash,
-		Addr:       info.Addr,
 		TokenType:  uint8(jutil.GetUint16(info.PushData[1])),
 		Ticker:     jutil.GetUtf8String(info.PushData[3]),
 		Name:       jutil.GetUtf8String(info.PushData[4]),
@@ -30,18 +30,9 @@ func SlpGenesis(info parse.OpReturn) error {
 	if err := db.Save([]db.Object{genesis}); err != nil {
 		return jerr.Get("error saving slp genesis", err)
 	}
-	/*output, err := saveSlpOutput(info, memo.SlpTxTypeGenesis, genesis.TxHash, memo.SlpMintTokenIndex, genesis.PkHash, genesis.Quantity)
-	if err != nil {
+	if err := SlpOutput(info, genesis.TxHash, memo.SlpMintTokenIndex, genesis.Quantity); err != nil {
 		return jerr.Get("error saving slp output", err)
 	}
-	if genesis.TokenType == memo.SlpNftChildTokenType {
-		for _, txIn := range info.Txn.TxIn {
-			_, err = saveSlpInput(txIn)
-			if err != nil {
-				return jerr.Get("error saving slp input", err)
-			}
-		}
-	}*/
 	return nil
 }
 
@@ -54,5 +45,23 @@ func SlpSend(info parse.OpReturn) error {
 }
 
 func SlpCommit(info parse.OpReturn) error {
+	return nil
+}
+
+func SlpOutput(info parse.OpReturn, tokenHash [32]byte, index uint32, quantity uint64) error {
+	if quantity == 0 {
+		return nil
+	}
+	if len(info.Outputs) <= int(index) {
+		return jerr.Newf("slp tx out index out of range (len: %d, index: %d)", len(info.Outputs), index)
+	}
+	if err := db.Save([]db.Object{&slp.Output{
+		TxHash:    info.TxHash,
+		Index:     index,
+		TokenHash: tokenHash,
+		Quantity:  quantity,
+	}}); err != nil {
+		return jerr.Get("error saving slp output", err)
+	}
 	return nil
 }

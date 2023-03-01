@@ -12,7 +12,6 @@ func TestGenesis(t *testing.T) {
 	txHash, _ := chainhash.NewHash(test_tx.GenericTxHash0)
 	var genesis = &slp.Genesis{
 		TxHash:     *txHash,
-		Addr:       test_tx.Address1.GetAddr(),
 		TokenType:  memo.SlpDefaultTokenType,
 		Decimals:   8,
 		BatonIndex: 2,
@@ -28,8 +27,6 @@ func TestGenesis(t *testing.T) {
 	genesis2.Deserialize(data)
 	if genesis2.TxHash != genesis.TxHash {
 		t.Error("TxHash not equal")
-	} else if genesis2.Addr != genesis.Addr {
-		t.Error("Addr not equal")
 	} else if genesis2.TokenType != genesis.TokenType {
 		t.Error("TokenType not equal")
 	} else if genesis2.Decimals != genesis.Decimals {

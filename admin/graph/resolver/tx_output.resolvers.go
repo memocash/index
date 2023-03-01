@@ -53,6 +53,16 @@ func (r *txOutputResolver) DoubleSpend(ctx context.Context, obj *model.TxOutput)
 	panic(fmt.Errorf("not implemented"))
 }
 
+// Slp is the resolver for the slp field.
+func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error) {
+	panic(fmt.Errorf("not implemented: Slp - slp"))
+}
+
+// SlpBaton is the resolver for the slp_baton field.
+func (r *txOutputResolver) SlpBaton(ctx context.Context, obj *model.TxOutput) (*model.SlpBaton, error) {
+	panic(fmt.Errorf("not implemented: SlpBaton - slp_baton"))
+}
+
 // Lock is the resolver for the lock field.
 func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*model.Lock, error) {
 	if len(obj.Script) == 0 {
