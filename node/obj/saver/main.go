@@ -34,7 +34,7 @@ func NewCombinedTx(verbose bool) *CombinedTx {
 	return NewCombined([]dbi.TxSave{
 		NewTxMinimal(verbose),
 		NewAddress(verbose),
-		NewMemo(verbose),
+		NewOpReturn(verbose),
 		NewTxProcessed(verbose),
 	})
 }

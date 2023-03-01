@@ -41,6 +41,7 @@ func GetHandlers() ([]*Handler, error) {
 		memoRoomPostHandler,
 		memoRoomFollowHandler,
 		memoRoomUnfollowHandler,
+		slpTokenHandler,
 	}
 	for _, opReturn := range handlers {
 		prefixScript, err := memo.GetBaseOpReturn().AddData(opReturn.prefix).Script()

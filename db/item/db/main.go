@@ -53,6 +53,8 @@ const (
 	TopicChainTxProcessed     = "chain_tx_processed"
 	TopicChainTxSeen          = "chain_tx_seen"
 
+	TopicSlpGenesis = "slp_genesis"
+
 	TopicAddrSeenTx = "addr_seen_tx"
 )
 
