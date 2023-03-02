@@ -56,7 +56,9 @@ func GetBaton(txHash [32]byte, index uint32) (*Baton, error) {
 	if err := dbClient.GetSingle(db.TopicSlpBaton, uid); err != nil {
 		return nil, jerr.Get("error getting client message slp baton", err)
 	}
-	if len(dbClient.Messages) != 1 {
+	if len(dbClient.Messages) == 0 {
+		return nil, jerr.Get("error no messages slp baton", client.EntryNotFoundError)
+	} else if len(dbClient.Messages) > 1 {
 		return nil, jerr.Newf("error unexpected number of messages slp batons: %d", len(dbClient.Messages))
 	}
 	var slpBaton = new(Baton)

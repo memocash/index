@@ -5,6 +5,7 @@ import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/model"
+	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/slp"
 )
 
@@ -34,8 +35,11 @@ func SlpOutputLoader(txHashStr string, index uint32) (*model.SlpOutput, error) {
 		return nil, jerr.Get("error getting tx hash for slp genesis output resolver", err)
 	}
 	slpOutput, err := slp.GetOutput(*txHash, index)
-	if err != nil {
+	if err != nil && !client.IsEntryNotFoundError(err) {
 		return nil, jerr.Get("error getting slp output for slp genesis resolver", err)
+	}
+	if slpOutput == nil {
+		return nil, nil
 	}
 	return &model.SlpOutput{
 		Hash:   chainhash.Hash(slpOutput.TxHash).String(),
@@ -50,8 +54,11 @@ func SlpBatonLoader(txHashStr string, index uint32) (*model.SlpBaton, error) {
 		return nil, jerr.Get("error getting tx hash for slp genesis baton resolver", err)
 	}
 	slpBaton, err := slp.GetBaton(*txHash, index)
-	if err != nil {
+	if err != nil && !client.IsEntryNotFoundError(err) {
 		return nil, jerr.Get("error getting slp baton for slp genesis resolver", err)
+	}
+	if slpBaton == nil {
+		return nil, nil
 	}
 	return &model.SlpBaton{
 		Hash:  chainhash.Hash(slpBaton.TxHash).String(),

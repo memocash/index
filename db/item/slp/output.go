@@ -61,7 +61,9 @@ func GetOutput(txHash [32]byte, index uint32) (*Output, error) {
 	if err := dbClient.GetSingle(db.TopicSlpOutput, uid); err != nil {
 		return nil, jerr.Get("error getting client message slp output", err)
 	}
-	if len(dbClient.Messages) != 1 {
+	if len(dbClient.Messages) == 0 {
+		return nil, jerr.Get("error no messages slp output", client.EntryNotFoundError)
+	} else if len(dbClient.Messages) > 1 {
 		return nil, jerr.Newf("error unexpected number of messages slp outputs: %d", len(dbClient.Messages))
 	}
 	var slpOutput = new(Output)

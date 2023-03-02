@@ -189,15 +189,16 @@ type ComplexityRoot struct {
 	}
 
 	SlpGenesis struct {
-		Baton    func(childComplexity int) int
-		Decimals func(childComplexity int) int
-		DocHash  func(childComplexity int) int
-		DocURL   func(childComplexity int) int
-		Hash     func(childComplexity int) int
-		Name     func(childComplexity int) int
-		Output   func(childComplexity int) int
-		Ticker   func(childComplexity int) int
-		Tx       func(childComplexity int) int
+		Baton      func(childComplexity int) int
+		BatonIndex func(childComplexity int) int
+		Decimals   func(childComplexity int) int
+		DocHash    func(childComplexity int) int
+		DocURL     func(childComplexity int) int
+		Hash       func(childComplexity int) int
+		Name       func(childComplexity int) int
+		Output     func(childComplexity int) int
+		Ticker     func(childComplexity int) int
+		Tx         func(childComplexity int) int
 	}
 
 	SlpOutput struct {
@@ -1068,6 +1069,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SlpGenesis.Baton(childComplexity), true
 
+	case "SlpGenesis.baton_index":
+		if e.complexity.SlpGenesis.BatonIndex == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.BatonIndex(childComplexity), true
+
 	case "SlpGenesis.decimals":
 		if e.complexity.SlpGenesis.Decimals == nil {
 			break
@@ -1624,6 +1632,7 @@ scalar Date
     decimals: Uint8!
     output: SlpOutput!
     baton: SlpBaton!
+    baton_index: Uint32!
     ticker: String!
     name: String!
     doc_url: String!
@@ -1650,6 +1659,7 @@ type SlpBaton {
 #    hash: String!
 #    output: SlpOutput!
 #    baton: SlpBaton!
+#    baton_index: Uint32!
 #}
 #
 #type SlpSend {
@@ -6679,6 +6689,8 @@ func (ec *executionContext) fieldContext_SlpBaton_genesis(ctx context.Context, f
 				return ec.fieldContext_SlpGenesis_output(ctx, field)
 			case "baton":
 				return ec.fieldContext_SlpGenesis_baton(ctx, field)
+			case "baton_index":
+				return ec.fieldContext_SlpGenesis_baton_index(ctx, field)
 			case "ticker":
 				return ec.fieldContext_SlpGenesis_ticker(ctx, field)
 			case "name":
@@ -6947,6 +6959,50 @@ func (ec *executionContext) fieldContext_SlpGenesis_baton(ctx context.Context, f
 				return ec.fieldContext_SlpBaton_genesis(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type SlpBaton", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_baton_index(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_baton_index(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BatonIndex, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uint32)
+	fc.Result = res
+	return ec.marshalNUint322uint32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_baton_index(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint32 does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7370,6 +7426,8 @@ func (ec *executionContext) fieldContext_SlpOutput_genesis(ctx context.Context, 
 				return ec.fieldContext_SlpGenesis_output(ctx, field)
 			case "baton":
 				return ec.fieldContext_SlpGenesis_baton(ctx, field)
+			case "baton_index":
+				return ec.fieldContext_SlpGenesis_baton_index(ctx, field)
 			case "ticker":
 				return ec.fieldContext_SlpGenesis_ticker(ctx, field)
 			case "name":
@@ -12368,6 +12426,13 @@ func (ec *executionContext) _SlpGenesis(ctx context.Context, sel ast.SelectionSe
 				return innerFunc(ctx)
 
 			})
+		case "baton_index":
+
+			out.Values[i] = ec._SlpGenesis_baton_index(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "ticker":
 
 			out.Values[i] = ec._SlpGenesis_ticker(ctx, field, obj)

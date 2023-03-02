@@ -26,16 +26,16 @@ type SlpBaton {
     genesis: SlpGenesis
 }
 
-type SlpMint {
-    tx: Tx!
-    hash: String!
-    output: SlpOutput!
-    baton: SlpBaton!
-    baton_index: Uint32!
-}
-
-type SlpSend {
-    tx: Tx!
-    hash: String!
-    outputs: [SlpOutput!]!
-}
+#type SlpMint {
+#    tx: Tx!
+#    hash: String!
+#    output: SlpOutput!
+#    baton: SlpBaton!
+#    baton_index: Uint32!
+#}
+#
+#type SlpSend {
+#    tx: Tx!
+#    hash: String!
+#    outputs: [SlpOutput!]!
+#}
