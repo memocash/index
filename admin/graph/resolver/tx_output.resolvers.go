@@ -6,8 +6,6 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
-
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -50,12 +48,20 @@ func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*
 
 // Slp is the resolver for the slp field.
 func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error) {
-	panic(fmt.Errorf("not implemented: Slp - slp"))
+	slpOutput, err := SlpOutputLoader(obj.Hash, obj.Index)
+	if err != nil {
+		return nil, jerr.Get("error getting slp output for tx output from loader", err)
+	}
+	return slpOutput, nil
 }
 
 // SlpBaton is the resolver for the slp_baton field.
 func (r *txOutputResolver) SlpBaton(ctx context.Context, obj *model.TxOutput) (*model.SlpBaton, error) {
-	panic(fmt.Errorf("not implemented: SlpBaton - slp_baton"))
+	slpBaton, err := SlpBatonLoader(obj.Hash, obj.Index)
+	if err != nil {
+		return nil, jerr.Get("error getting slp baton for tx output from loader", err)
+	}
+	return slpBaton, nil
 }
 
 // Lock is the resolver for the lock field.

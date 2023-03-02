@@ -33,6 +33,9 @@ func SlpGenesis(info parse.OpReturn) error {
 	if err := SlpOutput(info, genesis.TxHash, memo.SlpMintTokenIndex, genesis.Quantity); err != nil {
 		return jerr.Get("error saving slp output for genesis", err)
 	}
+	if err := SlpBaton(info, genesis.TxHash, genesis.BatonIndex); err != nil {
+		return jerr.Get("error saving slp baton for genesis", err)
+	}
 	return nil
 }
 
@@ -56,6 +59,9 @@ func SlpMint(info parse.OpReturn) error {
 	}
 	if err := SlpOutput(info, mint.TokenHash, memo.SlpMintTokenIndex, mint.Quantity); err != nil {
 		return jerr.Get("error saving slp output for mint", err)
+	}
+	if err := SlpBaton(info, mint.TokenHash, mint.BatonIndex); err != nil {
+		return jerr.Get("error saving slp baton for mint", err)
 	}
 	return nil
 }
@@ -108,6 +114,20 @@ func SlpOutput(info parse.OpReturn, tokenHash [32]byte, index uint32, quantity u
 		Quantity:  quantity,
 	}}); err != nil {
 		return jerr.Get("error saving slp output op return to db", err)
+	}
+	return nil
+}
+
+func SlpBaton(info parse.OpReturn, tokenHash [32]byte, index uint32) error {
+	if len(info.Outputs) <= int(index) {
+		return jerr.Newf("slp tx baton index out of range (len: %d, index: %d)", len(info.Outputs), index)
+	}
+	if err := db.Save([]db.Object{&slp.Baton{
+		TxHash:    info.TxHash,
+		Index:     index,
+		TokenHash: tokenHash,
+	}}); err != nil {
+		return jerr.Get("error saving slp baton op return to db", err)
 	}
 	return nil
 }

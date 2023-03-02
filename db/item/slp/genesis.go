@@ -1,10 +1,12 @@
 package slp
 
 import (
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/config"
 	"strings"
 )
 
@@ -67,4 +69,18 @@ func (g *Genesis) Deserialize(data []byte) {
 		g.Name = split[1]
 		g.DocUrl = split[2]
 	}
+}
+
+func GetGenesis(txHash [32]byte) (*Genesis, error) {
+	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash[:]), config.GetQueueShards())
+	dbClient := client.NewClient(shardConfig.GetHost())
+	if err := dbClient.GetSingle(db.TopicSlpGenesis, jutil.ByteReverse(txHash[:])); err != nil {
+		return nil, jerr.Get("error getting client message slp genesis", err)
+	}
+	if len(dbClient.Messages) != 1 {
+		return nil, jerr.Newf("error unexpected number of messages slp geneses: %d", len(dbClient.Messages))
+	}
+	var slpGenesis = new(Genesis)
+	db.Set(slpGenesis, dbClient.Messages[0])
+	return slpGenesis, nil
 }

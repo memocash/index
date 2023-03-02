@@ -5,6 +5,7 @@ package resolver
 
 import (
 	"context"
+
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -28,14 +29,14 @@ func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx
 
 // Output is the resolver for the output field.
 func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error) {
-	txOutputs, err := dataloader.NewTxOutputLoader(txOutputLoaderConfig).Load(model.HashIndex{
+	txOutput, err := dataloader.NewTxOutputLoader(txOutputLoaderConfig).Load(model.HashIndex{
 		Hash:  obj.PrevHash,
 		Index: obj.PrevIndex,
 	})
 	if err != nil {
-		return nil, jerr.Get("error getting tx outputs for spends from loader", err)
+		return nil, jerr.Get("error getting tx output for spends from loader", err)
 	}
-	return txOutputs, nil
+	return txOutput, nil
 }
 
 // TxInput returns generated.TxInputResolver implementation.

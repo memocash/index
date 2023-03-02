@@ -5,45 +5,80 @@ package resolver
 
 import (
 	"context"
-	"fmt"
-
+	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
+	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
 // Output is the resolver for the output field.
 func (r *slpBatonResolver) Output(ctx context.Context, obj *model.SlpBaton) (*model.TxOutput, error) {
-	panic(fmt.Errorf("not implemented: Output - output"))
+	txOutput, err := dataloader.NewTxOutputLoader(txOutputLoaderConfig).Load(model.HashIndex{
+		Hash:  obj.Hash,
+		Index: obj.Index,
+	})
+	if err != nil {
+		return nil, jerr.Get("error getting tx output for slp baton from loader", err)
+	}
+	return txOutput, nil
 }
 
 // Genesis is the resolver for the genesis field.
 func (r *slpBatonResolver) Genesis(ctx context.Context, obj *model.SlpBaton) (*model.SlpGenesis, error) {
-	panic(fmt.Errorf("not implemented: Genesis - genesis"))
+	slpGenesis, err := SlpGenesisLoader(obj.Hash)
+	if err != nil {
+		return nil, jerr.Get("error getting slp genesis for slp baton from loader", err)
+	}
+	return slpGenesis, nil
 }
 
 // Tx is the resolver for the tx field.
 func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*model.Tx, error) {
-	panic(fmt.Errorf("not implemented: Tx - tx"))
+	tx, err := TxLoader(ctx, obj.Hash)
+	if err != nil {
+		return nil, jerr.Get("error getting tx for slp genesis resolver", err)
+	}
+	return tx, nil
 }
 
 // Output is the resolver for the output field.
 func (r *slpGenesisResolver) Output(ctx context.Context, obj *model.SlpGenesis) (*model.SlpOutput, error) {
-	panic(fmt.Errorf("not implemented: Output - output"))
+	slpOutput, err := SlpOutputLoader(obj.Hash, memo.SlpMintTokenIndex)
+	if err != nil {
+		return nil, jerr.Get("error getting slp output for slp genesis from loader", err)
+	}
+	return slpOutput, nil
 }
 
 // Baton is the resolver for the baton field.
 func (r *slpGenesisResolver) Baton(ctx context.Context, obj *model.SlpGenesis) (*model.SlpBaton, error) {
-	panic(fmt.Errorf("not implemented: Baton - baton"))
+	slpBaton, err := SlpBatonLoader(obj.Hash, obj.BatonIndex)
+	if err != nil {
+		return nil, jerr.Get("error getting slp baton for slp genesis from loader", err)
+	}
+	return slpBaton, nil
 }
 
 // Output is the resolver for the output field.
 func (r *slpOutputResolver) Output(ctx context.Context, obj *model.SlpOutput) (*model.TxOutput, error) {
-	panic(fmt.Errorf("not implemented: Output - output"))
+	txOutput, err := dataloader.NewTxOutputLoader(txOutputLoaderConfig).Load(model.HashIndex{
+		Hash:  obj.Hash,
+		Index: obj.Index,
+	})
+	if err != nil {
+		return nil, jerr.Get("error getting tx output for slp output from loader", err)
+	}
+	return txOutput, nil
 }
 
 // Genesis is the resolver for the genesis field.
 func (r *slpOutputResolver) Genesis(ctx context.Context, obj *model.SlpOutput) (*model.SlpGenesis, error) {
-	panic(fmt.Errorf("not implemented: Genesis - genesis"))
+	slpGenesis, err := SlpGenesisLoader(obj.Hash)
+	if err != nil {
+		return nil, jerr.Get("error getting slp genesis for slp output from loader", err)
+	}
+	return slpGenesis, nil
 }
 
 // SlpBaton returns generated.SlpBatonResolver implementation.

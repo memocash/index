@@ -1614,6 +1614,7 @@ type RoomFollow {
 	{Name: "../schema/scalar.graphqls", Input: `scalar Int64
 scalar Uint8
 scalar Uint32
+scalar Uint64
 scalar HashIndex
 scalar Date
 `, BuiltIn: false},
@@ -1633,7 +1634,7 @@ type SlpOutput {
     output: TxOutput!
     hash: String!
     index: Uint32!
-    amount: Int64!
+    amount: Uint64!
     genesis: SlpGenesis
 }
 
@@ -6823,9 +6824,9 @@ func (ec *executionContext) _SlpGenesis_decimals(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Uint8)
 	fc.Result = res
-	return ec.marshalNUint82string(ctx, field.Selections, res)
+	return ec.marshalNUint82githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐUint8(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SlpGenesis_decimals(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7305,9 +7306,9 @@ func (ec *executionContext) _SlpOutput_amount(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int64)
+	res := resTmp.(uint64)
 	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
+	return ec.marshalNUint642uint64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SlpOutput_amount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7317,7 +7318,7 @@ func (ec *executionContext) fieldContext_SlpOutput_amount(ctx context.Context, f
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
+			return nil, errors.New("field of type Uint64 does not have child fields")
 		},
 	}
 	return fc, nil
@@ -13465,13 +13466,28 @@ func (ec *executionContext) marshalNUint322uint32(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNUint82string(ctx context.Context, v interface{}) (string, error) {
-	res, err := graphql.UnmarshalString(v)
+func (ec *executionContext) unmarshalNUint642uint64(ctx context.Context, v interface{}) (uint64, error) {
+	res, err := graphql.UnmarshalUint64(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUint82string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	res := graphql.MarshalString(v)
+func (ec *executionContext) marshalNUint642uint64(ctx context.Context, sel ast.SelectionSet, v uint64) graphql.Marshaler {
+	res := graphql.MarshalUint64(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNUint82githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐUint8(ctx context.Context, v interface{}) (model.Uint8, error) {
+	res, err := model.UnmarshalUint8(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUint82githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐUint8(ctx context.Context, sel ast.SelectionSet, v model.Uint8) graphql.Marshaler {
+	res := model.MarshalUint8(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")

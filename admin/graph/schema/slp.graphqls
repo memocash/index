@@ -4,6 +4,7 @@ type SlpGenesis {
     decimals: Uint8!
     output: SlpOutput!
     baton: SlpBaton!
+    baton_index: Uint32!
     ticker: String!
     name: String!
     doc_url: String!
@@ -14,7 +15,7 @@ type SlpOutput {
     output: TxOutput!
     hash: String!
     index: Uint32!
-    amount: Int64!
+    amount: Uint64!
     genesis: SlpGenesis
 }
 
@@ -25,15 +26,16 @@ type SlpBaton {
     genesis: SlpGenesis
 }
 
-#type SlpMint {
-#    tx: Tx!
-#    hash: String!
-#    output: SlpOutput!
-#    baton: SlpBaton!
-#}
-#
-#type SlpSend {
-#    tx: Tx!
-#    hash: String!
-#    outputs: [SlpOutput!]!
-#}
+type SlpMint {
+    tx: Tx!
+    hash: String!
+    output: SlpOutput!
+    baton: SlpBaton!
+    baton_index: Uint32!
+}
+
+type SlpSend {
+    tx: Tx!
+    hash: String!
+    outputs: [SlpOutput!]!
+}
