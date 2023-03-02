@@ -15,23 +15,19 @@ var slpTokenHandler = &Handler{
 		}
 		switch memo.SlpType(info.PushData[2]) {
 		case memo.SlpTxTypeGenesis:
-			err := save.SlpGenesis(info)
-			if err != nil {
+			if err := save.SlpGenesis(info); err != nil {
 				return jerr.Get("error saving slp genesis op return handler", err)
 			}
 		case memo.SlpTxTypeMint:
-			err := save.SlpMint(info)
-			if err != nil {
+			if err := save.SlpMint(info); err != nil {
 				return jerr.Get("error saving slp mint op return handler", err)
 			}
 		case memo.SlpTxTypeSend:
-			err := save.SlpSend(info)
-			if err != nil {
+			if err := save.SlpSend(info); err != nil {
 				return jerr.Get("error saving slp send op return handler", err)
 			}
 		case memo.SlpTxTypeCommit:
-			err := save.SlpCommit(info)
-			if err != nil {
+			if err := save.SlpCommit(info); err != nil {
 				return jerr.Get("error saving slp commit op return handler", err)
 			}
 		default:

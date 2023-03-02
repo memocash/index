@@ -89,7 +89,8 @@ func SlpSend(info parse.OpReturn) error {
 	return nil
 }
 
-func SlpCommit(info parse.OpReturn) error {
+func SlpCommit(parse.OpReturn) error {
+	// Ignore commits for now
 	return nil
 }
 
