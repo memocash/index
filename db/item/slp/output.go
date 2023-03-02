@@ -39,7 +39,7 @@ func (o *Output) SetUid(uid []byte) {
 
 func (o *Output) Serialize() []byte {
 	return jutil.CombineBytes(
-		o.TokenHash[:],
+		jutil.ByteReverse(o.TokenHash[:]),
 		jutil.GetUint64Data(o.Quantity),
 	)
 }
@@ -48,6 +48,6 @@ func (o *Output) Deserialize(data []byte) {
 	if len(data) < memo.TxHashLength+8 {
 		return
 	}
-	copy(o.TokenHash[:], data[:32])
+	copy(o.TokenHash[:], jutil.ByteReverse(data[:32]))
 	o.Quantity = jutil.GetUint64(data[32:])
 }

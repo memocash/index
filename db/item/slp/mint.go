@@ -35,7 +35,7 @@ func (m *Mint) SetUid(uid []byte) {
 
 func (m *Mint) Serialize() []byte {
 	return jutil.CombineBytes(
-		m.TokenHash[:],
+		jutil.ByteReverse(m.TokenHash[:]),
 		jutil.GetUint32Data(m.BatonIndex),
 		jutil.GetUint64Data(m.Quantity),
 	)
@@ -45,7 +45,7 @@ func (m *Mint) Deserialize(data []byte) {
 	if len(data) < memo.TxHashLength+4+8 {
 		return
 	}
-	copy(m.TokenHash[:], data[:memo.TxHashLength])
+	copy(m.TokenHash[:], jutil.ByteReverse(data[:memo.TxHashLength]))
 	m.BatonIndex = jutil.GetUint32(data[memo.TxHashLength : memo.TxHashLength+4])
 	m.Quantity = jutil.GetUint64(data[memo.TxHashLength+4:])
 }

@@ -28,7 +28,7 @@ func SlpGenesis(info parse.OpReturn) error {
 		Quantity:   jutil.GetUint64(info.PushData[9]),
 	}
 	if err := db.Save([]db.Object{genesis}); err != nil {
-		return jerr.Get("error saving slp genesis", err)
+		return jerr.Get("error saving slp genesis op return to db", err)
 	}
 	if err := SlpOutput(info, genesis.TxHash, memo.SlpMintTokenIndex, genesis.Quantity); err != nil {
 		return jerr.Get("error saving slp output for genesis", err)
@@ -51,8 +51,8 @@ func SlpMint(info parse.OpReturn) error {
 		BatonIndex: uint32(jutil.GetUint64(info.PushData[4])),
 		Quantity:   jutil.GetUint64(info.PushData[5]),
 	}
-	if db.Save([]db.Object{mint}); err != nil {
-		return jerr.Get("error saving mint", err)
+	if err := db.Save([]db.Object{mint}); err != nil {
+		return jerr.Get("error saving mint op return to db", err)
 	}
 	if err := SlpOutput(info, mint.TokenHash, memo.SlpMintTokenIndex, mint.Quantity); err != nil {
 		return jerr.Get("error saving slp output for mint", err)
@@ -61,6 +61,31 @@ func SlpMint(info parse.OpReturn) error {
 }
 
 func SlpSend(info parse.OpReturn) error {
+	const ExpectedPushDataCount = 5
+	if len(info.PushData) < ExpectedPushDataCount {
+		return jerr.Newf("invalid send, incorrect push data (%d), expected %d", len(info.PushData), ExpectedPushDataCount)
+	}
+	tokenHash, err := chainhash.NewHash(jutil.ByteReverse(info.PushData[3]))
+	if err != nil {
+		return jerr.Get("error creating token hash", err)
+	}
+	var send = &slp.Send{
+		TxHash:    info.TxHash,
+		TokenHash: *tokenHash,
+	}
+	if err := db.Save([]db.Object{send}); err != nil {
+		return jerr.Get("error saving send op return to db", err)
+	}
+	for i := 4; i < len(info.PushData); i++ {
+		var index = uint32(i - 3)
+		var quantity = jutil.GetUint64(info.PushData[i])
+		if quantity == 0 {
+			continue
+		}
+		if err := SlpOutput(info, send.TokenHash, index, quantity); err != nil {
+			return jerr.Get("error saving slp output for send", err)
+		}
+	}
 	return nil
 }
 
@@ -81,7 +106,7 @@ func SlpOutput(info parse.OpReturn, tokenHash [32]byte, index uint32, quantity u
 		TokenHash: tokenHash,
 		Quantity:  quantity,
 	}}); err != nil {
-		return jerr.Get("error saving slp output", err)
+		return jerr.Get("error saving slp output op return to db", err)
 	}
 	return nil
 }

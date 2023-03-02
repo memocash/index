@@ -56,6 +56,7 @@ const (
 	TopicSlpGenesis = "slp_genesis"
 	TopicSlpMint    = "slp_mint"
 	TopicSlpOutput  = "slp_output"
+	TopicSlpSend    = "slp_send"
 
 	TopicAddrSeenTx = "addr_seen_tx"
 )
