@@ -20,15 +20,19 @@ func main() {
 		if len(os.Args) < 3 {
 			log.Fatal("no address provided")
 		}
-		address, err := wallet.GetAddrFromString(os.Args[2])
-		if err != nil {
-			log.Fatalf("error getting address from string; %v", err)
+		var addresses []wallet.Addr
+		for i := 2; i < len(os.Args); i++ {
+			address, err := wallet.GetAddrFromString(os.Args[i])
+			if err != nil {
+				log.Fatalf("error getting address from string; %v", err)
+			}
+			addresses = append(addresses, *address)
 		}
 		client, err := GetClient()
 		if err != nil {
 			log.Fatalf("error getting client; %v", err)
 		}
-		utxos, err := client.GetUtxos(*address)
+		utxos, err := client.GetUtxos(addresses)
 		if err != nil {
 			log.Fatalf("error getting utxos; %v", err)
 		}
@@ -37,15 +41,19 @@ func main() {
 		if len(os.Args) < 3 {
 			log.Fatal("no address provided")
 		}
-		address, err := wallet.GetAddrFromString(os.Args[2])
-		if err != nil {
-			log.Fatalf("error getting address from string; %v", err)
+		var addresses []wallet.Addr
+		for i := 2; i < len(os.Args); i++ {
+			address, err := wallet.GetAddrFromString(os.Args[i])
+			if err != nil {
+				log.Fatalf("error getting address from string; %v", err)
+			}
+			addresses = append(addresses, *address)
 		}
 		client, err := GetClient()
 		if err != nil {
 			log.Fatalf("error getting client; %v", err)
 		}
-		balance, err := client.GetBalance(*address)
+		balance, err := client.GetBalance(addresses)
 		if err != nil {
 			log.Fatalf("error getting balance; %v", err)
 		}

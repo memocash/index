@@ -4,29 +4,33 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/jchavannes/jgo/jutil"
+	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
-type History []Tx
+type History []AddrTxs
 
-func GetHistory(url string, address wallet.Addr, lastUpdate time.Time) ([]Tx, error) {
-	var variables = map[string]interface{}{
-		"address": address.String(),
+func (h History) GetAllTxs() []Tx {
+	var txs []Tx
+	for _, addrTxs := range h {
+		txs = append(txs, addrTxs.Txs...)
 	}
-	if !jutil.IsTimeZero(lastUpdate) {
-		variables["start"] = lastUpdate.Format(time.RFC3339)
-	}
-	jsonData := map[string]interface{}{
-		"query":     historyQuery,
-		"variables": variables,
-	}
-	jsonValue, err := json.Marshal(jsonData)
+	return txs
+}
+
+type AddrTxs struct {
+	Address wallet.Addr
+	Txs     []Tx
+}
+
+func GetHistory(url string, addressUpdates []AddressUpdate) (History, error) {
+	jsonValue, err := GetHistoryQuery(addressUpdates)
 	if err != nil {
-		return nil, fmt.Errorf("error marshaling json for get history; %w", err)
+		return nil, jerr.Get("error getting history query", err)
 	}
 	request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
@@ -44,9 +48,7 @@ func GetHistory(url string, address wallet.Addr, lastUpdate time.Time) ([]Tx, er
 		return nil, fmt.Errorf("error reading response body; %w", err)
 	}
 	var dataStruct = struct {
-		Data struct {
-			Address Address `json:"address"`
-		} `json:"data"`
+		Data   map[string]Address `json:"data"`
 		Errors []struct {
 			Message string `json:"message"`
 		} `json:"errors"`
@@ -57,7 +59,18 @@ func GetHistory(url string, address wallet.Addr, lastUpdate time.Time) ([]Tx, er
 	if len(dataStruct.Errors) > 0 {
 		return nil, fmt.Errorf("error index client history response data; %w", fmt.Errorf(dataStruct.Errors[0].Message))
 	}
-	return dataStruct.Data.Address.Txs, nil
+	var history History
+	for _, v := range dataStruct.Data {
+		address, err := wallet.GetAddrFromString(v.Address)
+		if err != nil {
+			return nil, jerr.Get("error getting address from string for history", err)
+		}
+		history = append(history, AddrTxs{
+			Address: *address,
+			Txs:     v.Txs,
+		})
+	}
+	return history, nil
 }
 
 const txQuery = `{
@@ -134,8 +147,27 @@ const txQuery = `{
 	}
 }`
 
-const historyQuery = `query ($address: String!, $start: Date) {
-	address (address: $address) {
-		txs(start: $start) ` + txQuery + `
+func GetHistoryQuery(addressUpdates []AddressUpdate) ([]byte, error) {
+	var variables = make(map[string]interface{})
+	var paramsStrings []string
+	var subQueries []string
+	for i, addressUpdate := range addressUpdates {
+		variables[fmt.Sprintf("address%d", i)] = addressUpdate.Address.String()
+		variables[fmt.Sprintf("start%d", i)] = addressUpdate.Time.Format(time.RFC3339)
+		paramsStrings = append(paramsStrings, fmt.Sprintf("$address%d: String!, $start%d: Date", i, i))
+		subQueries = append(subQueries, fmt.Sprintf(`address%d: address(address: $address%d) {
+			address
+			txs(start: $start%d) %s
+		}`, i, i, i, txQuery))
 	}
-}`
+	var query = fmt.Sprintf("query (%s) { %s }", strings.Join(paramsStrings, ", "), strings.Join(subQueries, "\n"))
+	jsonData := map[string]interface{}{
+		"query":     query,
+		"variables": variables,
+	}
+	jsonValue, err := json.Marshal(jsonData)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling json for get history query; %w", err)
+	}
+	return jsonValue, nil
+}

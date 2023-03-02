@@ -3,6 +3,7 @@ package sql
 import (
 	"database/sql"
 	"fmt"
+	"github.com/jchavannes/jgo/db_util"
 	"github.com/memocash/index/client/lib"
 	"github.com/memocash/index/client/lib/graph"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -47,7 +48,7 @@ func NewDatabase(db *sql.DB, prefix string) (*Database, error) {
 	}, nil
 }
 
-func (d *Database) GetAddressBalance(address wallet.Addr) (*lib.Balance, error) {
+func (d *Database) GetAddressBalance(addresses []wallet.Addr) (*lib.Balance, error) {
 	query := "" +
 		"SELECT " +
 		"   IFNULL(SUM(CASE WHEN inputs.hash IS NULL THEN outputs.value ELSE 0 END), 0) AS balance, " +
@@ -58,10 +59,13 @@ func (d *Database) GetAddressBalance(address wallet.Addr) (*lib.Balance, error) 
 		"LEFT JOIN " + d.GetTableName(TableInputs) + " inputs ON (inputs.prev_hash = outputs.hash AND inputs.prev_index = outputs.`index`) " +
 		"LEFT JOIN " + d.GetTableName(TableSlpOutputs) + " slp_outputs ON (slp_outputs.hash = outputs.hash AND slp_outputs.`index` = outputs.`index`) " +
 		"LEFT JOIN " + d.GetTableName(TableSlpBatons) + " slp_batons ON (slp_batons.hash = outputs.hash AND slp_batons.`index` = outputs.`index`) " +
-		"WHERE outputs.address = ? " +
-		"GROUP BY outputs.address "
+		"WHERE outputs.address IN (" + db_util.GetQuestionMarksCombined(len(addresses)) + ")"
+	var addressStrings = make([]interface{}, len(addresses))
+	for i := range addresses {
+		addressStrings[i] = addresses[i].String()
+	}
 	var result = new(lib.Balance)
-	if err := d.Db.QueryRow(query, address.String()).Scan(
+	if err := d.Db.QueryRow(query, addressStrings...).Scan(
 		&result.Balance,
 		&result.UtxoCount,
 		&result.Spendable,
@@ -72,21 +76,54 @@ func (d *Database) GetAddressBalance(address wallet.Addr) (*lib.Balance, error) 
 	return result, nil
 }
 
-func (d *Database) GetAddressLastUpdate(address wallet.Addr) (time.Time, error) {
+func (d *Database) GetAddressLastUpdate(addresses []wallet.Addr) ([]graph.AddressUpdate, error) {
 	query := "" +
-		"SELECT time " +
+		"SELECT address, time " +
 		"FROM " + d.GetTableName(TableAddressUpdates) + " " +
-		"WHERE address = ? "
-	var result struct {
-		Time int64 `db:"time"`
+		"WHERE address IN (" + db_util.GetQuestionMarksCombined(len(addresses)) + ") " +
+		"GROUP BY address"
+	var addressStrings = make([]interface{}, len(addresses))
+	for i := range addresses {
+		addressStrings[i] = addresses[i].String()
 	}
-	if err := d.Db.QueryRow(query, address.String()).Scan(&result.Time); err != nil {
-		return time.Time{}, fmt.Errorf("error address last update exec query; %w", err)
+	rows, err := d.Db.Query(query, addressStrings...)
+	if err != nil {
+		return nil, fmt.Errorf("error address last update exec query; %w", err)
 	}
-	return time.Unix(result.Time, 0), nil
+	var addressUpdates []graph.AddressUpdate
+	for rows.Next() {
+		var result struct {
+			Address string `db:"address"`
+			Time    int64  `db:"time"`
+		}
+		if err := rows.Scan(&result.Address, &result.Time); err != nil {
+			return nil, fmt.Errorf("error address last update scan query; %w", err)
+		}
+		addr, err := wallet.GetAddrFromString(result.Address)
+		if err != nil {
+			return nil, fmt.Errorf("error getting address from string; %w", err)
+		}
+		addressUpdates = append(addressUpdates, graph.AddressUpdate{
+			Address: *addr,
+			Time:    time.Unix(result.Time, 0),
+		})
+	}
+AddressLoop:
+	for _, address := range addresses {
+		for _, addressUpdate := range addressUpdates {
+			if addressUpdate.Address.String() == address.String() {
+				continue AddressLoop
+			}
+		}
+		addressUpdates = append(addressUpdates, graph.AddressUpdate{
+			Address: address,
+			Time:    time.Unix(0, 0),
+		})
+	}
+	return addressUpdates, nil
 }
 
-func (d *Database) GetUtxos(address wallet.Addr) ([]graph.Output, error) {
+func (d *Database) GetUtxos(addresses []wallet.Addr) ([]graph.Output, error) {
 	query := "" +
 		"SELECT " +
 		"	outputs.hash, " +
@@ -95,9 +132,13 @@ func (d *Database) GetUtxos(address wallet.Addr) ([]graph.Output, error) {
 		"	outputs.value " +
 		"FROM " + d.GetTableName(TableOutputs) + " outputs " +
 		"LEFT JOIN " + d.GetTableName(TableInputs) + " inputs ON (inputs.prev_hash = outputs.hash AND inputs.prev_index = outputs.`index`) " +
-		"WHERE outputs.address = ? " +
+		"WHERE outputs.address IN (" + db_util.GetQuestionMarksCombined(len(addresses)) + ") " +
 		"AND inputs.hash IS NULL"
-	rows, err := d.Db.Query(query, address.String())
+	var addressStrings = make([]interface{}, len(addresses))
+	for i := range addresses {
+		addressStrings[i] = addresses[i].String()
+	}
+	rows, err := d.Db.Query(query, addressStrings...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting address utxos select query; %w", err)
 	}
@@ -112,15 +153,18 @@ func (d *Database) GetUtxos(address wallet.Addr) ([]graph.Output, error) {
 	return results, nil
 }
 
-func (d *Database) SetAddressLastUpdate(address wallet.Addr, t time.Time) error {
-	if t.Unix() <= 0 {
-		return nil
+func (d *Database) SetAddressLastUpdate(lastUpdates []graph.AddressUpdate) error {
+	var queries []*Query
+	for i := range lastUpdates {
+		if lastUpdates[i].Time.Unix() <= 0 {
+			continue
+		}
+		queries = append(queries, d.GetInsert(TableAddressUpdates, map[string]interface{}{
+			"address": lastUpdates[i].Address.String(),
+			"time":    lastUpdates[i].Time.Unix(),
+		}))
 	}
-	query := d.GetInsert(TableAddressUpdates, map[string]interface{}{
-		"address": address.String(),
-		"time":    t.Unix(),
-	})
-	if err := execQueries(d.Db, []*Query{query}); err != nil {
+	if err := execQueries(d.Db, queries); err != nil {
 		return fmt.Errorf("error updating address last update; %w", err)
 	}
 	return nil

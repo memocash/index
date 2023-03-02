@@ -1,9 +1,13 @@
 package graph
 
-import "time"
+import (
+	"github.com/memocash/index/ref/bitcoin/wallet"
+	"time"
+)
 
 type Address struct {
-	Txs []Tx `json:"txs"`
+	Address string `json:"address"`
+	Txs     []Tx   `json:"txs"`
 }
 
 type Output struct {
@@ -66,4 +70,11 @@ type Block struct {
 
 type Lock struct {
 	Address string `json:"address"`
+}
+
+// The following are not part of graph but are used in queries
+
+type AddressUpdate struct {
+	Address wallet.Addr
+	Time    time.Time
 }
