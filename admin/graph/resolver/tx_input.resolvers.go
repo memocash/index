@@ -5,8 +5,6 @@ package resolver
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -38,11 +36,6 @@ func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*mode
 		return nil, jerr.Get("error getting tx outputs for spends from loader", err)
 	}
 	return txOutputs, nil
-}
-
-// DoubleSpend is the resolver for the double_spend field.
-func (r *txInputResolver) DoubleSpend(ctx context.Context, obj *model.TxInput) (*model.DoubleSpend, error) {
-	panic(fmt.Errorf("not implemented"))
 }
 
 // TxInput returns generated.TxInputResolver implementation.

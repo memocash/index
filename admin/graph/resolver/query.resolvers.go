@@ -176,13 +176,6 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	return modelBlocks, nil
 }
 
-// DoubleSpends is the resolver for the double_spends field.
-func (r *queryResolver) DoubleSpends(ctx context.Context, newest *bool, start *model.Date) ([]*model.DoubleSpend, error) {
-	var modelDoubleSpends []*model.DoubleSpend
-	// TODO: Reimplement if needed
-	return modelDoubleSpends, nil
-}
-
 // Profiles is the resolver for the profiles field.
 func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error) {
 	var profiles []*model.Profile

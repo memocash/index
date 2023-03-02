@@ -48,11 +48,6 @@ func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*
 	return txInputs, nil
 }
 
-// DoubleSpend is the resolver for the double_spend field.
-func (r *txOutputResolver) DoubleSpend(ctx context.Context, obj *model.TxOutput) (*model.DoubleSpend, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 // Slp is the resolver for the slp field.
 func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error) {
 	panic(fmt.Errorf("not implemented: Slp - slp"))

@@ -6,7 +6,6 @@ type Query {
     block(hash: String!): Block
     block_newest: Block
     blocks(newest: Boolean, start: Uint32): [Block!]
-    double_spends(newest: Boolean, start: Date): [DoubleSpend!]
     profiles(addresses: [String!]): [Profile]
     posts(txHashes: [String!]): [Post]
     room(name: String!): Room!
