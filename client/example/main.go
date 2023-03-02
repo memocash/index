@@ -49,7 +49,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("error getting balance; %v", err)
 		}
-		fmt.Printf("Balance: %d\n", balance)
+		fmt.Printf("Balance: %d, utxos: %d, spendable: %d, spendable_count: %d\n",
+			balance.Balance, balance.UtxoCount, balance.Spendable, balance.SpendableCount)
 	}
 }
 

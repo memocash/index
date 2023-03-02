@@ -1,6 +1,7 @@
 type SlpGenesis {
     tx: Tx!
     hash: String!
+    token_type: Uint8!
     decimals: Uint8!
     output: SlpOutput!
     baton: SlpBaton!
@@ -16,6 +17,7 @@ type SlpOutput {
     hash: String!
     index: Uint32!
     amount: Uint64!
+    token_hash: String!
     genesis: SlpGenesis
 }
 
@@ -23,6 +25,7 @@ type SlpBaton {
     output: TxOutput!
     hash: String!
     index: Uint32!
+    token_hash: String!
     genesis: SlpGenesis
 }
 

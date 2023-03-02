@@ -6,8 +6,15 @@ import (
 	"time"
 )
 
+type Balance struct {
+	Balance        int64
+	Spendable      int64
+	UtxoCount      int
+	SpendableCount int
+}
+
 type Database interface {
-	GetAddressBalance(wallet.Addr) (int64, error)
+	GetAddressBalance(wallet.Addr) (*Balance, error)
 	GetAddressLastUpdate(wallet.Addr) (time.Time, error)
 	GetUtxos(wallet.Addr) ([]graph.Output, error)
 	SaveTxs([]graph.Tx) error

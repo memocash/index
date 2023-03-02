@@ -3,6 +3,7 @@ package sql
 import (
 	"database/sql"
 	"fmt"
+	"github.com/memocash/index/client/lib"
 	"github.com/memocash/index/client/lib/graph"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"time"
@@ -46,23 +47,29 @@ func NewDatabase(db *sql.DB, prefix string) (*Database, error) {
 	}, nil
 }
 
-func (d *Database) GetAddressBalance(address wallet.Addr) (int64, error) {
+func (d *Database) GetAddressBalance(address wallet.Addr) (*lib.Balance, error) {
 	query := "" +
 		"SELECT " +
-		"   outputs.address, " +
-		"   IFNULL(SUM(CASE WHEN inputs.hash IS NULL THEN outputs.value ELSE 0 END), 0) AS balance " +
+		"   IFNULL(SUM(CASE WHEN inputs.hash IS NULL THEN outputs.value ELSE 0 END), 0) AS balance, " +
+		"   IFNULL(SUM(CASE WHEN inputs.hash IS NULL THEN 1 ELSE 0 END), 0) AS utxo_count, " +
+		"   IFNULL(SUM(CASE WHEN inputs.hash IS NULL AND slp_outputs.hash IS NULL AND slp_batons.hash IS NULL THEN outputs.value ELSE 0 END), 0) AS spendable, " +
+		"   IFNULL(SUM(CASE WHEN inputs.hash IS NULL AND slp_outputs.hash IS NULL AND slp_batons.hash IS NULL THEN 1 ELSE 0 END), 0) AS spendable_count " +
 		"FROM " + d.GetTableName(TableOutputs) + " outputs " +
 		"LEFT JOIN " + d.GetTableName(TableInputs) + " inputs ON (inputs.prev_hash = outputs.hash AND inputs.prev_index = outputs.`index`) " +
+		"LEFT JOIN " + d.GetTableName(TableSlpOutputs) + " slp_outputs ON (slp_outputs.hash = outputs.hash AND slp_outputs.`index` = outputs.`index`) " +
+		"LEFT JOIN " + d.GetTableName(TableSlpBatons) + " slp_batons ON (slp_batons.hash = outputs.hash AND slp_batons.`index` = outputs.`index`) " +
 		"WHERE outputs.address = ? " +
 		"GROUP BY outputs.address "
-	var result struct {
-		Address string
-		Balance int64
+	var result = new(lib.Balance)
+	if err := d.Db.QueryRow(query, address.String()).Scan(
+		&result.Balance,
+		&result.UtxoCount,
+		&result.Spendable,
+		&result.SpendableCount,
+	); err != nil {
+		return nil, fmt.Errorf("error getting address balance exec query; %w", err)
 	}
-	if err := d.Db.QueryRow(query, address.String()).Scan(&result.Address, &result.Balance); err != nil {
-		return 0, fmt.Errorf("error getting address balance exec query; %w", err)
-	}
-	return result.Balance, nil
+	return result, nil
 }
 
 func (d *Database) GetAddressLastUpdate(address wallet.Addr) (time.Time, error) {
@@ -139,6 +146,45 @@ func (d *Database) SaveTxs(txs []graph.Tx) error {
 					"address": output.Lock.Address,
 					"value":   output.Amount,
 				}))
+			if output.Slp != nil {
+				queries = append(queries,
+					d.GetInsert(TableSlpOutputs, map[string]interface{}{
+						"hash":       tx.Hash,
+						"index":      output.Index,
+						"token_hash": output.Slp.TokenHash,
+						"amount":     output.Slp.Amount,
+					}))
+				if output.Slp.Genesis != nil {
+					queries = append(queries,
+						d.GetInsert(TableSlpGeneses, map[string]interface{}{
+							"hash":       output.Slp.Genesis.Hash,
+							"token_type": output.Slp.Genesis.TokenType,
+							"decimals":   output.Slp.Genesis.Decimals,
+							"ticker":     output.Slp.Genesis.Ticker,
+							"name":       output.Slp.Genesis.Name,
+							"doc_url":    output.Slp.Genesis.DocUrl,
+						}))
+				}
+			}
+			if output.SlpBaton != nil {
+				queries = append(queries,
+					d.GetInsert(TableSlpBatons, map[string]interface{}{
+						"hash":       tx.Hash,
+						"index":      output.Index,
+						"token_hash": output.SlpBaton.TokenHash,
+					}))
+				if output.SlpBaton.Genesis != nil {
+					queries = append(queries,
+						d.GetInsert(TableSlpGeneses, map[string]interface{}{
+							"hash":       output.SlpBaton.Genesis.Hash,
+							"token_type": output.SlpBaton.Genesis.TokenType,
+							"decimals":   output.SlpBaton.Genesis.Decimals,
+							"ticker":     output.SlpBaton.Genesis.Ticker,
+							"name":       output.SlpBaton.Genesis.Name,
+							"doc_url":    output.SlpBaton.Genesis.DocUrl,
+						}))
+				}
+			}
 		}
 		for _, block := range tx.Blocks {
 			queries = append(queries,

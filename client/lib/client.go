@@ -45,17 +45,17 @@ func (c *Client) Broadcast(txRaw string) error {
 	return nil
 }
 
-func (c *Client) GetBalance(address wallet.Addr) (int64, error) {
+func (c *Client) GetBalance(address wallet.Addr) (*Balance, error) {
 	err := c.updateDb(address)
 	if err != nil {
-		return 0, fmt.Errorf("error updating db for get balance; %w", err)
+		return nil, fmt.Errorf("error updating db for get balance; %w", err)
 	}
 	balance, err := c.Database.GetAddressBalance(address)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, nil
+			return nil, nil
 		}
-		return 0, fmt.Errorf("error getting address balance from database; %w", err)
+		return nil, fmt.Errorf("error getting address balance from database; %w", err)
 	}
 	return balance, nil
 }

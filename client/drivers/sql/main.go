@@ -79,6 +79,9 @@ const (
 	TableOutputs        = "outputs"
 	TableBlocks         = "blocks"
 	TableBlockTxs       = "block_txs"
+	TableSlpBatons      = "slp_batons"
+	TableSlpGeneses     = "slp_geneses"
+	TableSlpOutputs     = "slp_outputs"
 )
 
 var tables = map[string]Table{
@@ -133,5 +136,33 @@ var tables = map[string]Table{
 			"tx_hash":    "CHAR",
 		},
 		Indexes: []string{"UNIQUE(block_hash, tx_hash)"},
+	},
+	TableSlpGeneses: {
+		Name: TableSlpGeneses,
+		Columns: map[string]string{
+			"hash":     "CHAR",
+			"type":     "INT",
+			"decimals": "INT",
+			"ticker":   "CHAR",
+			"name":     "CHAR",
+			"doc_url":  "CHAR",
+		},
+	},
+	TableSlpBatons: {
+		Name: TableSlpBatons,
+		Columns: map[string]string{
+			"hash":       "CHAR",
+			"index":      "INT",
+			"token_hash": "CHAR",
+		},
+	},
+	TableSlpOutputs: {
+		Name: TableSlpOutputs,
+		Columns: map[string]string{
+			"hash":       "CHAR",
+			"index":      "INT",
+			"token_hash": "CHAR",
+			"amount":     "INT",
+		},
 	},
 }

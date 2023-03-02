@@ -20,6 +20,7 @@ func SlpGenesisLoader(txHashStr string) (*model.SlpGenesis, error) {
 	}
 	return &model.SlpGenesis{
 		Hash:       chainhash.Hash(slpGenesis.TxHash).String(),
+		TokenType:  model.Uint8(slpGenesis.TokenType),
 		Decimals:   model.Uint8(slpGenesis.Decimals),
 		BatonIndex: slpGenesis.BatonIndex,
 		Ticker:     slpGenesis.Ticker,
@@ -35,16 +36,17 @@ func SlpOutputLoader(txHashStr string, index uint32) (*model.SlpOutput, error) {
 		return nil, jerr.Get("error getting tx hash for slp genesis output resolver", err)
 	}
 	slpOutput, err := slp.GetOutput(*txHash, index)
-	if err != nil && !client.IsEntryNotFoundError(err) {
+	if err != nil && !client.IsMessageNotSetError(err) {
 		return nil, jerr.Get("error getting slp output for slp genesis resolver", err)
 	}
 	if slpOutput == nil {
 		return nil, nil
 	}
 	return &model.SlpOutput{
-		Hash:   chainhash.Hash(slpOutput.TxHash).String(),
-		Index:  slpOutput.Index,
-		Amount: slpOutput.Quantity,
+		Hash:      chainhash.Hash(slpOutput.TxHash).String(),
+		Index:     slpOutput.Index,
+		TokenHash: chainhash.Hash(slpOutput.TokenHash).String(),
+		Amount:    slpOutput.Quantity,
 	}, nil
 }
 
@@ -54,14 +56,15 @@ func SlpBatonLoader(txHashStr string, index uint32) (*model.SlpBaton, error) {
 		return nil, jerr.Get("error getting tx hash for slp genesis baton resolver", err)
 	}
 	slpBaton, err := slp.GetBaton(*txHash, index)
-	if err != nil && !client.IsEntryNotFoundError(err) {
+	if err != nil && !client.IsMessageNotSetError(err) {
 		return nil, jerr.Get("error getting slp baton for slp genesis resolver", err)
 	}
 	if slpBaton == nil {
 		return nil, nil
 	}
 	return &model.SlpBaton{
-		Hash:  chainhash.Hash(slpBaton.TxHash).String(),
-		Index: slpBaton.Index,
+		Hash:      chainhash.Hash(slpBaton.TxHash).String(),
+		Index:     slpBaton.Index,
+		TokenHash: chainhash.Hash(slpBaton.TokenHash).String(),
 	}, nil
 }

@@ -107,12 +107,14 @@ type RoomFollow struct {
 }
 
 type SlpBaton struct {
-	Hash  string `json:"hash"`
-	Index uint32 `json:"index"`
+	Hash      string `json:"hash"`
+	Index     uint32 `json:"index"`
+	TokenHash string `json:"token_hash"`
 }
 
 type SlpGenesis struct {
 	Hash       string `json:"hash"`
+	TokenType  Uint8  `json:"token_type"`
 	Decimals   Uint8  `json:"decimals"`
 	BatonIndex uint32 `json:"baton_index"`
 	Ticker     string `json:"ticker"`
@@ -122,7 +124,8 @@ type SlpGenesis struct {
 }
 
 type SlpOutput struct {
-	Hash   string `json:"hash"`
-	Index  uint32 `json:"index"`
-	Amount uint64 `json:"amount"`
+	Hash      string `json:"hash"`
+	Index     uint32 `json:"index"`
+	TokenHash string `json:"token_hash"`
+	Amount    uint64 `json:"amount"`
 }

@@ -15,7 +15,6 @@ func TestGenesis(t *testing.T) {
 		TokenType:  memo.SlpDefaultTokenType,
 		Decimals:   8,
 		BatonIndex: 2,
-		Quantity:   100000,
 		DocHash:    [32]byte{},
 		Ticker:     "TEST",
 		Name:       "Test Token Name",
@@ -33,8 +32,6 @@ func TestGenesis(t *testing.T) {
 		t.Error("Decimals not equal")
 	} else if genesis2.BatonIndex != genesis.BatonIndex {
 		t.Error("BatonIndex not equal")
-	} else if genesis2.Quantity != genesis.Quantity {
-		t.Error("Quantity not equal")
 	} else if genesis2.DocHash != genesis.DocHash {
 		t.Error("DocHash not equal")
 	} else if genesis2.Ticker != genesis.Ticker {

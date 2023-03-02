@@ -182,10 +182,11 @@ type ComplexityRoot struct {
 	}
 
 	SlpBaton struct {
-		Genesis func(childComplexity int) int
-		Hash    func(childComplexity int) int
-		Index   func(childComplexity int) int
-		Output  func(childComplexity int) int
+		Genesis   func(childComplexity int) int
+		Hash      func(childComplexity int) int
+		Index     func(childComplexity int) int
+		Output    func(childComplexity int) int
+		TokenHash func(childComplexity int) int
 	}
 
 	SlpGenesis struct {
@@ -198,15 +199,17 @@ type ComplexityRoot struct {
 		Name       func(childComplexity int) int
 		Output     func(childComplexity int) int
 		Ticker     func(childComplexity int) int
+		TokenType  func(childComplexity int) int
 		Tx         func(childComplexity int) int
 	}
 
 	SlpOutput struct {
-		Amount  func(childComplexity int) int
-		Genesis func(childComplexity int) int
-		Hash    func(childComplexity int) int
-		Index   func(childComplexity int) int
-		Output  func(childComplexity int) int
+		Amount    func(childComplexity int) int
+		Genesis   func(childComplexity int) int
+		Hash      func(childComplexity int) int
+		Index     func(childComplexity int) int
+		Output    func(childComplexity int) int
+		TokenHash func(childComplexity int) int
 	}
 
 	Subscription struct {
@@ -1062,6 +1065,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SlpBaton.Output(childComplexity), true
 
+	case "SlpBaton.token_hash":
+		if e.complexity.SlpBaton.TokenHash == nil {
+			break
+		}
+
+		return e.complexity.SlpBaton.TokenHash(childComplexity), true
+
 	case "SlpGenesis.baton":
 		if e.complexity.SlpGenesis.Baton == nil {
 			break
@@ -1125,6 +1135,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SlpGenesis.Ticker(childComplexity), true
 
+	case "SlpGenesis.token_type":
+		if e.complexity.SlpGenesis.TokenType == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.TokenType(childComplexity), true
+
 	case "SlpGenesis.tx":
 		if e.complexity.SlpGenesis.Tx == nil {
 			break
@@ -1166,6 +1183,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.SlpOutput.Output(childComplexity), true
+
+	case "SlpOutput.token_hash":
+		if e.complexity.SlpOutput.TokenHash == nil {
+			break
+		}
+
+		return e.complexity.SlpOutput.TokenHash(childComplexity), true
 
 	case "Subscription.address":
 		if e.complexity.Subscription.Address == nil {
@@ -1629,6 +1653,7 @@ scalar Date
 	{Name: "../schema/slp.graphqls", Input: `type SlpGenesis {
     tx: Tx!
     hash: String!
+    token_type: Uint8!
     decimals: Uint8!
     output: SlpOutput!
     baton: SlpBaton!
@@ -1644,6 +1669,7 @@ type SlpOutput {
     hash: String!
     index: Uint32!
     amount: Uint64!
+    token_hash: String!
     genesis: SlpGenesis
 }
 
@@ -1651,6 +1677,7 @@ type SlpBaton {
     output: TxOutput!
     hash: String!
     index: Uint32!
+    token_hash: String!
     genesis: SlpGenesis
 }
 
@@ -6643,6 +6670,50 @@ func (ec *executionContext) fieldContext_SlpBaton_index(ctx context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _SlpBaton_token_hash(ctx context.Context, field graphql.CollectedField, obj *model.SlpBaton) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpBaton_token_hash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TokenHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpBaton_token_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpBaton",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _SlpBaton_genesis(ctx context.Context, field graphql.CollectedField, obj *model.SlpBaton) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_SlpBaton_genesis(ctx, field)
 	if err != nil {
@@ -6683,6 +6754,8 @@ func (ec *executionContext) fieldContext_SlpBaton_genesis(ctx context.Context, f
 				return ec.fieldContext_SlpGenesis_tx(ctx, field)
 			case "hash":
 				return ec.fieldContext_SlpGenesis_hash(ctx, field)
+			case "token_type":
+				return ec.fieldContext_SlpGenesis_token_type(ctx, field)
 			case "decimals":
 				return ec.fieldContext_SlpGenesis_decimals(ctx, field)
 			case "output":
@@ -6810,6 +6883,50 @@ func (ec *executionContext) fieldContext_SlpGenesis_hash(ctx context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _SlpGenesis_token_type(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_token_type(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TokenType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Uint8)
+	fc.Result = res
+	return ec.marshalNUint82githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐUint8(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_token_type(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint8 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _SlpGenesis_decimals(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_SlpGenesis_decimals(ctx, field)
 	if err != nil {
@@ -6901,6 +7018,8 @@ func (ec *executionContext) fieldContext_SlpGenesis_output(ctx context.Context, 
 				return ec.fieldContext_SlpOutput_index(ctx, field)
 			case "amount":
 				return ec.fieldContext_SlpOutput_amount(ctx, field)
+			case "token_hash":
+				return ec.fieldContext_SlpOutput_token_hash(ctx, field)
 			case "genesis":
 				return ec.fieldContext_SlpOutput_genesis(ctx, field)
 			}
@@ -6955,6 +7074,8 @@ func (ec *executionContext) fieldContext_SlpGenesis_baton(ctx context.Context, f
 				return ec.fieldContext_SlpBaton_hash(ctx, field)
 			case "index":
 				return ec.fieldContext_SlpBaton_index(ctx, field)
+			case "token_hash":
+				return ec.fieldContext_SlpBaton_token_hash(ctx, field)
 			case "genesis":
 				return ec.fieldContext_SlpBaton_genesis(ctx, field)
 			}
@@ -7380,6 +7501,50 @@ func (ec *executionContext) fieldContext_SlpOutput_amount(ctx context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _SlpOutput_token_hash(ctx context.Context, field graphql.CollectedField, obj *model.SlpOutput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpOutput_token_hash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TokenHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpOutput_token_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpOutput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _SlpOutput_genesis(ctx context.Context, field graphql.CollectedField, obj *model.SlpOutput) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_SlpOutput_genesis(ctx, field)
 	if err != nil {
@@ -7420,6 +7585,8 @@ func (ec *executionContext) fieldContext_SlpOutput_genesis(ctx context.Context, 
 				return ec.fieldContext_SlpGenesis_tx(ctx, field)
 			case "hash":
 				return ec.fieldContext_SlpGenesis_hash(ctx, field)
+			case "token_type":
+				return ec.fieldContext_SlpGenesis_token_type(ctx, field)
 			case "decimals":
 				return ec.fieldContext_SlpGenesis_decimals(ctx, field)
 			case "output":
@@ -9050,6 +9217,8 @@ func (ec *executionContext) fieldContext_TxOutput_slp(ctx context.Context, field
 				return ec.fieldContext_SlpOutput_index(ctx, field)
 			case "amount":
 				return ec.fieldContext_SlpOutput_amount(ctx, field)
+			case "token_hash":
+				return ec.fieldContext_SlpOutput_token_hash(ctx, field)
 			case "genesis":
 				return ec.fieldContext_SlpOutput_genesis(ctx, field)
 			}
@@ -9101,6 +9270,8 @@ func (ec *executionContext) fieldContext_TxOutput_slp_baton(ctx context.Context,
 				return ec.fieldContext_SlpBaton_hash(ctx, field)
 			case "index":
 				return ec.fieldContext_SlpBaton_index(ctx, field)
+			case "token_hash":
+				return ec.fieldContext_SlpBaton_token_hash(ctx, field)
 			case "genesis":
 				return ec.fieldContext_SlpBaton_genesis(ctx, field)
 			}
@@ -12314,6 +12485,13 @@ func (ec *executionContext) _SlpBaton(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "token_hash":
+
+			out.Values[i] = ec._SlpBaton_token_hash(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "genesis":
 			field := field
 
@@ -12375,6 +12553,13 @@ func (ec *executionContext) _SlpGenesis(ctx context.Context, sel ast.SelectionSe
 		case "hash":
 
 			out.Values[i] = ec._SlpGenesis_hash(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "token_type":
+
+			out.Values[i] = ec._SlpGenesis_token_type(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
@@ -12519,6 +12704,13 @@ func (ec *executionContext) _SlpOutput(ctx context.Context, sel ast.SelectionSet
 		case "amount":
 
 			out.Values[i] = ec._SlpOutput_amount(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "token_hash":
+
+			out.Values[i] = ec._SlpOutput_token_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)

@@ -75,6 +75,33 @@ const txQuery = `{
 		lock {
 			address
 		}
+		slp {
+			hash
+			index
+			token_hash
+			amount
+			genesis {
+				hash
+				token_type
+				decimals
+				ticker
+				name
+				doc_url
+			}
+		}
+		slp_baton {
+			hash
+			index
+			token_hash
+			genesis {
+				hash
+				token_type
+				decimals
+				ticker
+				name
+				doc_url
+			}
+		}
 		spends {
 			tx {
 				hash

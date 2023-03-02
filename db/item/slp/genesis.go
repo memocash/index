@@ -15,7 +15,6 @@ type Genesis struct {
 	TokenType  uint8
 	Decimals   uint8
 	BatonIndex uint32
-	Quantity   uint64
 	Ticker     string
 	Name       string
 	DocUrl     string
@@ -48,7 +47,6 @@ func (g *Genesis) Serialize() []byte {
 	return jutil.CombineBytes(
 		[]byte{g.TokenType, g.Decimals},
 		jutil.GetUint32Data(g.BatonIndex),
-		jutil.GetUint64Data(g.Quantity),
 		g.DocHash[:],
 		[]byte(strings.Join([]string{g.Ticker, g.Name, g.DocUrl}, string([]byte{0x00}))),
 	)
@@ -61,9 +59,8 @@ func (g *Genesis) Deserialize(data []byte) {
 	g.TokenType = data[0]
 	g.Decimals = data[1]
 	g.BatonIndex = jutil.GetUint32(data[2:6])
-	g.Quantity = jutil.GetUint64(data[6:14])
-	copy(g.DocHash[:], data[14:46])
-	split := strings.Split(string(data[46:]), string([]byte{0x00}))
+	copy(g.DocHash[:], data[6:38])
+	split := strings.Split(string(data[38:]), string([]byte{0x00}))
 	if len(split) == 3 {
 		g.Ticker = split[0]
 		g.Name = split[1]

@@ -25,12 +25,11 @@ func SlpGenesis(info parse.OpReturn) error {
 		DocHash:    *docHash,
 		Decimals:   uint8(jutil.GetUint64(info.PushData[7])),
 		BatonIndex: uint32(jutil.GetUint64(info.PushData[8])),
-		Quantity:   jutil.GetUint64(info.PushData[9]),
 	}
 	if err := db.Save([]db.Object{genesis}); err != nil {
 		return jerr.Get("error saving slp genesis op return to db", err)
 	}
-	if err := SlpOutput(info, genesis.TxHash, memo.SlpMintTokenIndex, genesis.Quantity); err != nil {
+	if err := SlpOutput(info, genesis.TxHash, memo.SlpMintTokenIndex, jutil.GetUint64(info.PushData[9])); err != nil {
 		return jerr.Get("error saving slp output for genesis", err)
 	}
 	if err := SlpBaton(info, genesis.TxHash, genesis.BatonIndex); err != nil {
