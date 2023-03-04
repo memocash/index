@@ -8,7 +8,7 @@ import (
 )
 
 var slpTokenHandler = &Handler{
-	prefix: memo.PrefixPost,
+	prefix: memo.PrefixSlp,
 	handle: func(info parse.OpReturn) error {
 		if len(info.PushData) < 5 {
 			return jerr.Newf("invalid slp, incorrect push data (%d) op return handler", len(info.PushData))

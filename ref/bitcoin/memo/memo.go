@@ -59,7 +59,7 @@ const (
 	Int8Size = 8 // int64
 )
 
-const MaxAncestors = 25
+const MaxAncestors = 2000
 const FaucetMaxAncestors = 20
 
 const DustMinimumOutput int64 = 546
