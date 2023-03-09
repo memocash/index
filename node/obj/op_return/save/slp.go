@@ -15,10 +15,13 @@ func SlpGenesis(info parse.OpReturn) error {
 	if len(info.PushData) < ExpectedPushDataCount {
 		return jerr.Newf("invalid genesis, incorrect push data (%d), expected %d", len(info.PushData), ExpectedPushDataCount)
 	}
-	docHash, _ := chainhash.NewHash(info.PushData[6])
+	docHash, err := chainhash.NewHash(info.PushData[6])
+	if err != nil {
+		docHash = &chainhash.Hash{}
+	}
 	var genesis = &slp.Genesis{
 		TxHash:     info.TxHash,
-		TokenType:  uint8(jutil.GetUint16(info.PushData[1])),
+		TokenType:  uint8(jutil.GetUint64(info.PushData[1])),
 		Ticker:     jutil.GetUtf8String(info.PushData[3]),
 		Name:       jutil.GetUtf8String(info.PushData[4]),
 		DocUrl:     jutil.GetUtf8String(info.PushData[5]),
