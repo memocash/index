@@ -13,9 +13,8 @@ import (
 	"time"
 )
 
-var slpOutputLoaderConfig = dataloader.SlpOutputLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var slpOutputLoader = dataloader.NewSlpOutputLoader(dataloader.SlpOutputLoaderConfig{
+	Wait: 5 * time.Millisecond,
 	Fetch: func(keys []model.HashIndex) ([]*model.SlpOutput, []error) {
 		var memoOuts = make([]memo.Out, len(keys))
 		for i := range keys {
@@ -48,7 +47,7 @@ var slpOutputLoaderConfig = dataloader.SlpOutputLoaderConfig{
 		}
 		return modelSlpOutputs, nil
 	},
-}
+})
 
 var slpGenesisLoaderConfig = dataloader.SlpGenesisLoaderConfig{
 	Wait:     2 * time.Millisecond,

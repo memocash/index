@@ -48,7 +48,7 @@ func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*
 
 // Slp is the resolver for the slp field.
 func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error) {
-	slpOutput, err := dataloader.NewSlpOutputLoader(slpOutputLoaderConfig).Load(model.HashIndex{
+	slpOutput, err := slpOutputLoader.Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: obj.Index,
 	})

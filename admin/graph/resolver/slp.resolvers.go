@@ -44,7 +44,7 @@ func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*mo
 
 // Output is the resolver for the output field.
 func (r *slpGenesisResolver) Output(ctx context.Context, obj *model.SlpGenesis) (*model.SlpOutput, error) {
-	slpOutput, err := dataloader.NewSlpOutputLoader(slpOutputLoaderConfig).Load(model.HashIndex{
+	slpOutput, err := slpOutputLoader.Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: memo.SlpMintTokenIndex,
 	})
