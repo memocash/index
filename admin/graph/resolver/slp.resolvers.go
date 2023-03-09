@@ -44,7 +44,10 @@ func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*mo
 
 // Output is the resolver for the output field.
 func (r *slpGenesisResolver) Output(ctx context.Context, obj *model.SlpGenesis) (*model.SlpOutput, error) {
-	slpOutput, err := SlpOutputLoader(obj.Hash, memo.SlpMintTokenIndex)
+	slpOutput, err := dataloader.NewSlpOutputLoader(slpOutputLoaderConfig).Load(model.HashIndex{
+		Hash:  obj.Hash,
+		Index: memo.SlpMintTokenIndex,
+	})
 	if err != nil {
 		return nil, jerr.Get("error getting slp output for slp genesis from loader", err)
 	}

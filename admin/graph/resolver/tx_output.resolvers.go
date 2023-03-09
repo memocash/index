@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -49,7 +48,10 @@ func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*
 
 // Slp is the resolver for the slp field.
 func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error) {
-	slpOutput, err := SlpOutputLoader(obj.Hash, obj.Index)
+	slpOutput, err := dataloader.NewSlpOutputLoader(slpOutputLoaderConfig).Load(model.HashIndex{
+		Hash:  obj.Hash,
+		Index: obj.Index,
+	})
 	if err != nil {
 		return nil, jerr.Get("error getting slp output for tx output from loader", err)
 	}
