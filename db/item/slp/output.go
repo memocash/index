@@ -96,7 +96,7 @@ func GetOutputs(outs []memo.Out) ([]*Output, error) {
 				return jutil.ByteLT(uids[i], uids[j])
 			})
 			if err := dbClient.GetSpecific(db.TopicSlpOutput, uids); err != nil {
-				wait.AddError(jerr.Get("error getting specific chain tx outputs by uids", err))
+				wait.AddError(jerr.Get("error getting specific slp outputs by uids", err))
 				return
 			}
 			wait.Lock.Lock()

@@ -60,7 +60,10 @@ func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model
 
 // SlpBaton is the resolver for the slp_baton field.
 func (r *txOutputResolver) SlpBaton(ctx context.Context, obj *model.TxOutput) (*model.SlpBaton, error) {
-	slpBaton, err := SlpBatonLoader(obj.Hash, obj.Index)
+	slpBaton, err := dataloader.NewSlpBatonLoader(slpBatonLoaderConfig).Load(model.HashIndex{
+		Hash:  obj.Hash,
+		Index: obj.Index,
+	})
 	if err != nil {
 		return nil, jerr.Get("error getting slp baton for tx output from loader", err)
 	}

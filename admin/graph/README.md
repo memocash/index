@@ -15,6 +15,8 @@ go run github.com/vektah/dataloaden ProfileLoader string *github.com/memocash/in
 go run github.com/vektah/dataloaden AddressBalanceLoader string int64
 go run github.com/vektah/dataloaden PostLoader string *github.com/memocash/index/admin/graph/model.Post
 go run github.com/vektah/dataloaden SlpOutputLoader github.com/memocash/index/admin/graph/model.HashIndex *github.com/memocash/index/admin/graph/model.SlpOutput
+go run github.com/vektah/dataloaden SlpBatonLoader github.com/memocash/index/admin/graph/model.HashIndex *github.com/memocash/index/admin/graph/model.SlpBaton
+go run github.com/vektah/dataloaden SlpGenesisLoader string *github.com/memocash/index/admin/graph/model.SlpGenesis
 
 go get github.com/vektah/dataloaden@none
 go mod tidy
