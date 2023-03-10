@@ -12,9 +12,8 @@ import (
 	"time"
 )
 
-var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var Profile = dataloader.NewProfileLoader(dataloader.ProfileLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(addressStrings []string) ([]*model.Profile, []error) {
 		var profiles = make([]*model.Profile, len(addressStrings))
 		var errors = make([]error, len(addressStrings))
@@ -68,4 +67,4 @@ var ProfileLoaderConfig = dataloader.ProfileLoaderConfig{
 		}
 		return profiles, errors
 	},
-}
+})

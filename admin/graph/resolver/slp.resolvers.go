@@ -5,16 +5,17 @@ package resolver
 
 import (
 	"context"
+
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
 // Output is the resolver for the output field.
 func (r *slpBatonResolver) Output(ctx context.Context, obj *model.SlpBaton) (*model.TxOutput, error) {
-	txOutput, err := dataloader.NewTxOutputLoader(txOutputLoaderConfig).Load(model.HashIndex{
+	txOutput, err := load.TxOutput.Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: obj.Index,
 	})
@@ -26,7 +27,7 @@ func (r *slpBatonResolver) Output(ctx context.Context, obj *model.SlpBaton) (*mo
 
 // Genesis is the resolver for the genesis field.
 func (r *slpBatonResolver) Genesis(ctx context.Context, obj *model.SlpBaton) (*model.SlpGenesis, error) {
-	slpGenesis, err := dataloader.NewSlpGenesisLoader(slpGenesisLoaderConfig).Load(obj.Hash)
+	slpGenesis, err := load.SlpGenesis.Load(obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error getting slp genesis for slp baton from loader", err)
 	}
@@ -35,7 +36,7 @@ func (r *slpBatonResolver) Genesis(ctx context.Context, obj *model.SlpBaton) (*m
 
 // Tx is the resolver for the tx field.
 func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*model.Tx, error) {
-	tx, err := TxLoader(ctx, obj.Hash)
+	tx, err := load.Tx(ctx, obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error getting tx for slp genesis resolver", err)
 	}
@@ -44,7 +45,7 @@ func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*mo
 
 // Output is the resolver for the output field.
 func (r *slpGenesisResolver) Output(ctx context.Context, obj *model.SlpGenesis) (*model.SlpOutput, error) {
-	slpOutput, err := slpOutputLoader.Load(model.HashIndex{
+	slpOutput, err := load.SlpOutput.Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: memo.SlpMintTokenIndex,
 	})
@@ -56,7 +57,7 @@ func (r *slpGenesisResolver) Output(ctx context.Context, obj *model.SlpGenesis) 
 
 // Baton is the resolver for the baton field.
 func (r *slpGenesisResolver) Baton(ctx context.Context, obj *model.SlpGenesis) (*model.SlpBaton, error) {
-	slpBaton, err := dataloader.NewSlpBatonLoader(slpBatonLoaderConfig).Load(model.HashIndex{
+	slpBaton, err := load.SlpBaton.Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: obj.BatonIndex,
 	})
@@ -68,7 +69,7 @@ func (r *slpGenesisResolver) Baton(ctx context.Context, obj *model.SlpGenesis) (
 
 // Output is the resolver for the output field.
 func (r *slpOutputResolver) Output(ctx context.Context, obj *model.SlpOutput) (*model.TxOutput, error) {
-	txOutput, err := dataloader.NewTxOutputLoader(txOutputLoaderConfig).Load(model.HashIndex{
+	txOutput, err := load.TxOutput.Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: obj.Index,
 	})
@@ -80,7 +81,7 @@ func (r *slpOutputResolver) Output(ctx context.Context, obj *model.SlpOutput) (*
 
 // Genesis is the resolver for the genesis field.
 func (r *slpOutputResolver) Genesis(ctx context.Context, obj *model.SlpOutput) (*model.SlpGenesis, error) {
-	slpGenesis, err := dataloader.NewSlpGenesisLoader(slpGenesisLoaderConfig).Load(obj.Hash)
+	slpGenesis, err := load.SlpGenesis.Load(obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error getting slp genesis for slp output from loader", err)
 	}

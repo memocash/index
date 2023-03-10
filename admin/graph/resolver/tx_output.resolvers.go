@@ -6,9 +6,11 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
@@ -18,8 +20,8 @@ func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.
 	var tx = &model.Tx{
 		Hash: obj.Hash,
 	}
-	if HasFieldAny(ctx, []string{"raw"}) {
-		txRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(obj.Hash)
+	if load.HasFieldAny(ctx, []string{"raw"}) {
+		txRaw, err := load.TxRaw.Load(obj.Hash)
 		if err != nil {
 			return nil, jerr.Get("error getting tx raw for output from loader", err)
 		}
@@ -30,13 +32,13 @@ func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.
 
 // Spends is the resolver for the spends field.
 func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error) {
-	var dataloaderConfig dataloader.TxOutputSpendLoaderConfig
-	if HasField(ctx, "script") {
-		dataloaderConfig = txOutputSpendWithScriptLoaderConfig
+	var txOutputSpendDataLoader *dataloader.TxOutputSpendLoader
+	if load.HasField(ctx, "script") {
+		txOutputSpendDataLoader = load.TxOutputSpendWithScript
 	} else {
-		dataloaderConfig = txOutputSpendLoaderConfig
+		txOutputSpendDataLoader = load.TxOutputSpend
 	}
-	txInputs, err := dataloader.NewTxOutputSpendLoader(dataloaderConfig).Load(model.HashIndex{
+	txInputs, err := txOutputSpendDataLoader.Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: obj.Index,
 	})
@@ -48,7 +50,7 @@ func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*
 
 // Slp is the resolver for the slp field.
 func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error) {
-	slpOutput, err := slpOutputLoader.Load(model.HashIndex{
+	slpOutput, err := load.SlpOutput.Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: obj.Index,
 	})
@@ -60,7 +62,7 @@ func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model
 
 // SlpBaton is the resolver for the slp_baton field.
 func (r *txOutputResolver) SlpBaton(ctx context.Context, obj *model.TxOutput) (*model.SlpBaton, error) {
-	slpBaton, err := dataloader.NewSlpBatonLoader(slpBatonLoaderConfig).Load(model.HashIndex{
+	slpBaton, err := load.SlpBaton.Load(model.HashIndex{
 		Hash:  obj.Hash,
 		Index: obj.Index,
 	})
@@ -82,7 +84,7 @@ func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*mode
 	var modelLock = &model.Lock{
 		Address: wallet.GetAddressStringFromPkScript(lockScript),
 	}
-	if HasField(ctx, "balance") {
+	if load.HasField(ctx, "balance") {
 		// TODO: Reimplement if needed
 		return nil, jerr.Get("error balance no longer implemented", err)
 	}

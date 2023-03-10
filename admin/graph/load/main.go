@@ -1,11 +1,14 @@
 //go:generate go run github.com/99designs/gqlgen
-package resolver
+package load
 
 import (
 	"context"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/jchavannes/jgo/jutil"
+	"time"
 )
+
+const defaultWait = 5 * time.Millisecond
 
 func HasField(ctx context.Context, preload string) bool {
 	return jutil.StringInSlice(preload, GetPreloads(ctx))

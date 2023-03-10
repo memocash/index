@@ -1,4 +1,4 @@
-package resolver
+package load
 
 import (
 	"context"
@@ -14,9 +14,8 @@ import (
 	"time"
 )
 
-var txSeenLoaderConfig = dataloader.TxSeenLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var TxSeen = dataloader.NewTxSeenLoader(dataloader.TxSeenLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(keys []string) ([]*model.Date, []error) {
 		var txHashes = make([][32]byte, len(keys))
 		for i := range keys {
@@ -46,11 +45,10 @@ var txSeenLoaderConfig = dataloader.TxSeenLoaderConfig{
 		}
 		return modelTxSeens, nil
 	},
-}
+})
 
-var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var TxRaw = dataloader.NewTxRawLoader(dataloader.TxRawLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(keys []string) ([]*model.Tx, []error) {
 		var txHashes = make([][32]byte, len(keys))
 		for i := range keys {
@@ -76,40 +74,38 @@ var txRawLoaderConfig = dataloader.TxRawLoaderConfig{
 		}
 		return txsWithRaw, nil
 	},
-}
+})
 
-func GetBlockLoaderConfig(ctx context.Context) dataloader.BlockLoaderConfig {
+func GetBlock(ctx context.Context) *dataloader.BlockLoader {
 	if !HasFieldAny(ctx, []string{"size", "tx_count"}) {
-		return blockLoaderConfigNoInfo
+		return blockNoInfo
 	}
-	return blockLoaderConfigWithInfo
+	return blockWithInfo
 }
 
-var blockLoaderConfigNoInfo = dataloader.BlockLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var blockNoInfo = dataloader.NewBlockLoader(dataloader.BlockLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(keys []string) ([][]*model.Block, []error) {
-		modelBlocks, errs := blockLoad(keys, false)
+		modelBlocks, errs := block(keys, false)
 		if errs != nil {
 			return nil, errs
 		}
 		return modelBlocks, nil
 	},
-}
+})
 
-var blockLoaderConfigWithInfo = dataloader.BlockLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var blockWithInfo = dataloader.NewBlockLoader(dataloader.BlockLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(keys []string) ([][]*model.Block, []error) {
-		modelBlocks, errs := blockLoad(keys, true)
+		modelBlocks, errs := block(keys, true)
 		if errs != nil {
 			return nil, errs
 		}
 		return modelBlocks, nil
 	},
-}
+})
 
-func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
+func block(keys []string, withInfo bool) ([][]*model.Block, []error) {
 	var txHashes = make([][32]byte, len(keys))
 	for i := range keys {
 		hash, err := chainhash.NewHashFromStr(keys[i])
@@ -179,17 +175,17 @@ func blockLoad(keys []string, withInfo bool) ([][]*model.Block, []error) {
 	return modelBlocks, nil
 }
 
-func TxLoader(ctx context.Context, txHash string) (*model.Tx, error) {
+func Tx(ctx context.Context, txHash string) (*model.Tx, error) {
 	var tx = &model.Tx{Hash: txHash}
 	if HasField(ctx, "raw") {
-		txWithRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(txHash)
+		txWithRaw, err := TxRaw.Load(txHash)
 		if err != nil {
 			return nil, jerr.Get("error getting tx raw from dataloader for post resolver", err)
 		}
 		tx.Raw = txWithRaw.Raw
 	}
 	if HasField(ctx, "seen") {
-		txSeen, err := dataloader.NewTxSeenLoader(txSeenLoaderConfig).Load(txHash)
+		txSeen, err := TxSeen.Load(txHash)
 		if err != nil {
 			return nil, jerr.Get("error getting tx seen for tx loader", err)
 		}

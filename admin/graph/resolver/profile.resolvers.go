@@ -9,7 +9,6 @@ import (
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
@@ -19,7 +18,7 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error) {
-	tx, err := TxLoader(ctx, obj.TxHash)
+	tx, err := load.Tx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for follow resolver: %s", obj.TxHash)
 	}
@@ -28,7 +27,7 @@ func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, 
 
 // Lock is the resolver for the lock field.
 func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
-	lock, err := LockLoader(ctx, obj.Address)
+	lock, err := load.Lock(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock from loader for follow resolver: %s", obj.TxHash)
 	}
@@ -37,7 +36,7 @@ func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lo
 
 // FollowLock is the resolver for the follow_lock field.
 func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
-	lock, err := LockLoader(ctx, obj.FollowAddress)
+	lock, err := load.Lock(ctx, obj.FollowAddress)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting follow lock from loader for follow resolver: %s", obj.TxHash)
 	}
@@ -46,7 +45,7 @@ func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*mo
 
 // Tx is the resolver for the tx field.
 func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, error) {
-	tx, err := TxLoader(ctx, obj.TxHash)
+	tx, err := load.Tx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for like resolver: %s", obj.TxHash)
 	}
@@ -55,7 +54,7 @@ func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, erro
 
 // Lock is the resolver for the lock field.
 func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, error) {
-	lock, err := LockLoader(ctx, obj.Address)
+	lock, err := load.Lock(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock from loader for like resolver: %s %x", obj.TxHash, obj.Address)
 	}
@@ -64,7 +63,7 @@ func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, 
 
 // Post is the resolver for the post field.
 func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, error) {
-	post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(obj.TxHash)
+	post, err := load.Post.Load(obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting post from post dataloader for like resolver: %s", obj.Address)
 	}
@@ -73,7 +72,7 @@ func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, 
 
 // Tx is the resolver for the tx field.
 func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
-	tx, err := TxLoader(ctx, obj.TxHash)
+	tx, err := load.Tx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for post resolver: %s", obj.TxHash)
 	}
@@ -82,7 +81,7 @@ func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, erro
 
 // Lock is the resolver for the lock field.
 func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, error) {
-	lock, err := LockLoader(ctx, obj.Address)
+	lock, err := load.Lock(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock from loader for post resolver: %s %x", obj.TxHash, obj.Address)
 	}
@@ -140,7 +139,7 @@ func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post
 	if postParent == nil {
 		return nil, nil
 	}
-	post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(chainhash.Hash(postParent.ParentTxHash).String())
+	post, err := load.Post.Load(chainhash.Hash(postParent.ParentTxHash).String())
 	if err != nil {
 		if load.IsPostNotFoundError(err) {
 			return nil, nil
@@ -164,7 +163,7 @@ func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.P
 	for i := range postChildren {
 		childrenTxHashes[i] = chainhash.Hash(postChildren[i].ChildTxHash).String()
 	}
-	replies, errs := dataloader.NewPostLoader(load.PostLoaderConfig).LoadAll(childrenTxHashes)
+	replies, errs := load.Post.LoadAll(childrenTxHashes)
 	for _, err := range errs {
 		if err != nil {
 			return nil, jerr.Getf(err, "error getting from post dataloader for post reply resolver: %s", obj.TxHash)
@@ -191,7 +190,7 @@ func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, 
 
 // Lock is the resolver for the lock field.
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
-	lock, err := LockLoader(ctx, obj.Address)
+	lock, err := load.Lock(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting addr from loader for profile resolver: %s", obj.Address)
 	}
@@ -300,7 +299,7 @@ func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *
 
 // Tx is the resolver for the tx field.
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
-	tx, err := TxLoader(ctx, obj.TxHash)
+	tx, err := load.Tx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for set name resolver: %s", obj.TxHash)
 	}
@@ -309,7 +308,7 @@ func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx
 
 // Lock is the resolver for the lock field.
 func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.Lock, error) {
-	lock, err := LockLoader(ctx, obj.Address)
+	lock, err := load.Lock(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock from loader for set name resolver: %s %x", obj.TxHash, obj.Address)
 	}
@@ -318,7 +317,7 @@ func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.
 
 // Tx is the resolver for the tx field.
 func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error) {
-	tx, err := TxLoader(ctx, obj.TxHash)
+	tx, err := load.Tx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for set pic resolver: %s", obj.TxHash)
 	}
@@ -327,7 +326,7 @@ func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, 
 
 // Lock is the resolver for the lock field.
 func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lock, error) {
-	lock, err := LockLoader(ctx, obj.Address)
+	lock, err := load.Lock(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock from loader for set pic resolver: %s %x", obj.TxHash, obj.Address)
 	}
@@ -336,7 +335,7 @@ func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lo
 
 // Tx is the resolver for the tx field.
 func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error) {
-	tx, err := TxLoader(ctx, obj.TxHash)
+	tx, err := load.Tx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for set profile resolver: %s", obj.TxHash)
 	}
@@ -345,7 +344,7 @@ func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*mo
 
 // Lock is the resolver for the lock field.
 func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error) {
-	lock, err := LockLoader(ctx, obj.Address)
+	lock, err := load.Lock(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock from loader for set profile resolver: %s", obj.TxHash)
 	}

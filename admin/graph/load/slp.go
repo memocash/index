@@ -1,4 +1,4 @@
-package resolver
+package load
 
 import (
 	"bytes"
@@ -10,11 +10,10 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/slp"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"time"
 )
 
-var slpOutputLoader = dataloader.NewSlpOutputLoader(dataloader.SlpOutputLoaderConfig{
-	Wait: 5 * time.Millisecond,
+var SlpOutput = dataloader.NewSlpOutputLoader(dataloader.SlpOutputLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(keys []model.HashIndex) ([]*model.SlpOutput, []error) {
 		var memoOuts = make([]memo.Out, len(keys))
 		for i := range keys {
@@ -49,9 +48,8 @@ var slpOutputLoader = dataloader.NewSlpOutputLoader(dataloader.SlpOutputLoaderCo
 	},
 })
 
-var slpGenesisLoaderConfig = dataloader.SlpGenesisLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var SlpGenesis = dataloader.NewSlpGenesisLoader(dataloader.SlpGenesisLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(keys []string) ([]*model.SlpGenesis, []error) {
 		var txHashes = make([][32]byte, len(keys))
 		for i := range keys {
@@ -85,11 +83,10 @@ var slpGenesisLoaderConfig = dataloader.SlpGenesisLoaderConfig{
 		}
 		return modelSlpGeneses, nil
 	},
-}
+})
 
-var slpBatonLoaderConfig = dataloader.SlpBatonLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var SlpBaton = dataloader.NewSlpBatonLoader(dataloader.SlpBatonLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(keys []model.HashIndex) ([]*model.SlpBaton, []error) {
 		var memoOuts = make([]memo.Out, len(keys))
 		for i := range keys {
@@ -121,4 +118,4 @@ var slpBatonLoaderConfig = dataloader.SlpBatonLoaderConfig{
 		}
 		return modelSlpBatons, nil
 	},
-}
+})

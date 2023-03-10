@@ -10,7 +10,6 @@ import (
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
@@ -24,7 +23,7 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
-	tx, err := TxLoader(ctx, hash)
+	tx, err := load.Tx(ctx, hash)
 	if err != nil {
 		return nil, jerr.Get("error getting tx from dataloader for tx query resolver", err)
 	}
@@ -38,7 +37,7 @@ func (r *queryResolver) Txs(ctx context.Context, hashes []string) ([]*model.Tx, 
 
 // Address is the resolver for the address field.
 func (r *queryResolver) Address(ctx context.Context, address string) (*model.Lock, error) {
-	if HasField(ctx, "balance") {
+	if load.HasField(ctx, "balance") {
 		// TODO: Reimplement if needed
 		return nil, jerr.New("error balance no longer implemented")
 	}
@@ -49,7 +48,7 @@ func (r *queryResolver) Address(ctx context.Context, address string) (*model.Loc
 
 // Addresses is the resolver for the addresses field.
 func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error) {
-	if HasField(ctx, "balance") {
+	if load.HasField(ctx, "balance") {
 		// TODO: Reimplement if needed
 		return nil, jerr.New("error balance no longer implemented")
 	}
@@ -87,7 +86,7 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 		Height:    &height,
 		Raw:       hex.EncodeToString(block.Raw),
 	}
-	if !HasFieldAny(ctx, []string{"size", "tx_count"}) {
+	if !load.HasFieldAny(ctx, []string{"size", "tx_count"}) {
 		return modelBlock, nil
 	}
 	blockInfo, err := chain.GetBlockInfo(*blockHash)
@@ -149,7 +148,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 		return nil, jerr.Get("error getting raw blocks", err)
 	}
 	var blockInfos []*chain.BlockInfo
-	if HasFieldAny(ctx, []string{"size", "tx_count"}) {
+	if load.HasFieldAny(ctx, []string{"size", "tx_count"}) {
 		if blockInfos, err = chain.GetBlockInfos(blockHashes); err != nil {
 			return nil, jerr.Get("error getting block infos for blocks query resolver", err)
 		}
@@ -184,7 +183,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error) {
 	var profiles []*model.Profile
 	for _, addressString := range addresses {
-		profile, err := dataloader.NewProfileLoader(load.ProfileLoaderConfig).Load(addressString)
+		profile, err := load.Profile.Load(addressString)
 		if err != nil {
 			return nil, jerr.Get("error getting profile from dataloader for profile query resolver", err)
 		}
@@ -195,7 +194,7 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*mo
 
 // Posts is the resolver for the posts field.
 func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.Post, error) {
-	posts, errs := dataloader.NewPostLoader(load.PostLoaderConfig).LoadAll(txHashes)
+	posts, errs := load.Post.LoadAll(txHashes)
 	for i, err := range errs {
 		if err != nil {
 			return nil, jerr.Getf(err, "error getting post from post dataloader for query resolver: %s", txHashes[i])
@@ -328,7 +327,7 @@ func (r *subscriptionResolver) Posts(ctx context.Context, hashes []string) (<-ch
 // Profiles is the resolver for the profiles field.
 func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error) {
 	var profile = new(sub.Profile)
-	profileChan, err := profile.Listen(ctx, addresses, GetPreloads(ctx))
+	profileChan, err := profile.Listen(ctx, addresses, load.GetPreloads(ctx))
 	if err != nil {
 		return nil, jerr.Get("error getting profile listener for subscription", err)
 	}

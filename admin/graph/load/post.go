@@ -8,7 +8,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
-	"time"
 )
 
 const postNotFoundErrorMessage = "error post not found in loader"
@@ -19,9 +18,8 @@ func IsPostNotFoundError(err error) bool {
 	return jerr.HasError(err, postNotFoundErrorMessage)
 }
 
-var PostLoaderConfig = dataloader.PostLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var Post = dataloader.NewPostLoader(dataloader.PostLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(txHashStrings []string) ([]*model.Post, []error) {
 		var posts = make([]*model.Post, len(txHashStrings))
 		var errors = make([]error, len(txHashStrings))
@@ -48,4 +46,4 @@ var PostLoaderConfig = dataloader.PostLoaderConfig{
 		}
 		return posts, errors
 	},
-}
+})

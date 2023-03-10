@@ -1,4 +1,4 @@
-package resolver
+package load
 
 import (
 	"bytes"
@@ -10,10 +10,9 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"time"
 )
 
-func txOutputSpendLoad(keys []model.HashIndex, withScript bool) ([][]*model.TxInput, []error) {
+func txOutputSpend(keys []model.HashIndex, withScript bool) ([][]*model.TxInput, []error) {
 	var outs = make([]memo.Out, len(keys))
 	for i := range keys {
 		hash, err := chainhash.NewHashFromStr(keys[i].Hash)
@@ -66,18 +65,16 @@ func txOutputSpendLoad(keys []model.HashIndex, withScript bool) ([][]*model.TxIn
 	return spends, nil
 }
 
-var txOutputSpendLoaderConfig = dataloader.TxOutputSpendLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var TxOutputSpend = dataloader.NewTxOutputSpendLoader(dataloader.TxOutputSpendLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(keys []model.HashIndex) ([][]*model.TxInput, []error) {
-		return txOutputSpendLoad(keys, false)
+		return txOutputSpend(keys, false)
 	},
-}
+})
 
-var txOutputSpendWithScriptLoaderConfig = dataloader.TxOutputSpendLoaderConfig{
-	Wait:     2 * time.Millisecond,
-	MaxBatch: 100,
+var TxOutputSpendWithScript = dataloader.NewTxOutputSpendLoader(dataloader.TxOutputSpendLoaderConfig{
+	Wait: defaultWait,
 	Fetch: func(keys []model.HashIndex) ([][]*model.TxInput, []error) {
-		return txOutputSpendLoad(keys, true)
+		return txOutputSpend(keys, true)
 	},
-}
+})
