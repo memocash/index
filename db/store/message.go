@@ -83,7 +83,7 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 		start = nil
 	}
 	if max == 0 {
-		max = client.DefaultLimit
+		max = client.HugeLimit
 	}
 	if len(prefixes) == 0 {
 		prefixes = append(prefixes, []byte{})

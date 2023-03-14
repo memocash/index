@@ -21,7 +21,6 @@ export default function LockHash() {
     query ($address: String!) {
         address(address: $address) {
             address
-            balance
             txs {
                 hash
             }
@@ -67,10 +66,6 @@ export default function LockHash() {
                     <div className={column.container}>
                         <div className={column.width15}>Address</div>
                         <div className={column.width85}>{address.address}</div>
-                    </div>
-                    <div className={column.container}>
-                        <div className={column.width15}>Balance</div>
-                        <div className={column.width85}>{address.balance.toLocaleString()}</div>
                     </div>
                     <div className={column.container}>
                         <div className={column.width50}>
