@@ -62,15 +62,20 @@ var TxRaw = dataloader.NewTxRawLoader(dataloader.TxRawLoaderConfig{
 		if err != nil {
 			return nil, []error{jerr.Get("error getting tx raws for tx dataloader", err)}
 		}
-		txsWithRaw := make([]*model.Tx, len(txRaws))
-		for i := range txRaws {
-			txsWithRaw[i] = &model.Tx{
-				Hash: chainhash.Hash(txRaws[i].Hash).String(),
-				Raw:  hex.EncodeToString(txRaws[i].Raw),
+		txsWithRaw := make([]*model.Tx, len(txHashes))
+		for h := range txHashes {
+			for r := range txRaws {
+				if txRaws[r].Hash == txHashes[h] {
+					txsWithRaw[h] = &model.Tx{
+						Hash: chainhash.Hash(txRaws[r].Hash).String(),
+						Raw:  hex.EncodeToString(txRaws[r].Raw),
+					}
+					break
+				}
 			}
-		}
-		if len(txsWithRaw) != len(keys) {
-			return nil, []error{jerr.Newf("tx raw not found for hash: %s", keys)}
+			if txsWithRaw[h] == nil {
+				return nil, []error{jerr.Newf("tx raw not found for hash: %s", chainhash.Hash(txHashes[h]))}
+			}
 		}
 		return txsWithRaw, nil
 	},
