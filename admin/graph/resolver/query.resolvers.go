@@ -139,9 +139,9 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	if err != nil {
 		return nil, jerr.Get("error getting height blocks for query", err)
 	}
-	var blockHashes = make([][]byte, len(heightBlocks))
+	var blockHashes = make([][32]byte, len(heightBlocks))
 	for i := range heightBlocks {
-		blockHashes[i] = heightBlocks[i].BlockHash[:]
+		blockHashes[i] = heightBlocks[i].BlockHash
 	}
 	blocks, err := chain.GetBlocks(blockHashes)
 	if err != nil {

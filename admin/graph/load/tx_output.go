@@ -46,3 +46,35 @@ var TxOutput = dataloader.NewTxOutputLoader(dataloader.TxOutputLoaderConfig{
 		return modelOutputs, nil
 	},
 })
+
+var TxOutputs = dataloader.NewTxOutputsLoader(dataloader.TxOutputsLoaderConfig{
+	Wait: defaultWait,
+	Fetch: func(keys []string) ([][]*model.TxOutput, []error) {
+		var txHashes = make([][32]byte, len(keys))
+		for i := range keys {
+			txHash, err := chainhash.NewHashFromStr(keys[i])
+			if err != nil {
+				return nil, []error{jerr.Get("error getting tx hash for tx outputs dataloader", err)}
+			}
+			txHashes[i] = *txHash
+		}
+		txOutputs, err := chain.GetTxOutputsByHashes(txHashes)
+		if err != nil {
+			return nil, []error{jerr.Get("error getting tx outputs for model tx", err)}
+		}
+		var modelOutputs = make([][]*model.TxOutput, len(txHashes))
+		for i := range txHashes {
+			for _, txOutput := range txOutputs {
+				if txHashes[i] == txOutput.TxHash {
+					modelOutputs[i] = append(modelOutputs[i], &model.TxOutput{
+						Hash:   chainhash.Hash(txOutput.TxHash).String(),
+						Index:  txOutput.Index,
+						Script: hex.EncodeToString(txOutput.LockScript),
+						Amount: txOutput.Value,
+					})
+				}
+			}
+		}
+		return modelOutputs, nil
+	},
+})

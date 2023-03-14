@@ -4,6 +4,7 @@ import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"sort"
@@ -25,6 +26,9 @@ func GetSingle(txHash [32]byte) (*TxRaw, error) {
 }
 
 func Get(txHashes [][32]byte) ([]*TxRaw, error) {
+	sort.Slice(txHashes, func(i, j int) bool {
+		return jutil.ByteLT(txHashes[i][:], txHashes[j][:])
+	})
 	txs, err := chain.GetTxsByHashes(txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx inputs for raw", err)

@@ -55,14 +55,9 @@ func GetMessagesByUids(topic string, shard uint, uids [][]byte) ([]*Message, err
 	if err != nil {
 		return nil, jerr.Get("error getting db", err)
 	}
-	snap, err := db.GetSnapshot()
-	if err != nil {
-		return nil, jerr.Get("error getting db snapshot", err)
-	}
-	defer snap.Release()
 	var messages []*Message
 	for i := range uids {
-		value, err := snap.Get(uids[i], nil)
+		value, err := db.Get(uids[i], nil)
 		if err != nil {
 			if IsNotFoundError(err) {
 				continue
@@ -93,11 +88,6 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 	if len(prefixes) == 0 {
 		prefixes = append(prefixes, []byte{})
 	}
-	snap, err := db.GetSnapshot()
-	if err != nil {
-		return nil, jerr.Get("error getting db snapshot", err)
-	}
-	defer snap.Release()
 	var prefix []byte
 	defer func() {
 		if r := recover(); r != nil {
@@ -110,7 +100,7 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 		return jutil.ByteLT(prefixes[i], prefixes[j])
 	})
 	if !newest && !isGetLast {
-		iter := snap.NewIterator(nil, nil)
+		iter := db.NewIterator(nil, nil)
 		defer iter.Release()
 		for _, prefix = range prefixes {
 			var prefixMessages []*Message
@@ -151,13 +141,13 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 					Limit: start,
 				}
 			}
-			iter = snap.NewIterator(iterRange, nil)
+			iter = db.NewIterator(iterRange, nil)
 		} else {
 			iterRange := util.BytesPrefix(prefix)
 			if len(start) > 0 && bytes.Compare(start, prefix) != -1 {
 				iterRange.Start = start
 			}
-			iter = snap.NewIterator(iterRange, nil)
+			iter = db.NewIterator(iterRange, nil)
 		}
 		if isGetLast {
 			if iter.Last() {

@@ -7,12 +7,10 @@ import (
 	"context"
 	"encoding/hex"
 
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
-	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -39,23 +37,9 @@ func (r *txResolver) Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInpu
 		}
 		return inputs, nil
 	}
-	txHash, err := chainhash.NewHashFromStr(obj.Hash)
+	modelInputs, err := load.TxInputs.Load(obj.Hash)
 	if err != nil {
-		return nil, jerr.Get("error getting tx hash for inputs", err)
-	}
-	txInputs, err := chain.GetTxInputsByHashes([][32]byte{*txHash})
-	if err != nil {
-		return nil, jerr.Get("error getting tx inputs for model tx", err)
-	}
-	var modelInputs = make([]*model.TxInput, len(txInputs))
-	for i := range txInputs {
-		modelInputs[i] = &model.TxInput{
-			Hash:      chainhash.Hash(txInputs[i].TxHash).String(),
-			Index:     txInputs[i].Index,
-			PrevHash:  chainhash.Hash(txInputs[i].PrevHash).String(),
-			PrevIndex: txInputs[i].PrevIndex,
-			Script:    hex.EncodeToString(txInputs[i].UnlockScript),
-		}
+		return nil, jerr.Get("error getting tx inputs for model tx from tx inputs loader", err)
 	}
 	return modelInputs, nil
 }
@@ -82,22 +66,9 @@ func (r *txResolver) Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOut
 		}
 		return outputs, nil
 	}
-	txHash, err := chainhash.NewHashFromStr(obj.Hash)
+	modelOutputs, err := load.TxOutputs.Load(obj.Hash)
 	if err != nil {
-		return nil, jerr.Get("error getting tx hash for outputs", err)
-	}
-	txOutputs, err := chain.GetTxOutputsByHashes([][32]byte{*txHash})
-	if err != nil {
-		return nil, jerr.Get("error getting tx outputs for model tx", err)
-	}
-	var modelOutputs = make([]*model.TxOutput, len(txOutputs))
-	for i := range txOutputs {
-		modelOutputs[i] = &model.TxOutput{
-			Hash:   chainhash.Hash(txOutputs[i].TxHash).String(),
-			Index:  txOutputs[i].Index,
-			Amount: txOutputs[i].Value,
-			Script: hex.EncodeToString(txOutputs[i].LockScript),
-		}
+		return nil, jerr.Get("error getting tx outputs for model tx from tx outputs loader", err)
 	}
 	return modelOutputs, nil
 }

@@ -191,6 +191,8 @@ type Wait struct {
 }
 
 func (w *Wait) AddError(err error) {
+	w.Lock.Lock()
+	defer w.Lock.Unlock()
 	w.Errs = append(w.Errs, err)
 }
 

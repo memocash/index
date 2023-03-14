@@ -2,8 +2,10 @@ package db
 
 import (
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
+	"sort"
 )
 
 func GetItem(obj Object) error {
@@ -18,4 +20,58 @@ func GetItem(obj Object) error {
 	}
 	obj.Deserialize(dbClient.Messages[0].Message)
 	return nil
+}
+
+func GetSpecific(topic string, shardUids map[uint32][][]byte) ([]client.Message, error) {
+	wait := NewWait(len(shardUids))
+	var messages []client.Message
+	for shardT, uidsT := range shardUids {
+		go func(shard uint32, uids [][]byte) {
+			defer wait.Group.Done()
+			sort.Slice(uids, func(i, j int) bool {
+				return jutil.ByteLT(uids[i], uids[j])
+			})
+			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+			dbClient := client.NewClient(shardConfig.GetHost())
+			if err := dbClient.GetSpecific(topic, uids); err != nil {
+				wait.AddError(jerr.Get("error getting client message get specific", err))
+				return
+			}
+			wait.Lock.Lock()
+			messages = append(messages, dbClient.Messages...)
+			wait.Lock.Unlock()
+		}(shardT, uidsT)
+	}
+	wait.Group.Wait()
+	if len(wait.Errs) > 0 {
+		return nil, jerr.Get("error getting specific messages", jerr.Combine(wait.Errs...))
+	}
+	return messages, nil
+}
+
+func GetByPrefixes(topic string, shardPrefixes map[uint32][][]byte) ([]client.Message, error) {
+	wait := NewWait(len(shardPrefixes))
+	var messages []client.Message
+	for shardT, prefixesT := range shardPrefixes {
+		go func(shard uint32, prefixes [][]byte) {
+			defer wait.Group.Done()
+			sort.Slice(prefixes, func(i, j int) bool {
+				return jutil.ByteLT(prefixes[i], prefixes[j])
+			})
+			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+			dbClient := client.NewClient(shardConfig.GetHost())
+			if err := dbClient.GetByPrefixes(topic, prefixes); err != nil {
+				wait.AddError(jerr.Get("error getting client message get by prefixes", err))
+				return
+			}
+			wait.Lock.Lock()
+			messages = append(messages, dbClient.Messages...)
+			wait.Lock.Unlock()
+		}(shardT, prefixesT)
+	}
+	wait.Group.Wait()
+	if len(wait.Errs) > 0 {
+		return nil, jerr.Get("error getting prefix messages", jerr.Combine(wait.Errs...))
+	}
+	return messages, nil
 }

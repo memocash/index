@@ -5,8 +5,6 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
-	"github.com/memocash/index/ref/config"
-	"sort"
 	"time"
 )
 
@@ -50,21 +48,15 @@ func GetTxSeens(txHashes [][32]byte) ([]*TxSeen, error) {
 		shard := db.GetShardByte32(txHashes[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
+	messages, err := db.GetByPrefixes(db.TopicChainTxSeen, shardPrefixes)
+	if err != nil {
+		return nil, jerr.Get("error getting client message chain tx seen", err)
+	}
 	var txSeens []*TxSeen
-	for shard, prefixes := range shardPrefixes {
-		sort.Slice(prefixes, func(i, j int) bool {
-			return jutil.ByteLT(prefixes[i], prefixes[j])
-		})
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetByPrefixes(db.TopicChainTxSeen, prefixes); err != nil {
-			return nil, jerr.Get("error getting client message tx seens", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var txSeen = new(TxSeen)
-			db.Set(txSeen, msg)
-			txSeens = append(txSeens, txSeen)
-		}
+	for _, msg := range messages {
+		var txSeen = new(TxSeen)
+		db.Set(txSeen, msg)
+		txSeens = append(txSeens, txSeen)
 	}
 	return txSeens, nil
 }

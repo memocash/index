@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const defaultWait = 5 * time.Millisecond
+const defaultWait = 10 * time.Millisecond
 
 func HasField(ctx context.Context, preload string) bool {
 	return jutil.StringInSlice(preload, GetPreloads(ctx))

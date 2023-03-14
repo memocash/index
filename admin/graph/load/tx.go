@@ -119,9 +119,9 @@ func block(keys []string, withInfo bool) ([][]*model.Block, []error) {
 	if err != nil {
 		return nil, []error{jerr.Get("error getting blocks for tx for block loader", err)}
 	}
-	var blockHashes = make([][]byte, len(txBlocks))
+	var blockHashes = make([][32]byte, len(txBlocks))
 	for i := range txBlocks {
-		blockHashes[i] = txBlocks[i].BlockHash[:]
+		blockHashes[i] = txBlocks[i].BlockHash
 	}
 	blocks, err := chain.GetBlocks(blockHashes)
 	if err != nil {

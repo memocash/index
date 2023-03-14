@@ -52,24 +52,21 @@ func GetBlock(blockHash [32]byte) (*Block, error) {
 	return block, nil
 }
 
-func GetBlocks(blockHashes [][]byte) ([]*Block, error) {
-	var shardBlockHashGroups = make(map[uint32][][]byte)
+func GetBlocks(blockHashes [][32]byte) ([]*Block, error) {
+	var shardUids = make(map[uint32][][]byte)
 	for _, blockHash := range blockHashes {
-		shard := db.GetShardByte32(blockHash)
-		shardBlockHashGroups[shard] = append(shardBlockHashGroups[shard], jutil.ByteReverse(blockHash))
+		shard := db.GetShardByte32(blockHash[:])
+		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(blockHash[:]))
+	}
+	messages, err := db.GetSpecific(db.TopicChainBlock, shardUids)
+	if err != nil {
+		return nil, jerr.Get("error getting client message chain blocks", err)
 	}
 	var blocks []*Block
-	for shard, blockHashGroup := range shardBlockHashGroups {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetSpecific(db.TopicChainBlock, blockHashGroup); err != nil {
-			return nil, jerr.Get("error getting client message blocks", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var block = new(Block)
-			db.Set(block, msg)
-			blocks = append(blocks, block)
-		}
+	for _, msg := range messages {
+		var block = new(Block)
+		db.Set(block, msg)
+		blocks = append(blocks, block)
 	}
 	return blocks, nil
 }
