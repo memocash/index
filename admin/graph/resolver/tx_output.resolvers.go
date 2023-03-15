@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
@@ -32,18 +31,18 @@ func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.
 
 // Spends is the resolver for the spends field.
 func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error) {
-	var txOutputSpendDataLoader *dataloader.TxOutputSpendLoader
+	var txInputs []*model.TxInput
+	var err error
 	if load.HasField(ctx, "script") {
-		txOutputSpendDataLoader = load.TxOutputSpendWithScript
+		txInputs, err = load.GetOutputInputsWithScript(ctx, obj.Hash, obj.Index)
 	} else {
-		txOutputSpendDataLoader = load.TxOutputSpend
+		txInputs, err = load.GetOutputInputs(ctx, obj.Hash, obj.Index)
 	}
-	txInputs, err := txOutputSpendDataLoader.Load(model.HashIndex{
-		Hash:  obj.Hash,
-		Index: obj.Index,
-	})
 	if err != nil {
 		return nil, jerr.Get("error getting tx inputs for spends from loader", err)
+	}
+	if len(txInputs) == 0 {
+		txInputs = nil
 	}
 	return txInputs, nil
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/graph-gophers/dataloader"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/chain"
 )
@@ -14,7 +13,7 @@ import (
 type TxInputReader struct {
 }
 
-func (u *TxInputReader) GetTxInputs(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
+func (r *TxInputReader) GetTxInputs(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
 	var results = make([]*dataloader.Result, len(keys))
 	var txHashes [][32]byte
 	for i := range keys {
@@ -29,7 +28,7 @@ func (u *TxInputReader) GetTxInputs(ctx context.Context, keys dataloader.Keys) [
 	if err != nil {
 		for i := range results {
 			if results[i] == nil {
-				results[i] = &dataloader.Result{Error: fmt.Errorf("error getting tx inputs for model tx; %w", err)}
+				results[i] = &dataloader.Result{Error: fmt.Errorf("error getting tx inputs for dataloader; %w", err)}
 			}
 		}
 		return results
@@ -50,10 +49,9 @@ func (u *TxInputReader) GetTxInputs(ctx context.Context, keys dataloader.Keys) [
 		if ok {
 			results[index] = &dataloader.Result{Data: hashTxInputs}
 		} else if results[index] == nil {
-			results[index] = &dataloader.Result{Error: fmt.Errorf("user not found %s", txHash.String())}
+			results[index] = &dataloader.Result{Error: fmt.Errorf("tx input not found in dataloader %s", txHash)}
 		}
 	}
-	jlog.Logf("loaded %d tx inputs\n", len(txInputs))
 	return results
 }
 
@@ -62,7 +60,7 @@ func GetTxInputs(ctx context.Context, txHash string) ([]*model.TxInput, error) {
 	thunk := loaders.TxInputLoader.Load(ctx, dataloader.StringKey(txHash))
 	result, err := thunk()
 	if err != nil {
-		return nil, fmt.Errorf("error getting tx inputs for model tx; %w", err)
+		return nil, fmt.Errorf("error getting tx inputs from loader; %w", err)
 	}
 	return result.([]*model.TxInput), nil
 }

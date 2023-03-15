@@ -13,13 +13,19 @@ const (
 )
 
 type Loaders struct {
-	TxInputLoader *dataloader.Loader
+	TxInputLoader               *dataloader.Loader
+	OutputInputLoader           *dataloader.Loader
+	OutputInputWithScriptLoader *dataloader.Loader
 }
 
 func NewLoaders() *Loaders {
 	txInputReader := &TxInputReader{}
+	outputInputReader := &OutputInputReader{}
+	outputInputWithScriptReader := &OutputInputWithScriptReader{}
 	loaders := &Loaders{
-		TxInputLoader: dataloader.NewBatchedLoader(txInputReader.GetTxInputs),
+		TxInputLoader:               dataloader.NewBatchedLoader(txInputReader.GetTxInputs),
+		OutputInputLoader:           dataloader.NewBatchedLoader(outputInputReader.GetOutputInput),
+		OutputInputWithScriptLoader: dataloader.NewBatchedLoader(outputInputWithScriptReader.GetOutputInput),
 	}
 	return loaders
 }
