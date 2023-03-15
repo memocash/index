@@ -10,6 +10,7 @@ go 1.16
 
 require (
 	github.com/99designs/gqlgen v0.17.20
+	github.com/graph-gophers/dataloader v5.0.0+incompatible // indirect
 	github.com/jchavannes/bchutil v1.1.5-0.20220519214029-6a6c086b1f21
 	github.com/jchavannes/btcd v1.1.5-0.20230112162803-412def37b600
 	github.com/jchavannes/btclog v1.1.0
@@ -17,6 +18,7 @@ require (
 	github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65
 	github.com/jchavannes/jgo v0.0.0-20230222214331-95b230651774
 	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pkg/profile v1.6.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1

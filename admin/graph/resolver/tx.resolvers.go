@@ -37,7 +37,7 @@ func (r *txResolver) Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInpu
 		}
 		return inputs, nil
 	}
-	modelInputs, err := load.TxInputs.Load(obj.Hash)
+	modelInputs, err := load.GetTxInputs(ctx, obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error getting tx inputs for model tx from tx inputs loader", err)
 	}
