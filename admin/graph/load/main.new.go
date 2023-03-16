@@ -16,6 +16,7 @@ type Loaders struct {
 	TxBlocksLoader               *dataloader.Loader
 	TxBlocksWithInfoLoader       *dataloader.Loader
 	TxInputsLoader               *dataloader.Loader
+	TxOutputsLoader              *dataloader.Loader
 	OutputInputsLoader           *dataloader.Loader
 	OutputInputsWithScriptLoader *dataloader.Loader
 }
@@ -25,6 +26,7 @@ func NewLoaders() *Loaders {
 		txBlocksReader               = &TxBlocksReader{}
 		txBlocksWithInfoReader       = &TxBlocksWithInfoReader{}
 		txInputsReader               = &TxInputsReader{}
+		txOutputsReader              = &TxOutputsReader{}
 		outputInputsReader           = &OutputInputsReader{}
 		outputInputsWithScriptReader = &OutputInputsWithScriptReader{}
 	)
@@ -32,6 +34,7 @@ func NewLoaders() *Loaders {
 		TxBlocksLoader:               dataloader.NewBatchedLoader(txBlocksReader.GetTxBlocks),
 		TxBlocksWithInfoLoader:       dataloader.NewBatchedLoader(txBlocksWithInfoReader.GetTxBlocks),
 		TxInputsLoader:               dataloader.NewBatchedLoader(txInputsReader.GetTxInputs),
+		TxOutputsLoader:              dataloader.NewBatchedLoader(txOutputsReader.GetTxOutputs),
 		OutputInputsLoader:           dataloader.NewBatchedLoader(outputInputsReader.GetOutputInput),
 		OutputInputsWithScriptLoader: dataloader.NewBatchedLoader(outputInputsWithScriptReader.GetOutputInput),
 	}

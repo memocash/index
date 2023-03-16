@@ -66,7 +66,7 @@ func (r *txResolver) Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOut
 		}
 		return outputs, nil
 	}
-	modelOutputs, err := load.TxOutputs.Load(obj.Hash)
+	modelOutputs, err := load.GetTxOutputs(ctx, obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error getting tx outputs for model tx from tx outputs loader", err)
 	}
