@@ -23,7 +23,7 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
-	tx, err := load.TxString(ctx, hash)
+	tx, err := load.GetTxByString(ctx, hash)
 	if err != nil {
 		return nil, jerr.Get("error getting tx from dataloader for tx query resolver", err)
 	}

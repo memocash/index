@@ -9,60 +9,85 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"sort"
+	"sync"
 	"time"
 )
 
+type Tx struct {
+	Preloads    []string
+	Txs         []*model.Tx
+	Mutex       sync.Mutex
+	DetailsWait sync.WaitGroup
+	OverallWait sync.WaitGroup
+	Errors      []error
+}
+
 func AttachToTxs(preloads []string, txs []*model.Tx) error {
-	if jutil.StringsInSlice([]string{"inputs", "raw"}, preloads) {
-		if err := attachInputsToTxs(txs); err != nil {
-			return err
-		}
+	t := Tx{
+		Preloads: preloads,
+		Txs:      txs,
 	}
-	if jutil.StringsInSlice([]string{"outputs", "raw"}, preloads) {
-		if err := attachOutputsToTxs(txs); err != nil {
-			return err
-		}
-	}
-	if jutil.StringsInSlice([]string{"version", "locktime", "raw"}, preloads) {
-		if err := attachInfoToTxs(txs); err != nil {
-			return err
-		}
-	}
-	if jutil.StringInSlice("raw", preloads) {
-		if err := attachRawsToTxs(txs); err != nil {
-			return err
-		}
-	}
-	if jutil.StringInSlice("seen", preloads) {
-		if err := attachSeensToTxs(txs); err != nil {
-			return err
-		}
-	}
-	var allOutputs []*model.TxOutput
-	for _, tx := range txs {
-		allOutputs = append(allOutputs, tx.Outputs...)
-	}
-	if err := AttachToOutputs(GetPrefixPreloads(preloads, "outputs."), allOutputs); err != nil {
-		return err
+	t.DetailsWait.Add(3)
+	t.OverallWait.Add(3)
+	go t.AttachInputs()
+	go t.AttachOutputs()
+	go t.AttachInfo()
+	go t.AttachSeens()
+	t.DetailsWait.Wait()
+	go t.AttachRaws()
+	t.OverallWait.Wait()
+	if len(t.Errors) > 0 {
+		return fmt.Errorf("error attaching details to txs; %w", t.Errors[0])
 	}
 	return nil
 }
 
-func attachInputsToTxs(txs []*model.Tx) error {
-	var txHashes = make([][32]byte, len(txs))
-	for i := range txs {
-		txHashes[i] = txs[i].Hash
+func (t *Tx) HasPreload(check []string) bool {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+	return jutil.StringsInSlice(check, t.Preloads)
+}
+
+func (t *Tx) GetTxHashes(checkVersion, checkSeen bool) [][32]byte {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+	var txHashes [][32]byte
+	for i := range t.Txs {
+		if checkVersion && t.Txs[i].Version != 0 {
+			continue
+		} else if checkSeen && !jutil.IsTimeZero(time.Time(t.Txs[i].Seen)) {
+			continue
+		}
+		txHashes = append(txHashes, t.Txs[i].Hash)
 	}
+	return txHashes
+}
+
+func (t *Tx) AddError(err error) {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+	t.Errors = append(t.Errors, err)
+}
+
+func (t *Tx) AttachInputs() {
+	defer t.DetailsWait.Done()
+	if !t.HasPreload([]string{"inputs", "raw"}) {
+		return
+	}
+	txHashes := t.GetTxHashes(false, false)
 	txInputs, err := chain.GetTxInputsByHashes(txHashes)
 	if err != nil {
-		return fmt.Errorf("error getting tx inputs for model tx; %w", err)
+		t.AddError(fmt.Errorf("error getting tx inputs for model tx; %w", err))
+		return
 	}
-	for i := range txs {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+	for i := range t.Txs {
 		for j := range txInputs {
-			if txs[i].Hash != txInputs[j].TxHash {
+			if t.Txs[i].Hash != txInputs[j].TxHash {
 				continue
 			}
-			txs[i].Inputs = append(txs[i].Inputs, &model.TxInput{
+			t.Txs[i].Inputs = append(t.Txs[i].Inputs, &model.TxInput{
 				Hash:      txInputs[j].TxHash,
 				Index:     txInputs[j].Index,
 				PrevHash:  txInputs[j].PrevHash,
@@ -71,75 +96,99 @@ func attachInputsToTxs(txs []*model.Tx) error {
 				Script:    txInputs[j].UnlockScript,
 			})
 		}
-		sort.Slice(txs[i].Inputs, func(a, b int) bool {
-			return txs[i].Inputs[a].Index < txs[i].Inputs[b].Index
+		sort.Slice(t.Txs[i].Inputs, func(a, b int) bool {
+			return t.Txs[i].Inputs[a].Index < t.Txs[i].Inputs[b].Index
 		})
 	}
-	return nil
 }
 
-func attachOutputsToTxs(txs []*model.Tx) error {
-	var txHashes = make([][32]byte, len(txs))
-	for i := range txs {
-		txHashes[i] = txs[i].Hash
+func (t *Tx) AttachOutputs() {
+	defer t.DetailsWait.Done()
+	if !t.HasPreload([]string{"outputs", "raw"}) {
+		return
 	}
+	txHashes := t.GetTxHashes(false, false)
 	txOutputs, err := chain.GetTxOutputsByHashes(txHashes)
 	if err != nil {
-		return fmt.Errorf("error getting tx outputs for model tx; %w", err)
+		t.AddError(fmt.Errorf("error getting tx outputs for model tx; %w", err))
+		return
 	}
-	for i := range txs {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+	for i := range t.Txs {
 		for j := range txOutputs {
-			if txs[i].Hash != txOutputs[j].TxHash {
+			if t.Txs[i].Hash != txOutputs[j].TxHash {
 				continue
 			}
-			txs[i].Outputs = append(txs[i].Outputs, &model.TxOutput{
+			t.Txs[i].Outputs = append(t.Txs[i].Outputs, &model.TxOutput{
 				Hash:   txOutputs[j].TxHash,
 				Index:  txOutputs[j].Index,
 				Amount: txOutputs[j].Value,
 				Script: txOutputs[j].LockScript,
 			})
 		}
-		sort.Slice(txs[i].Outputs, func(a, b int) bool {
-			return txs[i].Outputs[a].Index < txs[i].Outputs[b].Index
+		sort.Slice(t.Txs[i].Outputs, func(a, b int) bool {
+			return t.Txs[i].Outputs[a].Index < t.Txs[i].Outputs[b].Index
 		})
 	}
-	return nil
+	go t.AttachToOutputs()
 }
 
-func attachInfoToTxs(txs []*model.Tx) error {
-	var txHashes [][32]byte
-	for i := range txs {
-		if txs[i].Version == 0 {
-			txHashes = append(txHashes, txs[i].Hash)
-		}
+func (t *Tx) AttachToOutputs() {
+	defer t.OverallWait.Done()
+	var allOutputs []*model.TxOutput
+	t.Mutex.Lock()
+	for _, tx := range t.Txs {
+		allOutputs = append(allOutputs, tx.Outputs...)
 	}
+	preloads := GetPrefixPreloads(t.Preloads, "outputs.")
+	t.Mutex.Unlock()
+	if err := AttachToOutputs(preloads, allOutputs); err != nil {
+		t.AddError(err)
+	}
+}
+
+func (t *Tx) AttachInfo() {
+	defer t.DetailsWait.Done()
+	if !t.HasPreload([]string{"version", "locktime", "raw"}) {
+		return
+	}
+	txHashes := t.GetTxHashes(true, false)
 	if len(txHashes) == 0 {
-		return nil
+		return
 	}
 	chainTxs, err := chain.GetTxsByHashes(txHashes)
 	if err != nil {
-		return fmt.Errorf("error getting chain txs for raw; %w", err)
+		t.AddError(fmt.Errorf("error getting chain txs for raw; %w", err))
+		return
 	}
-	for i := range txs {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+	for i := range t.Txs {
 		for j := range chainTxs {
-			if txs[i].Hash != chainTxs[j].TxHash {
+			if t.Txs[i].Hash != chainTxs[j].TxHash {
 				continue
 			}
-			txs[i].Version = chainTxs[j].Version
-			txs[i].LockTime = chainTxs[j].LockTime
+			t.Txs[i].Version = chainTxs[j].Version
+			t.Txs[i].LockTime = chainTxs[j].LockTime
 			break
 		}
 	}
-	return nil
 }
 
-func attachRawsToTxs(txs []*model.Tx) error {
-	for i := range txs {
+func (t *Tx) AttachRaws() {
+	defer t.OverallWait.Done()
+	if !t.HasPreload([]string{"raw"}) {
+		return
+	}
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+	for i := range t.Txs {
 		var msgTx = &wire.MsgTx{
-			Version:  txs[i].Version,
-			LockTime: txs[i].LockTime,
+			Version:  t.Txs[i].Version,
+			LockTime: t.Txs[i].LockTime,
 		}
-		for _, txIn := range txs[i].Inputs {
+		for _, txIn := range t.Txs[i].Inputs {
 			msgTx.TxIn = append(msgTx.TxIn, &wire.TxIn{
 				PreviousOutPoint: wire.OutPoint{
 					Hash:  chainhash.Hash(txIn.PrevHash),
@@ -149,42 +198,43 @@ func attachRawsToTxs(txs []*model.Tx) error {
 				Sequence:        txIn.Sequence,
 			})
 		}
-		for _, txOut := range txs[i].Outputs {
+		for _, txOut := range t.Txs[i].Outputs {
 			msgTx.TxOut = append(msgTx.TxOut, &wire.TxOut{
 				Value:    txOut.Amount,
 				PkScript: txOut.Script,
 			})
 		}
-		if msgTx.TxHash() != chainhash.Hash(txs[i].Hash) {
-			return fmt.Errorf("tx hash mismatch for raw: %s %s", msgTx.TxHash(), chainhash.Hash(txs[i].Hash))
+		if msgTx.TxHash() != chainhash.Hash(t.Txs[i].Hash) {
+			t.AddError(fmt.Errorf("tx hash mismatch for raw: %s %s", msgTx.TxHash(), chainhash.Hash(t.Txs[i].Hash)))
+			return
 		}
-		txs[i].Raw = memo.GetRaw(msgTx)
+		t.Txs[i].Raw = memo.GetRaw(msgTx)
 	}
-	return nil
 }
 
-func attachSeensToTxs(txs []*model.Tx) error {
-	var txHashes [][32]byte
-	for i := range txs {
-		if jutil.IsTimeZero(time.Time(txs[i].Seen)) {
-			txHashes = append(txHashes, txs[i].Hash)
-		}
+func (t *Tx) AttachSeens() {
+	defer t.OverallWait.Done()
+	if !t.HasPreload([]string{"seen"}) {
+		return
 	}
+	txHashes := t.GetTxHashes(false, true)
 	if len(txHashes) == 0 {
-		return nil
+		return
 	}
 	txSeens, err := chain.GetTxSeens(txHashes)
 	if err != nil {
-		return fmt.Errorf("error getting chain txs for raw; %w", err)
+		t.AddError(fmt.Errorf("error getting chain txs for raw; %w", err))
+		return
 	}
-	for i := range txs {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+	for i := range t.Txs {
 		for j := range txSeens {
-			if txs[i].Hash != txSeens[j].TxHash {
+			if t.Txs[i].Hash != txSeens[j].TxHash {
 				continue
 			}
-			txs[i].Seen = model.Date(txSeens[j].Timestamp)
+			t.Txs[i].Seen = model.Date(txSeens[j].Timestamp)
 			break
 		}
 	}
-	return nil
 }

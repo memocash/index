@@ -7,7 +7,7 @@ import (
 	"github.com/memocash/index/admin/graph/model"
 )
 
-func Tx(ctx context.Context, txHash [32]byte) (*model.Tx, error) {
+func GetTx(ctx context.Context, txHash [32]byte) (*model.Tx, error) {
 	var tx = &model.Tx{Hash: txHash}
 	if err := AttachToTxs(GetPreloads(ctx), []*model.Tx{tx}); err != nil {
 		return nil, jerr.Get("error attaching all to single tx", err)
@@ -15,12 +15,12 @@ func Tx(ctx context.Context, txHash [32]byte) (*model.Tx, error) {
 	return tx, nil
 }
 
-func TxString(ctx context.Context, txHash string) (*model.Tx, error) {
+func GetTxByString(ctx context.Context, txHash string) (*model.Tx, error) {
 	txHashBytes, err := chainhash.NewHashFromStr(txHash)
 	if err != nil {
 		return nil, jerr.Get("error decoding tx hash from string for graph load", err)
 	}
-	tx, err := Tx(ctx, *txHashBytes)
+	tx, err := GetTx(ctx, *txHashBytes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx for graph load from string", err)
 	}
