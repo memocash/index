@@ -12,10 +12,11 @@ type Tx struct {
 }
 
 type TxOutput struct {
-	Hash   Hash   `json:"hash"`
-	Index  uint32 `json:"index"`
-	Amount int64  `json:"amount"`
-	Script Bytes  `json:"script"`
+	Hash   Hash       `json:"hash"`
+	Index  uint32     `json:"index"`
+	Amount int64      `json:"amount"`
+	Script Bytes      `json:"script"`
+	Spends []*TxInput `json:"spends"`
 }
 
 type TxInput struct {
@@ -25,6 +26,7 @@ type TxInput struct {
 	PrevIndex uint32 `json:"prev_index"`
 	Script    Bytes  `json:"script"`
 	Sequence  uint32 `json:"sequence"`
+	Tx        *Tx    `json:"tx"`
 }
 
 type Lock struct {

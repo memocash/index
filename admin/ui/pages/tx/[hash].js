@@ -24,6 +24,8 @@ export default function Hash() {
             hash
             raw
             seen
+            version
+            locktime
             inputs {
                 index
                 prev_hash
@@ -113,6 +115,14 @@ export default function Hash() {
                     <div className={column.container}>
                         <div className={column.width15}>Tx raw</div>
                         <div className={column.width85}><PreInline>{tx.raw}</PreInline></div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width15}>Version</div>
+                        <div className={column.width85}>{tx.version}</div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width15}>Locktime</div>
+                        <div className={column.width85}>{tx.locktime}</div>
                     </div>
                     <div className={column.container}>
                         <div className={column.width15}>Size</div>

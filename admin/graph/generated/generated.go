@@ -367,14 +367,11 @@ type TxResolver interface {
 	Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block, error)
 }
 type TxInputResolver interface {
-	Tx(ctx context.Context, obj *model.TxInput) (*model.Tx, error)
-
 	Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error)
 }
 type TxOutputResolver interface {
 	Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error)
 
-	Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error)
 	Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error)
 	SlpBaton(ctx context.Context, obj *model.TxOutput) (*model.SlpBaton, error)
 	Lock(ctx context.Context, obj *model.TxOutput) (*model.Lock, error)
@@ -8727,7 +8724,7 @@ func (ec *executionContext) _TxInput_tx(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TxInput().Tx(rctx, obj)
+		return obj.Tx, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8748,8 +8745,8 @@ func (ec *executionContext) fieldContext_TxInput_tx(ctx context.Context, field g
 	fc = &graphql.FieldContext{
 		Object:     "TxInput",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "hash":
@@ -9356,7 +9353,7 @@ func (ec *executionContext) _TxOutput_spends(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TxOutput().Spends(rctx, obj)
+		return obj.Spends, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9374,8 +9371,8 @@ func (ec *executionContext) fieldContext_TxOutput_spends(ctx context.Context, fi
 	fc = &graphql.FieldContext{
 		Object:     "TxOutput",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -13105,25 +13102,12 @@ func (ec *executionContext) _TxInput(ctx context.Context, sel ast.SelectionSet, 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("TxInput")
 		case "tx":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._TxInput_tx(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._TxInput_tx(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "hash":
 
 			out.Values[i] = ec._TxInput_hash(ctx, field, obj)
@@ -13253,22 +13237,9 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "spends":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._TxOutput_spends(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._TxOutput_spends(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "slp":
 			field := field
 

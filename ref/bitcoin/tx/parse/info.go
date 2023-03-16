@@ -15,6 +15,8 @@ type TxInfo struct {
 	Error           error
 	Raw             []byte
 	Hash            string
+	Version         int32
+	LockTime        uint32
 	TotalInputValue int64
 	OutputValue     int64
 	Change          int64
@@ -38,7 +40,7 @@ func (t TxInfo) GetString() string {
 		jerr.Get("error with tx info", t.Error).Print()
 		return ""
 	}
-	var txnInfo = fmt.Sprintf("Txn: %s\n", t.Hash)
+	var txnInfo = fmt.Sprintf("Txn: %s\nVersion: %d, LockTime: %d\n", t.Hash, t.Version, t.LockTime)
 	txnInfo += fmt.Sprintf("Inputs (%d):\n", len(t.Inputs))
 	for _, in := range t.Inputs {
 		txnInfo = txnInfo + fmt.Sprintf("  - Value: %d, PrevOut: %s\n", in.Value, in.PrevOutHash)
@@ -121,15 +123,12 @@ func GetTxInfo(tx *memo.Tx) TxInfo {
 		return TxInfo{}
 	}
 	msg := tx.MsgTx
-	writer := new(bytes.Buffer)
-	err := msg.BtcEncode(writer, 1)
-	if err != nil {
-		return TxInfo{Error: jerr.Get("error encoding transaction", err)}
-	}
 	var txInfo = TxInfo{
-		Raw:  writer.Bytes(),
-		Hash: msg.TxHash().String(),
-		Size: msg.SerializeSize(),
+		Raw:      memo.GetRaw(msg),
+		Hash:     msg.TxHash().String(),
+		Version:  msg.Version,
+		LockTime: msg.LockTime,
+		Size:     msg.SerializeSize(),
 	}
 
 	for _, in := range msg.TxIn {

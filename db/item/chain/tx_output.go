@@ -1,14 +1,12 @@
 package chain
 
 import (
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
-	"sort"
 )
 
 type TxOutput struct {
@@ -102,45 +100,20 @@ func GetTxOutput(out memo.Out) (*TxOutput, error) {
 }
 
 func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
-	var shardOutGroups = make(map[uint32][]memo.Out)
+	var shardUids = make(map[uint32][][]byte)
 	for _, out := range outs {
 		shard := db.GetShardByte32(out.TxHash)
-		shardOutGroups[shard] = append(shardOutGroups[shard], out)
+		shardUids[shard] = append(shardUids[shard], db.GetTxHashIndexUid(out.TxHash, out.Index))
 	}
-	wait := db.NewWait(len(shardOutGroups))
+	messages, err := db.GetSpecific(db.TopicChainTxOutput, shardUids)
+	if err != nil {
+		return nil, jerr.Get("error getting client message chain tx output", err)
+	}
 	var txOutputs []*TxOutput
-	for shardT, outGroupT := range shardOutGroups {
-		go func(shard uint32, outGroup []memo.Out) {
-			defer wait.Group.Done()
-			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-			dbClient := client.NewClient(shardConfig.GetHost())
-			var uids = make([][]byte, len(outGroup))
-			for i := range outGroup {
-				txHash, err := chainhash.NewHash(outGroup[i].TxHash)
-				if err != nil {
-					wait.AddError(jerr.Get("error creating tx hash", err))
-				}
-				uids[i] = db.GetTxHashIndexUid(txHash[:], outGroup[i].Index)
-			}
-			sort.Slice(uids, func(i, j int) bool {
-				return jutil.ByteLT(uids[i], uids[j])
-			})
-			if err := dbClient.GetSpecific(db.TopicChainTxOutput, uids); err != nil {
-				wait.AddError(jerr.Get("error getting specific chain tx outputs by uids", err))
-				return
-			}
-			wait.Lock.Lock()
-			for i := range dbClient.Messages {
-				var txOutput = new(TxOutput)
-				db.Set(txOutput, dbClient.Messages[i])
-				txOutputs = append(txOutputs, txOutput)
-			}
-			wait.Lock.Unlock()
-		}(shardT, outGroupT)
-	}
-	wait.Group.Wait()
-	if len(wait.Errs) > 0 {
-		return nil, jerr.Get("error getting tx outputs", jerr.Combine(wait.Errs...))
+	for i := range messages {
+		var txOutput = new(TxOutput)
+		db.Set(txOutput, messages[i])
+		txOutputs = append(txOutputs, txOutput)
 	}
 	return txOutputs, nil
 }

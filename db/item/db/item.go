@@ -5,7 +5,6 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
-	"sort"
 )
 
 func GetItem(obj Object) error {
@@ -28,18 +27,24 @@ func GetSpecific(topic string, shardUids map[uint32][][]byte) ([]client.Message,
 	for shardT, uidsT := range shardUids {
 		go func(shard uint32, uids [][]byte) {
 			defer wait.Group.Done()
-			sort.Slice(uids, func(i, j int) bool {
-				return jutil.ByteLT(uids[i], uids[j])
-			})
+			uids = jutil.RemoveDupesAndEmpties(uids)
 			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 			dbClient := client.NewClient(shardConfig.GetHost())
-			if err := dbClient.GetSpecific(topic, uids); err != nil {
-				wait.AddError(jerr.Get("error getting client message get specific", err))
-				return
+			for len(uids) > 0 {
+				var uidsToUse [][]byte
+				if len(uids) > client.HugeLimit {
+					uidsToUse, uids = uids[:client.HugeLimit], uids[client.HugeLimit:]
+				} else {
+					uidsToUse, uids = uids, nil
+				}
+				if err := dbClient.GetSpecific(topic, uidsToUse); err != nil {
+					wait.AddError(jerr.Get("error getting client message get specific", err))
+					return
+				}
+				wait.Lock.Lock()
+				messages = append(messages, dbClient.Messages...)
+				wait.Lock.Unlock()
 			}
-			wait.Lock.Lock()
-			messages = append(messages, dbClient.Messages...)
-			wait.Lock.Unlock()
 		}(shardT, uidsT)
 	}
 	wait.Group.Wait()
@@ -55,18 +60,24 @@ func GetByPrefixes(topic string, shardPrefixes map[uint32][][]byte) ([]client.Me
 	for shardT, prefixesT := range shardPrefixes {
 		go func(shard uint32, prefixes [][]byte) {
 			defer wait.Group.Done()
-			sort.Slice(prefixes, func(i, j int) bool {
-				return jutil.ByteLT(prefixes[i], prefixes[j])
-			})
+			prefixes = jutil.RemoveDupesAndEmpties(prefixes)
 			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 			dbClient := client.NewClient(shardConfig.GetHost())
-			if err := dbClient.GetByPrefixes(topic, prefixes); err != nil {
-				wait.AddError(jerr.Get("error getting client message get by prefixes", err))
-				return
+			for len(prefixes) > 0 {
+				var prefixesToUse [][]byte
+				if len(prefixes) > client.HugeLimit {
+					prefixesToUse, prefixes = prefixes[:client.HugeLimit], prefixes[client.HugeLimit:]
+				} else {
+					prefixesToUse, prefixes = prefixes, nil
+				}
+				if err := dbClient.GetByPrefixes(topic, prefixesToUse); err != nil {
+					wait.AddError(jerr.Get("error getting client message get by prefixes", err))
+					return
+				}
+				wait.Lock.Lock()
+				messages = append(messages, dbClient.Messages...)
+				wait.Lock.Unlock()
 			}
-			wait.Lock.Lock()
-			messages = append(messages, dbClient.Messages...)
-			wait.Lock.Unlock()
 		}(shardT, prefixesT)
 	}
 	wait.Group.Wait()

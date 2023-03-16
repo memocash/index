@@ -57,7 +57,7 @@ func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Da
 			Seen: model.Date(seenTxs[i].Seen),
 		}
 	}
-	if err := load.AttachAllToTxs(load.GetPreloads(ctx), modelTxs); err != nil {
+	if err := load.AttachToTxs(load.GetPreloads(ctx), modelTxs); err != nil {
 		return nil, jerr.Get("error attaching all to txs for lock txs resolver", err)
 	}
 	return modelTxs, nil

@@ -12,36 +12,43 @@ import (
 	"time"
 )
 
-func AttachAllToTxs(preloads []string, txs []*model.Tx) error {
+func AttachToTxs(preloads []string, txs []*model.Tx) error {
 	if jutil.StringsInSlice([]string{"inputs", "raw"}, preloads) {
-		if err := AttachInputsToTxs(txs); err != nil {
+		if err := attachInputsToTxs(txs); err != nil {
 			return err
 		}
 	}
 	if jutil.StringsInSlice([]string{"outputs", "raw"}, preloads) {
-		if err := AttachOutputsToTxs(txs); err != nil {
+		if err := attachOutputsToTxs(txs); err != nil {
 			return err
 		}
 	}
 	if jutil.StringsInSlice([]string{"version", "locktime", "raw"}, preloads) {
-		if err := AttachInfoToTxs(txs); err != nil {
+		if err := attachInfoToTxs(txs); err != nil {
 			return err
 		}
 	}
 	if jutil.StringInSlice("raw", preloads) {
-		if err := AttachRawsToTxs(txs); err != nil {
+		if err := attachRawsToTxs(txs); err != nil {
 			return err
 		}
 	}
 	if jutil.StringInSlice("seen", preloads) {
-		if err := AttachSeensToTxs(txs); err != nil {
+		if err := attachSeensToTxs(txs); err != nil {
 			return err
 		}
+	}
+	var allOutputs []*model.TxOutput
+	for _, tx := range txs {
+		allOutputs = append(allOutputs, tx.Outputs...)
+	}
+	if err := AttachToOutputs(GetPrefixPreloads(preloads, "outputs."), allOutputs); err != nil {
+		return err
 	}
 	return nil
 }
 
-func AttachInputsToTxs(txs []*model.Tx) error {
+func attachInputsToTxs(txs []*model.Tx) error {
 	var txHashes = make([][32]byte, len(txs))
 	for i := range txs {
 		txHashes[i] = txs[i].Hash
@@ -51,7 +58,7 @@ func AttachInputsToTxs(txs []*model.Tx) error {
 		return fmt.Errorf("error getting tx inputs for model tx; %w", err)
 	}
 	for i := range txs {
-		for j := 0; j < len(txInputs); j++ {
+		for j := range txInputs {
 			if txs[i].Hash != txInputs[j].TxHash {
 				continue
 			}
@@ -63,8 +70,6 @@ func AttachInputsToTxs(txs []*model.Tx) error {
 				Sequence:  txInputs[j].Sequence,
 				Script:    txInputs[j].UnlockScript,
 			})
-			txInputs = append(txInputs[:j], txInputs[j+1:]...)
-			j--
 		}
 		sort.Slice(txs[i].Inputs, func(a, b int) bool {
 			return txs[i].Inputs[a].Index < txs[i].Inputs[b].Index
@@ -73,7 +78,7 @@ func AttachInputsToTxs(txs []*model.Tx) error {
 	return nil
 }
 
-func AttachOutputsToTxs(txs []*model.Tx) error {
+func attachOutputsToTxs(txs []*model.Tx) error {
 	var txHashes = make([][32]byte, len(txs))
 	for i := range txs {
 		txHashes[i] = txs[i].Hash
@@ -83,7 +88,7 @@ func AttachOutputsToTxs(txs []*model.Tx) error {
 		return fmt.Errorf("error getting tx outputs for model tx; %w", err)
 	}
 	for i := range txs {
-		for j := 0; j < len(txOutputs); j++ {
+		for j := range txOutputs {
 			if txs[i].Hash != txOutputs[j].TxHash {
 				continue
 			}
@@ -93,8 +98,6 @@ func AttachOutputsToTxs(txs []*model.Tx) error {
 				Amount: txOutputs[j].Value,
 				Script: txOutputs[j].LockScript,
 			})
-			txOutputs = append(txOutputs[:j], txOutputs[j+1:]...)
-			j--
 		}
 		sort.Slice(txs[i].Outputs, func(a, b int) bool {
 			return txs[i].Outputs[a].Index < txs[i].Outputs[b].Index
@@ -103,30 +106,34 @@ func AttachOutputsToTxs(txs []*model.Tx) error {
 	return nil
 }
 
-func AttachInfoToTxs(txs []*model.Tx) error {
-	var txHashes = make([][32]byte, len(txs))
+func attachInfoToTxs(txs []*model.Tx) error {
+	var txHashes [][32]byte
 	for i := range txs {
-		txHashes[i] = txs[i].Hash
+		if txs[i].Version == 0 {
+			txHashes = append(txHashes, txs[i].Hash)
+		}
+	}
+	if len(txHashes) == 0 {
+		return nil
 	}
 	chainTxs, err := chain.GetTxsByHashes(txHashes)
 	if err != nil {
 		return fmt.Errorf("error getting chain txs for raw; %w", err)
 	}
 	for i := range txs {
-		for j := 0; j < len(chainTxs); j++ {
+		for j := range chainTxs {
 			if txs[i].Hash != chainTxs[j].TxHash {
 				continue
 			}
 			txs[i].Version = chainTxs[j].Version
 			txs[i].LockTime = chainTxs[j].LockTime
-			j--
 			break
 		}
 	}
 	return nil
 }
 
-func AttachRawsToTxs(txs []*model.Tx) error {
+func attachRawsToTxs(txs []*model.Tx) error {
 	for i := range txs {
 		var msgTx = &wire.MsgTx{
 			Version:  txs[i].Version,
@@ -156,7 +163,7 @@ func AttachRawsToTxs(txs []*model.Tx) error {
 	return nil
 }
 
-func AttachSeensToTxs(txs []*model.Tx) error {
+func attachSeensToTxs(txs []*model.Tx) error {
 	var txHashes [][32]byte
 	for i := range txs {
 		if jutil.IsTimeZero(time.Time(txs[i].Seen)) {
@@ -171,12 +178,11 @@ func AttachSeensToTxs(txs []*model.Tx) error {
 		return fmt.Errorf("error getting chain txs for raw; %w", err)
 	}
 	for i := range txs {
-		for j := 0; j < len(txSeens); j++ {
+		for j := range txSeens {
 			if txs[i].Hash != txSeens[j].TxHash {
 				continue
 			}
 			txs[i].Seen = model.Date(txSeens[j].Timestamp)
-			j--
 			break
 		}
 	}

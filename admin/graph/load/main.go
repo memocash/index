@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/jchavannes/jgo/jutil"
+	"strings"
 	"time"
 )
 
@@ -40,4 +41,13 @@ func GetPreloadString(prefix, name string) string {
 		return prefix + "." + name
 	}
 	return name
+}
+
+func GetPrefixPreloads(preloads []string, prefix string) (prefixPreloads []string) {
+	for _, preload := range preloads {
+		if strings.HasPrefix(preload, prefix) {
+			prefixPreloads = append(prefixPreloads, strings.TrimPrefix(preload, prefix))
+		}
+	}
+	return
 }

@@ -8,7 +8,6 @@ import (
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
@@ -18,28 +17,10 @@ import (
 // Tx is the resolver for the tx field.
 func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {
 	var tx = &model.Tx{Hash: obj.Hash}
-	if err := load.AttachAllToTxs(load.GetPreloads(ctx), []*model.Tx{tx}); err != nil {
+	if err := load.AttachToTxs(load.GetPreloads(ctx), []*model.Tx{tx}); err != nil {
 		return nil, jerr.Get("error attaching all to output tx", err)
 	}
 	return tx, nil
-}
-
-// Spends is the resolver for the spends field.
-func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error) {
-	var txOutputSpendDataLoader *dataloader.TxOutputSpendLoader
-	if load.HasField(ctx, "script") {
-		txOutputSpendDataLoader = load.TxOutputSpendWithScript
-	} else {
-		txOutputSpendDataLoader = load.TxOutputSpend
-	}
-	txInputs, err := txOutputSpendDataLoader.Load(model.HashIndex{
-		Hash:  chainhash.Hash(obj.Hash).String(),
-		Index: obj.Index,
-	})
-	if err != nil {
-		return nil, jerr.Get("error getting tx inputs for spends from loader", err)
-	}
-	return txInputs, nil
 }
 
 // Slp is the resolver for the slp field.
