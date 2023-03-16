@@ -24,16 +24,16 @@ func HashInputFromString(input string) (string, uint32, error) {
 	return txHash, index, nil
 }
 
-type OutputInputReader struct {
+type OutputInputsReader struct {
 }
 
-func (r *OutputInputReader) GetOutputInput(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
+func (r *OutputInputsReader) GetOutputInput(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
 	return getTxOutputInputs(ctx, keys, false)
 }
 
 func GetOutputInputs(ctx context.Context, txHash string, index uint32) ([]*model.TxInput, error) {
 	loaders := For(ctx)
-	thunk := loaders.OutputInputLoader.Load(ctx, dataloader.StringKey(HashInputString(txHash, index)))
+	thunk := loaders.OutputInputsLoader.Load(ctx, dataloader.StringKey(HashInputString(txHash, index)))
 	result, err := thunk()
 	if err != nil {
 		return nil, fmt.Errorf("error getting tx output inputs from loader; %w", err)
@@ -41,16 +41,16 @@ func GetOutputInputs(ctx context.Context, txHash string, index uint32) ([]*model
 	return result.([]*model.TxInput), nil
 }
 
-type OutputInputWithScriptReader struct {
+type OutputInputsWithScriptReader struct {
 }
 
-func (r *OutputInputWithScriptReader) GetOutputInput(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
+func (r *OutputInputsWithScriptReader) GetOutputInput(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
 	return getTxOutputInputs(ctx, keys, true)
 }
 
 func GetOutputInputsWithScript(ctx context.Context, txHash string, index uint32) ([]*model.TxInput, error) {
 	loaders := For(ctx)
-	thunk := loaders.OutputInputWithScriptLoader.Load(ctx, dataloader.StringKey(HashInputString(txHash, index)))
+	thunk := loaders.OutputInputsWithScriptLoader.Load(ctx, dataloader.StringKey(HashInputString(txHash, index)))
 	result, err := thunk()
 	if err != nil {
 		return nil, fmt.Errorf("error getting tx output inputs with script from loader; %w", err)
@@ -60,7 +60,7 @@ func GetOutputInputsWithScript(ctx context.Context, txHash string, index uint32)
 
 func getTxOutputInputs(ctx context.Context, keys dataloader.Keys, withScript bool) []*dataloader.Result {
 	var results = make([]*dataloader.Result, len(keys))
-	var outs = make([]memo.Out, len(keys))
+	var outs []memo.Out
 	for i := range keys {
 		txHash, index, err := HashInputFromString(keys[i].String())
 		if err != nil {
@@ -72,21 +72,16 @@ func getTxOutputInputs(ctx context.Context, keys dataloader.Keys, withScript boo
 		if err != nil {
 			results[i] = &dataloader.Result{
 				Error: fmt.Errorf("error getting tx hash for tx output inputs dataloader; %w", err)}
+			continue
 		}
-		outs[i] = memo.Out{
+		outs = append(outs, memo.Out{
 			TxHash: hash[:],
 			Index:  index,
-		}
+		})
 	}
 	outputInputs, err := chain.GetOutputInputs(outs)
 	if err != nil {
-		for i := range results {
-			if results[i] == nil {
-				results[i] = &dataloader.Result{
-					Error: fmt.Errorf("error getting tx output inputs from chain; %w", err)}
-			}
-		}
-		return results
+		return resultsError(results, fmt.Errorf("error getting tx output inputs from chain; %w", err))
 	}
 	var txInputs []*chain.TxInput
 	if withScript {
@@ -98,19 +93,12 @@ func getTxOutputInputs(ctx context.Context, keys dataloader.Keys, withScript boo
 			}
 		}
 		if txInputs, err = chain.GetTxInputs(ins); err != nil {
-			for i := range results {
-				if results[i] == nil {
-					results[i] = &dataloader.Result{
-						Error: fmt.Errorf("error getting tx output inputs script from chain; %w", err)}
-				}
-			}
-			return results
+			return resultsError(results, fmt.Errorf("error getting tx output inputs script from chain; %w", err))
 		}
 	}
 	var outputInputsByTxHashIndex = make(map[string][]*model.TxInput)
 	for _, outputInput := range outputInputs {
 		prevHash := chainhash.Hash(outputInput.PrevHash).String()
-		hashIndex := HashInputString(prevHash, outputInput.PrevIndex)
 		var modelOutputInput = &model.TxInput{
 			Hash:      chainhash.Hash(outputInput.Hash).String(),
 			Index:     outputInput.Index,
@@ -123,6 +111,7 @@ func getTxOutputInputs(ctx context.Context, keys dataloader.Keys, withScript boo
 				break
 			}
 		}
+		hashIndex := HashInputString(prevHash, outputInput.PrevIndex)
 		outputInputsByTxHashIndex[hashIndex] = append(outputInputsByTxHashIndex[hashIndex], modelOutputInput)
 	}
 	for index, hashIndex := range keys {

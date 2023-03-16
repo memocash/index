@@ -75,9 +75,18 @@ func (r *txResolver) Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOut
 
 // Blocks is the resolver for the blocks field.
 func (r *txResolver) Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block, error) {
-	blocks, err := load.GetBlock(ctx).Load(obj.Hash)
+	var blocks []*model.Block
+	var err error
+	if load.HasFieldAny(ctx, []string{"size", "tx_count"}) {
+		blocks, err = load.GetTxBlocksWithInfo(ctx, obj.Hash)
+	} else {
+		blocks, err = load.GetTxBlocks(ctx, obj.Hash)
+	}
 	if err != nil {
 		return nil, jerr.Get("error getting blocks for tx from loader", err)
+	}
+	if len(blocks) == 0 {
+		blocks = nil
 	}
 	return blocks, nil
 }

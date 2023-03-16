@@ -13,19 +13,27 @@ const (
 )
 
 type Loaders struct {
-	TxInputLoader               *dataloader.Loader
-	OutputInputLoader           *dataloader.Loader
-	OutputInputWithScriptLoader *dataloader.Loader
+	TxBlocksLoader               *dataloader.Loader
+	TxBlocksWithInfoLoader       *dataloader.Loader
+	TxInputsLoader               *dataloader.Loader
+	OutputInputsLoader           *dataloader.Loader
+	OutputInputsWithScriptLoader *dataloader.Loader
 }
 
 func NewLoaders() *Loaders {
-	txInputReader := &TxInputReader{}
-	outputInputReader := &OutputInputReader{}
-	outputInputWithScriptReader := &OutputInputWithScriptReader{}
+	var (
+		txBlocksReader               = &TxBlocksReader{}
+		txBlocksWithInfoReader       = &TxBlocksWithInfoReader{}
+		txInputsReader               = &TxInputsReader{}
+		outputInputsReader           = &OutputInputsReader{}
+		outputInputsWithScriptReader = &OutputInputsWithScriptReader{}
+	)
 	loaders := &Loaders{
-		TxInputLoader:               dataloader.NewBatchedLoader(txInputReader.GetTxInputs),
-		OutputInputLoader:           dataloader.NewBatchedLoader(outputInputReader.GetOutputInput),
-		OutputInputWithScriptLoader: dataloader.NewBatchedLoader(outputInputWithScriptReader.GetOutputInput),
+		TxBlocksLoader:               dataloader.NewBatchedLoader(txBlocksReader.GetTxBlocks),
+		TxBlocksWithInfoLoader:       dataloader.NewBatchedLoader(txBlocksWithInfoReader.GetTxBlocks),
+		TxInputsLoader:               dataloader.NewBatchedLoader(txInputsReader.GetTxInputs),
+		OutputInputsLoader:           dataloader.NewBatchedLoader(outputInputsReader.GetOutputInput),
+		OutputInputsWithScriptLoader: dataloader.NewBatchedLoader(outputInputsWithScriptReader.GetOutputInput),
 	}
 	return loaders
 }
@@ -40,4 +48,13 @@ func Middleware(loaders *Loaders, next http.Handler) http.Handler {
 
 func For(ctx context.Context) *Loaders {
 	return ctx.Value(loadersKey).(*Loaders)
+}
+
+func resultsError(results []*dataloader.Result, err error) []*dataloader.Result {
+	for i := range results {
+		if results[i] == nil {
+			results[i] = &dataloader.Result{Error: err}
+		}
+	}
+	return results
 }

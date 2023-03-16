@@ -10,10 +10,10 @@ import (
 	"github.com/memocash/index/db/item/chain"
 )
 
-type TxInputReader struct {
+type TxInputsReader struct {
 }
 
-func (r *TxInputReader) GetTxInputs(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
+func (r *TxInputsReader) GetTxInputs(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
 	var results = make([]*dataloader.Result, len(keys))
 	var txHashes [][32]byte
 	for i := range keys {
@@ -26,12 +26,7 @@ func (r *TxInputReader) GetTxInputs(ctx context.Context, keys dataloader.Keys) [
 	}
 	txInputs, err := chain.GetTxInputsByHashes(txHashes)
 	if err != nil {
-		for i := range results {
-			if results[i] == nil {
-				results[i] = &dataloader.Result{Error: fmt.Errorf("error getting tx inputs for dataloader; %w", err)}
-			}
-		}
-		return results
+		return resultsError(results, fmt.Errorf("error getting tx inputs for dataloader; %w", err))
 	}
 	var txInputsByTxHash = make(map[string][]*model.TxInput)
 	for _, txInput := range txInputs {
@@ -57,7 +52,7 @@ func (r *TxInputReader) GetTxInputs(ctx context.Context, keys dataloader.Keys) [
 
 func GetTxInputs(ctx context.Context, txHash string) ([]*model.TxInput, error) {
 	loaders := For(ctx)
-	thunk := loaders.TxInputLoader.Load(ctx, dataloader.StringKey(txHash))
+	thunk := loaders.TxInputsLoader.Load(ctx, dataloader.StringKey(txHash))
 	result, err := thunk()
 	if err != nil {
 		return nil, fmt.Errorf("error getting tx inputs from loader; %w", err)
