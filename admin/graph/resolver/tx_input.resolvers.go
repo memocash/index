@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
@@ -14,15 +15,9 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx, error) {
-	var tx = &model.Tx{
-		Hash: obj.Hash,
-	}
-	if load.HasFieldAny(ctx, []string{"raw"}) {
-		txRaw, err := load.TxRaw.Load(obj.Hash)
-		if err != nil {
-			return nil, jerr.Get("error getting tx raw for output from loader", err)
-		}
-		tx.Raw = txRaw.Raw
+	var tx = &model.Tx{Hash: obj.Hash}
+	if err := load.AttachAllToTxs(load.GetPreloads(ctx), []*model.Tx{tx}); err != nil {
+		return nil, jerr.Get("error attaching all to input tx", err)
 	}
 	return tx, nil
 }
@@ -30,7 +25,7 @@ func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx
 // Output is the resolver for the output field.
 func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error) {
 	txOutput, err := load.TxOutput.Load(model.HashIndex{
-		Hash:  obj.PrevHash,
+		Hash:  chainhash.Hash(obj.PrevHash).String(),
 		Index: obj.PrevIndex,
 	})
 	if err != nil {

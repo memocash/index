@@ -43,6 +43,8 @@ autobind:
 # modelgen, the others will be allowed when binding to fields. Configure them to
 # your liking
 models:
+  Int32:
+    model: github.com/99designs/gqlgen/graphql.Int32
   Int64:
     model: github.com/99designs/gqlgen/graphql.Int64
   Uint8:
@@ -51,6 +53,10 @@ models:
     model: github.com/99designs/gqlgen/graphql.Uint32
   Uint64:
     model: github.com/99designs/gqlgen/graphql.Uint64
+  Bytes:
+    model: github.com/memocash/index/admin/graph/model.Bytes
+  Hash:
+    model: github.com/memocash/index/admin/graph/model.Hash
   HashIndex:
     model: github.com/memocash/index/admin/graph/model.HashIndex
 

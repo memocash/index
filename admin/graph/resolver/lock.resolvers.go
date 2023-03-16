@@ -50,32 +50,15 @@ func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Da
 	if err != nil {
 		return nil, jerr.Get("error getting addr seen txs for lock txs resolver", err)
 	}
-	var txHashes = make([]string, len(seenTxs))
-	for i := range seenTxs {
-		txHashes[i] = chainhash.Hash(seenTxs[i].TxHash).String()
-	}
-	var txsWithRaw []*model.Tx
-	if load.HasFieldAny(ctx, []string{"raw"}) {
-		var errs []error
-		txsWithRaw, errs = load.TxRaw.LoadAll(txHashes)
-		for _, err := range errs {
-			if err != nil {
-				return nil, jerr.Get("error getting tx raw from dataloader for lock txs resolver", err)
-			}
-		}
-	}
 	var modelTxs = make([]*model.Tx, len(seenTxs))
 	for i := range seenTxs {
 		modelTxs[i] = &model.Tx{
-			Hash: chainhash.Hash(seenTxs[i].TxHash).String(),
+			Hash: seenTxs[i].TxHash,
 			Seen: model.Date(seenTxs[i].Seen),
 		}
-		for _, txWithRaw := range txsWithRaw {
-			if txWithRaw.Hash == modelTxs[i].Hash {
-				modelTxs[i].Raw = txWithRaw.Raw
-				break
-			}
-		}
+	}
+	if err := load.AttachAllToTxs(load.GetPreloads(ctx), modelTxs); err != nil {
+		return nil, jerr.Get("error attaching all to txs for lock txs resolver", err)
 	}
 	return modelTxs, nil
 }

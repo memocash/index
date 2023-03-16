@@ -5,8 +5,8 @@ package resolver
 
 import (
 	"context"
-	"encoding/hex"
 
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
@@ -17,15 +17,9 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {
-	var tx = &model.Tx{
-		Hash: obj.Hash,
-	}
-	if load.HasFieldAny(ctx, []string{"raw"}) {
-		txRaw, err := load.TxRaw.Load(obj.Hash)
-		if err != nil {
-			return nil, jerr.Get("error getting tx raw for output from loader", err)
-		}
-		tx.Raw = txRaw.Raw
+	var tx = &model.Tx{Hash: obj.Hash}
+	if err := load.AttachAllToTxs(load.GetPreloads(ctx), []*model.Tx{tx}); err != nil {
+		return nil, jerr.Get("error attaching all to output tx", err)
 	}
 	return tx, nil
 }
@@ -39,7 +33,7 @@ func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*
 		txOutputSpendDataLoader = load.TxOutputSpend
 	}
 	txInputs, err := txOutputSpendDataLoader.Load(model.HashIndex{
-		Hash:  obj.Hash,
+		Hash:  chainhash.Hash(obj.Hash).String(),
 		Index: obj.Index,
 	})
 	if err != nil {
@@ -51,7 +45,7 @@ func (r *txOutputResolver) Spends(ctx context.Context, obj *model.TxOutput) ([]*
 // Slp is the resolver for the slp field.
 func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error) {
 	slpOutput, err := load.SlpOutput.Load(model.HashIndex{
-		Hash:  obj.Hash,
+		Hash:  chainhash.Hash(obj.Hash).String(),
 		Index: obj.Index,
 	})
 	if err != nil {
@@ -63,7 +57,7 @@ func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model
 // SlpBaton is the resolver for the slp_baton field.
 func (r *txOutputResolver) SlpBaton(ctx context.Context, obj *model.TxOutput) (*model.SlpBaton, error) {
 	slpBaton, err := load.SlpBaton.Load(model.HashIndex{
-		Hash:  obj.Hash,
+		Hash:  chainhash.Hash(obj.Hash).String(),
 		Index: obj.Index,
 	})
 	if err != nil {
@@ -77,16 +71,12 @@ func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*mode
 	if len(obj.Script) == 0 {
 		return nil, nil
 	}
-	lockScript, err := hex.DecodeString(obj.Script)
-	if err != nil {
-		return nil, jerr.Get("error parsing lock script for tx output lock resolver", err)
-	}
 	var modelLock = &model.Lock{
-		Address: wallet.GetAddressStringFromPkScript(lockScript),
+		Address: wallet.GetAddressStringFromPkScript(obj.Script),
 	}
 	if load.HasField(ctx, "balance") {
 		// TODO: Reimplement if needed
-		return nil, jerr.Get("error balance no longer implemented", err)
+		return nil, jerr.New("error balance no longer implemented")
 	}
 	return modelLock, nil
 }

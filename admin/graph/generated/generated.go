@@ -223,13 +223,15 @@ type ComplexityRoot struct {
 	}
 
 	Tx struct {
-		Blocks  func(childComplexity int) int
-		Hash    func(childComplexity int) int
-		Index   func(childComplexity int) int
-		Inputs  func(childComplexity int) int
-		Outputs func(childComplexity int) int
-		Raw     func(childComplexity int) int
-		Seen    func(childComplexity int) int
+		Blocks   func(childComplexity int) int
+		Hash     func(childComplexity int) int
+		Index    func(childComplexity int) int
+		Inputs   func(childComplexity int) int
+		LockTime func(childComplexity int) int
+		Outputs  func(childComplexity int) int
+		Raw      func(childComplexity int) int
+		Seen     func(childComplexity int) int
+		Version  func(childComplexity int) int
 	}
 
 	TxInput struct {
@@ -239,6 +241,7 @@ type ComplexityRoot struct {
 		PrevHash  func(childComplexity int) int
 		PrevIndex func(childComplexity int) int
 		Script    func(childComplexity int) int
+		Sequence  func(childComplexity int) int
 		Tx        func(childComplexity int) int
 	}
 
@@ -361,8 +364,6 @@ type SubscriptionResolver interface {
 	RoomFollows(ctx context.Context, addresses []string) (<-chan *model.RoomFollow, error)
 }
 type TxResolver interface {
-	Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInput, error)
-	Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOutput, error)
 	Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block, error)
 }
 type TxInputResolver interface {
@@ -1298,6 +1299,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tx.Inputs(childComplexity), true
 
+	case "Tx.locktime":
+		if e.complexity.Tx.LockTime == nil {
+			break
+		}
+
+		return e.complexity.Tx.LockTime(childComplexity), true
+
 	case "Tx.outputs":
 		if e.complexity.Tx.Outputs == nil {
 			break
@@ -1318,6 +1326,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Tx.Seen(childComplexity), true
+
+	case "Tx.version":
+		if e.complexity.Tx.Version == nil {
+			break
+		}
+
+		return e.complexity.Tx.Version(childComplexity), true
 
 	case "TxInput.hash":
 		if e.complexity.TxInput.Hash == nil {
@@ -1360,6 +1375,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TxInput.Script(childComplexity), true
+
+	case "TxInput.sequence":
+		if e.complexity.TxInput.Sequence == nil {
+			break
+		}
+
+		return e.complexity.TxInput.Sequence(childComplexity), true
 
 	case "TxInput.tx":
 		if e.complexity.TxInput.Tx == nil {
@@ -1643,12 +1665,15 @@ type RoomFollow {
     tx: Tx!
 }
 `, BuiltIn: false},
-	{Name: "../schema/scalar.graphqls", Input: `scalar Int64
+	{Name: "../schema/scalar.graphqls", Input: `scalar Int32
+scalar Int64
 scalar Uint8
 scalar Uint32
 scalar Uint64
 scalar HashIndex
 scalar Date
+scalar Hash
+scalar Bytes
 `, BuiltIn: false},
 	{Name: "../schema/slp.graphqls", Input: `type SlpGenesis {
     tx: Tx!
@@ -1696,31 +1721,34 @@ type SlpBaton {
 #}
 `, BuiltIn: false},
 	{Name: "../schema/tx.graphqls", Input: `type Tx {
-    hash: String!
+    hash: Hash!
     index: Uint32!
-    raw: String!
+    raw: Bytes!
     inputs: [TxInput!]!
     outputs: [TxOutput!]!
     blocks: [Block]
     seen: Date
+    version:  Int32!
+    locktime: Uint32!
 }
 `, BuiltIn: false},
 	{Name: "../schema/tx_input.graphqls", Input: `type TxInput {
     tx: Tx!
-    hash: String!
+    hash: Hash!
     index: Uint32!
-    script: String!
-    prev_hash: String!
+    script: Bytes!
+    prev_hash: Hash!
     prev_index: Uint32!
     output: TxOutput
+    sequence: Uint32!
 }
 `, BuiltIn: false},
 	{Name: "../schema/tx_output.graphqls", Input: `type TxOutput {
     tx: Tx!
-    hash: String!
+    hash: Hash!
     index: Uint32!
     amount: Int64!
-    script: String!
+    script: Bytes!
     spends: [TxInput]
     slp: SlpOutput
     slp_baton: SlpBaton
@@ -2479,6 +2507,10 @@ func (ec *executionContext) fieldContext_Block_txs(ctx context.Context, field gr
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -2550,6 +2582,10 @@ func (ec *executionContext) fieldContext_Follow_tx(ctx context.Context, field gr
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -2894,6 +2930,10 @@ func (ec *executionContext) fieldContext_Like_tx(ctx context.Context, field grap
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -3385,6 +3425,10 @@ func (ec *executionContext) fieldContext_Lock_txs(ctx context.Context, field gra
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -3511,6 +3555,10 @@ func (ec *executionContext) fieldContext_Post_tx(ctx context.Context, field grap
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -4515,6 +4563,10 @@ func (ec *executionContext) fieldContext_Query_tx(ctx context.Context, field gra
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -4583,6 +4635,10 @@ func (ec *executionContext) fieldContext_Query_txs(ctx context.Context, field gr
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -5773,6 +5829,10 @@ func (ec *executionContext) fieldContext_RoomFollow_tx(ctx context.Context, fiel
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -5833,6 +5893,10 @@ func (ec *executionContext) fieldContext_SetName_tx(ctx context.Context, field g
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -6079,6 +6143,10 @@ func (ec *executionContext) fieldContext_SetPic_tx(ctx context.Context, field gr
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -6325,6 +6393,10 @@ func (ec *executionContext) fieldContext_SetProfile_tx(ctx context.Context, fiel
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -6832,6 +6904,10 @@ func (ec *executionContext) fieldContext_SlpGenesis_tx(ctx context.Context, fiel
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -7674,6 +7750,10 @@ func (ec *executionContext) fieldContext_Subscription_address(ctx context.Contex
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -7756,6 +7836,10 @@ func (ec *executionContext) fieldContext_Subscription_addresses(ctx context.Cont
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -8211,9 +8295,9 @@ func (ec *executionContext) _Tx_hash(ctx context.Context, field graphql.Collecte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Tx_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8223,7 +8307,7 @@ func (ec *executionContext) fieldContext_Tx_hash(ctx context.Context, field grap
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8299,9 +8383,9 @@ func (ec *executionContext) _Tx_raw(ctx context.Context, field graphql.Collected
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Bytes)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNBytes2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBytes(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Tx_raw(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8311,7 +8395,7 @@ func (ec *executionContext) fieldContext_Tx_raw(ctx context.Context, field graph
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Bytes does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8331,7 +8415,7 @@ func (ec *executionContext) _Tx_inputs(ctx context.Context, field graphql.Collec
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Tx().Inputs(rctx, obj)
+		return obj.Inputs, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8352,8 +8436,8 @@ func (ec *executionContext) fieldContext_Tx_inputs(ctx context.Context, field gr
 	fc = &graphql.FieldContext{
 		Object:     "Tx",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -8370,6 +8454,8 @@ func (ec *executionContext) fieldContext_Tx_inputs(ctx context.Context, field gr
 				return ec.fieldContext_TxInput_prev_index(ctx, field)
 			case "output":
 				return ec.fieldContext_TxInput_output(ctx, field)
+			case "sequence":
+				return ec.fieldContext_TxInput_sequence(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TxInput", field.Name)
 		},
@@ -8391,7 +8477,7 @@ func (ec *executionContext) _Tx_outputs(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Tx().Outputs(rctx, obj)
+		return obj.Outputs, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8412,8 +8498,8 @@ func (ec *executionContext) fieldContext_Tx_outputs(ctx context.Context, field g
 	fc = &graphql.FieldContext{
 		Object:     "Tx",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -8539,6 +8625,94 @@ func (ec *executionContext) fieldContext_Tx_seen(ctx context.Context, field grap
 	return fc, nil
 }
 
+func (ec *executionContext) _Tx_version(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Tx_version(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Version, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int32)
+	fc.Result = res
+	return ec.marshalNInt322int32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Tx_version(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Tx",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int32 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Tx_locktime(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Tx_locktime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LockTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uint32)
+	fc.Result = res
+	return ec.marshalNUint322uint32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Tx_locktime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Tx",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint32 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _TxInput_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_TxInput_tx(ctx, field)
 	if err != nil {
@@ -8592,6 +8766,10 @@ func (ec *executionContext) fieldContext_TxInput_tx(ctx context.Context, field g
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -8625,9 +8803,9 @@ func (ec *executionContext) _TxInput_hash(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_TxInput_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8637,7 +8815,7 @@ func (ec *executionContext) fieldContext_TxInput_hash(ctx context.Context, field
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8713,9 +8891,9 @@ func (ec *executionContext) _TxInput_script(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Bytes)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNBytes2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBytes(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_TxInput_script(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8725,7 +8903,7 @@ func (ec *executionContext) fieldContext_TxInput_script(ctx context.Context, fie
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Bytes does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8757,9 +8935,9 @@ func (ec *executionContext) _TxInput_prev_hash(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_TxInput_prev_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8769,7 +8947,7 @@ func (ec *executionContext) fieldContext_TxInput_prev_hash(ctx context.Context, 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8880,6 +9058,50 @@ func (ec *executionContext) fieldContext_TxInput_output(ctx context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _TxInput_sequence(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TxInput_sequence(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Sequence, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uint32)
+	fc.Result = res
+	return ec.marshalNUint322uint32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TxInput_sequence(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TxInput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint32 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _TxOutput_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_TxOutput_tx(ctx, field)
 	if err != nil {
@@ -8933,6 +9155,10 @@ func (ec *executionContext) fieldContext_TxOutput_tx(ctx context.Context, field 
 				return ec.fieldContext_Tx_blocks(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 		},
@@ -8966,9 +9192,9 @@ func (ec *executionContext) _TxOutput_hash(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_TxOutput_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8978,7 +9204,7 @@ func (ec *executionContext) fieldContext_TxOutput_hash(ctx context.Context, fiel
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -9098,9 +9324,9 @@ func (ec *executionContext) _TxOutput_script(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Bytes)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNBytes2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBytes(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_TxOutput_script(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9110,7 +9336,7 @@ func (ec *executionContext) fieldContext_TxOutput_script(ctx context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Bytes does not have child fields")
 		},
 	}
 	return fc, nil
@@ -9166,6 +9392,8 @@ func (ec *executionContext) fieldContext_TxOutput_spends(ctx context.Context, fi
 				return ec.fieldContext_TxInput_prev_index(ctx, field)
 			case "output":
 				return ec.fieldContext_TxInput_output(ctx, field)
+			case "sequence":
+				return ec.fieldContext_TxInput_sequence(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TxInput", field.Name)
 		},
@@ -12807,45 +13035,19 @@ func (ec *executionContext) _Tx(ctx context.Context, sel ast.SelectionSet, obj *
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "inputs":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tx_inputs(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Tx_inputs(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "outputs":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tx_outputs(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Tx_outputs(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "blocks":
 			field := field
 
@@ -12867,6 +13069,20 @@ func (ec *executionContext) _Tx(ctx context.Context, sel ast.SelectionSet, obj *
 
 			out.Values[i] = ec._Tx_seen(ctx, field, obj)
 
+		case "version":
+
+			out.Values[i] = ec._Tx_version(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "locktime":
+
+			out.Values[i] = ec._Tx_locktime(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12960,6 +13176,13 @@ func (ec *executionContext) _TxInput(ctx context.Context, sel ast.SelectionSet, 
 				return innerFunc(ctx)
 
 			})
+		case "sequence":
+
+			out.Values[i] = ec._TxInput_sequence(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13451,6 +13674,27 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNBytes2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBytes(ctx context.Context, v interface{}) (model.Bytes, error) {
+	res, err := model.UnmarshalBytes(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNBytes2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐBytes(ctx context.Context, sel ast.SelectionSet, v model.Bytes) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	res := model.MarshalBytes(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNDate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, v interface{}) (model.Date, error) {
 	res, err := model.UnmarshalDate(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -13458,6 +13702,36 @@ func (ec *executionContext) unmarshalNDate2githubᚗcomᚋmemocashᚋindexᚋadm
 
 func (ec *executionContext) marshalNDate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx context.Context, sel ast.SelectionSet, v model.Date) graphql.Marshaler {
 	res := model.MarshalDate(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNHash2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHash(ctx context.Context, v interface{}) (model.Hash, error) {
+	res, err := model.UnmarshalHash(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNHash2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHash(ctx context.Context, sel ast.SelectionSet, v model.Hash) graphql.Marshaler {
+	res := model.MarshalHash(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInt322int32(ctx context.Context, v interface{}) (int32, error) {
+	res, err := graphql.UnmarshalInt32(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt322int32(ctx context.Context, sel ast.SelectionSet, v int32) graphql.Marshaler {
+	res := graphql.MarshalInt32(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")

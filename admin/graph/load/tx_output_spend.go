@@ -2,7 +2,6 @@ package load
 
 import (
 	"bytes"
-	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -46,14 +45,14 @@ func txOutputSpend(keys []model.HashIndex, withScript bool) ([][]*model.TxInput,
 		for _, outputInput := range outputInputs {
 			if bytes.Equal(outs[i].TxHash, outputInput.PrevHash[:]) && outs[i].Index == outputInput.PrevIndex {
 				var modelTxInput = &model.TxInput{
-					Hash:      chainhash.Hash(outputInput.Hash).String(),
+					Hash:      outputInput.Hash,
 					Index:     outputInput.Index,
-					PrevHash:  keys[i].Hash,
+					PrevHash:  outputInput.PrevHash,
 					PrevIndex: outputInput.PrevIndex,
 				}
 				for _, txInput := range txInputs {
 					if txInput.TxHash == outputInput.Hash && txInput.Index == outputInput.Index {
-						modelTxInput.Script = hex.EncodeToString(txInput.UnlockScript)
+						modelTxInput.Script = txInput.UnlockScript
 						break
 					}
 				}

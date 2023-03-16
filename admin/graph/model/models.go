@@ -1,25 +1,30 @@
 package model
 
 type Tx struct {
-	Hash  string `json:"hash"`
-	Index uint32 `json:"index"`
-	Raw   string `json:"raw"`
-	Seen  Date   `json:"seen"`
+	Hash     Hash        `json:"hash"`
+	Index    uint32      `json:"index"`
+	Raw      Bytes       `json:"raw"`
+	Seen     Date        `json:"seen"`
+	Version  int32       `json:"version"`
+	LockTime uint32      `json:"locktime"`
+	Inputs   []*TxInput  `json:"inputs"`
+	Outputs  []*TxOutput `json:"outputs"`
 }
 
 type TxOutput struct {
-	Hash   string `json:"hash"`
+	Hash   Hash   `json:"hash"`
 	Index  uint32 `json:"index"`
 	Amount int64  `json:"amount"`
-	Script string `json:"script"`
+	Script Bytes  `json:"script"`
 }
 
 type TxInput struct {
-	Hash      string `json:"hash"`
+	Hash      Hash   `json:"hash"`
 	Index     uint32 `json:"index"`
-	PrevHash  string `json:"prev_hash"`
+	PrevHash  Hash   `json:"prev_hash"`
 	PrevIndex uint32 `json:"prev_index"`
-	Script    string `json:"script"`
+	Script    Bytes  `json:"script"`
+	Sequence  uint32 `json:"sequence"`
 }
 
 type DoubleSpend struct {

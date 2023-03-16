@@ -74,7 +74,7 @@ func (r *roomFollowResolver) Lock(ctx context.Context, obj *model.RoomFollow) (*
 
 // Tx is the resolver for the tx field.
 func (r *roomFollowResolver) Tx(ctx context.Context, obj *model.RoomFollow) (*model.Tx, error) {
-	tx, err := load.Tx(ctx, obj.TxHash)
+	tx, err := load.TxString(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for room follow resolver: %s", obj.TxHash)
 	}

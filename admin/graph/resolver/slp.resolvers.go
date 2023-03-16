@@ -36,7 +36,7 @@ func (r *slpBatonResolver) Genesis(ctx context.Context, obj *model.SlpBaton) (*m
 
 // Tx is the resolver for the tx field.
 func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*model.Tx, error) {
-	tx, err := load.Tx(ctx, obj.Hash)
+	tx, err := load.TxString(ctx, obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error getting tx for slp genesis resolver", err)
 	}

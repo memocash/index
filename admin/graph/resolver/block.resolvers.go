@@ -36,7 +36,7 @@ func (r *blockResolver) Txs(ctx context.Context, obj *model.Block, start *uint32
 	for i := range blockTxs {
 		modelTxs[i] = &model.Tx{
 			Index: blockTxs[i].Index,
-			Hash:  chainhash.Hash(blockTxs[i].TxHash).String(),
+			Hash:  blockTxs[i].TxHash,
 		}
 	}
 	return modelTxs, nil
