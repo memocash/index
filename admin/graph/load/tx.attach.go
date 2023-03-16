@@ -14,38 +14,29 @@ import (
 )
 
 type Tx struct {
-	Preloads    []string
+	baseA
 	Txs         []*model.Tx
-	Mutex       sync.Mutex
 	DetailsWait sync.WaitGroup
-	OverallWait sync.WaitGroup
-	Errors      []error
 }
 
 func AttachToTxs(preloads []string, txs []*model.Tx) error {
 	t := Tx{
-		Preloads: preloads,
-		Txs:      txs,
+		baseA: baseA{Preloads: preloads},
+		Txs:   txs,
 	}
 	t.DetailsWait.Add(3)
-	t.OverallWait.Add(3)
+	t.Wait.Add(3)
 	go t.AttachInputs()
 	go t.AttachOutputs()
 	go t.AttachInfo()
 	go t.AttachSeens()
 	t.DetailsWait.Wait()
 	go t.AttachRaws()
-	t.OverallWait.Wait()
+	t.Wait.Wait()
 	if len(t.Errors) > 0 {
 		return fmt.Errorf("error attaching details to txs; %w", t.Errors[0])
 	}
 	return nil
-}
-
-func (t *Tx) HasPreload(check []string) bool {
-	t.Mutex.Lock()
-	defer t.Mutex.Unlock()
-	return jutil.StringsInSlice(check, t.Preloads)
 }
 
 func (t *Tx) GetTxHashes(checkVersion, checkSeen bool) [][32]byte {
@@ -61,12 +52,6 @@ func (t *Tx) GetTxHashes(checkVersion, checkSeen bool) [][32]byte {
 		txHashes = append(txHashes, t.Txs[i].Hash)
 	}
 	return txHashes
-}
-
-func (t *Tx) AddError(err error) {
-	t.Mutex.Lock()
-	defer t.Mutex.Unlock()
-	t.Errors = append(t.Errors, err)
 }
 
 func (t *Tx) AttachInputs() {
@@ -135,7 +120,7 @@ func (t *Tx) AttachOutputs() {
 }
 
 func (t *Tx) AttachToOutputs() {
-	defer t.OverallWait.Done()
+	defer t.Wait.Done()
 	var allOutputs []*model.TxOutput
 	t.Mutex.Lock()
 	for _, tx := range t.Txs {
@@ -144,7 +129,8 @@ func (t *Tx) AttachToOutputs() {
 	preloads := GetPrefixPreloads(t.Preloads, "outputs.")
 	t.Mutex.Unlock()
 	if err := AttachToOutputs(preloads, allOutputs); err != nil {
-		t.AddError(err)
+		t.AddError(fmt.Errorf("error attaching to outputs for tx; %w", err))
+		return
 	}
 }
 
@@ -177,7 +163,7 @@ func (t *Tx) AttachInfo() {
 }
 
 func (t *Tx) AttachRaws() {
-	defer t.OverallWait.Done()
+	defer t.Wait.Done()
 	if !t.HasPreload([]string{"raw"}) {
 		return
 	}
@@ -213,7 +199,7 @@ func (t *Tx) AttachRaws() {
 }
 
 func (t *Tx) AttachSeens() {
-	defer t.OverallWait.Done()
+	defer t.Wait.Done()
 	if !t.HasPreload([]string{"seen"}) {
 		return
 	}
