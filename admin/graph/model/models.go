@@ -27,20 +27,6 @@ type TxInput struct {
 	Sequence  uint32 `json:"sequence"`
 }
 
-type DoubleSpend struct {
-	Hash      string `json:"hash"`
-	Index     uint32 `json:"index"`
-	Timestamp Date   `json:"timestamp"`
-}
-
-type TxLost struct {
-	Hash string `json:"hash"`
-}
-
-type TxSuspect struct {
-	Hash string `json:"hash"`
-}
-
 type Lock struct {
 	Address string `json:"address"`
 	Balance int64  `json:"balance"`
