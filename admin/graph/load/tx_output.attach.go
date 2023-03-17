@@ -13,6 +13,9 @@ type Outputs struct {
 }
 
 func AttachToOutputs(preloads []string, outputs []*model.TxOutput) error {
+	if len(outputs) == 0 {
+		return nil
+	}
 	o := Outputs{
 		baseA:   baseA{Preloads: preloads},
 		Outputs: outputs,
@@ -27,12 +30,12 @@ func AttachToOutputs(preloads []string, outputs []*model.TxOutput) error {
 	return nil
 }
 
-func (o *Outputs) GetOuts(checkAmountScript bool) []memo.Out {
+func (o *Outputs) GetOuts(checkScript bool) []memo.Out {
 	o.Mutex.Lock()
 	defer o.Mutex.Unlock()
 	var outs []memo.Out
 	for i := range o.Outputs {
-		if checkAmountScript && (o.Outputs[i].Amount == 0 || len(o.Outputs[i].Script) == 0) {
+		if checkScript && len(o.Outputs[i].Script) != 0 {
 			continue
 		}
 		outs = append(outs, memo.Out{

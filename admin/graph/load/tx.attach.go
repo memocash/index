@@ -89,6 +89,9 @@ func (t *Tx) AttachInputs() {
 
 func (t *Tx) AttachOutputs() {
 	defer t.DetailsWait.Done()
+	defer func() {
+		go t.AttachToOutputs()
+	}()
 	if !t.HasPreload([]string{"outputs", "raw"}) {
 		return
 	}
@@ -116,7 +119,6 @@ func (t *Tx) AttachOutputs() {
 			return t.Txs[i].Outputs[a].Index < t.Txs[i].Outputs[b].Index
 		})
 	}
-	go t.AttachToOutputs()
 }
 
 func (t *Tx) AttachToOutputs() {
