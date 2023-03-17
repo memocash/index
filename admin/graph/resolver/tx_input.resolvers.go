@@ -14,7 +14,7 @@ import (
 
 // Output is the resolver for the output field.
 func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error) {
-	txOutput, err := load.GetTxOutput(ctx, obj.Hash, obj.Index)
+	txOutput, err := load.GetTxOutput(ctx, obj.PrevHash, obj.PrevIndex)
 	if err != nil {
 		return nil, jerr.Get("error getting tx output for spends from loader", err)
 	}

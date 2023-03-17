@@ -10,6 +10,10 @@ import (
 
 type Hash [32]byte
 
+func (h Hash) String() string {
+	return chainhash.Hash(h).String()
+}
+
 func MarshalHash(hash Hash) graphql.Marshaler {
 	data, _ := json.Marshal(chainhash.Hash(hash).String())
 	return graphql.WriterFunc(func(w io.Writer) {

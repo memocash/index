@@ -70,9 +70,9 @@ export default function LockHash() {
                     <div className={column.container}>
                         <div className={column.width50}>
                             <h3>Txs ({address.txs.length})</h3>
-                            {address.txs.map((tx) => {
+                            {address.txs.map((tx, index) => {
                                 return (
-                                    <div key={tx} className={column.container}>
+                                    <div key={index} className={column.container}>
                                         <Link href={"/tx/" + tx.hash}>
                                             <a><PreInline>{tx.hash}</PreInline></a>
                                         </Link>
