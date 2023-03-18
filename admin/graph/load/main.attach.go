@@ -8,18 +8,19 @@ import (
 type baseA struct {
 	Preloads []string
 	Mutex    sync.Mutex
+	mutexB   sync.Mutex
 	Wait     sync.WaitGroup
 	Errors   []error
 }
 
 func (b *baseA) HasPreload(check []string) bool {
-	b.Mutex.Lock()
-	defer b.Mutex.Unlock()
+	b.mutexB.Lock()
+	defer b.mutexB.Unlock()
 	return jutil.StringsInSlice(check, b.Preloads)
 }
 
 func (b *baseA) AddError(err error) {
-	b.Mutex.Lock()
-	defer b.Mutex.Unlock()
+	b.mutexB.Lock()
+	defer b.mutexB.Unlock()
 	b.Errors = append(b.Errors, err)
 }

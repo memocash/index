@@ -164,6 +164,8 @@ func (t *Tx) AttachInfo() {
 	}
 }
 
+var TxMissingError = fmt.Errorf("error tx missing")
+
 func (t *Tx) AttachRaws() {
 	defer t.Wait.Done()
 	if !t.HasPreload([]string{"raw"}) {
@@ -172,6 +174,10 @@ func (t *Tx) AttachRaws() {
 	t.Mutex.Lock()
 	defer t.Mutex.Unlock()
 	for i := range t.Txs {
+		if t.Txs[i].Version == 0 {
+			t.AddError(fmt.Errorf("error tx missing info data: %s; %w", t.Txs[i].Hash, TxMissingError))
+			return
+		}
 		var msgTx = &wire.MsgTx{
 			Version:  t.Txs[i].Version,
 			LockTime: t.Txs[i].LockTime,

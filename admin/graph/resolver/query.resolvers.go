@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -25,7 +26,10 @@ import (
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
 	tx, err := load.GetTxByString(ctx, hash)
 	if err != nil {
-		return nil, jerr.Get("error getting tx from dataloader for tx query resolver", err)
+		if errors.Is(err, load.TxMissingError) {
+			return nil, fmt.Errorf("tx not found for hash: %s", hash)
+		}
+		return nil, fmt.Errorf("error getting tx from dataloader for tx query resolver; %w", err)
 	}
 	return tx, nil
 }

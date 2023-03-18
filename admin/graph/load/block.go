@@ -44,8 +44,7 @@ func block(keys []string, withInfo bool) ([][]*model.Block, []error) {
 	for i := range keys {
 		hash, err := chainhash.NewHashFromStr(keys[i])
 		if err != nil {
-			return nil, []error{jerr.Get("error getting tx hash from string for block loader"+
-				"", err)}
+			return nil, []error{jerr.Get("error getting tx hash from string for block loader", err)}
 		}
 		txHashes[i] = *hash
 	}
