@@ -230,15 +230,15 @@ func (d *Database) SaveTxs(txs []graph.Tx) error {
 				}
 			}
 		}
-		for _, block := range tx.Blocks {
+		for _, txBlock := range tx.Blocks {
 			queries = append(queries,
 				d.GetInsert(TableBlocks, map[string]interface{}{
-					"hash":      block.Hash,
-					"timestamp": block.Timestamp.Format(time.RFC3339Nano),
-					"height":    block.Height,
+					"hash":      txBlock.Block.Hash,
+					"timestamp": txBlock.Block.Timestamp.Format(time.RFC3339Nano),
+					"height":    txBlock.Block.Height,
 				}),
 				d.GetInsert(TableBlockTxs, map[string]interface{}{
-					"block_hash": block.Hash,
+					"block_hash": txBlock.Block.Hash,
 					"tx_hash":    tx.Hash,
 				}))
 		}

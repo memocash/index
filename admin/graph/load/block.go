@@ -77,7 +77,7 @@ func block(keys []string, withInfo bool) ([][]*model.Block, []error) {
 				continue
 			}
 			var modelBlock = &model.Block{
-				Hash: chainhash.Hash(txBlock.BlockHash).String(),
+				Hash: txBlock.BlockHash,
 			}
 			for _, block := range blocks {
 				if block.Hash != txBlock.BlockHash {

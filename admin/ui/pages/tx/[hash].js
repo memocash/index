@@ -55,9 +55,11 @@ export default function Hash() {
                 }
             }
             blocks {
-                hash
-                height
-                timestamp
+                block {
+                    hash
+                    height
+                    timestamp
+                }
             }
         }
     }
@@ -167,15 +169,15 @@ function BlockInfo({tx}) {
         <div className={column.container}>
             <div className={column.width15}>Block</div>
             <div className={column.width85}>
-                {tx.blocks ? tx.blocks.map((block) => {
+                {tx.blocks ? tx.blocks.map((txBlock) => {
                     return (
-                        <div key={block.hash}>
-                            Hash: <Link href={"/block/" + block.hash}>
-                            <a>{block.hash}</a></Link>
+                        <div key={txBlock.block.hash}>
+                            Hash: <Link href={"/block/" + txBlock.block.hash}>
+                            <a>{txBlock.block.hash}</a></Link>
                             <br/>
-                            Timestamp: {block.timestamp.length ? block.timestamp : "Not set"}
+                            Timestamp: {txBlock.block.timestamp.length ? txBlock.block.timestamp : "Not set"}
                             <br/>
-                            Height: {block.height}
+                            Height: {txBlock.block.height}
                         </div>
                     )
                 }) : null}

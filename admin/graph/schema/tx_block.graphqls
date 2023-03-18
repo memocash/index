@@ -1,0 +1,7 @@
+type TxBlock {
+    tx_hash: Hash!
+    tx: Tx!
+    block_hash: Hash!
+    block: Block!
+    index: Uint32!
+}

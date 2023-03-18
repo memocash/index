@@ -25,11 +25,12 @@ func AttachToTxs(preloads []string, txs []*model.Tx) error {
 		Txs:   txs,
 	}
 	t.DetailsWait.Add(3)
-	t.Wait.Add(3)
+	t.Wait.Add(5)
 	go t.AttachInputs()
 	go t.AttachOutputs()
 	go t.AttachInfo()
 	go t.AttachSeens()
+	go t.AttachBlocks()
 	t.DetailsWait.Wait()
 	go t.AttachRaws()
 	t.Wait.Wait()
@@ -230,5 +231,57 @@ func (t *Tx) AttachSeens() {
 			t.Txs[i].Seen = model.Date(txSeens[j].Timestamp)
 			break
 		}
+	}
+}
+
+func (t *Tx) AttachBlocks() {
+	defer t.Wait.Done()
+	defer func() {
+		go t.AttachToBlocks()
+	}()
+	if !t.HasPreload([]string{"blocks"}) {
+		return
+	}
+	txHashes := t.GetTxHashes(false, false)
+	txBlocks, err := chain.GetTxBlocks(txHashes)
+	if err != nil {
+		t.AddError(fmt.Errorf("error getting blocks for tx for block loader; %w", err))
+		return
+	}
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+	for i := range t.Txs {
+		for j := range txBlocks {
+			if t.Txs[i].Hash != txBlocks[j].TxHash {
+				continue
+			}
+			t.Txs[i].Blocks = append(t.Txs[i].Blocks, &model.TxBlock{
+				TxHash:    t.Txs[i].Hash,
+				Tx:        t.Txs[i],
+				BlockHash: txBlocks[j].BlockHash,
+				Block:     &model.Block{Hash: txBlocks[j].BlockHash},
+				Index:     txBlocks[j].Index,
+			})
+		}
+		sort.Slice(t.Txs[i].Outputs, func(a, b int) bool {
+			return t.Txs[i].Outputs[a].Index < t.Txs[i].Outputs[b].Index
+		})
+	}
+}
+
+func (t *Tx) AttachToBlocks() {
+	defer t.Wait.Done()
+	var allBlocks []*model.Block
+	t.Mutex.Lock()
+	for _, tx := range t.Txs {
+		for _, txBlock := range tx.Blocks {
+			allBlocks = append(allBlocks, txBlock.Block)
+		}
+	}
+	preloads := GetPrefixPreloads(t.Preloads, "blocks.block.")
+	t.Mutex.Unlock()
+	if err := AttachToBlocks(preloads, allBlocks); err != nil {
+		t.AddError(fmt.Errorf("error attaching to blocks for tx; %w", err))
+		return
 	}
 }

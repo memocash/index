@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -85,10 +84,10 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 	}
 	height := int(blockHeight.Height)
 	var modelBlock = &model.Block{
-		Hash:      chainhash.Hash(blockHeight.BlockHash).String(),
+		Hash:      blockHeight.BlockHash,
 		Timestamp: model.Date(blockHeader.Timestamp),
 		Height:    &height,
-		Raw:       hex.EncodeToString(block.Raw),
+		Raw:       block.Raw,
 	}
 	if !load.HasFieldAny(ctx, []string{"size", "tx_count"}) {
 		return modelBlock, nil
@@ -123,7 +122,7 @@ func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	}
 	height := int(heightBlock.Height)
 	return &model.Block{
-		Hash:      chainhash.Hash(heightBlock.BlockHash).String(),
+		Hash:      heightBlock.BlockHash,
 		Timestamp: model.Date(blockHeader.Timestamp),
 		Height:    &height,
 	}, nil
@@ -161,7 +160,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	for i := range heightBlocks {
 		var height = int(heightBlocks[i].Height)
 		modelBlocks[i] = &model.Block{
-			Hash:   chainhash.Hash(heightBlocks[i].BlockHash).String(),
+			Hash:   heightBlocks[i].BlockHash,
 			Height: &height,
 		}
 		for _, block := range blocks {
@@ -310,7 +309,7 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 			}
 			height := int(blockHeight.Height)
 			blockChan <- &model.Block{
-				Hash:      chainhash.Hash(blockHeight.BlockHash).String(),
+				Hash:      blockHeight.BlockHash,
 				Timestamp: model.Date(blockHeader.Timestamp),
 				Height:    &height,
 			}

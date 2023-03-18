@@ -2,13 +2,13 @@ package model
 
 type Tx struct {
 	Hash     Hash        `json:"hash"`
-	Index    uint32      `json:"index"`
 	Raw      Bytes       `json:"raw"`
 	Seen     Date        `json:"seen"`
 	Version  int32       `json:"version"`
 	LockTime uint32      `json:"locktime"`
 	Inputs   []*TxInput  `json:"inputs"`
 	Outputs  []*TxOutput `json:"outputs"`
+	Blocks   []*TxBlock  `json:"blocks"`
 }
 
 type TxOutput struct {
@@ -34,13 +34,21 @@ type Lock struct {
 	Balance int64  `json:"balance"`
 }
 
+type TxBlock struct {
+	TxHash    Hash   `json:"tx_hash"`
+	BlockHash Hash   `json:"block_hash"`
+	Tx        *Tx    `json:"tx"`
+	Block     *Block `json:"block"`
+	Index     uint32 `json:"index"`
+}
+
 type Block struct {
-	Hash      string `json:"hash"`
-	Raw       string `json:"raw"`
-	Timestamp Date   `json:"timestamp"`
-	Height    *int   `json:"height"`
-	Size      int64  `json:"size"`
-	TxCount   int    `json:"tx_count"`
+	Hash      Hash  `json:"hash"`
+	Raw       Bytes `json:"raw"`
+	Timestamp Date  `json:"timestamp"`
+	Height    *int  `json:"height"`
+	Size      int64 `json:"size"`
+	TxCount   int   `json:"tx_count"`
 }
 
 type Profile struct {
