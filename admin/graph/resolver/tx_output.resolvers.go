@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
@@ -21,18 +20,6 @@ func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.
 		return nil, jerr.Get("error attaching all to output tx", err)
 	}
 	return tx, nil
-}
-
-// SlpBaton is the resolver for the slp_baton field.
-func (r *txOutputResolver) SlpBaton(ctx context.Context, obj *model.TxOutput) (*model.SlpBaton, error) {
-	slpBaton, err := load.SlpBaton.Load(model.HashIndex{
-		Hash:  chainhash.Hash(obj.Hash).String(),
-		Index: obj.Index,
-	})
-	if err != nil {
-		return nil, jerr.Get("error getting slp baton for tx output from loader", err)
-	}
-	return slpBaton, nil
 }
 
 // Lock is the resolver for the lock field.

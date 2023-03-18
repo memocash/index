@@ -21,9 +21,11 @@ func AttachToOutputs(preloads []string, outputs []*model.TxOutput) error {
 		baseA:   baseA{Preloads: preloads},
 		Outputs: outputs,
 	}
-	o.Wait.Add(2)
+	o.Wait.Add(4)
 	go o.AttachInfo()
 	go o.AttachSpends()
+	go o.AttachSlps()
+	go o.AttachSlpBatons()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to outputs; %w", o.Errors[0])
@@ -132,6 +134,33 @@ func (o *Outputs) AttachSlps() {
 				Index:     slpOutputs[j].Index,
 				TokenHash: slpOutputs[j].TokenHash,
 				Amount:    slpOutputs[j].Quantity,
+			}
+		}
+	}
+	o.Mutex.Unlock()
+}
+
+func (o *Outputs) AttachSlpBatons() {
+	defer o.Wait.Done()
+	if !o.HasPreload([]string{"slp_baton"}) {
+		return
+	}
+	outs := o.GetOuts(false)
+	slpBatons, err := slp.GetBatons(outs)
+	if err != nil {
+		o.AddError(fmt.Errorf("error getting slp batons for model tx outputs; %w", err))
+		return
+	}
+	o.Mutex.Lock()
+	for i := range o.Outputs {
+		for j := range slpBatons {
+			if o.Outputs[i].Hash != slpBatons[j].TxHash || o.Outputs[i].Index != slpBatons[j].Index {
+				continue
+			}
+			o.Outputs[i].SlpBaton = &model.SlpBaton{
+				Hash:      slpBatons[j].TxHash,
+				Index:     slpBatons[j].Index,
+				TokenHash: slpBatons[j].TokenHash,
 			}
 		}
 	}

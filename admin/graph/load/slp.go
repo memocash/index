@@ -108,9 +108,9 @@ var SlpBaton = dataloader.NewSlpBatonLoader(dataloader.SlpBatonLoaderConfig{
 			for _, slpBaton := range slpBatons {
 				if bytes.Equal(memoOuts[i].TxHash, slpBaton.TxHash[:]) && memoOuts[i].Index == slpBaton.Index {
 					modelSlpBatons[i] = &model.SlpBaton{
-						Hash:      chainhash.Hash(slpBaton.TxHash).String(),
+						Hash:      slpBaton.TxHash,
 						Index:     slpBaton.Index,
-						TokenHash: chainhash.Hash(slpBaton.TokenHash).String(),
+						TokenHash: slpBaton.TokenHash,
 					}
 					break
 				}

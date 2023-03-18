@@ -12,12 +12,13 @@ type Tx struct {
 }
 
 type TxOutput struct {
-	Hash   Hash       `json:"hash"`
-	Index  uint32     `json:"index"`
-	Amount int64      `json:"amount"`
-	Script Bytes      `json:"script"`
-	Spends []*TxInput `json:"spends"`
-	Slp    *SlpOutput `json:"slp"`
+	Hash     Hash       `json:"hash"`
+	Index    uint32     `json:"index"`
+	Amount   int64      `json:"amount"`
+	Script   Bytes      `json:"script"`
+	Spends   []*TxInput `json:"spends"`
+	Slp      *SlpOutput `json:"slp"`
+	SlpBaton *SlpBaton  `json:"slp_baton"`
 }
 
 type TxInput struct {
@@ -109,9 +110,9 @@ type RoomFollow struct {
 }
 
 type SlpBaton struct {
-	Hash      string `json:"hash"`
+	Hash      Hash   `json:"hash"`
 	Index     uint32 `json:"index"`
-	TokenHash string `json:"token_hash"`
+	TokenHash Hash   `json:"token_hash"`
 }
 
 type SlpGenesis struct {
