@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
@@ -66,7 +67,7 @@ func (r *slpGenesisResolver) Baton(ctx context.Context, obj *model.SlpGenesis) (
 
 // Output is the resolver for the output field.
 func (r *slpOutputResolver) Output(ctx context.Context, obj *model.SlpOutput) (*model.TxOutput, error) {
-	txOutput, err := load.GetTxOutputString(ctx, obj.Hash, obj.Index)
+	txOutput, err := load.GetTxOutput(ctx, obj.Hash, obj.Index)
 	if err != nil {
 		return nil, jerr.Get("error getting tx output for slp output from loader", err)
 	}
@@ -75,7 +76,7 @@ func (r *slpOutputResolver) Output(ctx context.Context, obj *model.SlpOutput) (*
 
 // Genesis is the resolver for the genesis field.
 func (r *slpOutputResolver) Genesis(ctx context.Context, obj *model.SlpOutput) (*model.SlpGenesis, error) {
-	slpGenesis, err := load.SlpGenesis.Load(obj.Hash)
+	slpGenesis, err := load.SlpGenesis.Load(chainhash.Hash(obj.Hash).String())
 	if err != nil {
 		return nil, jerr.Get("error getting slp genesis for slp output from loader", err)
 	}

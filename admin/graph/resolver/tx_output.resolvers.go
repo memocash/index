@@ -23,18 +23,6 @@ func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.
 	return tx, nil
 }
 
-// Slp is the resolver for the slp field.
-func (r *txOutputResolver) Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error) {
-	slpOutput, err := load.SlpOutput.Load(model.HashIndex{
-		Hash:  chainhash.Hash(obj.Hash).String(),
-		Index: obj.Index,
-	})
-	if err != nil {
-		return nil, jerr.Get("error getting slp output for tx output from loader", err)
-	}
-	return slpOutput, nil
-}
-
 // SlpBaton is the resolver for the slp_baton field.
 func (r *txOutputResolver) SlpBaton(ctx context.Context, obj *model.TxOutput) (*model.SlpBaton, error) {
 	slpBaton, err := load.SlpBaton.Load(model.HashIndex{

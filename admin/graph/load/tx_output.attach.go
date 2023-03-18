@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/db/item/slp"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -107,4 +108,32 @@ func (o *Outputs) AttachSpends() {
 		o.AddError(fmt.Errorf("error attaching to tx inputs spends for model tx outputs; %w", err))
 		return
 	}
+}
+
+func (o *Outputs) AttachSlps() {
+	defer o.Wait.Done()
+	if !o.HasPreload([]string{"slp"}) {
+		return
+	}
+	outs := o.GetOuts(false)
+	slpOutputs, err := slp.GetOutputs(outs)
+	if err != nil {
+		o.AddError(fmt.Errorf("error getting slp outputs for model tx outputs; %w", err))
+		return
+	}
+	o.Mutex.Lock()
+	for i := range o.Outputs {
+		for j := range slpOutputs {
+			if o.Outputs[i].Hash != slpOutputs[j].TxHash || o.Outputs[i].Index != slpOutputs[j].Index {
+				continue
+			}
+			o.Outputs[i].Slp = &model.SlpOutput{
+				Hash:      slpOutputs[j].TxHash,
+				Index:     slpOutputs[j].Index,
+				TokenHash: slpOutputs[j].TokenHash,
+				Amount:    slpOutputs[j].Quantity,
+			}
+		}
+	}
+	o.Mutex.Unlock()
 }

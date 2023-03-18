@@ -17,6 +17,7 @@ type TxOutput struct {
 	Amount int64      `json:"amount"`
 	Script Bytes      `json:"script"`
 	Spends []*TxInput `json:"spends"`
+	Slp    *SlpOutput `json:"slp"`
 }
 
 type TxInput struct {
@@ -125,8 +126,8 @@ type SlpGenesis struct {
 }
 
 type SlpOutput struct {
-	Hash      string `json:"hash"`
+	Hash      Hash   `json:"hash"`
 	Index     uint32 `json:"index"`
-	TokenHash string `json:"token_hash"`
+	TokenHash Hash   `json:"token_hash"`
 	Amount    uint64 `json:"amount"`
 }

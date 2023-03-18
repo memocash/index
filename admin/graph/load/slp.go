@@ -35,9 +35,9 @@ var SlpOutput = dataloader.NewSlpOutputLoader(dataloader.SlpOutputLoaderConfig{
 			for _, slpOutput := range slpOutputs {
 				if bytes.Equal(memoOuts[i].TxHash, slpOutput.TxHash[:]) && memoOuts[i].Index == slpOutput.Index {
 					modelSlpOutputs[i] = &model.SlpOutput{
-						Hash:      chainhash.Hash(slpOutput.TxHash).String(),
+						Hash:      slpOutput.TxHash,
 						Index:     slpOutput.Index,
-						TokenHash: chainhash.Hash(slpOutput.TokenHash).String(),
+						TokenHash: slpOutput.TokenHash,
 						Amount:    slpOutput.Quantity,
 					}
 					break

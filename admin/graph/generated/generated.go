@@ -375,7 +375,6 @@ type TxInputResolver interface {
 type TxOutputResolver interface {
 	Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error)
 
-	Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error)
 	SlpBaton(ctx context.Context, obj *model.TxOutput) (*model.SlpBaton, error)
 	Lock(ctx context.Context, obj *model.TxOutput) (*model.Lock, error)
 }
@@ -1719,10 +1718,10 @@ scalar Bytes
 
 type SlpOutput {
     output: TxOutput!
-    hash: String!
+    hash: Hash!
     index: Uint32!
     amount: Uint64!
-    token_hash: String!
+    token_hash: Hash!
     genesis: SlpGenesis
 }
 
@@ -7476,9 +7475,9 @@ func (ec *executionContext) _SlpOutput_hash(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SlpOutput_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7488,7 +7487,7 @@ func (ec *executionContext) fieldContext_SlpOutput_hash(ctx context.Context, fie
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7608,9 +7607,9 @@ func (ec *executionContext) _SlpOutput_token_hash(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SlpOutput_token_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7620,7 +7619,7 @@ func (ec *executionContext) fieldContext_SlpOutput_token_hash(ctx context.Contex
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -9618,7 +9617,7 @@ func (ec *executionContext) _TxOutput_slp(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TxOutput().Slp(rctx, obj)
+		return obj.Slp, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9636,8 +9635,8 @@ func (ec *executionContext) fieldContext_TxOutput_slp(ctx context.Context, field
 	fc = &graphql.FieldContext{
 		Object:     "TxOutput",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "output":
@@ -13483,22 +13482,9 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 			out.Values[i] = ec._TxOutput_spends(ctx, field, obj)
 
 		case "slp":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._TxOutput_slp(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._TxOutput_slp(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "slp_baton":
 			field := field
 
