@@ -357,8 +357,6 @@ type SlpGenesisResolver interface {
 }
 type SlpOutputResolver interface {
 	Output(ctx context.Context, obj *model.SlpOutput) (*model.TxOutput, error)
-
-	Genesis(ctx context.Context, obj *model.SlpOutput) (*model.SlpGenesis, error)
 }
 type SubscriptionResolver interface {
 	Address(ctx context.Context, address string) (<-chan *model.Tx, error)
@@ -1703,7 +1701,7 @@ scalar Bytes
 `, BuiltIn: false},
 	{Name: "../schema/slp.graphqls", Input: `type SlpGenesis {
     tx: Tx!
-    hash: String!
+    hash: Hash!
     token_type: Uint8!
     decimals: Uint8!
     output: SlpOutput!
@@ -6944,9 +6942,9 @@ func (ec *executionContext) _SlpGenesis_hash(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SlpGenesis_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6956,7 +6954,7 @@ func (ec *executionContext) fieldContext_SlpGenesis_hash(ctx context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7638,7 +7636,7 @@ func (ec *executionContext) _SlpOutput_genesis(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.SlpOutput().Genesis(rctx, obj)
+		return obj.Genesis, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7656,8 +7654,8 @@ func (ec *executionContext) fieldContext_SlpOutput_genesis(ctx context.Context, 
 	fc = &graphql.FieldContext{
 		Object:     "SlpOutput",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -13145,22 +13143,9 @@ func (ec *executionContext) _SlpOutput(ctx context.Context, sel ast.SelectionSet
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "genesis":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SlpOutput_genesis(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._SlpOutput_genesis(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

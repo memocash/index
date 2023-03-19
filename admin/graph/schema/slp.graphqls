@@ -1,6 +1,6 @@
 type SlpGenesis {
     tx: Tx!
-    hash: String!
+    hash: Hash!
     token_type: Uint8!
     decimals: Uint8!
     output: SlpOutput!

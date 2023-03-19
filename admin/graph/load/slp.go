@@ -68,7 +68,7 @@ var SlpGenesis = dataloader.NewSlpGenesisLoader(dataloader.SlpGenesisLoaderConfi
 			for _, slpGenesis := range slpGeneses {
 				if txHashes[i] == slpGenesis.TxHash {
 					modelSlpGeneses[i] = &model.SlpGenesis{
-						Hash:       chainhash.Hash(slpGenesis.TxHash).String(),
+						Hash:       slpGenesis.TxHash,
 						TokenType:  model.Uint8(slpGenesis.TokenType),
 						Decimals:   model.Uint8(slpGenesis.Decimals),
 						BatonIndex: slpGenesis.BatonIndex,

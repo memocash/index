@@ -68,6 +68,9 @@ func (i *Inputs) AttachScriptSequence() {
 
 func (i *Inputs) AttachTxs() {
 	defer i.Wait.Done()
+	if !i.HasPreload([]string{"tx"}) {
+		return
+	}
 	var txHashes = make([][32]byte, len(i.Inputs))
 	i.Mutex.Lock()
 	for j := range i.Inputs {

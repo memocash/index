@@ -12,13 +12,13 @@ type Blocks struct {
 	Blocks []*model.Block
 }
 
-func AttachToBlocks(preloads []string, outputs []*model.Block) error {
-	if len(outputs) == 0 {
+func AttachToBlocks(preloads []string, blocks []*model.Block) error {
+	if len(blocks) == 0 {
 		return nil
 	}
 	b := Blocks{
 		baseA:  baseA{Preloads: preloads},
-		Blocks: outputs,
+		Blocks: blocks,
 	}
 	b.Wait.Add(3)
 	go b.AttachRaws()

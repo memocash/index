@@ -34,7 +34,7 @@ func (r *slpBatonResolver) Genesis(ctx context.Context, obj *model.SlpBaton) (*m
 
 // Tx is the resolver for the tx field.
 func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*model.Tx, error) {
-	tx, err := load.GetTxByString(ctx, obj.Hash)
+	tx, err := load.GetTx(ctx, obj.Hash)
 	if err != nil {
 		return nil, jerr.Get("error getting tx for slp genesis resolver", err)
 	}
@@ -44,7 +44,7 @@ func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*mo
 // Output is the resolver for the output field.
 func (r *slpGenesisResolver) Output(ctx context.Context, obj *model.SlpGenesis) (*model.SlpOutput, error) {
 	slpOutput, err := load.SlpOutput.Load(model.HashIndex{
-		Hash:  obj.Hash,
+		Hash:  chainhash.Hash(obj.Hash).String(),
 		Index: memo.SlpMintTokenIndex,
 	})
 	if err != nil {
@@ -56,7 +56,7 @@ func (r *slpGenesisResolver) Output(ctx context.Context, obj *model.SlpGenesis) 
 // Baton is the resolver for the baton field.
 func (r *slpGenesisResolver) Baton(ctx context.Context, obj *model.SlpGenesis) (*model.SlpBaton, error) {
 	slpBaton, err := load.SlpBaton.Load(model.HashIndex{
-		Hash:  obj.Hash,
+		Hash:  chainhash.Hash(obj.Hash).String(),
 		Index: obj.BatonIndex,
 	})
 	if err != nil {
@@ -72,15 +72,6 @@ func (r *slpOutputResolver) Output(ctx context.Context, obj *model.SlpOutput) (*
 		return nil, jerr.Get("error getting tx output for slp output from loader", err)
 	}
 	return txOutput, nil
-}
-
-// Genesis is the resolver for the genesis field.
-func (r *slpOutputResolver) Genesis(ctx context.Context, obj *model.SlpOutput) (*model.SlpGenesis, error) {
-	slpGenesis, err := load.SlpGenesis.Load(chainhash.Hash(obj.Hash).String())
-	if err != nil {
-		return nil, jerr.Get("error getting slp genesis for slp output from loader", err)
-	}
-	return slpGenesis, nil
 }
 
 // SlpBaton returns generated.SlpBatonResolver implementation.

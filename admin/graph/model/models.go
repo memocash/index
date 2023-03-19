@@ -116,7 +116,7 @@ type SlpBaton struct {
 }
 
 type SlpGenesis struct {
-	Hash       string `json:"hash"`
+	Hash       Hash   `json:"hash"`
 	TokenType  Uint8  `json:"token_type"`
 	Decimals   Uint8  `json:"decimals"`
 	BatonIndex uint32 `json:"baton_index"`
@@ -127,8 +127,9 @@ type SlpGenesis struct {
 }
 
 type SlpOutput struct {
-	Hash      Hash   `json:"hash"`
-	Index     uint32 `json:"index"`
-	TokenHash Hash   `json:"token_hash"`
-	Amount    uint64 `json:"amount"`
+	Hash      Hash        `json:"hash"`
+	Index     uint32      `json:"index"`
+	TokenHash Hash        `json:"token_hash"`
+	Amount    uint64      `json:"amount"`
+	Genesis   *SlpGenesis `json:"genesis"`
 }
