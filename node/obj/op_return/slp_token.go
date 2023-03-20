@@ -1,7 +1,9 @@
 package op_return
 
 import (
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/node/obj/op_return/save"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
@@ -11,7 +13,13 @@ var slpTokenHandler = &Handler{
 	prefix: memo.PrefixSlp,
 	handle: func(info parse.OpReturn) error {
 		if len(info.PushData) < 5 {
-			return jerr.Newf("invalid slp, incorrect push data (%d) op return handler", len(info.PushData))
+			if err := item.LogProcessError(&item.ProcessError{
+				TxHash: info.TxHash,
+				Error:  fmt.Sprintf("invalid slp, incorrect push data (%d) op return handler", len(info.PushData)),
+			}); err != nil {
+				return jerr.Get("error saving process error for slp incorrect push data", err)
+			}
+			return nil
 		}
 		switch memo.SlpType(info.PushData[2]) {
 		case memo.SlpTxTypeGenesis:
