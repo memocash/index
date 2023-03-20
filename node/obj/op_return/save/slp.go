@@ -68,6 +68,7 @@ func SlpMint(info parse.OpReturn) error {
 		}); err != nil {
 			return jerr.Get("error saving process error for slp mint invalid token hash", err)
 		}
+		return nil
 	}
 	var mint = &slp.Mint{
 		TxHash:     info.TxHash,
