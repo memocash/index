@@ -29,7 +29,7 @@ var memoFollowHandler = &Handler{
 		if err != nil {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
-				Error:  fmt.Sprintf("error getting address from follow pk hash: %s", err),
+				Error:  fmt.Sprintf("error getting address from follow pk hash; %s", err),
 			}); err != nil {
 				return jerr.Get("error saving process error memo follow address", err)
 			}
