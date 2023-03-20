@@ -39,7 +39,13 @@ var slpTokenHandler = &Handler{
 				return jerr.Get("error saving slp commit op return handler", err)
 			}
 		default:
-			return jerr.Newf("unknown slp tx type (%s) op return handler", info.PushData[2])
+			if err := item.LogProcessError(&item.ProcessError{
+				TxHash: info.TxHash,
+				Error:  fmt.Sprintf("unknown slp tx type op return handler: %s", info.PushData[2]),
+			}); err != nil {
+				return jerr.Get("error saving process error for slp unknown tx type", err)
+			}
+			return nil
 		}
 		return nil
 	},
