@@ -1,9 +1,11 @@
 package save
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
+	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/slp"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -13,7 +15,13 @@ import (
 func SlpGenesis(info parse.OpReturn) error {
 	const ExpectedPushDataCount = 10
 	if len(info.PushData) < ExpectedPushDataCount {
-		return jerr.Newf("invalid genesis, incorrect push data (%d), expected %d", len(info.PushData), ExpectedPushDataCount)
+		if err := item.LogProcessError(&item.ProcessError{
+			TxHash: info.TxHash,
+			Error:  fmt.Sprintf("invalid slp genesis, incorrect push data (%d), expected %d", len(info.PushData), ExpectedPushDataCount),
+		}); err != nil {
+			return jerr.Get("error saving process error for slp genesis incorrect push data", err)
+		}
+		return nil
 	}
 	docHash, err := chainhash.NewHash(info.PushData[6])
 	if err != nil {
@@ -44,11 +52,23 @@ func SlpGenesis(info parse.OpReturn) error {
 func SlpMint(info parse.OpReturn) error {
 	const ExpectedPushDataCount = 6
 	if len(info.PushData) < ExpectedPushDataCount {
-		return jerr.Newf("invalid mint, incorrect push data (%d), expected %d", len(info.PushData), ExpectedPushDataCount)
+		if err := item.LogProcessError(&item.ProcessError{
+			TxHash: info.TxHash,
+			Error:  fmt.Sprintf("invalid slp mint, incorrect push data (%d), expected %d", len(info.PushData), ExpectedPushDataCount),
+		}); err != nil {
+			return jerr.Get("error saving process error for slp mint incorrect push data", err)
+		}
+		return nil
 	}
 	tokenHash, err := chainhash.NewHash(jutil.ByteReverse(info.PushData[3]))
 	if err != nil {
-		return jerr.Get("error creating token hash", err)
+		if err := item.LogProcessError(&item.ProcessError{
+			TxHash: info.TxHash,
+			Error:  fmt.Sprintf("invalid token hash for slp mint (%x)", info.PushData[3]),
+		}); err != nil {
+			return jerr.Get("error saving process error for slp mint invalid token hash", err)
+		}
+		return nil
 	}
 	var mint = &slp.Mint{
 		TxHash:     info.TxHash,
@@ -71,11 +91,23 @@ func SlpMint(info parse.OpReturn) error {
 func SlpSend(info parse.OpReturn) error {
 	const ExpectedPushDataCount = 5
 	if len(info.PushData) < ExpectedPushDataCount {
-		return jerr.Newf("invalid send, incorrect push data (%d), expected %d", len(info.PushData), ExpectedPushDataCount)
+		if err := item.LogProcessError(&item.ProcessError{
+			TxHash: info.TxHash,
+			Error: fmt.Sprintf("invalid slp send, incorrect push data (%d), expected %d",
+				len(info.PushData), ExpectedPushDataCount)}); err != nil {
+			return jerr.Get("error saving process error for slp send incorrect push data", err)
+		}
+		return nil
 	}
 	tokenHash, err := chainhash.NewHash(jutil.ByteReverse(info.PushData[3]))
 	if err != nil {
-		return jerr.Get("error creating token hash", err)
+		if err := item.LogProcessError(&item.ProcessError{
+			TxHash: info.TxHash,
+			Error:  fmt.Sprintf("invalid token hash for slp send (%x)", info.PushData[3]),
+		}); err != nil {
+			return jerr.Get("error saving process error for slp send invalid token hash", err)
+		}
+		return nil
 	}
 	var send = &slp.Send{
 		TxHash:    info.TxHash,
@@ -107,7 +139,13 @@ func SlpOutput(info parse.OpReturn, tokenHash [32]byte, index uint32, quantity u
 		return nil
 	}
 	if len(info.Outputs) <= int(index) {
-		return jerr.Newf("slp tx out index out of range (len: %d, index: %d)", len(info.Outputs), index)
+		if err := item.LogProcessError(&item.ProcessError{
+			TxHash: info.TxHash,
+			Error: fmt.Sprintf("invalid slp output, index out of range (len: %d, index: %d)",
+				len(info.Outputs), index)}); err != nil {
+			return jerr.Get("error saving process error for slp output index out of range", err)
+		}
+		return nil
 	}
 	if err := db.Save([]db.Object{&slp.Output{
 		TxHash:    info.TxHash,
@@ -122,7 +160,13 @@ func SlpOutput(info parse.OpReturn, tokenHash [32]byte, index uint32, quantity u
 
 func SlpBaton(info parse.OpReturn, tokenHash [32]byte, index uint32) error {
 	if len(info.Outputs) <= int(index) {
-		return jerr.Newf("slp tx baton index out of range (len: %d, index: %d)", len(info.Outputs), index)
+		if err := item.LogProcessError(&item.ProcessError{
+			TxHash: info.TxHash,
+			Error: fmt.Sprintf("invalid slp baton, index out of range (len: %d, index: %d)",
+				len(info.Outputs), index)}); err != nil {
+			return jerr.Get("error saving process error for slp baton index out of range", err)
+		}
+		return nil
 	}
 	if err := db.Save([]db.Object{&slp.Baton{
 		TxHash:    info.TxHash,

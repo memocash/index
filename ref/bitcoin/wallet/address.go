@@ -3,6 +3,7 @@ package wallet
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"github.com/jchavannes/bchutil"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/txscript"
@@ -99,11 +100,11 @@ func GetAddressFromPkHash(pkHash []byte) Address {
 func GetAddressFromPkHashNew(pkHash []byte) (Address, error) {
 	addr, err := btcutil.NewAddressPubKeyHash(pkHash, GetMainNetParams())
 	if err != nil {
-		return Address{}, jerr.Get("error getting address", err)
+		return Address{}, fmt.Errorf("error getting address; %w", err)
 	}
 	address, err := btcutil.DecodeAddress(addr.EncodeAddress(), GetMainNetParams())
 	if err != nil {
-		return Address{}, jerr.Get("error decoding address", err)
+		return Address{}, fmt.Errorf("error decoding address; %w", err)
 	}
 	return Address{
 		address: address,
