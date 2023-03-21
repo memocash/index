@@ -6,8 +6,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/config"
-	"sort"
 	"strings"
 )
 
@@ -69,41 +67,21 @@ func (g *Genesis) Deserialize(data []byte) {
 	}
 }
 
-func GetGenesis(txHash [32]byte) (*Genesis, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash[:]), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetSingle(db.TopicSlpGenesis, jutil.ByteReverse(txHash[:])); err != nil {
-		return nil, jerr.Get("error getting client message slp genesis", err)
-	}
-	if len(dbClient.Messages) != 1 {
-		return nil, jerr.Newf("error unexpected number of messages slp geneses: %d", len(dbClient.Messages))
-	}
-	var slpGenesis = new(Genesis)
-	db.Set(slpGenesis, dbClient.Messages[0])
-	return slpGenesis, nil
-}
-
 func GetGeneses(txHashes [][32]byte) ([]*Genesis, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
 		shard := db.GetShardByte32(txHash[:])
 		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(txHash[:]))
 	}
+	messages, err := db.GetSpecific(db.TopicSlpGenesis, shardUids)
+	if err != nil {
+		return nil, jerr.Get("error getting slp geneses", err)
+	}
 	var geneses []*Genesis
-	for shard, uids := range shardUids {
-		sort.Slice(uids, func(i, j int) bool {
-			return jutil.ByteLT(uids[i], uids[j])
-		})
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetSpecific(db.TopicSlpGenesis, uids); err != nil {
-			return nil, jerr.Get("error getting client message slp geneses", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var genesis = new(Genesis)
-			db.Set(genesis, msg)
-			geneses = append(geneses, genesis)
-		}
+	for i := range messages {
+		var genesis = new(Genesis)
+		db.Set(genesis, messages[i])
+		geneses = append(geneses, genesis)
 	}
 	return geneses, nil
 }

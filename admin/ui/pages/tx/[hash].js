@@ -54,6 +54,21 @@ export default function Hash() {
                 lock {
                     address
                 }
+                slp {
+                    token_hash
+                    amount
+                    genesis {
+                        ticker
+                        decimals
+                    }
+                }
+                slp_baton {
+                    token_hash
+                    genesis {
+                        ticker
+                        decimals
+                    }
+                }
             }
             blocks {
                 block {
@@ -306,6 +321,20 @@ function Outputs({tx}) {
                             <br/>
                             LockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
+                            {output.slp ? <div>
+                                SLP: {output.slp.amount} <Link href={"/tx/" + output.slp.token_hash}>
+                                <a>
+                                    {output.slp.genesis.ticker}
+                                </a>
+                            </Link>
+                            </div> : null}
+                            {output.slp_baton ? <div>
+                                SLP Baton: <Link href={"/tx/" + output.slp_baton.token_hash}>
+                                <a>
+                                    {output.slp_baton.genesis.ticker}
+                                </a>
+                            </Link>
+                            </div> : null}
                             {output.spends ? <>
                                 {output.spends.length >= 2 ?
                                     <div className={[column.red, column.bold].join(" ")}>
