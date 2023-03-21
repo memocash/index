@@ -41,6 +41,21 @@ export default function Hash() {
                     lock {
                         address
                     }
+                    slp {
+                        token_hash
+                        amount
+                        genesis {
+                            ticker
+                            decimals
+                        }
+                    }
+                    slp_baton {
+                        token_hash
+                        genesis {
+                            ticker
+                            decimals
+                        }
+                    }
                 }
             }
             outputs {
@@ -222,6 +237,22 @@ function Inputs({tx}) {
                             UnlockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{input.script}</pre>
                             <br/>
+                            {input.output.slp ? <div>
+                                SLP: {input.output.slp.amount} {input.output.slp.genesis ?
+                                <Link href={"/tx/" + input.output.slp.token_hash}>
+                                    <a>
+                                        {input.output.slp.genesis.ticker}
+                                    </a>
+                                </Link> : null}
+                            </div> : null}
+                            {input.output.slp_baton ? <div>
+                                SLP Baton: {input.output.slp_baton.genesis ?
+                                <Link href={"/tx/" + input.output.slp_baton.token_hash}>
+                                    <a>
+                                        {input.output.slp_baton.genesis.ticker}
+                                    </a>
+                                </Link> : null}
+                            </div> : null}
                             {input.output.spends && input.output.spends.length >= 2 ?
                                 <div className={[column.red, column.bold].join(" ")}>
                                     DOUBLE SPEND
