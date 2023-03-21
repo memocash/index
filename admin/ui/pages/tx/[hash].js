@@ -8,6 +8,7 @@ import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
 import {PreInline} from "../../components/util/pre";
 import {graphQL} from "../../components/fetch";
+import {hexToString} from "../../components/hex";
 
 export default function Hash() {
     const router = useRouter()
@@ -272,6 +273,14 @@ const GetOutputScriptInfo = (script) => {
                 return "Memo direct message: " + Buffer.from(script.substr(52), "hex")
             case "6d05":
                 return "Memo profile text: " + Buffer.from(script.substr(10), "hex")
+        }
+    } else if (script.substr(0, 12) === "6a04534c5000") {
+        if (hexToString(script.substr(18, 14)) === "GENESIS") {
+            return "SLP Genesis"
+        } else if (hexToString(script.substr(18, 8)) === "MINT") {
+            return "SLP Mint"
+        } else if (hexToString(script.substr(18, 8)) === "SEND") {
+            return "SLP Send"
         }
     }
     return "Unknown" + (info.length ? ": " + info : "")
