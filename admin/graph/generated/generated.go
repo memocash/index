@@ -346,8 +346,6 @@ type SetProfileResolver interface {
 }
 type SlpBatonResolver interface {
 	Output(ctx context.Context, obj *model.SlpBaton) (*model.TxOutput, error)
-
-	Genesis(ctx context.Context, obj *model.SlpBaton) (*model.SlpGenesis, error)
 }
 type SlpGenesisResolver interface {
 	Tx(ctx context.Context, obj *model.SlpGenesis) (*model.Tx, error)
@@ -6803,7 +6801,7 @@ func (ec *executionContext) _SlpBaton_genesis(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.SlpBaton().Genesis(rctx, obj)
+		return obj.Genesis, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6821,8 +6819,8 @@ func (ec *executionContext) fieldContext_SlpBaton_genesis(ctx context.Context, f
 	fc = &graphql.FieldContext{
 		Object:     "SlpBaton",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -12920,22 +12918,9 @@ func (ec *executionContext) _SlpBaton(ctx context.Context, sel ast.SelectionSet,
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "genesis":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SlpBaton_genesis(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._SlpBaton_genesis(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

@@ -23,15 +23,6 @@ func (r *slpBatonResolver) Output(ctx context.Context, obj *model.SlpBaton) (*mo
 	return txOutput, nil
 }
 
-// Genesis is the resolver for the genesis field.
-func (r *slpBatonResolver) Genesis(ctx context.Context, obj *model.SlpBaton) (*model.SlpGenesis, error) {
-	slpGenesis, err := load.SlpGenesis.Load(chainhash.Hash(obj.Hash).String())
-	if err != nil {
-		return nil, jerr.Get("error getting slp genesis for slp baton from loader", err)
-	}
-	return slpGenesis, nil
-}
-
 // Tx is the resolver for the tx field.
 func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*model.Tx, error) {
 	tx, err := load.GetTx(ctx, obj.Hash)

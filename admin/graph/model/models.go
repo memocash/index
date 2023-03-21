@@ -110,9 +110,10 @@ type RoomFollow struct {
 }
 
 type SlpBaton struct {
-	Hash      Hash   `json:"hash"`
-	Index     uint32 `json:"index"`
-	TokenHash Hash   `json:"token_hash"`
+	Hash      Hash        `json:"hash"`
+	Index     uint32      `json:"index"`
+	TokenHash Hash        `json:"token_hash"`
+	Genesis   *SlpGenesis `json:"genesis"`
 }
 
 type SlpGenesis struct {

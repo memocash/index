@@ -21,7 +21,7 @@ func AttachToOutputs(preloads []string, outputs []*model.TxOutput) error {
 		baseA:   baseA{Preloads: preloads},
 		Outputs: outputs,
 	}
-	o.Wait.Add(5)
+	o.Wait.Add(6)
 	go o.AttachInfo()
 	go o.AttachSpends()
 	go o.AttachSlps()
@@ -145,6 +145,9 @@ func (o *Outputs) AttachSlps() {
 
 func (o *Outputs) AttachSlpBatons() {
 	defer o.Wait.Done()
+	defer func() {
+		go o.AttachToSlpBatons()
+	}()
 	if !o.HasPreload([]string{"slp_baton"}) {
 		return
 	}
@@ -183,6 +186,23 @@ func (o *Outputs) AttachToSlpOutputs() {
 	o.Mutex.Unlock()
 	if err := AttachToSlpOutputs(preloads, allSlpOutputs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp outputs for tx outputs; %w", err))
+		return
+	}
+}
+
+func (o *Outputs) AttachToSlpBatons() {
+	defer o.Wait.Done()
+	var allSlpBatons []*model.SlpBaton
+	o.Mutex.Lock()
+	for i := range o.Outputs {
+		if o.Outputs[i].SlpBaton != nil {
+			allSlpBatons = append(allSlpBatons, o.Outputs[i].SlpBaton)
+		}
+	}
+	preloads := GetPrefixPreloads(o.Preloads, "slp_baton.")
+	o.Mutex.Unlock()
+	if err := AttachToSlpBatons(preloads, allSlpBatons); err != nil {
+		o.AddError(fmt.Errorf("error attaching to slp batons for tx outputs; %w", err))
 		return
 	}
 }

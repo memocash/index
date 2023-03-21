@@ -2,7 +2,6 @@ package load
 
 import (
 	"bytes"
-	"encoding/hex"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
@@ -45,43 +44,6 @@ var SlpOutput = dataloader.NewSlpOutputLoader(dataloader.SlpOutputLoaderConfig{
 			}
 		}
 		return modelSlpOutputs, nil
-	},
-})
-
-var SlpGenesis = dataloader.NewSlpGenesisLoader(dataloader.SlpGenesisLoaderConfig{
-	Wait: defaultWait,
-	Fetch: func(keys []string) ([]*model.SlpGenesis, []error) {
-		var txHashes = make([][32]byte, len(keys))
-		for i := range keys {
-			hash, err := chainhash.NewHashFromStr(keys[i])
-			if err != nil {
-				return nil, []error{jerr.Get("error parsing tx hash for slp baton dataloader", err)}
-			}
-			txHashes[i] = *hash
-		}
-		slpGeneses, err := slp.GetGeneses(txHashes)
-		if err != nil && !client.IsMessageNotSetError(err) {
-			return nil, []error{jerr.Get("error getting slp geneses from dataloader", err)}
-		}
-		var modelSlpGeneses = make([]*model.SlpGenesis, len(txHashes))
-		for i := range txHashes {
-			for _, slpGenesis := range slpGeneses {
-				if txHashes[i] == slpGenesis.TxHash {
-					modelSlpGeneses[i] = &model.SlpGenesis{
-						Hash:       slpGenesis.TxHash,
-						TokenType:  model.Uint8(slpGenesis.TokenType),
-						Decimals:   model.Uint8(slpGenesis.Decimals),
-						BatonIndex: slpGenesis.BatonIndex,
-						Ticker:     slpGenesis.Ticker,
-						Name:       slpGenesis.Name,
-						DocURL:     slpGenesis.DocUrl,
-						DocHash:    hex.EncodeToString(slpGenesis.DocHash[:]),
-					}
-					break
-				}
-			}
-		}
-		return modelSlpGeneses, nil
 	},
 })
 

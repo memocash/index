@@ -322,18 +322,20 @@ function Outputs({tx}) {
                             LockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
                             {output.slp ? <div>
-                                SLP: {output.slp.amount} <Link href={"/tx/" + output.slp.token_hash}>
-                                <a>
-                                    {output.slp.genesis.ticker}
-                                </a>
-                            </Link>
+                                SLP: {output.slp.amount} {output.slp.genesis ?
+                                <Link href={"/tx/" + output.slp.token_hash}>
+                                    <a>
+                                        {output.slp.genesis.ticker}
+                                    </a>
+                                </Link> : null}
                             </div> : null}
                             {output.slp_baton ? <div>
-                                SLP Baton: <Link href={"/tx/" + output.slp_baton.token_hash}>
-                                <a>
-                                    {output.slp_baton.genesis.ticker}
-                                </a>
-                            </Link>
+                                SLP Baton: {output.slp_baton.genesis ?
+                                <Link href={"/tx/" + output.slp_baton.token_hash}>
+                                    <a>
+                                        {output.slp_baton.genesis.ticker}
+                                    </a>
+                                </Link> : null}
                             </div> : null}
                             {output.spends ? <>
                                 {output.spends.length >= 2 ?
