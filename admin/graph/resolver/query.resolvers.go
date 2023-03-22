@@ -245,23 +245,19 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 			cancel()
 		}()
 		for {
-			select {
-			case <-ctx.Done():
+			addrSeenTx, ok := <-addrSeenTxsListener
+			if !ok {
 				return
-			case addrSeenTx, ok := <-addrSeenTxsListener:
-				if !ok {
-					return
-				}
-				var tx = &model.Tx{
-					Hash: addrSeenTx.TxHash,
-					Seen: model.Date(addrSeenTx.Seen),
-				}
-				if err := load.AttachToTxs(preloads, []*model.Tx{tx}); err != nil {
-					log.Printf("error attaching to txs for address subscription; %v", err)
-					return
-				}
-				txChan <- tx
 			}
+			var tx = &model.Tx{
+				Hash: addrSeenTx.TxHash,
+				Seen: model.Date(addrSeenTx.Seen),
+			}
+			if err := load.AttachToTxs(preloads, []*model.Tx{tx}); err != nil {
+				log.Printf("error attaching to txs for address subscription; %v", err)
+				return
+			}
+			txChan <- tx
 		}
 	}()
 	return txChan, nil

@@ -81,17 +81,13 @@ func ListenAddrSeenTxs(ctx context.Context, addrs [][25]byte) (chan *SeenTx, err
 	go func() {
 		defer func() { close(chanMessages) }()
 		for {
-			select {
-			case <-ctx.Done():
+			msg, ok := <-chanMessages
+			if !ok {
 				return
-			case msg, ok := <-chanMessages:
-				if !ok {
-					return
-				}
-				var addrSeenTx = new(SeenTx)
-				db.Set(addrSeenTx, *msg)
-				chanSeenTxs <- addrSeenTx
 			}
+			var addrSeenTx = new(SeenTx)
+			db.Set(addrSeenTx, *msg)
+			chanSeenTxs <- addrSeenTx
 		}
 	}()
 	return chanSeenTxs, nil

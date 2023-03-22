@@ -2,6 +2,7 @@ package memo
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -71,34 +72,27 @@ func GetAddrProfile(ctx context.Context, addr [25]byte) (*AddrProfile, error) {
 }
 
 func ListenAddrProfiles(ctx context.Context, addrs [][25]byte) (chan *AddrProfile, error) {
-	if len(addrs) == 0 {
-		return nil, nil
-	}
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
-		shard := client.GetByteShard32(addrs[i][:])
+		shard := db.GetShardByte32(addrs[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
-	shardConfigs := config.GetQueueShards()
-	var addrProfileChan = make(chan *AddrProfile)
-	cancelCtx := db.NewCancelContext(ctx, func() {
-		close(addrProfileChan)
-	})
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		dbClient := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoAddrProfile, prefixes)
-		if err != nil {
-			return nil, jerr.Get("error listening to db addr memo profile by prefix", err)
-		}
-		go func() {
-			for msg := range chanMessage {
-				var addrProfile = new(AddrProfile)
-				db.Set(addrProfile, *msg)
-				addrProfileChan <- addrProfile
-			}
-			cancelCtx.Cancel()
-		}()
+	chanMessages, err := db.ListenPrefixes(ctx, db.TopicMemoAddrProfile, shardPrefixes)
+	if err != nil {
+		return nil, fmt.Errorf("error getting listen prefixes for memo addr profiles; %w", err)
 	}
+	var addrProfileChan = make(chan *AddrProfile)
+	go func() {
+		defer func() { close(chanMessages) }()
+		for {
+			msg, ok := <-chanMessages
+			if !ok {
+				return
+			}
+			var addrProfile = new(AddrProfile)
+			db.Set(addrProfile, *msg)
+			addrProfileChan <- addrProfile
+		}
+	}()
 	return addrProfileChan, nil
 }
