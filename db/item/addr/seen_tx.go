@@ -2,6 +2,7 @@ package addr
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -66,34 +67,32 @@ func GetSeenTxs(addr [25]byte, start []byte) ([]*SeenTx, error) {
 	return heightInputs, nil
 }
 
-func ListenAddrSeenTxsMultiple(ctx context.Context, addrs [][25]byte) ([]chan *SeenTx, error) {
-	var shardAddrGroups = make(map[uint32][][]byte)
+func ListenAddrSeenTxs(ctx context.Context, addrs [][25]byte) (chan *SeenTx, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
 		shard := db.GetShardByte32(addrs[i][:])
-		shardAddrGroups[shard] = append(shardAddrGroups[shard], addrs[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
-	var chanSeenTxs []chan *SeenTx
-	for shard, addrGroup := range shardAddrGroups {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := dbClient.Listen(ctx, db.TopicAddrSeenTx, addrGroup)
-		if err != nil {
-			return nil, jerr.Get("error getting addr seen txs listen message chan", err)
-		}
-		var chanAddrSeenTx = make(chan *SeenTx)
-		go func() {
-			for {
-				msg, ok := <-chanMessage
+	chanMessages, err := db.ListenPrefixes(ctx, db.TopicAddrSeenTx, shardPrefixes)
+	if err != nil {
+		return nil, fmt.Errorf("error getting listen prefixes for address seen tx; %w", err)
+	}
+	var chanSeenTxs = make(chan *SeenTx)
+	go func() {
+		defer func() { close(chanMessages) }()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case msg, ok := <-chanMessages:
 				if !ok {
-					close(chanAddrSeenTx)
 					return
 				}
 				var addrSeenTx = new(SeenTx)
 				db.Set(addrSeenTx, *msg)
-				chanAddrSeenTx <- addrSeenTx
+				chanSeenTxs <- addrSeenTx
 			}
-		}()
-		chanSeenTxs = append(chanSeenTxs, chanAddrSeenTx)
-	}
+		}
+	}()
 	return chanSeenTxs, nil
 }

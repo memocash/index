@@ -117,12 +117,18 @@ func Listen(ctx context.Context, shard uint, topic string, prefixes [][]byte) ch
 	var uidChan = make(chan []byte)
 	go func() {
 		sub := _globalPubSub.Subscribe(shard, topic, nil, prefixes)
-		defer sub.Close()
+		defer func() {
+			sub.Close()
+			close(uidChan)
+		}()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case uid := <-sub.UidChan:
+			case uid, ok := <-sub.UidChan:
+				if !ok {
+					return
+				}
 				uidChan <- uid
 			}
 		}

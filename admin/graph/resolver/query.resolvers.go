@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
@@ -231,41 +232,35 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 		addrs[i] = *walletAddr
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	addrSeenTxsListeners, err := addr.ListenAddrSeenTxsMultiple(ctx, addrs)
+	addrSeenTxsListener, err := addr.ListenAddrSeenTxs(ctx, addrs)
 	if err != nil {
 		cancel()
 		return nil, jerr.Get("error getting addr seen txs listener for address subscription", err)
 	}
-	if len(addrSeenTxsListeners) == 0 {
-		cancel()
-		return nil, jerr.New("error no addr seen txs listeners for address subscription")
-	}
+	preloads := load.GetPreloads(ctx)
 	var txChan = make(chan *model.Tx)
 	go func() {
 		defer func() {
 			close(txChan)
 			cancel()
 		}()
-		var aggregator = make(chan *addr.SeenTx)
-		for _, ch := range addrSeenTxsListeners {
-			go func(c chan *addr.SeenTx) {
-				for msg := range c {
-					aggregator <- msg
-				}
-			}(ch)
-		}
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case msg := <-aggregator:
-				if msg == nil {
+			case addrSeenTx, ok := <-addrSeenTxsListener:
+				if !ok {
 					return
 				}
-				txChan <- &model.Tx{
-					Hash: msg.TxHash,
-					Seen: model.Date(msg.Seen),
+				var tx = &model.Tx{
+					Hash: addrSeenTx.TxHash,
+					Seen: model.Date(addrSeenTx.Seen),
 				}
+				if err := load.AttachToTxs(preloads, []*model.Tx{tx}); err != nil {
+					log.Printf("error attaching to txs for address subscription; %v", err)
+					return
+				}
+				txChan <- tx
 			}
 		}
 	}()
