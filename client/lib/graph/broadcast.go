@@ -25,8 +25,12 @@ func Broadcast(graphUrl, txRaw string) error {
 	}
 	request.Header.Set("Content-Type", "application/json")
 	client := &http.Client{Timeout: time.Second * 10}
-	if _, err := client.Do(request); err != nil {
+	resp, err := client.Do(request);
+	if err != nil {
 		return fmt.Errorf("error the HTTP request for broadcast failed with error; %w", err)
+	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("error the HTTP request for broadcast failed with status code: %s", resp.Status)
 	}
 	return nil
 }
