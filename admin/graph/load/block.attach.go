@@ -1,6 +1,7 @@
 package load
 
 import (
+	"context"
 	"fmt"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/chain"
@@ -12,12 +13,12 @@ type Blocks struct {
 	Blocks []*model.Block
 }
 
-func AttachToBlocks(preloads []string, blocks []*model.Block) error {
+func AttachToBlocks(ctx context.Context, preloads []string, blocks []*model.Block) error {
 	if len(blocks) == 0 {
 		return nil
 	}
 	b := Blocks{
-		baseA:  baseA{Preloads: preloads},
+		baseA:  baseA{Ctx: ctx, Preloads: preloads},
 		Blocks: blocks,
 	}
 	b.Wait.Add(3)
@@ -77,7 +78,7 @@ func (b *Blocks) AttachHeights() {
 		return
 	}
 	blockHashes := b.GetBlockHashes()
-	blockHeights, err := chain.GetBlockHeights(blockHashes)
+	blockHeights, err := chain.GetBlockHeights(b.Ctx, blockHashes)
 	if err != nil {
 		b.AddError(fmt.Errorf("error getting block heights for block loader; %w", err))
 		return

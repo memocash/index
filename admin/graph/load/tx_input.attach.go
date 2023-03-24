@@ -1,6 +1,7 @@
 package load
 
 import (
+	"context"
 	"fmt"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/chain"
@@ -12,9 +13,9 @@ type Inputs struct {
 	Inputs []*model.TxInput
 }
 
-func AttachToInputs(preloads []string, inputs []*model.TxInput) error {
+func AttachToInputs(ctx context.Context, preloads []string, inputs []*model.TxInput) error {
 	i := Inputs{
-		baseA:  baseA{Preloads: preloads},
+		baseA:  baseA{Ctx: ctx, Preloads: preloads},
 		Inputs: inputs,
 	}
 	i.Wait.Add(2)
@@ -100,7 +101,7 @@ func (i *Inputs) AttachTxs() {
 	}
 	preloads := GetPrefixPreloads(i.Preloads, "tx.")
 	i.Mutex.Unlock()
-	if err := AttachToTxs(preloads, allTxs); err != nil {
+	if err := AttachToTxs(i.Ctx, preloads, allTxs); err != nil {
 		i.AddError(fmt.Errorf("error attaching to txs for model tx inputs; %w", err))
 		return
 	}

@@ -1,6 +1,7 @@
 package op_return
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
@@ -11,7 +12,7 @@ import (
 
 var slpTokenHandler = &Handler{
 	prefix: memo.PrefixSlp,
-	handle: func(info parse.OpReturn) error {
+	handle: func(ctx context.Context, info parse.OpReturn) error {
 		if len(info.PushData) < 5 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,

@@ -1,6 +1,7 @@
 package maint
 
 import (
+	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
@@ -16,10 +17,13 @@ import (
 
 type PopulateP2sh struct {
 	BlocksProcessed int
+	Ctx             context.Context
 }
 
-func NewPopulateP2sh() *PopulateP2sh {
-	return &PopulateP2sh{}
+func NewPopulateP2sh(ctx context.Context) *PopulateP2sh {
+	return &PopulateP2sh{
+		Ctx: ctx,
+	}
 }
 
 func (p *PopulateP2sh) Populate(startHeight int64) error {
@@ -64,7 +68,7 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 				for shardT, txHashesT := range txHashShards {
 					go func(shard uint32, txHashes [][32]byte) {
 						defer shardProcess.Wg.Done()
-						txRaws, err := tx_raw.Get(txHashes)
+						txRaws, err := tx_raw.Get(p.Ctx, txHashes)
 						if err != nil {
 							shardProcess.AddError(shard, jerr.Get("error getting tx raws for populate p2sh", err))
 							return
@@ -78,7 +82,7 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 							}
 						}
 						dbiBlock := dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))
-						if err := addressSaver.SaveTxs(dbiBlock); err != nil {
+						if err := addressSaver.SaveTxs(p.Ctx, dbiBlock); err != nil {
 							shardProcess.AddError(shard, jerr.Get("error saving txs for populate p2sh", err))
 							return
 						}

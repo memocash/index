@@ -1,11 +1,13 @@
 package load
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jutil"
 	"sync"
 )
 
 type baseA struct {
+	Ctx      context.Context
 	Preloads []string
 	Mutex    sync.Mutex
 	mutexB   sync.Mutex

@@ -253,7 +253,7 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string
 				Hash: addrSeenTx.TxHash,
 				Seen: model.Date(addrSeenTx.Seen),
 			}
-			if err := load.AttachToTxs(preloads, []*model.Tx{tx}); err != nil {
+			if err := load.AttachToTxs(ctx, preloads, []*model.Tx{tx}); err != nil {
 				log.Printf("error attaching to txs for address subscription; %v", err)
 				return
 			}

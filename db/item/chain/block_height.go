@@ -62,13 +62,13 @@ func GetBlockHeight(blockHash [32]byte) (*BlockHeight, error) {
 	return blockHeight, nil
 }
 
-func GetBlockHeights(blockHashes [][32]byte) ([]*BlockHeight, error) {
+func GetBlockHeights(ctx context.Context, blockHashes [][32]byte) ([]*BlockHeight, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, blockHash := range blockHashes {
 		shard := db.GetShardByte32(blockHash[:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(blockHash[:]))
 	}
-	messages, err := db.GetByPrefixes(db.TopicChainBlockHeight, shardPrefixes)
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainBlockHeight, shardPrefixes)
 	if err != nil {
 		return nil, jerr.Get("error getting client message chain block heights", err)
 	}

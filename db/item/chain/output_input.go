@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -65,7 +66,7 @@ func GetOutputInput(out memo.Out) ([]*OutputInput, error) {
 	return outputInputs, nil
 }
 
-func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
+func GetOutputInputs(ctx context.Context, outs []memo.Out) ([]*OutputInput, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, out := range outs {
 		shard := db.GetShardByte32(out.TxHash)
@@ -74,7 +75,7 @@ func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
 			jutil.GetUint32DataBig(out.Index),
 		))
 	}
-	messages, err := db.GetByPrefixes(db.TopicChainOutputInput, shardPrefixes)
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainOutputInput, shardPrefixes)
 	if err != nil {
 		return nil, jerr.Get("error getting by prefixes for chain output inputs", err)
 	}

@@ -16,7 +16,7 @@ import (
 // Tx is the resolver for the tx field.
 func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {
 	var tx = &model.Tx{Hash: obj.Hash}
-	if err := load.AttachToTxs(load.GetPreloads(ctx), []*model.Tx{tx}); err != nil {
+	if err := load.AttachToTxs(ctx, load.GetPreloads(ctx), []*model.Tx{tx}); err != nil {
 		return nil, jerr.Get("error attaching all to output tx", err)
 	}
 	return tx, nil

@@ -1,6 +1,7 @@
 package saver
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/jgo/jerr"
@@ -16,7 +17,7 @@ type OpReturn struct {
 	Verbose bool
 }
 
-func (r *OpReturn) SaveTxs(b *dbi.Block) error {
+func (r *OpReturn) SaveTxs(ctx context.Context, b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
@@ -66,7 +67,7 @@ func (r *OpReturn) SaveTxs(b *dbi.Block) error {
 				if err != nil {
 					return jerr.Get("error getting pushed data", err)
 				}
-				if err := opReturnHandler.Handle(parse.OpReturn{
+				if err := opReturnHandler.Handle(ctx, parse.OpReturn{
 					Seen:     transaction.Seen,
 					Saved:    transaction.Saved,
 					TxHash:   txHash,

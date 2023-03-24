@@ -2,6 +2,7 @@ package op_return
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -14,7 +15,7 @@ import (
 
 var memoRoomFollowHandler = &Handler{
 	prefix: memo.PrefixTopicFollow,
-	handle: func(info parse.OpReturn) error {
+	handle: func(ctx context.Context, info parse.OpReturn) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,

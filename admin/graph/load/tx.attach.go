@@ -1,6 +1,7 @@
 package load
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
@@ -19,9 +20,9 @@ type Tx struct {
 	DetailsWait sync.WaitGroup
 }
 
-func AttachToTxs(preloads []string, txs []*model.Tx) error {
+func AttachToTxs(ctx context.Context, preloads []string, txs []*model.Tx) error {
 	t := Tx{
-		baseA: baseA{Preloads: preloads},
+		baseA: baseA{Ctx: ctx, Preloads: preloads},
 		Txs:   txs,
 	}
 	t.DetailsWait.Add(3)
@@ -61,7 +62,7 @@ func (t *Tx) AttachInputs() {
 		return
 	}
 	txHashes := t.GetTxHashes(false, false)
-	txInputs, err := chain.GetTxInputsByHashes(txHashes)
+	txInputs, err := chain.GetTxInputsByHashes(t.Ctx, txHashes)
 	if err != nil {
 		t.AddError(fmt.Errorf("error getting tx inputs for model tx; %w", err))
 		return
@@ -97,7 +98,7 @@ func (t *Tx) AttachOutputs() {
 		return
 	}
 	txHashes := t.GetTxHashes(false, false)
-	txOutputs, err := chain.GetTxOutputsByHashes(txHashes)
+	txOutputs, err := chain.GetTxOutputsByHashes(t.Ctx, txHashes)
 	if err != nil {
 		t.AddError(fmt.Errorf("error getting tx outputs for model tx; %w", err))
 		return
@@ -131,7 +132,7 @@ func (t *Tx) AttachToOutputs() {
 	}
 	preloads := GetPrefixPreloads(t.Preloads, "outputs.")
 	t.Mutex.Unlock()
-	if err := AttachToOutputs(preloads, allOutputs); err != nil {
+	if err := AttachToOutputs(t.Ctx, preloads, allOutputs); err != nil {
 		t.AddError(fmt.Errorf("error attaching to outputs for tx; %w", err))
 		return
 	}
@@ -216,7 +217,7 @@ func (t *Tx) AttachSeens() {
 	if len(txHashes) == 0 {
 		return
 	}
-	txSeens, err := chain.GetTxSeens(txHashes)
+	txSeens, err := chain.GetTxSeens(t.Ctx, txHashes)
 	if err != nil {
 		t.AddError(fmt.Errorf("error getting chain txs for raw; %w", err))
 		return
@@ -243,7 +244,7 @@ func (t *Tx) AttachBlocks() {
 		return
 	}
 	txHashes := t.GetTxHashes(false, false)
-	txBlocks, err := chain.GetTxBlocks(txHashes)
+	txBlocks, err := chain.GetTxBlocks(t.Ctx, txHashes)
 	if err != nil {
 		t.AddError(fmt.Errorf("error getting blocks for tx for block loader; %w", err))
 		return
@@ -280,7 +281,7 @@ func (t *Tx) AttachToBlocks() {
 	}
 	preloads := GetPrefixPreloads(t.Preloads, "blocks.block.")
 	t.Mutex.Unlock()
-	if err := AttachToBlocks(preloads, allBlocks); err != nil {
+	if err := AttachToBlocks(t.Ctx, preloads, allBlocks); err != nil {
 		t.AddError(fmt.Errorf("error attaching to blocks for tx; %w", err))
 		return
 	}

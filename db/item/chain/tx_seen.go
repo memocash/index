@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -42,13 +43,13 @@ func (s *TxSeen) SetUid(uid []byte) {
 
 func (s *TxSeen) Deserialize([]byte) {}
 
-func GetTxSeens(txHashes [][32]byte) ([]*TxSeen, error) {
+func GetTxSeens(ctx context.Context, txHashes [][32]byte) ([]*TxSeen, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
 		shard := db.GetShardByte32(txHashes[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
-	messages, err := db.GetByPrefixes(db.TopicChainTxSeen, shardPrefixes)
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxSeen, shardPrefixes)
 	if err != nil {
 		return nil, jerr.Get("error getting client message chain tx seen", err)
 	}

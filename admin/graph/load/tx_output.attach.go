@@ -1,6 +1,7 @@
 package load
 
 import (
+	"context"
 	"fmt"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/chain"
@@ -13,12 +14,12 @@ type Outputs struct {
 	Outputs []*model.TxOutput
 }
 
-func AttachToOutputs(preloads []string, outputs []*model.TxOutput) error {
+func AttachToOutputs(ctx context.Context, preloads []string, outputs []*model.TxOutput) error {
 	if len(outputs) == 0 {
 		return nil
 	}
 	o := Outputs{
-		baseA:   baseA{Preloads: preloads},
+		baseA:   baseA{Ctx: ctx, Preloads: preloads},
 		Outputs: outputs,
 	}
 	o.Wait.Add(6)
@@ -83,7 +84,7 @@ func (o *Outputs) AttachSpends() {
 		return
 	}
 	outs := o.GetOuts(false)
-	spends, err := chain.GetOutputInputs(outs)
+	spends, err := chain.GetOutputInputs(o.Ctx, outs)
 	if err != nil {
 		o.AddError(fmt.Errorf("error getting tx inputs spends for model tx outputs; %w", err))
 		return
@@ -106,7 +107,7 @@ func (o *Outputs) AttachSpends() {
 	}
 	preloads := GetPrefixPreloads(o.Preloads, "spends.")
 	o.Mutex.Unlock()
-	if err := AttachToInputs(preloads, allSpends); err != nil {
+	if err := AttachToInputs(o.Ctx, preloads, allSpends); err != nil {
 		o.AddError(fmt.Errorf("error attaching to tx inputs spends for model tx outputs; %w", err))
 		return
 	}

@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -69,13 +70,13 @@ func GetAllTxOutputs(shard uint32, startUid []byte) ([]*TxOutput, error) {
 	return txOutputs, nil
 }
 
-func GetTxOutputsByHashes(txHashes [][32]byte) ([]*TxOutput, error) {
+func GetTxOutputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxOutput, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
 		shard := uint32(db.GetShardByte(txHashes[i][:]))
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
-	messages, err := db.GetByPrefixes(db.TopicChainTxOutput, shardPrefixes)
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxOutput, shardPrefixes)
 	if err != nil {
 		return nil, jerr.Get("error getting client message chain tx output", err)
 	}

@@ -57,7 +57,7 @@ func GetSpecific(topic string, shardUids map[uint32][][]byte) ([]client.Message,
 	return messages, nil
 }
 
-func GetByPrefixes(topic string, shardPrefixes map[uint32][][]byte) ([]client.Message, error) {
+func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][][]byte) ([]client.Message, error) {
 	wait := NewWait(len(shardPrefixes))
 	var messages []client.Message
 	for shardT, prefixesT := range shardPrefixes {
@@ -73,7 +73,11 @@ func GetByPrefixes(topic string, shardPrefixes map[uint32][][]byte) ([]client.Me
 				} else {
 					prefixesToUse, prefixes = prefixes, nil
 				}
-				if err := dbClient.GetByPrefixes(topic, prefixesToUse); err != nil {
+				if err := dbClient.GetWOpts(client.Opts{
+					Context:  ctx,
+					Topic:    topic,
+					Prefixes: prefixesToUse,
+				}); err != nil {
 					wait.AddError(jerr.Get("error getting client message get by prefixes", err))
 					return
 				}
