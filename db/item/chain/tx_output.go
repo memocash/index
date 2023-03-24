@@ -89,8 +89,8 @@ func GetTxOutputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxOutput
 	return txOutputs, nil
 }
 
-func GetTxOutput(out memo.Out) (*TxOutput, error) {
-	txOutputs, err := GetTxOutputs([]memo.Out{out})
+func GetTxOutput(ctx context.Context, out memo.Out) (*TxOutput, error) {
+	txOutputs, err := GetTxOutputs(ctx, []memo.Out{out})
 	if err != nil {
 		return nil, jerr.Get("error getting tx outputs for single", err)
 	}
@@ -100,13 +100,13 @@ func GetTxOutput(out memo.Out) (*TxOutput, error) {
 	return txOutputs[0], nil
 }
 
-func GetTxOutputs(outs []memo.Out) ([]*TxOutput, error) {
+func GetTxOutputs(ctx context.Context, outs []memo.Out) ([]*TxOutput, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, out := range outs {
 		shard := db.GetShardByte32(out.TxHash)
 		shardUids[shard] = append(shardUids[shard], db.GetTxHashIndexUid(out.TxHash, out.Index))
 	}
-	messages, err := db.GetSpecific(db.TopicChainTxOutput, shardUids)
+	messages, err := db.GetSpecific(ctx, db.TopicChainTxOutput, shardUids)
 	if err != nil {
 		return nil, jerr.Get("error getting client message chain tx output", err)
 	}

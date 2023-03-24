@@ -48,7 +48,7 @@ func (i *Inputs) AttachScriptSequence() {
 	if len(outs) == 0 {
 		return
 	}
-	txInputs, err := chain.GetTxInputs(outs)
+	txInputs, err := chain.GetTxInputs(i.Ctx, outs)
 	if err != nil {
 		i.AddError(fmt.Errorf("error getting tx inputs for model tx inputs script sequence; %w", err))
 		return

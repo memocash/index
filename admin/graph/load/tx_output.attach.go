@@ -59,7 +59,7 @@ func (o *Outputs) AttachInfo() {
 	if len(outs) == 0 {
 		return
 	}
-	txOutputs, err := chain.GetTxOutputs(outs)
+	txOutputs, err := chain.GetTxOutputs(o.Ctx, outs)
 	if err != nil {
 		o.AddError(fmt.Errorf("error getting tx outputs for model tx; %w", err))
 		return
@@ -122,7 +122,7 @@ func (o *Outputs) AttachSlps() {
 		return
 	}
 	outs := o.GetOuts(false)
-	slpOutputs, err := slp.GetOutputs(outs)
+	slpOutputs, err := slp.GetOutputs(o.Ctx, outs)
 	if err != nil {
 		o.AddError(fmt.Errorf("error getting slp outputs for model tx outputs; %w", err))
 		return
@@ -153,7 +153,7 @@ func (o *Outputs) AttachSlpBatons() {
 		return
 	}
 	outs := o.GetOuts(false)
-	slpBatons, err := slp.GetBatons(outs)
+	slpBatons, err := slp.GetBatons(o.Ctx, outs)
 	if err != nil {
 		o.AddError(fmt.Errorf("error getting slp batons for model tx outputs; %w", err))
 		return
@@ -185,7 +185,7 @@ func (o *Outputs) AttachToSlpOutputs() {
 	}
 	preloads := GetPrefixPreloads(o.Preloads, "slp.")
 	o.Mutex.Unlock()
-	if err := AttachToSlpOutputs(preloads, allSlpOutputs); err != nil {
+	if err := AttachToSlpOutputs(o.Ctx, preloads, allSlpOutputs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp outputs for tx outputs; %w", err))
 		return
 	}
@@ -202,7 +202,7 @@ func (o *Outputs) AttachToSlpBatons() {
 	}
 	preloads := GetPrefixPreloads(o.Preloads, "slp_baton.")
 	o.Mutex.Unlock()
-	if err := AttachToSlpBatons(preloads, allSlpBatons); err != nil {
+	if err := AttachToSlpBatons(o.Ctx, preloads, allSlpBatons); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp batons for tx outputs; %w", err))
 		return
 	}

@@ -1,6 +1,7 @@
 package slp
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -53,7 +54,7 @@ func (o *Output) Deserialize(data []byte) {
 	o.Quantity = jutil.GetUint64(data[32:])
 }
 
-func GetOutputs(outs []memo.Out) ([]*Output, error) {
+func GetOutputs(ctx context.Context, outs []memo.Out) ([]*Output, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, out := range outs {
 		shard := db.GetShardByte32(out.TxHash)
@@ -62,7 +63,7 @@ func GetOutputs(outs []memo.Out) ([]*Output, error) {
 			jutil.GetUint32Data(out.Index),
 		))
 	}
-	messages, err := db.GetSpecific(db.TopicSlpOutput, shardUids)
+	messages, err := db.GetSpecific(ctx, db.TopicSlpOutput, shardUids)
 	if err != nil {
 		return nil, jerr.Get("error getting slp outputs", err)
 	}

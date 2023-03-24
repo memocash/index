@@ -48,7 +48,7 @@ func (b *Blocks) AttachRaws() {
 		return
 	}
 	blockHashes := b.GetBlockHashes()
-	blocks, err := chain.GetBlocks(blockHashes)
+	blocks, err := chain.GetBlocks(b.Ctx, blockHashes)
 	if err != nil {
 		b.AddError(fmt.Errorf("error getting blocks for block loader; %w", err))
 		return
@@ -103,7 +103,7 @@ func (b *Blocks) AttachInfos() {
 		return
 	}
 	blockHashes := b.GetBlockHashes()
-	blockInfos, err := chain.GetBlockInfos(blockHashes)
+	blockInfos, err := chain.GetBlockInfos(b.Ctx, blockHashes)
 	if err != nil {
 		b.AddError(fmt.Errorf("error getting block infos for block loader; %w", err))
 		return

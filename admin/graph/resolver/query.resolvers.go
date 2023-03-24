@@ -147,13 +147,13 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	for i := range heightBlocks {
 		blockHashes[i] = heightBlocks[i].BlockHash
 	}
-	blocks, err := chain.GetBlocks(blockHashes)
+	blocks, err := chain.GetBlocks(ctx, blockHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting raw blocks", err)
 	}
 	var blockInfos []*chain.BlockInfo
 	if load.HasFieldAny(ctx, []string{"size", "tx_count"}) {
-		if blockInfos, err = chain.GetBlockInfos(blockHashes); err != nil {
+		if blockInfos, err = chain.GetBlockInfos(ctx, blockHashes); err != nil {
 			return nil, jerr.Get("error getting block infos for blocks query resolver", err)
 		}
 	}

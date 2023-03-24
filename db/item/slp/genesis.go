@@ -1,6 +1,7 @@
 package slp
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -67,13 +68,13 @@ func (g *Genesis) Deserialize(data []byte) {
 	}
 }
 
-func GetGeneses(txHashes [][32]byte) ([]*Genesis, error) {
+func GetGeneses(ctx context.Context, txHashes [][32]byte) ([]*Genesis, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
 		shard := db.GetShardByte32(txHash[:])
 		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(txHash[:]))
 	}
-	messages, err := db.GetSpecific(db.TopicSlpGenesis, shardUids)
+	messages, err := db.GetSpecific(ctx, db.TopicSlpGenesis, shardUids)
 	if err != nil {
 		return nil, jerr.Get("error getting slp geneses", err)
 	}

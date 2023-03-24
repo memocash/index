@@ -1,6 +1,7 @@
 package load
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"github.com/memocash/index/admin/graph/model"
@@ -12,12 +13,12 @@ type SlpOutputs struct {
 	SlpOutputs []*model.SlpOutput
 }
 
-func AttachToSlpOutputs(preloads []string, slpOutputs []*model.SlpOutput) error {
+func AttachToSlpOutputs(ctx context.Context, preloads []string, slpOutputs []*model.SlpOutput) error {
 	if len(slpOutputs) == 0 {
 		return nil
 	}
 	o := SlpOutputs{
-		baseA:      baseA{Preloads: preloads},
+		baseA:      baseA{Ctx: ctx, Preloads: preloads},
 		SlpOutputs: slpOutputs,
 	}
 	o.Wait.Add(1)
@@ -44,7 +45,7 @@ func (o *SlpOutputs) AttachGeneses() {
 	if !o.HasPreload([]string{"genesis"}) {
 		return
 	}
-	slpGeneses, err := slp.GetGeneses(o.GetTokenHashes())
+	slpGeneses, err := slp.GetGeneses(o.Ctx, o.GetTokenHashes())
 	if err != nil {
 		o.AddError(fmt.Errorf("error getting slp geneses from dataloader; %w", err))
 		return

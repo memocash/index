@@ -24,7 +24,7 @@ func GetItem(obj Object) error {
 	return nil
 }
 
-func GetSpecific(topic string, shardUids map[uint32][][]byte) ([]client.Message, error) {
+func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byte) ([]client.Message, error) {
 	wait := NewWait(len(shardUids))
 	var messages []client.Message
 	for shardT, uidsT := range shardUids {
@@ -40,7 +40,11 @@ func GetSpecific(topic string, shardUids map[uint32][][]byte) ([]client.Message,
 				} else {
 					uidsToUse, uids = uids, nil
 				}
-				if err := dbClient.GetSpecific(topic, uidsToUse); err != nil {
+				if err := dbClient.GetWOpts(client.Opts{
+					Context: ctx,
+					Topic:   topic,
+					Uids:    uidsToUse,
+				}); err != nil {
 					wait.AddError(jerr.Get("error getting client message get specific", err))
 					return
 				}

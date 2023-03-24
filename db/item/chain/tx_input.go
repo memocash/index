@@ -99,13 +99,13 @@ func GetTxInputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxInput, 
 	return txInputs, nil
 }
 
-func GetTxInputs(outs []memo.Out) ([]*TxInput, error) {
+func GetTxInputs(ctx context.Context, outs []memo.Out) ([]*TxInput, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, out := range outs {
 		shard := db.GetShardByte32(out.TxHash)
 		shardUids[shard] = append(shardUids[shard], GetTxInputUid(db.RawTxHashToFixed(out.TxHash), out.Index))
 	}
-	messages, err := db.GetSpecific(db.TopicChainTxInput, shardUids)
+	messages, err := db.GetSpecific(ctx, db.TopicChainTxInput, shardUids)
 	if err != nil {
 		return nil, jerr.Get("error getting client message chain tx input", err)
 	}

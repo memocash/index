@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
@@ -34,24 +33,24 @@ func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*mo
 
 // Output is the resolver for the output field.
 func (r *slpGenesisResolver) Output(ctx context.Context, obj *model.SlpGenesis) (*model.SlpOutput, error) {
-	slpOutput, err := load.SlpOutput.Load(model.HashIndex{
-		Hash:  chainhash.Hash(obj.Hash).String(),
+	var slpOutput = &model.SlpOutput{
+		Hash:  obj.Hash,
 		Index: memo.SlpMintTokenIndex,
-	})
-	if err != nil {
-		return nil, jerr.Get("error getting slp output for slp genesis from loader", err)
+	}
+	if err := load.AttachToSlpOutputs(ctx, load.GetPreloads(ctx), []*model.SlpOutput{slpOutput}); err != nil {
+		return nil, jerr.Get("error attaching slp output for slp genesis from loader", err)
 	}
 	return slpOutput, nil
 }
 
 // Baton is the resolver for the baton field.
 func (r *slpGenesisResolver) Baton(ctx context.Context, obj *model.SlpGenesis) (*model.SlpBaton, error) {
-	slpBaton, err := load.SlpBaton.Load(model.HashIndex{
-		Hash:  chainhash.Hash(obj.Hash).String(),
+	var slpBaton = &model.SlpBaton{
+		Hash:  obj.Hash,
 		Index: obj.BatonIndex,
-	})
-	if err != nil {
-		return nil, jerr.Get("error getting slp baton for slp genesis from loader", err)
+	}
+	if err := load.AttachToSlpBatons(ctx, load.GetPreloads(ctx), []*model.SlpBaton{slpBaton}); err != nil {
+		return nil, jerr.Get("error attaching slp baton for slp genesis from loader", err)
 	}
 	return slpBaton, nil
 }
