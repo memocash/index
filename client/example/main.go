@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	log.SetOutput(os.Stdout)
 	if len(os.Args) < 2 {
 		log.Fatal("error no command provided")
 	}
@@ -36,7 +37,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("error getting utxos; %v", err)
 		}
-		fmt.Printf("Utxos: %d\n", len(utxos))
+		log.Printf("Utxos: %d\n", len(utxos))
 	case "balance":
 		if len(os.Args) < 3 {
 			log.Fatal("no address provided")
@@ -57,7 +58,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("error getting balance; %v", err)
 		}
-		fmt.Printf("Balance: %d, utxos: %d, spendable: %d, spendable_count: %d\n",
+		log.Printf("Balance: %d, utxos: %d, spendable: %d, spendable_count: %d\n",
 			balance.Balance, balance.UtxoCount, balance.Spendable, balance.SpendableCount)
 	}
 }
