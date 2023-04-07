@@ -37,7 +37,7 @@ func GetHistory(url string, addressUpdates []AddressUpdate) (History, error) {
 		return nil, fmt.Errorf("error creating new request for get history; %w", err)
 	}
 	request.Header.Set("Content-Type", "application/json")
-	client := &http.Client{Timeout: time.Second * 10}
+	client := &http.Client{Timeout: time.Second * 30}
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("error the HTTP request failed; %w", err)

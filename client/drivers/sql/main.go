@@ -59,7 +59,7 @@ func (t Table) GetInsert(prefix string, values map[string]interface{}) Query {
 	}
 	return Query{
 		Name: t.GetName(prefix),
-		Query: "INSERT OR IGNORE INTO " + t.GetName(prefix) +
+		Query: "INSERT OR REPLACE INTO " + t.GetName(prefix) +
 			" (" + strings.Join(cols, ", ") + ") VALUES (" + "?" + strings.Repeat(", ?", len(cols)-1) + ")",
 		Variables: variables,
 	}
@@ -147,12 +147,12 @@ var tables = map[string]Table{
 	TableSlpGeneses: {
 		Name: TableSlpGeneses,
 		Columns: map[string]string{
-			"hash":     "CHAR",
-			"type":     "INT",
-			"decimals": "INT",
-			"ticker":   "CHAR",
-			"name":     "CHAR",
-			"doc_url":  "CHAR",
+			"hash":       "CHAR",
+			"token_type": "INT",
+			"decimals":   "INT",
+			"ticker":     "CHAR",
+			"name":       "CHAR",
+			"doc_url":    "CHAR",
 		},
 	},
 	TableSlpBatons: {
