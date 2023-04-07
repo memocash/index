@@ -197,7 +197,7 @@ func (d *Database) SaveTxs(txs []graph.Tx) error {
 						"hash":       tx.Hash,
 						"index":      output.Index,
 						"token_hash": output.Slp.TokenHash,
-						"amount":     output.Slp.Amount,
+						"amount":     int64(output.Slp.Amount),
 					}))
 				if output.Slp.Genesis != nil {
 					queries = append(queries,
