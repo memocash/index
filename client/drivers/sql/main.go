@@ -16,13 +16,20 @@ func initDb(db *sql.DB, prefix string) error {
 }
 
 func execQueries(db *sql.DB, queries []*Query) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("error starting sqlite transaction; %w", err)
+	}
 	for _, query := range queries {
 		if query == nil {
 			return fmt.Errorf("exec query is nil")
 		}
-		if _, err := db.Exec(query.Query, query.Variables...); err != nil {
+		if _, err := tx.Exec(query.Query, query.Variables...); err != nil {
 			return fmt.Errorf("error executing query: %s; %w", query.Name, err)
 		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("error committing sqlite transaction; %w", err)
 	}
 	return nil
 }

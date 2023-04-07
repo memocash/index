@@ -171,8 +171,9 @@ func (d *Database) SetAddressLastUpdate(lastUpdates []graph.AddressUpdate) error
 }
 
 func (d *Database) SaveTxs(txs []graph.Tx) error {
+	var queries []*Query
 	for _, tx := range txs {
-		var queries = []*Query{d.GetInsert(TableTxs, map[string]interface{}{"hash": tx.Hash})}
+		queries = append(queries, d.GetInsert(TableTxs, map[string]interface{}{"hash": tx.Hash}))
 		for _, input := range tx.Inputs {
 			queries = append(queries,
 				d.GetInsert(TableInputs, map[string]interface{}{
@@ -242,9 +243,9 @@ func (d *Database) SaveTxs(txs []graph.Tx) error {
 					"tx_hash":    tx.Hash,
 				}))
 		}
-		if err := execQueries(d.Db, queries); err != nil {
-			return fmt.Errorf("error saving txs; %w", err)
-		}
+	}
+	if err := execQueries(d.Db, queries); err != nil {
+		return fmt.Errorf("error saving txs; %w", err)
 	}
 	return nil
 }
