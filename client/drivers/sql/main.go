@@ -154,6 +154,7 @@ var tables = map[string]Table{
 			"name":       "CHAR",
 			"doc_url":    "CHAR",
 		},
+		Indexes: []string{"UNIQUE(hash)"},
 	},
 	TableSlpBatons: {
 		Name: TableSlpBatons,
@@ -162,6 +163,7 @@ var tables = map[string]Table{
 			"index":      "INT",
 			"token_hash": "CHAR",
 		},
+		Indexes: []string{"UNIQUE(hash, `index`)"},
 	},
 	TableSlpOutputs: {
 		Name: TableSlpOutputs,
@@ -171,5 +173,6 @@ var tables = map[string]Table{
 			"token_hash": "CHAR",
 			"amount":     "INT",
 		},
+		Indexes: []string{"UNIQUE(hash, `index`)"},
 	},
 }
