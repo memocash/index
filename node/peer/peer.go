@@ -1,7 +1,6 @@
 package peer
 
 import (
-	"bytes"
 	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/peer"
@@ -151,7 +150,7 @@ func (p *Peer) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 	msgGetData := wire.NewMsgGetData()
 	for _, blockHeader := range msg.Headers {
 		blockHash := blockHeader.BlockHash()
-		if p.HasExisting && bytes.Equal(blockHash.CloneBytes(), wallet.GetFirstBlock().Hash.CloneBytes()) {
+		if p.HasExisting && blockHash == *wallet.GetFirstBlock().Hash {
 			go func() {
 				time.Sleep(5 * time.Second)
 				p.HeightBack++
