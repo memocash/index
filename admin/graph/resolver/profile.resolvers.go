@@ -256,7 +256,11 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	if err != nil {
 		return nil, jerr.Getf(err, "error decoding address for profile resolver: %s", obj.Address)
 	}
-	addrMemoPosts, err := memo.GetAddrPosts(ctx, [][25]byte{*addr}, newest != nil && *newest)
+	var startTime time.Time
+	if start != nil {
+		startTime = time.Time(*start)
+	}
+	addrMemoPosts, err := memo.GetAddrPosts(ctx, [][25]byte{*addr}, newest != nil && *newest, startTime)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting addr memo posts for profile resolver: %s", obj.Address)
 	}
