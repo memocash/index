@@ -260,7 +260,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	if start != nil {
 		startTime = time.Time(*start)
 	}
-	addrMemoPosts, err := memo.GetAddrPosts(ctx, [][25]byte{*addr}, newest != nil && *newest, startTime)
+	addrMemoPosts, err := memo.GetSingleAddrPosts(ctx, *addr, newest != nil && *newest, startTime)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting addr memo posts for profile resolver: %s", obj.Address)
 	}

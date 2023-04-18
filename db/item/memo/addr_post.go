@@ -48,6 +48,32 @@ func (p *AddrPost) Serialize() []byte {
 
 func (p *AddrPost) Deserialize([]byte) {}
 
+func GetSingleAddrPosts(ctx context.Context, addr [25]byte, newest bool, start time.Time) ([]*AddrPost, error) {
+	var startByte []byte
+	if !jutil.IsTimeZero(start) {
+		startByte = jutil.CombineBytes(addr[:], jutil.GetTimeByteNanoBig(start))
+	} else {
+		startByte = addr[:]
+	}
+	dbClient := client.NewClient(config.GetShardConfig(client.GetByteShard32(addr[:]), config.GetQueueShards()).GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicMemoAddrPost,
+		Prefixes: [][]byte{addr[:]},
+		Max:      client.ExLargeLimit,
+		Start:    startByte,
+		Newest:   newest,
+		Context:  ctx,
+	}); err != nil {
+		return nil, jerr.Get("error getting db addr memo post by prefix", err)
+	}
+	var addrPosts []*AddrPost
+	for _, msg := range dbClient.Messages {
+		var addrPost = new(AddrPost)
+		db.Set(addrPost, msg)
+		addrPosts = append(addrPosts, addrPost)
+	}
+	return addrPosts, nil
+}
 func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool, start time.Time) ([]*AddrPost, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
@@ -56,21 +82,13 @@ func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool, start time
 	}
 	shardConfigs := config.GetQueueShards()
 	var addrPosts []*AddrPost
-	var i = 0
 	for shard, prefixes := range shardPrefixes {
-		var startByte []byte
-		if !jutil.IsTimeZero(start) {
-			startByte = jutil.CombineBytes(addrs[i][:], jutil.GetTimeByteNanoBig(start))
-		} else {
-			startByte = addrs[i][:]
-		}
 		shardConfig := config.GetShardConfig(shard, shardConfigs)
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetWOpts(client.Opts{
 			Topic:    db.TopicMemoAddrPost,
 			Prefixes: prefixes,
 			Max:      client.ExLargeLimit,
-			Start:    startByte,
 			Newest:   newest,
 			Context:  ctx,
 		}); err != nil {
@@ -81,7 +99,6 @@ func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool, start time
 			db.Set(addrPost, msg)
 			addrPosts = append(addrPosts, addrPost)
 		}
-		i++
 	}
 	return addrPosts, nil
 }
