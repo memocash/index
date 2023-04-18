@@ -74,7 +74,7 @@ func GetSingleAddrPosts(ctx context.Context, addr [25]byte, newest bool, start t
 	}
 	return addrPosts, nil
 }
-func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool, start time.Time) ([]*AddrPost, error) {
+func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool) ([]*AddrPost, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
 		shard := client.GetByteShard32(addrs[i][:])
