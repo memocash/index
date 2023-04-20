@@ -90,6 +90,7 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 		Height:    &height,
 		Raw:       block.Raw,
 	}
+	load.PrintFields(load.GetFields(ctx), 0)
 	if !load.HasFieldAny(ctx, []string{"size", "tx_count"}) {
 		return modelBlock, nil
 	}

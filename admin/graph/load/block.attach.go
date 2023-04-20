@@ -21,10 +21,11 @@ func AttachToBlocks(ctx context.Context, preloads []string, blocks []*model.Bloc
 		baseA:  baseA{Ctx: ctx, Preloads: preloads},
 		Blocks: blocks,
 	}
-	b.Wait.Add(3)
+	b.Wait.Add(4)
 	go b.AttachRaws()
 	go b.AttachHeights()
 	go b.AttachInfos()
+	go b.AttachTxs()
 	b.Wait.Wait()
 	if len(b.Errors) > 0 {
 		return fmt.Errorf("error attaching to blocks; %w", b.Errors[0])
@@ -120,4 +121,13 @@ func (b *Blocks) AttachInfos() {
 			break
 		}
 	}
+}
+
+func (b *Blocks) AttachTxs() {
+	defer b.Wait.Done()
+	if !b.HasPreload([]string{"txs"}) {
+		return
+	}
+	b.Mutex.Lock()
+	defer b.Mutex.Unlock()
 }
