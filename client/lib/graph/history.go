@@ -40,7 +40,7 @@ func GetHistory(url string, addressUpdates []AddressUpdate) (History, error) {
 	client := &http.Client{Timeout: time.Second * 60}
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("error the HTTP request failed; %w", err)
+		return nil, fmt.Errorf("error the graph history HTTP request failed; %w", err)
 	}
 	defer response.Body.Close()
 	data, err := io.ReadAll(response.Body)
