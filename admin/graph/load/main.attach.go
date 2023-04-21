@@ -2,23 +2,22 @@ package load
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jutil"
 	"sync"
 )
 
 type baseA struct {
-	Ctx      context.Context
-	Preloads []string
-	Mutex    sync.Mutex
-	mutexB   sync.Mutex
-	Wait     sync.WaitGroup
-	Errors   []error
+	Ctx    context.Context
+	Fields []Field
+	Mutex  sync.Mutex
+	mutexB sync.Mutex
+	Wait   sync.WaitGroup
+	Errors []error
 }
 
-func (b *baseA) HasPreload(check []string) bool {
+func (b *baseA) HasField(checks []string) bool {
 	b.mutexB.Lock()
 	defer b.mutexB.Unlock()
-	return jutil.StringsInSlice(check, b.Preloads)
+	return HasFieldAny(b.Fields, checks)
 }
 
 func (b *baseA) AddError(err error) {

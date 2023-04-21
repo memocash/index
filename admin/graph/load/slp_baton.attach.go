@@ -13,12 +13,12 @@ type SlpBatons struct {
 	SlpBatons []*model.SlpBaton
 }
 
-func AttachToSlpBatons(ctx context.Context, preloads []string, slpBatons []*model.SlpBaton) error {
+func AttachToSlpBatons(ctx context.Context, fields []Field, slpBatons []*model.SlpBaton) error {
 	if len(slpBatons) == 0 {
 		return nil
 	}
 	o := SlpBatons{
-		baseA:     baseA{Ctx: ctx, Preloads: preloads},
+		baseA:     baseA{Ctx: ctx, Fields: fields},
 		SlpBatons: slpBatons,
 	}
 	o.Wait.Add(1)
@@ -42,7 +42,7 @@ func (o *SlpBatons) GetTokenHashes() [][32]byte {
 
 func (o *SlpBatons) AttachGeneses() {
 	defer o.Wait.Done()
-	if !o.HasPreload([]string{"genesis"}) {
+	if !o.HasField([]string{"genesis"}) {
 		return
 	}
 	slpGeneses, err := slp.GetGeneses(o.Ctx, o.GetTokenHashes())

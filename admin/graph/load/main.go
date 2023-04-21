@@ -13,12 +13,16 @@ import (
 
 const defaultWait = 10 * time.Millisecond
 
-func HasField(ctx context.Context, preload string) bool {
-	return jutil.StringInSlice(preload, GetPreloads(ctx))
+func HasField(fields []Field, check string) bool {
+	return HasFieldAny(fields, []string{check})
 }
 
-func HasFieldAny(ctx context.Context, preloads []string) bool {
-	return jutil.StringsInSlice(preloads, GetPreloads(ctx))
+func HasFieldAny(fields []Field, checks []string) bool {
+	var fieldNames = make([]string, len(fields))
+	for i, field := range fields {
+		fieldNames[i] = field.Name
+	}
+	return jutil.StringsInSlice(checks, fieldNames)
 }
 
 func GetPreloads(ctx context.Context) []string {
@@ -45,12 +49,20 @@ func GetPreloadString(prefix, name string) string {
 	return name
 }
 
-func GetPrefixPreloads(preloads []string, prefix string) (prefixPreloads []string) {
-	for _, preload := range preloads {
-		if strings.HasPrefix(preload, prefix) {
-			prefixPreloads = append(prefixPreloads, strings.TrimPrefix(preload, prefix))
+func GetPrefixFields(fields []Field, prefix string) (prefixFields []Field) {
+	for _, childField := range strings.Split(strings.TrimRight(prefix, "."), ".") {
+		var foundFields []Field
+		for _, field := range fields {
+			if field.Name == childField {
+				foundFields = field.Fields
+			}
 		}
+		if len(foundFields) == 0 {
+			return
+		}
+		fields = foundFields
 	}
+	prefixFields = fields
 	return
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/slp"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"log"
 )
 
 type Outputs struct {
@@ -14,12 +15,12 @@ type Outputs struct {
 	Outputs []*model.TxOutput
 }
 
-func AttachToOutputs(ctx context.Context, preloads []string, outputs []*model.TxOutput) error {
+func AttachToOutputs(ctx context.Context, fields []Field, outputs []*model.TxOutput) error {
 	if len(outputs) == 0 {
 		return nil
 	}
 	o := Outputs{
-		baseA:   baseA{Ctx: ctx, Preloads: preloads},
+		baseA:   baseA{Ctx: ctx, Fields: fields},
 		Outputs: outputs,
 	}
 	o.Wait.Add(6)
@@ -52,7 +53,7 @@ func (o *Outputs) GetOuts(checkScript bool) []memo.Out {
 
 func (o *Outputs) AttachInfo() {
 	defer o.Wait.Done()
-	if !o.HasPreload([]string{"amount", "script"}) {
+	if !o.HasField([]string{"amount", "script"}) {
 		return
 	}
 	outs := o.GetOuts(true)
@@ -80,9 +81,14 @@ func (o *Outputs) AttachInfo() {
 
 func (o *Outputs) AttachSpends() {
 	defer o.Wait.Done()
-	if !o.HasPreload([]string{"spends"}) {
+	for _, field := range o.Fields {
+		log.Printf("output field: %s\n", field.Name)
+	}
+	if !o.HasField([]string{"spends"}) {
+		log.Println("NOT has spends field")
 		return
 	}
+	log.Println("HAS spends field")
 	outs := o.GetOuts(false)
 	spends, err := chain.GetOutputInputs(o.Ctx, outs)
 	if err != nil {
@@ -105,9 +111,9 @@ func (o *Outputs) AttachSpends() {
 		}
 		allSpends = append(allSpends, o.Outputs[i].Spends...)
 	}
-	preloads := GetPrefixPreloads(o.Preloads, "spends.")
+	prefixFields := GetPrefixFields(o.Fields, "spends.")
 	o.Mutex.Unlock()
-	if err := AttachToInputs(o.Ctx, preloads, allSpends); err != nil {
+	if err := AttachToInputs(o.Ctx, prefixFields, allSpends); err != nil {
 		o.AddError(fmt.Errorf("error attaching to tx inputs spends for model tx outputs; %w", err))
 		return
 	}
@@ -118,7 +124,7 @@ func (o *Outputs) AttachSlps() {
 	defer func() {
 		go o.AttachToSlpOutputs()
 	}()
-	if !o.HasPreload([]string{"slp"}) {
+	if !o.HasField([]string{"slp"}) {
 		return
 	}
 	outs := o.GetOuts(false)
@@ -149,7 +155,7 @@ func (o *Outputs) AttachSlpBatons() {
 	defer func() {
 		go o.AttachToSlpBatons()
 	}()
-	if !o.HasPreload([]string{"slp_baton"}) {
+	if !o.HasField([]string{"slp_baton"}) {
 		return
 	}
 	outs := o.GetOuts(false)
@@ -183,9 +189,9 @@ func (o *Outputs) AttachToSlpOutputs() {
 			allSlpOutputs = append(allSlpOutputs, o.Outputs[i].Slp)
 		}
 	}
-	preloads := GetPrefixPreloads(o.Preloads, "slp.")
+	prefixFields := GetPrefixFields(o.Fields, "slp.")
 	o.Mutex.Unlock()
-	if err := AttachToSlpOutputs(o.Ctx, preloads, allSlpOutputs); err != nil {
+	if err := AttachToSlpOutputs(o.Ctx, prefixFields, allSlpOutputs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp outputs for tx outputs; %w", err))
 		return
 	}
@@ -200,9 +206,9 @@ func (o *Outputs) AttachToSlpBatons() {
 			allSlpBatons = append(allSlpBatons, o.Outputs[i].SlpBaton)
 		}
 	}
-	preloads := GetPrefixPreloads(o.Preloads, "slp_baton.")
+	prefixFields := GetPrefixFields(o.Fields, "slp_baton.")
 	o.Mutex.Unlock()
-	if err := AttachToSlpBatons(o.Ctx, preloads, allSlpBatons); err != nil {
+	if err := AttachToSlpBatons(o.Ctx, prefixFields, allSlpBatons); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp batons for tx outputs; %w", err))
 		return
 	}

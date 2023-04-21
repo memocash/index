@@ -13,9 +13,9 @@ type Inputs struct {
 	Inputs []*model.TxInput
 }
 
-func AttachToInputs(ctx context.Context, preloads []string, inputs []*model.TxInput) error {
+func AttachToInputs(ctx context.Context, fields []Field, inputs []*model.TxInput) error {
 	i := Inputs{
-		baseA:  baseA{Ctx: ctx, Preloads: preloads},
+		baseA:  baseA{Ctx: ctx, Fields: fields},
 		Inputs: inputs,
 	}
 	i.Wait.Add(2)
@@ -30,7 +30,7 @@ func AttachToInputs(ctx context.Context, preloads []string, inputs []*model.TxIn
 
 func (i *Inputs) AttachScriptSequence() {
 	defer i.Wait.Done()
-	if !i.HasPreload([]string{"script", "sequence"}) {
+	if !i.HasField([]string{"script", "sequence"}) {
 		return
 	}
 	var outs []memo.Out
@@ -69,7 +69,7 @@ func (i *Inputs) AttachScriptSequence() {
 
 func (i *Inputs) AttachTxs() {
 	defer i.Wait.Done()
-	if !i.HasPreload([]string{"tx"}) {
+	if !i.HasField([]string{"tx"}) {
 		return
 	}
 	var txHashes = make([][32]byte, len(i.Inputs))
@@ -99,9 +99,9 @@ func (i *Inputs) AttachTxs() {
 			break
 		}
 	}
-	preloads := GetPrefixPreloads(i.Preloads, "tx.")
+	prefixFields := GetPrefixFields(i.Fields, "tx.")
 	i.Mutex.Unlock()
-	if err := AttachToTxs(i.Ctx, preloads, allTxs); err != nil {
+	if err := AttachToTxs(i.Ctx, prefixFields, allTxs); err != nil {
 		i.AddError(fmt.Errorf("error attaching to txs for model tx inputs; %w", err))
 		return
 	}

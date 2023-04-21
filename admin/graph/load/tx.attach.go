@@ -20,9 +20,9 @@ type Tx struct {
 	DetailsWait sync.WaitGroup
 }
 
-func AttachToTxs(ctx context.Context, preloads []string, txs []*model.Tx) error {
+func AttachToTxs(ctx context.Context, fields []Field, txs []*model.Tx) error {
 	t := Tx{
-		baseA: baseA{Ctx: ctx, Preloads: preloads},
+		baseA: baseA{Ctx: ctx, Fields: fields},
 		Txs:   txs,
 	}
 	t.DetailsWait.Add(3)
@@ -58,7 +58,7 @@ func (t *Tx) GetTxHashes(checkVersion, checkSeen bool) [][32]byte {
 
 func (t *Tx) AttachInputs() {
 	defer t.DetailsWait.Done()
-	if !t.HasPreload([]string{"inputs", "raw"}) {
+	if !t.HasField([]string{"inputs", "raw"}) {
 		return
 	}
 	txHashes := t.GetTxHashes(false, false)
@@ -94,7 +94,7 @@ func (t *Tx) AttachOutputs() {
 	defer func() {
 		go t.AttachToOutputs()
 	}()
-	if !t.HasPreload([]string{"outputs", "raw"}) {
+	if !t.HasField([]string{"outputs", "raw"}) {
 		return
 	}
 	txHashes := t.GetTxHashes(false, false)
@@ -130,9 +130,9 @@ func (t *Tx) AttachToOutputs() {
 	for _, tx := range t.Txs {
 		allOutputs = append(allOutputs, tx.Outputs...)
 	}
-	preloads := GetPrefixPreloads(t.Preloads, "outputs.")
+	prefixFields := GetPrefixFields(t.Fields, "outputs.")
 	t.Mutex.Unlock()
-	if err := AttachToOutputs(t.Ctx, preloads, allOutputs); err != nil {
+	if err := AttachToOutputs(t.Ctx, prefixFields, allOutputs); err != nil {
 		t.AddError(fmt.Errorf("error attaching to outputs for tx; %w", err))
 		return
 	}
@@ -140,7 +140,7 @@ func (t *Tx) AttachToOutputs() {
 
 func (t *Tx) AttachInfo() {
 	defer t.DetailsWait.Done()
-	if !t.HasPreload([]string{"version", "locktime", "raw"}) {
+	if !t.HasField([]string{"version", "locktime", "raw"}) {
 		return
 	}
 	txHashes := t.GetTxHashes(true, false)
@@ -170,7 +170,7 @@ var TxMissingError = fmt.Errorf("error tx missing")
 
 func (t *Tx) AttachRaws() {
 	defer t.Wait.Done()
-	if !t.HasPreload([]string{"raw"}) {
+	if !t.HasField([]string{"raw"}) {
 		return
 	}
 	t.Mutex.Lock()
@@ -210,7 +210,7 @@ func (t *Tx) AttachRaws() {
 
 func (t *Tx) AttachSeens() {
 	defer t.Wait.Done()
-	if !t.HasPreload([]string{"seen"}) {
+	if !t.HasField([]string{"seen"}) {
 		return
 	}
 	txHashes := t.GetTxHashes(false, true)
@@ -240,7 +240,7 @@ func (t *Tx) AttachBlocks() {
 	defer func() {
 		go t.AttachToBlocks()
 	}()
-	if !t.HasPreload([]string{"blocks"}) {
+	if !t.HasField([]string{"blocks"}) {
 		return
 	}
 	txHashes := t.GetTxHashes(false, false)
@@ -279,9 +279,9 @@ func (t *Tx) AttachToBlocks() {
 			allBlocks = append(allBlocks, txBlock.Block)
 		}
 	}
-	preloads := GetPrefixPreloads(t.Preloads, "blocks.block.")
+	prefixFields := GetPrefixFields(t.Fields, "blocks.block.")
 	t.Mutex.Unlock()
-	if err := AttachToBlocks(t.Ctx, preloads, allBlocks); err != nil {
+	if err := AttachToBlocks(t.Ctx, prefixFields, allBlocks); err != nil {
 		t.AddError(fmt.Errorf("error attaching to blocks for tx; %w", err))
 		return
 	}

@@ -16,7 +16,7 @@ import (
 // Tx is the resolver for the tx field.
 func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {
 	var tx = &model.Tx{Hash: obj.Hash}
-	if err := load.AttachToTxs(ctx, load.GetPreloads(ctx), []*model.Tx{tx}); err != nil {
+	if err := load.AttachToTxs(ctx, load.GetFields(ctx), []*model.Tx{tx}); err != nil {
 		return nil, jerr.Get("error attaching all to output tx", err)
 	}
 	return tx, nil
@@ -30,7 +30,7 @@ func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*mode
 	var modelLock = &model.Lock{
 		Address: wallet.GetAddressStringFromPkScript(obj.Script),
 	}
-	if load.HasField(ctx, "balance") {
+	if load.HasField(load.GetFields(ctx), "balance") {
 		// TODO: Reimplement if needed
 		return nil, jerr.New("error balance no longer implemented")
 	}
