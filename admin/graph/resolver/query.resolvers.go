@@ -322,7 +322,7 @@ func (r *subscriptionResolver) Posts(ctx context.Context, hashes []string) (<-ch
 // Profiles is the resolver for the profiles field.
 func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error) {
 	var profile = new(sub.Profile)
-	profileChan, err := profile.Listen(ctx, addresses, load.GetPreloads(ctx))
+	profileChan, err := profile.Listen(ctx, addresses, load.GetFields(ctx))
 	if err != nil {
 		return nil, jerr.Get("error getting profile listener for subscription", err)
 	}

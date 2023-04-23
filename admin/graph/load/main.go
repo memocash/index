@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/jchavannes/jgo/jutil"
 	"log"
 	"strings"
 	"time"
@@ -18,11 +17,27 @@ func HasField(fields []Field, check string) bool {
 }
 
 func HasFieldAny(fields []Field, checks []string) bool {
-	var fieldNames = make([]string, len(fields))
-	for i, field := range fields {
-		fieldNames[i] = field.Name
+	for _, check := range checks {
+		var checkFields = fields
+		var found bool
+		for _, childCheck := range strings.Split(check, ".") {
+			found = false
+			for _, checkField := range checkFields {
+				if checkField.Name == childCheck {
+					found = true
+					checkFields = checkField.Fields
+					break
+				}
+			}
+			if found == false {
+				break
+			}
+		}
+		if found == true {
+			return true
+		}
 	}
-	return jutil.StringsInSlice(checks, fieldNames)
+	return false
 }
 
 func GetPreloads(ctx context.Context) []string {
