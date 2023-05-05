@@ -83,7 +83,6 @@ func ListenAddrNames(ctx context.Context, addrs [][25]byte) (chan *AddrName, err
 	}
 	var addrNameChan = make(chan *AddrName)
 	go func() {
-		defer func() { close(chanMessages) }()
 		for {
 			msg, ok := <-chanMessages
 			if !ok {

@@ -83,7 +83,6 @@ func ListenAddrProfilePics(ctx context.Context, addrs [][25]byte) (chan *AddrPro
 	}
 	var addrProfilePicChan = make(chan *AddrProfilePic)
 	go func() {
-		defer func() { close(chanMessages) }()
 		for {
 			msg, ok := <-chanMessages
 			if !ok {

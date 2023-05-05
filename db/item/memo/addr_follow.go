@@ -130,7 +130,6 @@ func ListenAddrFollows(ctx context.Context, addrs [][25]byte) (chan *AddrFollow,
 	}
 	var addrFollowChan = make(chan *AddrFollow)
 	go func() {
-		defer func() { close(chanMessages) }()
 		for {
 			msg, ok := <-chanMessages
 			if !ok {
