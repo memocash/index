@@ -24,7 +24,7 @@ func (c *Create) setInputs() error {
 		c.PotentialInputs = append(c.PotentialInputs[:i], c.PotentialInputs[i+1:]...)
 		i--
 		c.InputsToUse = append(c.InputsToUse, potentialInput)
-		hasEnoughInputValue, err := c.isEnoughInputValue()
+		hasEnoughInputValue, err = c.isEnoughInputValue()
 		if err != nil {
 			return jerr.Get("error determining if has enough input value", err)
 		}
@@ -36,7 +36,7 @@ func (c *Create) setInputs() error {
 }
 
 func (c *Create) setChange() error {
-	if ! c.isEnoughSlpValue() {
+	if !c.isEnoughSlpValue() {
 		// Don't set change until SLP is complete
 		return nil
 	}
@@ -66,7 +66,7 @@ func (c *Create) setChange() error {
 			}
 		}
 	} else {
-		if ! c.Request.Change.Main.IsSet() {
+		if !c.Request.Change.Main.IsSet() {
 			return jerr.New("change address not set")
 		}
 		change -= memo.OutputFeeP2PKH
@@ -105,7 +105,7 @@ func (c *Create) setSlpInputs() error {
 		}
 	}
 loop:
-	for i := 0; ! c.isEnoughSlpValue() && i < len(potentialTokenInputs); i++ {
+	for i := 0; !c.isEnoughSlpValue() && i < len(potentialTokenInputs); i++ {
 		c.InputsToUse = append(c.InputsToUse, potentialTokenInputs[i])
 		for j := range c.PotentialInputs {
 			if bytes.Equal(c.PotentialInputs[j].Input.PrevOutHash, potentialTokenInputs[i].Input.PrevOutHash) &&
@@ -126,7 +126,7 @@ func (c *Create) setSlpChange() error {
 	}
 	if c.getTokenInputValue() > tokenSendOutput.GetTotalQuantity() {
 		slpChange := c.Request.Change.GetSlp()
-		if ! slpChange.IsSet() {
+		if !slpChange.IsSet() {
 			return jerr.New("error slp change address not set")
 		}
 		c.Outputs = append(c.Outputs, GetAddressOutput(slpChange, memo.DustMinimumOutput))
