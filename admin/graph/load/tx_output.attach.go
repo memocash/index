@@ -53,7 +53,7 @@ func (o *Outputs) GetOuts(checkScript bool) []memo.Out {
 
 func (o *Outputs) AttachInfo() {
 	defer o.Wait.Done()
-	if !o.HasField([]string{"amount", "script"}) {
+	if !o.HasField([]string{"amount", "script", "lock"}) {
 		return
 	}
 	outs := o.GetOuts(true)
