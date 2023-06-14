@@ -7,6 +7,15 @@ import (
 	"github.com/memocash/index/ref/config"
 )
 
+const (
+	NameTopicSave = "topic_save"
+)
+
+const (
+	TagTopic    = "topic"
+	TagQuantity = "quantity"
+)
+
 var influxWriteApi api.WriteAPIBlocking
 
 func getInflux() (api.WriteAPIBlocking, error) {

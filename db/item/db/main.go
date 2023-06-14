@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/metric"
 	"github.com/memocash/index/ref/config"
 	"sort"
 	"sync"
@@ -109,6 +110,7 @@ func GetShardCount() uint32 {
 
 func Save(objects []Object) error {
 	var shardMessages = make(map[uint][]*client.Message)
+	var topicSaveMetrics = new(metric.CollectionTopicSave)
 	for i := 0; len(objects) > 0; i++ {
 		var object Object
 		object, objects = objects[0], objects[1:]
@@ -122,11 +124,13 @@ func Save(objects []Object) error {
 			object.SetUid(uid)
 		}
 		shard := GetShard(object.GetShard())
+		topic := object.GetTopic()
 		shardMessages[shard] = append(shardMessages[shard], &client.Message{
 			Uid:     uid,
 			Message: object.Serialize(),
-			Topic:   object.GetTopic(),
+			Topic:   topic,
 		})
+		topicSaveMetrics.Add(topic)
 	}
 	configs := config.GetQueueShards()
 	var wg sync.WaitGroup
@@ -149,6 +153,9 @@ func Save(objects []Object) error {
 	wg.Wait()
 	if len(errs) > 0 {
 		return jerr.Get("error saving messages", jerr.Combine(errs...))
+	}
+	if err := topicSaveMetrics.Save(); err != nil {
+		return jerr.Get("error saving topic save collection", err)
 	}
 	return nil
 }
