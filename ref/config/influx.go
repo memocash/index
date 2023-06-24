@@ -5,4 +5,5 @@ type InfluxConfig struct {
 	Org    string `mapstructure:"ORG"`
 	Bucket string `mapstructure:"BUCKET"`
 	Token  string `mapstructure:"TOKEN"`
+	Source string `mapstructure:"SOURCE"`
 }

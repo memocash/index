@@ -1,10 +1,7 @@
 package metric
 
 import (
-	"context"
 	"fmt"
-	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
-	"time"
 )
 
 type CollectionTopicSave struct {
@@ -44,7 +41,7 @@ type TopicSave struct {
 
 func (s TopicSave) GetFields() map[string]interface{} {
 	return map[string]interface{}{
-		TagQuantity: s.Quantity,
+		FieldQuantity: s.Quantity,
 	}
 }
 
@@ -55,18 +52,17 @@ func (s TopicSave) GetTags() map[string]string {
 }
 
 func AddTopicSave(request TopicSave) error {
-	writeAPI, err := getInflux()
+	writer, err := getInfluxWriter()
 	if err != nil {
 		return fmt.Errorf("error getting influx; %w", err)
 	}
-	if writeAPI == nil {
+	if writer == nil {
 		return nil
 	}
-	fields := request.GetFields()
-	tags := request.GetTags()
-	p := influxdb2.NewPoint(NameTopicSave, tags, fields, time.Now())
-	if err := writeAPI.WritePoint(context.Background(), p); err != nil {
-		return fmt.Errorf("cannot write point; %w", err)
-	}
+	writer.Write(Point{
+		Measurement: NameTopicSave,
+		Fields:      request.GetFields(),
+		Tags:        request.GetTags(),
+	})
 	return nil
 }
