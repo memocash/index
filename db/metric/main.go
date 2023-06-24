@@ -10,6 +10,7 @@ import (
 
 const (
 	NameTopicSave = "topic_save"
+	NameTopicRead = "topic_read"
 )
 
 const (
@@ -40,11 +41,11 @@ func (i *InfluxWriter) Write(p Point) {
 
 var _influxWriter *InfluxWriter
 
-func getInfluxWriter() (*InfluxWriter, error) {
+func getInfluxWriter() *InfluxWriter {
 	if jutil.IsNil(_influxWriter) {
 		influxConfig := config.GetInfluxConfig()
 		if influxConfig.Url == "" || influxConfig.Token == "" {
-			return nil, nil
+			return nil
 		}
 		c := influxdb2.NewClient(influxConfig.Url, influxConfig.Token)
 		_influxWriter = &InfluxWriter{
@@ -52,5 +53,5 @@ func getInfluxWriter() (*InfluxWriter, error) {
 			Api:    c.WriteAPI(influxConfig.Org, influxConfig.Bucket),
 		}
 	}
-	return _influxWriter, nil
+	return _influxWriter
 }

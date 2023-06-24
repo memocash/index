@@ -1,29 +1,29 @@
 package metric
 
-type TopicSave struct {
+type TopicRead struct {
 	Topic    string
 	Quantity int
 }
 
-func (s TopicSave) GetFields() map[string]interface{} {
+func (s TopicRead) GetFields() map[string]interface{} {
 	return map[string]interface{}{
 		FieldQuantity: s.Quantity,
 	}
 }
 
-func (s TopicSave) GetTags() map[string]string {
+func (s TopicRead) GetTags() map[string]string {
 	return map[string]string{
 		TagTopic: s.Topic,
 	}
 }
 
-func AddTopicSave(request TopicSave) {
+func AddTopicRead(request TopicRead) {
 	writer := getInfluxWriter()
 	if writer == nil {
 		return
 	}
 	writer.Write(Point{
-		Measurement: NameTopicSave,
+		Measurement: NameTopicRead,
 		Fields:      request.GetFields(),
 		Tags:        request.GetTags(),
 	})
