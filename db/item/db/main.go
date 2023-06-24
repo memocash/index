@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -155,7 +156,7 @@ func Save(objects []Object) error {
 		return jerr.Get("error saving messages", jerr.Combine(errs...))
 	}
 	if err := topicSaveMetrics.Save(); err != nil {
-		return jerr.Get("error saving topic save collection", err)
+		return fmt.Errorf("error saving topic save collection; %w", err)
 	}
 	return nil
 }

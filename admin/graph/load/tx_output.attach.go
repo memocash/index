@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/slp"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"log"
 )
 
 type Outputs struct {
@@ -81,14 +80,9 @@ func (o *Outputs) AttachInfo() {
 
 func (o *Outputs) AttachSpends() {
 	defer o.Wait.Done()
-	for _, field := range o.Fields {
-		log.Printf("output field: %s\n", field.Name)
-	}
 	if !o.HasField([]string{"spends"}) {
-		log.Println("NOT has spends field")
 		return
 	}
-	log.Println("HAS spends field")
 	outs := o.GetOuts(false)
 	spends, err := chain.GetOutputInputs(o.Ctx, outs)
 	if err != nil {

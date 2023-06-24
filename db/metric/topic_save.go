@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
-	"github.com/jchavannes/jgo/jerr"
 	"time"
 )
 
@@ -32,7 +31,7 @@ func (c *CollectionTopicSave) Add(topic string) {
 func (c *CollectionTopicSave) Save() error {
 	for _, topicSave := range c.TopicSaves {
 		if err := AddTopicSave(*topicSave); err != nil {
-			return jerr.Get("error adding topic save metric", err)
+			return fmt.Errorf("error adding topic save metric; %w", err)
 		}
 	}
 	return nil
@@ -43,10 +42,15 @@ type TopicSave struct {
 	Quantity int
 }
 
+func (s TopicSave) GetFields() map[string]interface{} {
+	return map[string]interface{}{
+		TagQuantity: s.Quantity,
+	}
+}
+
 func (s TopicSave) GetTags() map[string]string {
 	return map[string]string{
-		TagTopic:    s.Topic,
-		TagQuantity: fmt.Sprintf("%d", s.Quantity),
+		TagTopic: s.Topic,
 	}
 }
 
@@ -58,10 +62,11 @@ func AddTopicSave(request TopicSave) error {
 	if writeAPI == nil {
 		return nil
 	}
+	fields := request.GetFields()
 	tags := request.GetTags()
-	p := influxdb2.NewPoint(NameTopicSave, tags, nil, time.Now())
+	p := influxdb2.NewPoint(NameTopicSave, tags, fields, time.Now())
 	if err := writeAPI.WritePoint(context.Background(), p); err != nil {
-		return jerr.Get("cannot write point", err)
+		return fmt.Errorf("cannot write point; %w", err)
 	}
 	return nil
 }
