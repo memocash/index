@@ -122,11 +122,10 @@ func Save(objects []Object) error {
 			object.SetUid(uid)
 		}
 		shard := GetShard(object.GetShard())
-		topic := object.GetTopic()
 		shardMessages[shard] = append(shardMessages[shard], &client.Message{
 			Uid:     uid,
 			Message: object.Serialize(),
-			Topic:   topic,
+			Topic:   object.GetTopic(),
 		})
 	}
 	configs := config.GetQueueShards()

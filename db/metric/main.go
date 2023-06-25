@@ -9,8 +9,10 @@ import (
 )
 
 const (
-	NameTopicSave = "topic_save"
-	NameTopicRead = "topic_read"
+	NameTopicSave   = "topic_save"
+	NameTopicRead   = "topic_read"
+	NameTopicListen = "topic_listen"
+	NameListenCount = "listen_count"
 )
 
 const (

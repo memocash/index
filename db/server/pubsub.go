@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/index/db/metric"
 	"sync"
+	"time"
 )
 
 type Subscribe struct {
@@ -91,6 +93,16 @@ func initNewListener() {
 		_globalPubSub = &PubSub{
 			Subs: make(map[int64]*Subscribe),
 		}
+		go func() {
+			t := time.NewTicker(10 * time.Second)
+			for {
+				<-t.C
+				_globalPubSub.Mutex.Lock()
+				quantity := len(_globalPubSub.Subs)
+				_globalPubSub.Mutex.Unlock()
+				metric.AddListenCount(metric.ListenCount{Quantity: quantity})
+			}
+		}()
 	}
 }
 

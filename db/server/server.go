@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/metric"
 	"github.com/memocash/index/db/proto/queue_pb"
 	"github.com/memocash/index/db/store"
 	"google.golang.org/grpc"
@@ -134,6 +135,7 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 				return nil, jerr.Getf(err, "error getting messages for topic: %s (shard %d)", request.Topic, s.Shard)
 			}
 			if len(messages) == 0 && request.Wait && i == 0 {
+				metric.AddTopicListen(metric.TopicListen{Topic: request.Topic})
 				if err := ListenSingle(ctx, s.Shard, request.Topic, request.Start, request.Prefixes); err != nil {
 					return nil, jerr.Get("error listening for new topic item", err)
 				}
@@ -157,6 +159,7 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 
 func (s *Server) GetStreamMessages(request *queue_pb.RequestStream, server queue_pb.Queue_GetStreamMessagesServer) error {
 	ctx := server.Context()
+	metric.AddTopicListen(metric.TopicListen{Topic: request.Topic})
 	uidChan := Listen(ctx, s.Shard, request.Topic, request.Prefixes)
 	for {
 		select {
