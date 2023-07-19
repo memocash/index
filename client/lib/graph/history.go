@@ -158,12 +158,14 @@ func GetHistoryQuery(addressUpdates []AddressUpdate) ([]byte, error) {
 	var subQueries []string
 	for i, addressUpdate := range addressUpdates {
 		variables[fmt.Sprintf("address%d", i)] = addressUpdate.Address.String()
-		paramsStrings = append(paramsStrings, fmt.Sprintf("$address%d: String!, $start%d: Date", i, i))
+		var paramString = fmt.Sprintf("$address%d: String!", i)
 		var startString string
 		if addressUpdate.Time.After(memo.GetGenesisTime()) {
 			variables[fmt.Sprintf("start%d", i)] = addressUpdate.Time.Format(time.RFC3339)
+			paramString += fmt.Sprintf(", $start%d: Date", i)
 			startString = fmt.Sprintf("start: $start%d", i)
 		}
+		paramsStrings = append(paramsStrings, paramString)
 		subQueries = append(subQueries, fmt.Sprintf(`address%d: address(address: $address%d) {
 			address
 			txs(%s) %s
