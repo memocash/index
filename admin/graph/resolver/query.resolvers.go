@@ -41,13 +41,11 @@ func (r *queryResolver) Txs(ctx context.Context, hashes []string) ([]*model.Tx, 
 
 // Address is the resolver for the address field.
 func (r *queryResolver) Address(ctx context.Context, address string) (*model.Lock, error) {
-	if load.HasField(load.GetFields(ctx), "balance") {
-		// TODO: Reimplement if needed
-		return nil, jerr.New("error balance no longer implemented")
+	lock, err := load.Lock(ctx, address)
+	if err != nil {
+		return nil, jerr.Getf(err, "error getting lock from loader for query address resolver: %s", address)
 	}
-	return &model.Lock{
-		Address: address,
-	}, nil
+	return lock, nil
 }
 
 // Addresses is the resolver for the addresses field.

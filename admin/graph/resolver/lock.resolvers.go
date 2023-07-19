@@ -5,6 +5,7 @@ package resolver
 
 import (
 	"context"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -33,7 +34,7 @@ func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Da
 		return nil, jerr.Get("error decoding lock hash for lock txs resolver", err)
 	}
 	var startUid []byte
-	if start != nil && !time.Time(*start).IsZero() {
+	if start != nil && time.Time(*start).After(memo.GetGenesisTime()) {
 		startUid = jutil.CombineBytes(
 			address[:],
 			jutil.GetTimeByteBig(time.Time(*start)),

@@ -23,6 +23,20 @@ export default function LockHash() {
             address
             txs {
                 hash
+                inputs {
+                    output {
+                        lock {
+                            address
+                        }
+                        amount
+                    }
+                }
+                outputs {
+                    lock {
+                        address
+                    }
+                    amount
+                }
             }
         }
     }
@@ -46,6 +60,22 @@ export default function LockHash() {
                 setErrorMessage(GetErrorMessage(data.errors))
                 setLoading(true)
                 return
+            }
+            for (let i = 0; i < data.data.address.txs.length; i++) {
+                const tx = data.data.address.txs[i]
+                tx.amount = 0
+                for (let j = 0; j < tx.inputs.length; j++) {
+                    const input = tx.inputs[j]
+                    if (input.output.lock.address === address) {
+                        tx.amount -= input.output.amount
+                    }
+                }
+                for (let j = 0; j < tx.outputs.length; j++) {
+                    const output = tx.outputs[j]
+                    if (output.lock.address === address) {
+                        tx.amount += output.amount
+                    }
+                }
             }
             setLoading(false)
             setAddress(data.data.address)
@@ -76,6 +106,7 @@ export default function LockHash() {
                                         <Link href={"/tx/" + tx.hash}>
                                             <a><PreInline>{tx.hash}</PreInline></a>
                                         </Link>
+                                        : {tx.amount}
                                     </div>
                                 )
                             })}
