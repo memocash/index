@@ -11,6 +11,7 @@ import (
 const (
 	NameTopicSave   = "topic_save"
 	NameTopicRead   = "topic_read"
+	NameGraphQuery  = "graph_query"
 	NameTopicListen = "topic_listen"
 	NameListenCount = "listen_count"
 )
@@ -18,8 +19,9 @@ const (
 const (
 	FieldQuantity = "quantity"
 
-	TagTopic  = "topic"
-	TagSource = "source"
+	TagTopic    = "topic"
+	TagSource   = "source"
+	TagEndpoint = "endpoint"
 )
 
 type Point struct {
