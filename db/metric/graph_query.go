@@ -19,6 +19,9 @@ func AddGraphQuery(endpoint string) {
 	}
 	writer.Write(Point{
 		Measurement: NameGraphQuery,
+		Fields: map[string]interface{}{
+			FieldQuantity: 1,
+		},
 		Tags: map[string]string{
 			TagEndpoint: endpoint,
 		},
