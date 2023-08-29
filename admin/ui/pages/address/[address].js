@@ -66,7 +66,7 @@ export default function LockHash() {
                 tx.amount = 0
                 for (let j = 0; j < tx.inputs.length; j++) {
                     const input = tx.inputs[j]
-                    if (input.output.lock.address === address) {
+                    if (input.output.lock && input.output.lock.address === address) {
                         tx.amount -= input.output.amount
                     }
                 }
