@@ -31,7 +31,7 @@ func (g *InputGetter) GetUTXOs(*memo.UTXORequest) ([]memo.UTXO, error) {
 		g.reset = false
 		return g.UTXOs, nil
 	}
-	outputs, err := g.Client.GetUtxos(g.Address)
+	outputs, err := g.Client.GetUtxos([]wallet.Addr{g.Address})
 	if err != nil {
 		return nil, fmt.Errorf("error getting utxos from input getter client; %w", err)
 	}

@@ -6,7 +6,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
-	"sort"
 )
 
 type TxBlock struct {
@@ -80,31 +79,15 @@ func GetTxBlocks(txHashes [][32]byte) ([]*TxBlock, error) {
 		shard := uint32(db.GetShardByte(txHashes[i][:]))
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
-	wait := db.NewWait(len(shardPrefixes))
-	var txBlocks []*TxBlock
-	for shardT, prefixesT := range shardPrefixes {
-		go func(shard uint32, prefixes [][]byte) {
-			defer wait.Group.Done()
-			sort.Slice(prefixes, func(i, j int) bool {
-				return jutil.ByteLT(prefixes[i], prefixes[j])
-			})
-			dbClient := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
-			if err := dbClient.GetByPrefixes(db.TopicChainTxBlock, prefixes); err != nil {
-				wait.AddError(jerr.Get("error getting client message chain tx blocks", err))
-				return
-			}
-			wait.Lock.Lock()
-			for _, msg := range dbClient.Messages {
-				var txBlock = new(TxBlock)
-				db.Set(txBlock, msg)
-				txBlocks = append(txBlocks, txBlock)
-			}
-			wait.Lock.Unlock()
-		}(shardT, prefixesT)
+	messages, err := db.GetByPrefixes(db.TopicChainTxBlock, shardPrefixes)
+	if err != nil {
+		return nil, jerr.Get("error getting client message chain tx blocks", err)
 	}
-	wait.Group.Wait()
-	if len(wait.Errs) > 0 {
-		return nil, jerr.Get("error getting chain tx blocks", jerr.Combine(wait.Errs...))
+	var txBlocks []*TxBlock
+	for _, msg := range messages {
+		var txBlock = new(TxBlock)
+		db.Set(txBlock, msg)
+		txBlocks = append(txBlocks, txBlock)
 	}
 	return txBlocks, nil
 }

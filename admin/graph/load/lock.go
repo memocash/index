@@ -1,4 +1,4 @@
-package resolver
+package load
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-func LockLoader(ctx context.Context, addressString string) (*model.Lock, error) {
+func Lock(ctx context.Context, addressString string) (*model.Lock, error) {
 	address, err := wallet.GetAddrFromString(addressString)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting address from dataloader: %s", addressString)

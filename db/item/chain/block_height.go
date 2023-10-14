@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
-	"sort"
 	"strings"
 )
 
@@ -63,37 +62,21 @@ func GetBlockHeight(blockHash [32]byte) (*BlockHeight, error) {
 	return blockHeight, nil
 }
 
-func GetBlockHeights(blockHashes [][]byte) ([]*BlockHeight, error) {
+func GetBlockHeights(blockHashes [][32]byte) ([]*BlockHeight, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, blockHash := range blockHashes {
-		shard := db.GetShardByte32(blockHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(blockHash))
+		shard := db.GetShardByte32(blockHash[:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(blockHash[:]))
 	}
-	wait := db.NewWait(len(shardPrefixes))
+	messages, err := db.GetByPrefixes(db.TopicChainBlockHeight, shardPrefixes)
+	if err != nil {
+		return nil, jerr.Get("error getting client message chain block heights", err)
+	}
 	var blockHeights []*BlockHeight
-	for shardT, prefixesT := range shardPrefixes {
-		go func(shard uint32, prefixes [][]byte) {
-			defer wait.Group.Done()
-			sort.Slice(prefixes, func(i, j int) bool {
-				return jutil.ByteLT(prefixes[i], prefixes[j])
-			})
-			dbClient := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
-			if err := dbClient.GetByPrefixes(db.TopicChainBlockHeight, prefixes); err != nil {
-				wait.AddError(jerr.Get("error getting client message block heights", err))
-				return
-			}
-			wait.Lock.Lock()
-			for _, msg := range dbClient.Messages {
-				var blockHeight = new(BlockHeight)
-				db.Set(blockHeight, msg)
-				blockHeights = append(blockHeights, blockHeight)
-			}
-			wait.Lock.Unlock()
-		}(shardT, prefixesT)
-	}
-	wait.Group.Wait()
-	if len(wait.Errs) > 0 {
-		return nil, jerr.Get("error getting block heights", jerr.Combine(wait.Errs...))
+	for _, msg := range messages {
+		var blockHeight = new(BlockHeight)
+		db.Set(blockHeight, msg)
+		blockHeights = append(blockHeights, blockHeight)
 	}
 	return blockHeights, nil
 }

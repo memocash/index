@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/memo"
@@ -277,7 +276,7 @@ func (p *Profile) GetProfileChan(ctx context.Context) <-chan *model.Profile {
 				if !ok {
 					return
 				}
-				profile, err := dataloader.NewProfileLoader(load.ProfileLoaderConfig).Load(wallet.Addr(addr).String())
+				profile, err := load.Profile.Load(wallet.Addr(addr).String())
 				if err != nil {
 					jerr.Get("error getting profile from dataloader for profile subscription resolver", err).Print()
 					return

@@ -1,4 +1,0 @@
-type TxLost {
-    tx: Tx!
-    hash: String!
-}

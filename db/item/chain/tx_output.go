@@ -77,22 +77,15 @@ func GetTxOutputsByHashes(txHashes [][32]byte) ([]*TxOutput, error) {
 		shard := uint32(db.GetShardByte(txHashes[i][:]))
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
+	messages, err := db.GetByPrefixes(db.TopicChainTxOutput, shardPrefixes)
+	if err != nil {
+		return nil, jerr.Get("error getting client message chain tx output", err)
+	}
 	var txOutputs []*TxOutput
-	for shard, txHashes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicChainTxOutput,
-			Prefixes: txHashes,
-			Max:      client.HugeLimit,
-		}); err != nil {
-			return nil, jerr.Get("error getting db message chain tx outputs", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var txOutput = new(TxOutput)
-			db.Set(txOutput, msg)
-			txOutputs = append(txOutputs, txOutput)
-		}
+	for _, msg := range messages {
+		var txOutput = new(TxOutput)
+		db.Set(txOutput, msg)
+		txOutputs = append(txOutputs, txOutput)
 	}
 	return txOutputs, nil
 }

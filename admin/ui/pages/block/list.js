@@ -74,7 +74,7 @@ export default function Block() {
                 }
             }
         }).catch(res => {
-            setErrorMessage("error loading address")
+            setErrorMessage("error loading blocks")
             setLoading(true)
             console.log(res)
         })

@@ -29,7 +29,7 @@ var memoReplyHandler = &Handler{
 		if err != nil {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
-				Error:  fmt.Sprintf("invalid parent tx hash for reply (%x)", info.PushData[1]),
+				Error:  fmt.Sprintf("invalid parent tx hash for reply (%x); %s", info.PushData[1], err),
 			}); err != nil {
 				return jerr.Get("error saving process error for memo reply invalid parent tx hash", err)
 			}

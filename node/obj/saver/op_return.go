@@ -12,11 +12,11 @@ import (
 	"github.com/memocash/index/ref/dbi"
 )
 
-type Memo struct {
+type OpReturn struct {
 	Verbose bool
 }
 
-func (m *Memo) SaveTxs(b *dbi.Block) error {
+func (r *OpReturn) SaveTxs(b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}
@@ -27,7 +27,7 @@ func (m *Memo) SaveTxs(b *dbi.Block) error {
 	for _, transaction := range b.Transactions {
 		var tx = transaction.MsgTx
 		txHash := tx.TxHash()
-		if m.Verbose {
+		if r.Verbose {
 			jlog.Logf("tx: %s\n", txHash.String())
 		}
 		var addr *wallet.Addr
@@ -56,7 +56,7 @@ func (m *Memo) SaveTxs(b *dbi.Block) error {
 				if addr == nil {
 					if err := item.LogProcessError(&item.ProcessError{
 						TxHash: txHash,
-						Error:  fmt.Sprintf("error could not find input pk hash for memo: %s", txHash.String()),
+						Error:  fmt.Sprintf("error could not find input pk hash for op return: %s", txHash.String()),
 					}); err != nil {
 						return jerr.Get("error saving process error for op return without lock hash", err)
 					}
@@ -82,8 +82,8 @@ func (m *Memo) SaveTxs(b *dbi.Block) error {
 	return nil
 }
 
-func NewMemo(verbose bool) *Memo {
-	return &Memo{
+func NewOpReturn(verbose bool) *OpReturn {
+	return &OpReturn{
 		Verbose: verbose,
 	}
 }

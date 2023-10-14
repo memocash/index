@@ -5,11 +5,10 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
+	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 )
 
@@ -18,8 +17,8 @@ func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx
 	var tx = &model.Tx{
 		Hash: obj.Hash,
 	}
-	if HasFieldAny(ctx, []string{"raw"}) {
-		txRaw, err := dataloader.NewTxRawLoader(txRawLoaderConfig).Load(obj.Hash)
+	if load.HasFieldAny(ctx, []string{"raw"}) {
+		txRaw, err := load.TxRaw.Load(obj.Hash)
 		if err != nil {
 			return nil, jerr.Get("error getting tx raw for output from loader", err)
 		}
@@ -30,19 +29,14 @@ func (r *txInputResolver) Tx(ctx context.Context, obj *model.TxInput) (*model.Tx
 
 // Output is the resolver for the output field.
 func (r *txInputResolver) Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error) {
-	txOutputs, err := dataloader.NewTxOutputLoader(txOutputLoaderConfig).Load(model.HashIndex{
+	txOutput, err := load.TxOutput.Load(model.HashIndex{
 		Hash:  obj.PrevHash,
 		Index: obj.PrevIndex,
 	})
 	if err != nil {
-		return nil, jerr.Get("error getting tx outputs for spends from loader", err)
+		return nil, jerr.Get("error getting tx output for spends from loader", err)
 	}
-	return txOutputs, nil
-}
-
-// DoubleSpend is the resolver for the double_spend field.
-func (r *txInputResolver) DoubleSpend(ctx context.Context, obj *model.TxInput) (*model.DoubleSpend, error) {
-	panic(fmt.Errorf("not implemented"))
+	return txOutput, nil
 }
 
 // TxInput returns generated.TxInputResolver implementation.

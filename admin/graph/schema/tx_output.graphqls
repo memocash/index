@@ -5,6 +5,7 @@ type TxOutput {
     amount: Int64!
     script: String!
     spends: [TxInput]
-    double_spend: DoubleSpend
+    slp: SlpOutput
+    slp_baton: SlpBaton
     lock: Lock
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
@@ -20,7 +19,7 @@ import (
 
 // Profile is the resolver for the profile field.
 func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error) {
-	profile, err := dataloader.NewProfileLoader(load.ProfileLoaderConfig).Load(obj.Address)
+	profile, err := load.Profile.Load(obj.Address)
 	if err != nil {
 		return nil, jerr.Get("error getting profile from dataloader for lock resolver", err)
 	}
@@ -56,9 +55,9 @@ func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Da
 		txHashes[i] = chainhash.Hash(seenTxs[i].TxHash).String()
 	}
 	var txsWithRaw []*model.Tx
-	if HasFieldAny(ctx, []string{"raw"}) {
+	if load.HasFieldAny(ctx, []string{"raw"}) {
 		var errs []error
-		txsWithRaw, errs = dataloader.NewTxRawLoader(txRawLoaderConfig).LoadAll(txHashes)
+		txsWithRaw, errs = load.TxRaw.LoadAll(txHashes)
 		for _, err := range errs {
 			if err != nil {
 				return nil, jerr.Get("error getting tx raw from dataloader for lock txs resolver", err)

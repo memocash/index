@@ -45,8 +45,12 @@ autobind:
 models:
   Int64:
     model: github.com/99designs/gqlgen/graphql.Int64
+  Uint8:
+    model: github.com/memocash/index/admin/graph/model.Uint8
   Uint32:
     model: github.com/99designs/gqlgen/graphql.Uint32
+  Uint64:
+    model: github.com/99designs/gqlgen/graphql.Uint64
   HashIndex:
     model: github.com/memocash/index/admin/graph/model.HashIndex
 

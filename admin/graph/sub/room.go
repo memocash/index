@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/memo"
@@ -53,7 +52,7 @@ func (r *Room) Listen(ctx context.Context, names []string) (<-chan *model.Post, 
 				if !ok {
 					return
 				}
-				post, err := dataloader.NewPostLoader(load.PostLoaderConfig).Load(chainhash.Hash(txHash).String())
+				post, err := load.Post.Load(chainhash.Hash(txHash).String())
 				if err != nil {
 					jerr.Get("error getting post from dataloader for room subscription resolver", err).Print()
 					return

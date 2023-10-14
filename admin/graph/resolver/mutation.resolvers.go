@@ -27,6 +27,7 @@ func (r *mutationResolver) Broadcast(ctx context.Context, raw string) (bool, err
 	}
 	jlog.Logf("Broadcasting tx: %s\n", msgTx.TxHash())
 	if err := client.Broadcast(ctx, rawBytes); err != nil {
+		jlog.Logf("Broadcast tx failed: %s\n", msgTx.TxHash())
 		return false, jerr.Get("error broadcasting tx for graphql", err)
 	}
 	return true, nil

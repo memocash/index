@@ -38,7 +38,6 @@ type Config struct {
 
 type ResolverRoot interface {
 	Block() BlockResolver
-	DoubleSpend() DoubleSpendResolver
 	Follow() FollowResolver
 	Like() LikeResolver
 	Lock() LockResolver
@@ -51,12 +50,13 @@ type ResolverRoot interface {
 	SetName() SetNameResolver
 	SetPic() SetPicResolver
 	SetProfile() SetProfileResolver
+	SlpBaton() SlpBatonResolver
+	SlpGenesis() SlpGenesisResolver
+	SlpOutput() SlpOutputResolver
 	Subscription() SubscriptionResolver
 	Tx() TxResolver
 	TxInput() TxInputResolver
-	TxLost() TxLostResolver
 	TxOutput() TxOutputResolver
-	TxSuspect() TxSuspectResolver
 }
 
 type DirectiveRoot struct {
@@ -71,14 +71,6 @@ type ComplexityRoot struct {
 		Timestamp func(childComplexity int) int
 		TxCount   func(childComplexity int) int
 		Txs       func(childComplexity int, start *uint32) int
-	}
-
-	DoubleSpend struct {
-		Hash      func(childComplexity int) int
-		Index     func(childComplexity int) int
-		Inputs    func(childComplexity int) int
-		Output    func(childComplexity int) int
-		Timestamp func(childComplexity int) int
 	}
 
 	Follow struct {
@@ -137,17 +129,16 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Address      func(childComplexity int, address string) int
-		Addresses    func(childComplexity int, addresses []string) int
-		Block        func(childComplexity int, hash string) int
-		BlockNewest  func(childComplexity int) int
-		Blocks       func(childComplexity int, newest *bool, start *uint32) int
-		DoubleSpends func(childComplexity int, newest *bool, start *model.Date) int
-		Posts        func(childComplexity int, txHashes []string) int
-		Profiles     func(childComplexity int, addresses []string) int
-		Room         func(childComplexity int, name string) int
-		Tx           func(childComplexity int, hash string) int
-		Txs          func(childComplexity int, hashes []string) int
+		Address     func(childComplexity int, address string) int
+		Addresses   func(childComplexity int, addresses []string) int
+		Block       func(childComplexity int, hash string) int
+		BlockNewest func(childComplexity int) int
+		Blocks      func(childComplexity int, newest *bool, start *uint32) int
+		Posts       func(childComplexity int, txHashes []string) int
+		Profiles    func(childComplexity int, addresses []string) int
+		Room        func(childComplexity int, name string) int
+		Tx          func(childComplexity int, hash string) int
+		Txs         func(childComplexity int, hashes []string) int
 	}
 
 	Room struct {
@@ -190,6 +181,37 @@ type ComplexityRoot struct {
 		TxHash  func(childComplexity int) int
 	}
 
+	SlpBaton struct {
+		Genesis   func(childComplexity int) int
+		Hash      func(childComplexity int) int
+		Index     func(childComplexity int) int
+		Output    func(childComplexity int) int
+		TokenHash func(childComplexity int) int
+	}
+
+	SlpGenesis struct {
+		Baton      func(childComplexity int) int
+		BatonIndex func(childComplexity int) int
+		Decimals   func(childComplexity int) int
+		DocHash    func(childComplexity int) int
+		DocURL     func(childComplexity int) int
+		Hash       func(childComplexity int) int
+		Name       func(childComplexity int) int
+		Output     func(childComplexity int) int
+		Ticker     func(childComplexity int) int
+		TokenType  func(childComplexity int) int
+		Tx         func(childComplexity int) int
+	}
+
+	SlpOutput struct {
+		Amount    func(childComplexity int) int
+		Genesis   func(childComplexity int) int
+		Hash      func(childComplexity int) int
+		Index     func(childComplexity int) int
+		Output    func(childComplexity int) int
+		TokenHash func(childComplexity int) int
+	}
+
 	Subscription struct {
 		Address     func(childComplexity int, address string) int
 		Addresses   func(childComplexity int, addresses []string) int
@@ -205,52 +227,36 @@ type ComplexityRoot struct {
 		Hash    func(childComplexity int) int
 		Index   func(childComplexity int) int
 		Inputs  func(childComplexity int) int
-		Lost    func(childComplexity int) int
 		Outputs func(childComplexity int) int
 		Raw     func(childComplexity int) int
 		Seen    func(childComplexity int) int
-		Suspect func(childComplexity int) int
 	}
 
 	TxInput struct {
-		DoubleSpend func(childComplexity int) int
-		Hash        func(childComplexity int) int
-		Index       func(childComplexity int) int
-		Output      func(childComplexity int) int
-		PrevHash    func(childComplexity int) int
-		PrevIndex   func(childComplexity int) int
-		Script      func(childComplexity int) int
-		Tx          func(childComplexity int) int
-	}
-
-	TxLost struct {
-		Hash func(childComplexity int) int
-		Tx   func(childComplexity int) int
+		Hash      func(childComplexity int) int
+		Index     func(childComplexity int) int
+		Output    func(childComplexity int) int
+		PrevHash  func(childComplexity int) int
+		PrevIndex func(childComplexity int) int
+		Script    func(childComplexity int) int
+		Tx        func(childComplexity int) int
 	}
 
 	TxOutput struct {
-		Amount      func(childComplexity int) int
-		DoubleSpend func(childComplexity int) int
-		Hash        func(childComplexity int) int
-		Index       func(childComplexity int) int
-		Lock        func(childComplexity int) int
-		Script      func(childComplexity int) int
-		Spends      func(childComplexity int) int
-		Tx          func(childComplexity int) int
-	}
-
-	TxSuspect struct {
-		Hash func(childComplexity int) int
-		Tx   func(childComplexity int) int
+		Amount   func(childComplexity int) int
+		Hash     func(childComplexity int) int
+		Index    func(childComplexity int) int
+		Lock     func(childComplexity int) int
+		Script   func(childComplexity int) int
+		Slp      func(childComplexity int) int
+		SlpBaton func(childComplexity int) int
+		Spends   func(childComplexity int) int
+		Tx       func(childComplexity int) int
 	}
 }
 
 type BlockResolver interface {
 	Txs(ctx context.Context, obj *model.Block, start *uint32) ([]*model.Tx, error)
-}
-type DoubleSpendResolver interface {
-	Output(ctx context.Context, obj *model.DoubleSpend) (*model.TxOutput, error)
-	Inputs(ctx context.Context, obj *model.DoubleSpend) ([]*model.TxInput, error)
 }
 type FollowResolver interface {
 	Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error)
@@ -300,7 +306,6 @@ type QueryResolver interface {
 	Block(ctx context.Context, hash string) (*model.Block, error)
 	BlockNewest(ctx context.Context) (*model.Block, error)
 	Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error)
-	DoubleSpends(ctx context.Context, newest *bool, start *model.Date) ([]*model.DoubleSpend, error)
 	Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error)
 	Posts(ctx context.Context, txHashes []string) ([]*model.Post, error)
 	Room(ctx context.Context, name string) (*model.Room, error)
@@ -330,6 +335,22 @@ type SetProfileResolver interface {
 
 	Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error)
 }
+type SlpBatonResolver interface {
+	Output(ctx context.Context, obj *model.SlpBaton) (*model.TxOutput, error)
+
+	Genesis(ctx context.Context, obj *model.SlpBaton) (*model.SlpGenesis, error)
+}
+type SlpGenesisResolver interface {
+	Tx(ctx context.Context, obj *model.SlpGenesis) (*model.Tx, error)
+
+	Output(ctx context.Context, obj *model.SlpGenesis) (*model.SlpOutput, error)
+	Baton(ctx context.Context, obj *model.SlpGenesis) (*model.SlpBaton, error)
+}
+type SlpOutputResolver interface {
+	Output(ctx context.Context, obj *model.SlpOutput) (*model.TxOutput, error)
+
+	Genesis(ctx context.Context, obj *model.SlpOutput) (*model.SlpGenesis, error)
+}
 type SubscriptionResolver interface {
 	Address(ctx context.Context, address string) (<-chan *model.Tx, error)
 	Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error)
@@ -343,27 +364,19 @@ type TxResolver interface {
 	Inputs(ctx context.Context, obj *model.Tx) ([]*model.TxInput, error)
 	Outputs(ctx context.Context, obj *model.Tx) ([]*model.TxOutput, error)
 	Blocks(ctx context.Context, obj *model.Tx) ([]*model.Block, error)
-	Suspect(ctx context.Context, obj *model.Tx) (*model.TxSuspect, error)
-	Lost(ctx context.Context, obj *model.Tx) (*model.TxLost, error)
 }
 type TxInputResolver interface {
 	Tx(ctx context.Context, obj *model.TxInput) (*model.Tx, error)
 
 	Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error)
-	DoubleSpend(ctx context.Context, obj *model.TxInput) (*model.DoubleSpend, error)
-}
-type TxLostResolver interface {
-	Tx(ctx context.Context, obj *model.TxLost) (*model.Tx, error)
 }
 type TxOutputResolver interface {
 	Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error)
 
 	Spends(ctx context.Context, obj *model.TxOutput) ([]*model.TxInput, error)
-	DoubleSpend(ctx context.Context, obj *model.TxOutput) (*model.DoubleSpend, error)
+	Slp(ctx context.Context, obj *model.TxOutput) (*model.SlpOutput, error)
+	SlpBaton(ctx context.Context, obj *model.TxOutput) (*model.SlpBaton, error)
 	Lock(ctx context.Context, obj *model.TxOutput) (*model.Lock, error)
-}
-type TxSuspectResolver interface {
-	Tx(ctx context.Context, obj *model.TxSuspect) (*model.Tx, error)
 }
 
 type executableSchema struct {
@@ -434,41 +447,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Block.Txs(childComplexity, args["start"].(*uint32)), true
-
-	case "DoubleSpend.hash":
-		if e.complexity.DoubleSpend.Hash == nil {
-			break
-		}
-
-		return e.complexity.DoubleSpend.Hash(childComplexity), true
-
-	case "DoubleSpend.index":
-		if e.complexity.DoubleSpend.Index == nil {
-			break
-		}
-
-		return e.complexity.DoubleSpend.Index(childComplexity), true
-
-	case "DoubleSpend.inputs":
-		if e.complexity.DoubleSpend.Inputs == nil {
-			break
-		}
-
-		return e.complexity.DoubleSpend.Inputs(childComplexity), true
-
-	case "DoubleSpend.output":
-		if e.complexity.DoubleSpend.Output == nil {
-			break
-		}
-
-		return e.complexity.DoubleSpend.Output(childComplexity), true
-
-	case "DoubleSpend.timestamp":
-		if e.complexity.DoubleSpend.Timestamp == nil {
-			break
-		}
-
-		return e.complexity.DoubleSpend.Timestamp(childComplexity), true
 
 	case "Follow.address":
 		if e.complexity.Follow.Address == nil {
@@ -814,18 +792,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Blocks(childComplexity, args["newest"].(*bool), args["start"].(*uint32)), true
 
-	case "Query.double_spends":
-		if e.complexity.Query.DoubleSpends == nil {
-			break
-		}
-
-		args, err := ec.field_Query_double_spends_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.DoubleSpends(childComplexity, args["newest"].(*bool), args["start"].(*model.Date)), true
-
 	case "Query.posts":
 		if e.complexity.Query.Posts == nil {
 			break
@@ -1071,6 +1037,160 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SetProfile.TxHash(childComplexity), true
 
+	case "SlpBaton.genesis":
+		if e.complexity.SlpBaton.Genesis == nil {
+			break
+		}
+
+		return e.complexity.SlpBaton.Genesis(childComplexity), true
+
+	case "SlpBaton.hash":
+		if e.complexity.SlpBaton.Hash == nil {
+			break
+		}
+
+		return e.complexity.SlpBaton.Hash(childComplexity), true
+
+	case "SlpBaton.index":
+		if e.complexity.SlpBaton.Index == nil {
+			break
+		}
+
+		return e.complexity.SlpBaton.Index(childComplexity), true
+
+	case "SlpBaton.output":
+		if e.complexity.SlpBaton.Output == nil {
+			break
+		}
+
+		return e.complexity.SlpBaton.Output(childComplexity), true
+
+	case "SlpBaton.token_hash":
+		if e.complexity.SlpBaton.TokenHash == nil {
+			break
+		}
+
+		return e.complexity.SlpBaton.TokenHash(childComplexity), true
+
+	case "SlpGenesis.baton":
+		if e.complexity.SlpGenesis.Baton == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.Baton(childComplexity), true
+
+	case "SlpGenesis.baton_index":
+		if e.complexity.SlpGenesis.BatonIndex == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.BatonIndex(childComplexity), true
+
+	case "SlpGenesis.decimals":
+		if e.complexity.SlpGenesis.Decimals == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.Decimals(childComplexity), true
+
+	case "SlpGenesis.doc_hash":
+		if e.complexity.SlpGenesis.DocHash == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.DocHash(childComplexity), true
+
+	case "SlpGenesis.doc_url":
+		if e.complexity.SlpGenesis.DocURL == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.DocURL(childComplexity), true
+
+	case "SlpGenesis.hash":
+		if e.complexity.SlpGenesis.Hash == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.Hash(childComplexity), true
+
+	case "SlpGenesis.name":
+		if e.complexity.SlpGenesis.Name == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.Name(childComplexity), true
+
+	case "SlpGenesis.output":
+		if e.complexity.SlpGenesis.Output == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.Output(childComplexity), true
+
+	case "SlpGenesis.ticker":
+		if e.complexity.SlpGenesis.Ticker == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.Ticker(childComplexity), true
+
+	case "SlpGenesis.token_type":
+		if e.complexity.SlpGenesis.TokenType == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.TokenType(childComplexity), true
+
+	case "SlpGenesis.tx":
+		if e.complexity.SlpGenesis.Tx == nil {
+			break
+		}
+
+		return e.complexity.SlpGenesis.Tx(childComplexity), true
+
+	case "SlpOutput.amount":
+		if e.complexity.SlpOutput.Amount == nil {
+			break
+		}
+
+		return e.complexity.SlpOutput.Amount(childComplexity), true
+
+	case "SlpOutput.genesis":
+		if e.complexity.SlpOutput.Genesis == nil {
+			break
+		}
+
+		return e.complexity.SlpOutput.Genesis(childComplexity), true
+
+	case "SlpOutput.hash":
+		if e.complexity.SlpOutput.Hash == nil {
+			break
+		}
+
+		return e.complexity.SlpOutput.Hash(childComplexity), true
+
+	case "SlpOutput.index":
+		if e.complexity.SlpOutput.Index == nil {
+			break
+		}
+
+		return e.complexity.SlpOutput.Index(childComplexity), true
+
+	case "SlpOutput.output":
+		if e.complexity.SlpOutput.Output == nil {
+			break
+		}
+
+		return e.complexity.SlpOutput.Output(childComplexity), true
+
+	case "SlpOutput.token_hash":
+		if e.complexity.SlpOutput.TokenHash == nil {
+			break
+		}
+
+		return e.complexity.SlpOutput.TokenHash(childComplexity), true
+
 	case "Subscription.address":
 		if e.complexity.Subscription.Address == nil {
 			break
@@ -1178,13 +1298,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tx.Inputs(childComplexity), true
 
-	case "Tx.lost":
-		if e.complexity.Tx.Lost == nil {
-			break
-		}
-
-		return e.complexity.Tx.Lost(childComplexity), true
-
 	case "Tx.outputs":
 		if e.complexity.Tx.Outputs == nil {
 			break
@@ -1205,20 +1318,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Tx.Seen(childComplexity), true
-
-	case "Tx.suspect":
-		if e.complexity.Tx.Suspect == nil {
-			break
-		}
-
-		return e.complexity.Tx.Suspect(childComplexity), true
-
-	case "TxInput.double_spend":
-		if e.complexity.TxInput.DoubleSpend == nil {
-			break
-		}
-
-		return e.complexity.TxInput.DoubleSpend(childComplexity), true
 
 	case "TxInput.hash":
 		if e.complexity.TxInput.Hash == nil {
@@ -1269,33 +1368,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TxInput.Tx(childComplexity), true
 
-	case "TxLost.hash":
-		if e.complexity.TxLost.Hash == nil {
-			break
-		}
-
-		return e.complexity.TxLost.Hash(childComplexity), true
-
-	case "TxLost.tx":
-		if e.complexity.TxLost.Tx == nil {
-			break
-		}
-
-		return e.complexity.TxLost.Tx(childComplexity), true
-
 	case "TxOutput.amount":
 		if e.complexity.TxOutput.Amount == nil {
 			break
 		}
 
 		return e.complexity.TxOutput.Amount(childComplexity), true
-
-	case "TxOutput.double_spend":
-		if e.complexity.TxOutput.DoubleSpend == nil {
-			break
-		}
-
-		return e.complexity.TxOutput.DoubleSpend(childComplexity), true
 
 	case "TxOutput.hash":
 		if e.complexity.TxOutput.Hash == nil {
@@ -1325,6 +1403,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TxOutput.Script(childComplexity), true
 
+	case "TxOutput.slp":
+		if e.complexity.TxOutput.Slp == nil {
+			break
+		}
+
+		return e.complexity.TxOutput.Slp(childComplexity), true
+
+	case "TxOutput.slp_baton":
+		if e.complexity.TxOutput.SlpBaton == nil {
+			break
+		}
+
+		return e.complexity.TxOutput.SlpBaton(childComplexity), true
+
 	case "TxOutput.spends":
 		if e.complexity.TxOutput.Spends == nil {
 			break
@@ -1338,20 +1430,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TxOutput.Tx(childComplexity), true
-
-	case "TxSuspect.hash":
-		if e.complexity.TxSuspect.Hash == nil {
-			break
-		}
-
-		return e.complexity.TxSuspect.Hash(childComplexity), true
-
-	case "TxSuspect.tx":
-		if e.complexity.TxSuspect.Tx == nil {
-			break
-		}
-
-		return e.complexity.TxSuspect.Tx(childComplexity), true
 
 	}
 	return 0, false
@@ -1447,14 +1525,6 @@ var sources = []*ast.Source{
     txs(start: Uint32): [Tx!]
 }
 `, BuiltIn: false},
-	{Name: "../schema/double_spend.graphqls", Input: `type DoubleSpend {
-    hash: String!
-    index: Uint32!
-    timestamp: Date!
-    output: TxOutput!
-    inputs: [TxInput!]!
-}
-`, BuiltIn: false},
 	{Name: "../schema/lock.graphqls", Input: `type Lock {
     address: String
     profile: Profile
@@ -1542,7 +1612,6 @@ type Like {
     block(hash: String!): Block
     block_newest: Block
     blocks(newest: Boolean, start: Uint32): [Block!]
-    double_spends(newest: Boolean, start: Date): [DoubleSpend!]
     profiles(addresses: [String!]): [Profile]
     posts(txHashes: [String!]): [Post]
     room(name: String!): Room!
@@ -1575,9 +1644,56 @@ type RoomFollow {
 }
 `, BuiltIn: false},
 	{Name: "../schema/scalar.graphqls", Input: `scalar Int64
+scalar Uint8
 scalar Uint32
+scalar Uint64
 scalar HashIndex
 scalar Date
+`, BuiltIn: false},
+	{Name: "../schema/slp.graphqls", Input: `type SlpGenesis {
+    tx: Tx!
+    hash: String!
+    token_type: Uint8!
+    decimals: Uint8!
+    output: SlpOutput!
+    baton: SlpBaton!
+    baton_index: Uint32!
+    ticker: String!
+    name: String!
+    doc_url: String!
+    doc_hash: String!
+}
+
+type SlpOutput {
+    output: TxOutput!
+    hash: String!
+    index: Uint32!
+    amount: Uint64!
+    token_hash: String!
+    genesis: SlpGenesis
+}
+
+type SlpBaton {
+    output: TxOutput!
+    hash: String!
+    index: Uint32!
+    token_hash: String!
+    genesis: SlpGenesis
+}
+
+#type SlpMint {
+#    tx: Tx!
+#    hash: String!
+#    output: SlpOutput!
+#    baton: SlpBaton!
+#    baton_index: Uint32!
+#}
+#
+#type SlpSend {
+#    tx: Tx!
+#    hash: String!
+#    outputs: [SlpOutput!]!
+#}
 `, BuiltIn: false},
 	{Name: "../schema/tx.graphqls", Input: `type Tx {
     hash: String!
@@ -1586,8 +1702,6 @@ scalar Date
     inputs: [TxInput!]!
     outputs: [TxOutput!]!
     blocks: [Block]
-    suspect: TxSuspect
-    lost: TxLost
     seen: Date
 }
 `, BuiltIn: false},
@@ -1599,12 +1713,6 @@ scalar Date
     prev_hash: String!
     prev_index: Uint32!
     output: TxOutput
-    double_spend: DoubleSpend
-}
-`, BuiltIn: false},
-	{Name: "../schema/tx_lost.graphqls", Input: `type TxLost {
-    tx: Tx!
-    hash: String!
 }
 `, BuiltIn: false},
 	{Name: "../schema/tx_output.graphqls", Input: `type TxOutput {
@@ -1614,13 +1722,9 @@ scalar Date
     amount: Int64!
     script: String!
     spends: [TxInput]
-    double_spend: DoubleSpend
+    slp: SlpOutput
+    slp_baton: SlpBaton
     lock: Lock
-}
-`, BuiltIn: false},
-	{Name: "../schema/tx_suspect.graphqls", Input: `type TxSuspect {
-    tx: Tx!
-    hash: String!
 }
 `, BuiltIn: false},
 }
@@ -1829,30 +1933,6 @@ func (ec *executionContext) field_Query_blocks_args(ctx context.Context, rawArgs
 	if tmp, ok := rawArgs["start"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
 		arg1, err = ec.unmarshalOUint322ᚖuint32(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["start"] = arg1
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_double_spends_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *bool
-	if tmp, ok := rawArgs["newest"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newest"))
-		arg0, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["newest"] = arg0
-	var arg1 *model.Date
-	if tmp, ok := rawArgs["start"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-		arg1, err = ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2397,10 +2477,6 @@ func (ec *executionContext) fieldContext_Block_txs(ctx context.Context, field gr
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -2417,262 +2493,6 @@ func (ec *executionContext) fieldContext_Block_txs(ctx context.Context, field gr
 	if fc.Args, err = ec.field_Block_txs_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DoubleSpend_hash(ctx context.Context, field graphql.CollectedField, obj *model.DoubleSpend) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DoubleSpend_hash(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Hash, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DoubleSpend_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DoubleSpend",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DoubleSpend_index(ctx context.Context, field graphql.CollectedField, obj *model.DoubleSpend) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DoubleSpend_index(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Index, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(uint32)
-	fc.Result = res
-	return ec.marshalNUint322uint32(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DoubleSpend_index(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DoubleSpend",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Uint32 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DoubleSpend_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.DoubleSpend) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DoubleSpend_timestamp(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Timestamp, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.Date)
-	fc.Result = res
-	return ec.marshalNDate2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DoubleSpend_timestamp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DoubleSpend",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Date does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DoubleSpend_output(ctx context.Context, field graphql.CollectedField, obj *model.DoubleSpend) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DoubleSpend_output(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.DoubleSpend().Output(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.TxOutput)
-	fc.Result = res
-	return ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DoubleSpend_output(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DoubleSpend",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "tx":
-				return ec.fieldContext_TxOutput_tx(ctx, field)
-			case "hash":
-				return ec.fieldContext_TxOutput_hash(ctx, field)
-			case "index":
-				return ec.fieldContext_TxOutput_index(ctx, field)
-			case "amount":
-				return ec.fieldContext_TxOutput_amount(ctx, field)
-			case "script":
-				return ec.fieldContext_TxOutput_script(ctx, field)
-			case "spends":
-				return ec.fieldContext_TxOutput_spends(ctx, field)
-			case "double_spend":
-				return ec.fieldContext_TxOutput_double_spend(ctx, field)
-			case "lock":
-				return ec.fieldContext_TxOutput_lock(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type TxOutput", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DoubleSpend_inputs(ctx context.Context, field graphql.CollectedField, obj *model.DoubleSpend) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DoubleSpend_inputs(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.DoubleSpend().Inputs(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.TxInput)
-	fc.Result = res
-	return ec.marshalNTxInput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxInputᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DoubleSpend_inputs(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DoubleSpend",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "tx":
-				return ec.fieldContext_TxInput_tx(ctx, field)
-			case "hash":
-				return ec.fieldContext_TxInput_hash(ctx, field)
-			case "index":
-				return ec.fieldContext_TxInput_index(ctx, field)
-			case "script":
-				return ec.fieldContext_TxInput_script(ctx, field)
-			case "prev_hash":
-				return ec.fieldContext_TxInput_prev_hash(ctx, field)
-			case "prev_index":
-				return ec.fieldContext_TxInput_prev_index(ctx, field)
-			case "output":
-				return ec.fieldContext_TxInput_output(ctx, field)
-			case "double_spend":
-				return ec.fieldContext_TxInput_double_spend(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type TxInput", field.Name)
-		},
 	}
 	return fc, nil
 }
@@ -2728,10 +2548,6 @@ func (ec *executionContext) fieldContext_Follow_tx(ctx context.Context, field gr
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -3076,10 +2892,6 @@ func (ec *executionContext) fieldContext_Like_tx(ctx context.Context, field grap
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -3571,10 +3383,6 @@ func (ec *executionContext) fieldContext_Lock_txs(ctx context.Context, field gra
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -3701,10 +3509,6 @@ func (ec *executionContext) fieldContext_Post_tx(ctx context.Context, field grap
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -4709,10 +4513,6 @@ func (ec *executionContext) fieldContext_Query_tx(ctx context.Context, field gra
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -4781,10 +4581,6 @@ func (ec *executionContext) fieldContext_Query_txs(ctx context.Context, field gr
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -5116,70 +4912,6 @@ func (ec *executionContext) fieldContext_Query_blocks(ctx context.Context, field
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_blocks_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_double_spends(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_double_spends(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().DoubleSpends(rctx, fc.Args["newest"].(*bool), fc.Args["start"].(*model.Date))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.DoubleSpend)
-	fc.Result = res
-	return ec.marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpendᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_double_spends(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hash":
-				return ec.fieldContext_DoubleSpend_hash(ctx, field)
-			case "index":
-				return ec.fieldContext_DoubleSpend_index(ctx, field)
-			case "timestamp":
-				return ec.fieldContext_DoubleSpend_timestamp(ctx, field)
-			case "output":
-				return ec.fieldContext_DoubleSpend_output(ctx, field)
-			case "inputs":
-				return ec.fieldContext_DoubleSpend_inputs(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type DoubleSpend", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_double_spends_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -6039,10 +5771,6 @@ func (ec *executionContext) fieldContext_RoomFollow_tx(ctx context.Context, fiel
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -6103,10 +5831,6 @@ func (ec *executionContext) fieldContext_SetName_tx(ctx context.Context, field g
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -6353,10 +6077,6 @@ func (ec *executionContext) fieldContext_SetPic_tx(ctx context.Context, field gr
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -6603,10 +6323,6 @@ func (ec *executionContext) fieldContext_SetProfile_tx(ctx context.Context, fiel
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -6802,6 +6518,1098 @@ func (ec *executionContext) fieldContext_SetProfile_text(ctx context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _SlpBaton_output(ctx context.Context, field graphql.CollectedField, obj *model.SlpBaton) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpBaton_output(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SlpBaton().Output(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.TxOutput)
+	fc.Result = res
+	return ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpBaton_output(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpBaton",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "tx":
+				return ec.fieldContext_TxOutput_tx(ctx, field)
+			case "hash":
+				return ec.fieldContext_TxOutput_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_TxOutput_index(ctx, field)
+			case "amount":
+				return ec.fieldContext_TxOutput_amount(ctx, field)
+			case "script":
+				return ec.fieldContext_TxOutput_script(ctx, field)
+			case "spends":
+				return ec.fieldContext_TxOutput_spends(ctx, field)
+			case "slp":
+				return ec.fieldContext_TxOutput_slp(ctx, field)
+			case "slp_baton":
+				return ec.fieldContext_TxOutput_slp_baton(ctx, field)
+			case "lock":
+				return ec.fieldContext_TxOutput_lock(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TxOutput", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpBaton_hash(ctx context.Context, field graphql.CollectedField, obj *model.SlpBaton) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpBaton_hash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpBaton_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpBaton",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpBaton_index(ctx context.Context, field graphql.CollectedField, obj *model.SlpBaton) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpBaton_index(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Index, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uint32)
+	fc.Result = res
+	return ec.marshalNUint322uint32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpBaton_index(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpBaton",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint32 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpBaton_token_hash(ctx context.Context, field graphql.CollectedField, obj *model.SlpBaton) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpBaton_token_hash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TokenHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpBaton_token_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpBaton",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpBaton_genesis(ctx context.Context, field graphql.CollectedField, obj *model.SlpBaton) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpBaton_genesis(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SlpBaton().Genesis(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.SlpGenesis)
+	fc.Result = res
+	return ec.marshalOSlpGenesis2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpGenesis(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpBaton_genesis(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpBaton",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "tx":
+				return ec.fieldContext_SlpGenesis_tx(ctx, field)
+			case "hash":
+				return ec.fieldContext_SlpGenesis_hash(ctx, field)
+			case "token_type":
+				return ec.fieldContext_SlpGenesis_token_type(ctx, field)
+			case "decimals":
+				return ec.fieldContext_SlpGenesis_decimals(ctx, field)
+			case "output":
+				return ec.fieldContext_SlpGenesis_output(ctx, field)
+			case "baton":
+				return ec.fieldContext_SlpGenesis_baton(ctx, field)
+			case "baton_index":
+				return ec.fieldContext_SlpGenesis_baton_index(ctx, field)
+			case "ticker":
+				return ec.fieldContext_SlpGenesis_ticker(ctx, field)
+			case "name":
+				return ec.fieldContext_SlpGenesis_name(ctx, field)
+			case "doc_url":
+				return ec.fieldContext_SlpGenesis_doc_url(ctx, field)
+			case "doc_hash":
+				return ec.fieldContext_SlpGenesis_doc_hash(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SlpGenesis", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_tx(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_tx(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SlpGenesis().Tx(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tx)
+	fc.Result = res
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_tx(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hash":
+				return ec.fieldContext_Tx_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_Tx_index(ctx, field)
+			case "raw":
+				return ec.fieldContext_Tx_raw(ctx, field)
+			case "inputs":
+				return ec.fieldContext_Tx_inputs(ctx, field)
+			case "outputs":
+				return ec.fieldContext_Tx_outputs(ctx, field)
+			case "blocks":
+				return ec.fieldContext_Tx_blocks(ctx, field)
+			case "seen":
+				return ec.fieldContext_Tx_seen(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_hash(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_hash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_token_type(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_token_type(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TokenType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Uint8)
+	fc.Result = res
+	return ec.marshalNUint82githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐUint8(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_token_type(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint8 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_decimals(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_decimals(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Decimals, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Uint8)
+	fc.Result = res
+	return ec.marshalNUint82githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐUint8(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_decimals(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint8 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_output(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_output(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SlpGenesis().Output(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SlpOutput)
+	fc.Result = res
+	return ec.marshalNSlpOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpOutput(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_output(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "output":
+				return ec.fieldContext_SlpOutput_output(ctx, field)
+			case "hash":
+				return ec.fieldContext_SlpOutput_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_SlpOutput_index(ctx, field)
+			case "amount":
+				return ec.fieldContext_SlpOutput_amount(ctx, field)
+			case "token_hash":
+				return ec.fieldContext_SlpOutput_token_hash(ctx, field)
+			case "genesis":
+				return ec.fieldContext_SlpOutput_genesis(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SlpOutput", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_baton(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_baton(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SlpGenesis().Baton(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SlpBaton)
+	fc.Result = res
+	return ec.marshalNSlpBaton2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpBaton(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_baton(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "output":
+				return ec.fieldContext_SlpBaton_output(ctx, field)
+			case "hash":
+				return ec.fieldContext_SlpBaton_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_SlpBaton_index(ctx, field)
+			case "token_hash":
+				return ec.fieldContext_SlpBaton_token_hash(ctx, field)
+			case "genesis":
+				return ec.fieldContext_SlpBaton_genesis(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SlpBaton", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_baton_index(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_baton_index(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BatonIndex, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uint32)
+	fc.Result = res
+	return ec.marshalNUint322uint32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_baton_index(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint32 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_ticker(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_ticker(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ticker, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_ticker(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_name(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_doc_url(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_doc_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DocURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_doc_url(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpGenesis_doc_hash(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpGenesis_doc_hash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DocHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpGenesis_doc_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpGenesis",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpOutput_output(ctx context.Context, field graphql.CollectedField, obj *model.SlpOutput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpOutput_output(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SlpOutput().Output(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.TxOutput)
+	fc.Result = res
+	return ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpOutput_output(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpOutput",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "tx":
+				return ec.fieldContext_TxOutput_tx(ctx, field)
+			case "hash":
+				return ec.fieldContext_TxOutput_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_TxOutput_index(ctx, field)
+			case "amount":
+				return ec.fieldContext_TxOutput_amount(ctx, field)
+			case "script":
+				return ec.fieldContext_TxOutput_script(ctx, field)
+			case "spends":
+				return ec.fieldContext_TxOutput_spends(ctx, field)
+			case "slp":
+				return ec.fieldContext_TxOutput_slp(ctx, field)
+			case "slp_baton":
+				return ec.fieldContext_TxOutput_slp_baton(ctx, field)
+			case "lock":
+				return ec.fieldContext_TxOutput_lock(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TxOutput", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpOutput_hash(ctx context.Context, field graphql.CollectedField, obj *model.SlpOutput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpOutput_hash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpOutput_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpOutput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpOutput_index(ctx context.Context, field graphql.CollectedField, obj *model.SlpOutput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpOutput_index(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Index, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uint32)
+	fc.Result = res
+	return ec.marshalNUint322uint32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpOutput_index(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpOutput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint32 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpOutput_amount(ctx context.Context, field graphql.CollectedField, obj *model.SlpOutput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpOutput_amount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Amount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uint64)
+	fc.Result = res
+	return ec.marshalNUint642uint64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpOutput_amount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpOutput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Uint64 does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpOutput_token_hash(ctx context.Context, field graphql.CollectedField, obj *model.SlpOutput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpOutput_token_hash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TokenHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpOutput_token_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpOutput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SlpOutput_genesis(ctx context.Context, field graphql.CollectedField, obj *model.SlpOutput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SlpOutput_genesis(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SlpOutput().Genesis(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.SlpGenesis)
+	fc.Result = res
+	return ec.marshalOSlpGenesis2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpGenesis(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SlpOutput_genesis(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SlpOutput",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "tx":
+				return ec.fieldContext_SlpGenesis_tx(ctx, field)
+			case "hash":
+				return ec.fieldContext_SlpGenesis_hash(ctx, field)
+			case "token_type":
+				return ec.fieldContext_SlpGenesis_token_type(ctx, field)
+			case "decimals":
+				return ec.fieldContext_SlpGenesis_decimals(ctx, field)
+			case "output":
+				return ec.fieldContext_SlpGenesis_output(ctx, field)
+			case "baton":
+				return ec.fieldContext_SlpGenesis_baton(ctx, field)
+			case "baton_index":
+				return ec.fieldContext_SlpGenesis_baton_index(ctx, field)
+			case "ticker":
+				return ec.fieldContext_SlpGenesis_ticker(ctx, field)
+			case "name":
+				return ec.fieldContext_SlpGenesis_name(ctx, field)
+			case "doc_url":
+				return ec.fieldContext_SlpGenesis_doc_url(ctx, field)
+			case "doc_hash":
+				return ec.fieldContext_SlpGenesis_doc_hash(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SlpGenesis", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Subscription_address(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
 	fc, err := ec.fieldContext_Subscription_address(ctx, field)
 	if err != nil {
@@ -6864,10 +7672,6 @@ func (ec *executionContext) fieldContext_Subscription_address(ctx context.Contex
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -6950,10 +7754,6 @@ func (ec *executionContext) fieldContext_Subscription_addresses(ctx context.Cont
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -7570,8 +8370,6 @@ func (ec *executionContext) fieldContext_Tx_inputs(ctx context.Context, field gr
 				return ec.fieldContext_TxInput_prev_index(ctx, field)
 			case "output":
 				return ec.fieldContext_TxInput_output(ctx, field)
-			case "double_spend":
-				return ec.fieldContext_TxInput_double_spend(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TxInput", field.Name)
 		},
@@ -7630,8 +8428,10 @@ func (ec *executionContext) fieldContext_Tx_outputs(ctx context.Context, field g
 				return ec.fieldContext_TxOutput_script(ctx, field)
 			case "spends":
 				return ec.fieldContext_TxOutput_spends(ctx, field)
-			case "double_spend":
-				return ec.fieldContext_TxOutput_double_spend(ctx, field)
+			case "slp":
+				return ec.fieldContext_TxOutput_slp(ctx, field)
+			case "slp_baton":
+				return ec.fieldContext_TxOutput_slp_baton(ctx, field)
 			case "lock":
 				return ec.fieldContext_TxOutput_lock(ctx, field)
 			}
@@ -7693,100 +8493,6 @@ func (ec *executionContext) fieldContext_Tx_blocks(ctx context.Context, field gr
 				return ec.fieldContext_Block_txs(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Block", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Tx_suspect(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Tx_suspect(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Tx().Suspect(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.TxSuspect)
-	fc.Result = res
-	return ec.marshalOTxSuspect2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxSuspect(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Tx_suspect(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Tx",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "tx":
-				return ec.fieldContext_TxSuspect_tx(ctx, field)
-			case "hash":
-				return ec.fieldContext_TxSuspect_hash(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type TxSuspect", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Tx_lost(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Tx_lost(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Tx().Lost(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.TxLost)
-	fc.Result = res
-	return ec.marshalOTxLost2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxLost(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Tx_lost(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Tx",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "tx":
-				return ec.fieldContext_TxLost_tx(ctx, field)
-			case "hash":
-				return ec.fieldContext_TxLost_hash(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type TxLost", field.Name)
 		},
 	}
 	return fc, nil
@@ -7884,10 +8590,6 @@ func (ec *executionContext) fieldContext_TxInput_tx(ctx context.Context, field g
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -8165,173 +8867,14 @@ func (ec *executionContext) fieldContext_TxInput_output(ctx context.Context, fie
 				return ec.fieldContext_TxOutput_script(ctx, field)
 			case "spends":
 				return ec.fieldContext_TxOutput_spends(ctx, field)
-			case "double_spend":
-				return ec.fieldContext_TxOutput_double_spend(ctx, field)
+			case "slp":
+				return ec.fieldContext_TxOutput_slp(ctx, field)
+			case "slp_baton":
+				return ec.fieldContext_TxOutput_slp_baton(ctx, field)
 			case "lock":
 				return ec.fieldContext_TxOutput_lock(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TxOutput", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _TxInput_double_spend(ctx context.Context, field graphql.CollectedField, obj *model.TxInput) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_TxInput_double_spend(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TxInput().DoubleSpend(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.DoubleSpend)
-	fc.Result = res
-	return ec.marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_TxInput_double_spend(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "TxInput",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hash":
-				return ec.fieldContext_DoubleSpend_hash(ctx, field)
-			case "index":
-				return ec.fieldContext_DoubleSpend_index(ctx, field)
-			case "timestamp":
-				return ec.fieldContext_DoubleSpend_timestamp(ctx, field)
-			case "output":
-				return ec.fieldContext_DoubleSpend_output(ctx, field)
-			case "inputs":
-				return ec.fieldContext_DoubleSpend_inputs(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type DoubleSpend", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _TxLost_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxLost) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_TxLost_tx(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TxLost().Tx(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Tx)
-	fc.Result = res
-	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_TxLost_tx(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "TxLost",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hash":
-				return ec.fieldContext_Tx_hash(ctx, field)
-			case "index":
-				return ec.fieldContext_Tx_index(ctx, field)
-			case "raw":
-				return ec.fieldContext_Tx_raw(ctx, field)
-			case "inputs":
-				return ec.fieldContext_Tx_inputs(ctx, field)
-			case "outputs":
-				return ec.fieldContext_Tx_outputs(ctx, field)
-			case "blocks":
-				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
-			case "seen":
-				return ec.fieldContext_Tx_seen(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _TxLost_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxLost) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_TxLost_hash(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Hash, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_TxLost_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "TxLost",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8388,10 +8931,6 @@ func (ec *executionContext) fieldContext_TxOutput_tx(ctx context.Context, field 
 				return ec.fieldContext_Tx_outputs(ctx, field)
 			case "blocks":
 				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
 			case "seen":
 				return ec.fieldContext_Tx_seen(ctx, field)
 			}
@@ -8627,8 +9166,6 @@ func (ec *executionContext) fieldContext_TxOutput_spends(ctx context.Context, fi
 				return ec.fieldContext_TxInput_prev_index(ctx, field)
 			case "output":
 				return ec.fieldContext_TxInput_output(ctx, field)
-			case "double_spend":
-				return ec.fieldContext_TxInput_double_spend(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TxInput", field.Name)
 		},
@@ -8636,8 +9173,8 @@ func (ec *executionContext) fieldContext_TxOutput_spends(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _TxOutput_double_spend(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_TxOutput_double_spend(ctx, field)
+func (ec *executionContext) _TxOutput_slp(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TxOutput_slp(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -8650,7 +9187,7 @@ func (ec *executionContext) _TxOutput_double_spend(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TxOutput().DoubleSpend(rctx, obj)
+		return ec.resolvers.TxOutput().Slp(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8659,12 +9196,12 @@ func (ec *executionContext) _TxOutput_double_spend(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.DoubleSpend)
+	res := resTmp.(*model.SlpOutput)
 	fc.Result = res
-	return ec.marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, field.Selections, res)
+	return ec.marshalOSlpOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpOutput(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_TxOutput_double_spend(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_TxOutput_slp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "TxOutput",
 		Field:      field,
@@ -8672,18 +9209,73 @@ func (ec *executionContext) fieldContext_TxOutput_double_spend(ctx context.Conte
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "hash":
-				return ec.fieldContext_DoubleSpend_hash(ctx, field)
-			case "index":
-				return ec.fieldContext_DoubleSpend_index(ctx, field)
-			case "timestamp":
-				return ec.fieldContext_DoubleSpend_timestamp(ctx, field)
 			case "output":
-				return ec.fieldContext_DoubleSpend_output(ctx, field)
-			case "inputs":
-				return ec.fieldContext_DoubleSpend_inputs(ctx, field)
+				return ec.fieldContext_SlpOutput_output(ctx, field)
+			case "hash":
+				return ec.fieldContext_SlpOutput_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_SlpOutput_index(ctx, field)
+			case "amount":
+				return ec.fieldContext_SlpOutput_amount(ctx, field)
+			case "token_hash":
+				return ec.fieldContext_SlpOutput_token_hash(ctx, field)
+			case "genesis":
+				return ec.fieldContext_SlpOutput_genesis(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type DoubleSpend", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type SlpOutput", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TxOutput_slp_baton(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TxOutput_slp_baton(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.TxOutput().SlpBaton(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.SlpBaton)
+	fc.Result = res
+	return ec.marshalOSlpBaton2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpBaton(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TxOutput_slp_baton(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TxOutput",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "output":
+				return ec.fieldContext_SlpBaton_output(ctx, field)
+			case "hash":
+				return ec.fieldContext_SlpBaton_hash(ctx, field)
+			case "index":
+				return ec.fieldContext_SlpBaton_index(ctx, field)
+			case "token_hash":
+				return ec.fieldContext_SlpBaton_token_hash(ctx, field)
+			case "genesis":
+				return ec.fieldContext_SlpBaton_genesis(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SlpBaton", field.Name)
 		},
 	}
 	return fc, nil
@@ -8735,114 +9327,6 @@ func (ec *executionContext) fieldContext_TxOutput_lock(ctx context.Context, fiel
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Lock", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _TxSuspect_tx(ctx context.Context, field graphql.CollectedField, obj *model.TxSuspect) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_TxSuspect_tx(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TxSuspect().Tx(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Tx)
-	fc.Result = res
-	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_TxSuspect_tx(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "TxSuspect",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hash":
-				return ec.fieldContext_Tx_hash(ctx, field)
-			case "index":
-				return ec.fieldContext_Tx_index(ctx, field)
-			case "raw":
-				return ec.fieldContext_Tx_raw(ctx, field)
-			case "inputs":
-				return ec.fieldContext_Tx_inputs(ctx, field)
-			case "outputs":
-				return ec.fieldContext_Tx_outputs(ctx, field)
-			case "blocks":
-				return ec.fieldContext_Tx_blocks(ctx, field)
-			case "suspect":
-				return ec.fieldContext_Tx_suspect(ctx, field)
-			case "lost":
-				return ec.fieldContext_Tx_lost(ctx, field)
-			case "seen":
-				return ec.fieldContext_Tx_seen(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _TxSuspect_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxSuspect) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_TxSuspect_hash(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Hash, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_TxSuspect_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "TxSuspect",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -10700,88 +11184,6 @@ func (ec *executionContext) _Block(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
-var doubleSpendImplementors = []string{"DoubleSpend"}
-
-func (ec *executionContext) _DoubleSpend(ctx context.Context, sel ast.SelectionSet, obj *model.DoubleSpend) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, doubleSpendImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("DoubleSpend")
-		case "hash":
-
-			out.Values[i] = ec._DoubleSpend_hash(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "index":
-
-			out.Values[i] = ec._DoubleSpend_index(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "timestamp":
-
-			out.Values[i] = ec._DoubleSpend_timestamp(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "output":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._DoubleSpend_output(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		case "inputs":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._DoubleSpend_inputs(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
 var followImplementors = []string{"Follow"}
 
 func (ec *executionContext) _Follow(ctx context.Context, sel ast.SelectionSet, obj *model.Follow) graphql.Marshaler {
@@ -11536,26 +11938,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "double_spends":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_double_spends(ctx, field)
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return rrm(innerCtx)
-			})
 		case "profiles":
 			field := field
 
@@ -12059,6 +12441,308 @@ func (ec *executionContext) _SetProfile(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var slpBatonImplementors = []string{"SlpBaton"}
+
+func (ec *executionContext) _SlpBaton(ctx context.Context, sel ast.SelectionSet, obj *model.SlpBaton) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, slpBatonImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SlpBaton")
+		case "output":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SlpBaton_output(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "hash":
+
+			out.Values[i] = ec._SlpBaton_hash(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "index":
+
+			out.Values[i] = ec._SlpBaton_index(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "token_hash":
+
+			out.Values[i] = ec._SlpBaton_token_hash(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "genesis":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SlpBaton_genesis(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var slpGenesisImplementors = []string{"SlpGenesis"}
+
+func (ec *executionContext) _SlpGenesis(ctx context.Context, sel ast.SelectionSet, obj *model.SlpGenesis) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, slpGenesisImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SlpGenesis")
+		case "tx":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SlpGenesis_tx(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "hash":
+
+			out.Values[i] = ec._SlpGenesis_hash(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "token_type":
+
+			out.Values[i] = ec._SlpGenesis_token_type(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "decimals":
+
+			out.Values[i] = ec._SlpGenesis_decimals(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "output":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SlpGenesis_output(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "baton":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SlpGenesis_baton(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "baton_index":
+
+			out.Values[i] = ec._SlpGenesis_baton_index(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "ticker":
+
+			out.Values[i] = ec._SlpGenesis_ticker(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "name":
+
+			out.Values[i] = ec._SlpGenesis_name(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "doc_url":
+
+			out.Values[i] = ec._SlpGenesis_doc_url(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "doc_hash":
+
+			out.Values[i] = ec._SlpGenesis_doc_hash(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var slpOutputImplementors = []string{"SlpOutput"}
+
+func (ec *executionContext) _SlpOutput(ctx context.Context, sel ast.SelectionSet, obj *model.SlpOutput) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, slpOutputImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SlpOutput")
+		case "output":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SlpOutput_output(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "hash":
+
+			out.Values[i] = ec._SlpOutput_hash(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "index":
+
+			out.Values[i] = ec._SlpOutput_index(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "amount":
+
+			out.Values[i] = ec._SlpOutput_amount(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "token_hash":
+
+			out.Values[i] = ec._SlpOutput_token_hash(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "genesis":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SlpOutput_genesis(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var subscriptionImplementors = []string{"Subscription"}
 
 func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet) func(ctx context.Context) graphql.Marshaler {
@@ -12179,40 +12863,6 @@ func (ec *executionContext) _Tx(ctx context.Context, sel ast.SelectionSet, obj *
 				return innerFunc(ctx)
 
 			})
-		case "suspect":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tx_suspect(ctx, field, obj)
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		case "lost":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tx_lost(ctx, field, obj)
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "seen":
 
 			out.Values[i] = ec._Tx_seen(ctx, field, obj)
@@ -12310,71 +12960,6 @@ func (ec *executionContext) _TxInput(ctx context.Context, sel ast.SelectionSet, 
 				return innerFunc(ctx)
 
 			})
-		case "double_spend":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._TxInput_double_spend(ctx, field, obj)
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var txLostImplementors = []string{"TxLost"}
-
-func (ec *executionContext) _TxLost(ctx context.Context, sel ast.SelectionSet, obj *model.TxLost) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, txLostImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("TxLost")
-		case "tx":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._TxLost_tx(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		case "hash":
-
-			out.Values[i] = ec._TxLost_hash(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12461,7 +13046,7 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 				return innerFunc(ctx)
 
 			})
-		case "double_spend":
+		case "slp":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -12470,7 +13055,24 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._TxOutput_double_spend(ctx, field, obj)
+				res = ec._TxOutput_slp(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "slp_baton":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._TxOutput_slp_baton(ctx, field, obj)
 				return res
 			}
 
@@ -12495,54 +13097,6 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 				return innerFunc(ctx)
 
 			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var txSuspectImplementors = []string{"TxSuspect"}
-
-func (ec *executionContext) _TxSuspect(ctx context.Context, sel ast.SelectionSet, obj *model.TxSuspect) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, txSuspectImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("TxSuspect")
-		case "tx":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._TxSuspect_tx(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		case "hash":
-
-			out.Values[i] = ec._TxSuspect_hash(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12912,16 +13466,6 @@ func (ec *executionContext) marshalNDate2githubᚗcomᚋmemocashᚋindexᚋadmin
 	return res
 }
 
-func (ec *executionContext) marshalNDoubleSpend2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx context.Context, sel ast.SelectionSet, v *model.DoubleSpend) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._DoubleSpend(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNInt642int64(ctx context.Context, v interface{}) (int64, error) {
 	res, err := graphql.UnmarshalInt64(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12993,6 +13537,34 @@ func (ec *executionContext) marshalNRoomFollow2ᚖgithubᚗcomᚋmemocashᚋinde
 		return graphql.Null
 	}
 	return ec._RoomFollow(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSlpBaton2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpBaton(ctx context.Context, sel ast.SelectionSet, v model.SlpBaton) graphql.Marshaler {
+	return ec._SlpBaton(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSlpBaton2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpBaton(ctx context.Context, sel ast.SelectionSet, v *model.SlpBaton) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SlpBaton(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSlpOutput2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpOutput(ctx context.Context, sel ast.SelectionSet, v model.SlpOutput) graphql.Marshaler {
+	return ec._SlpOutput(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSlpOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpOutput(ctx context.Context, sel ast.SelectionSet, v *model.SlpOutput) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SlpOutput(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -13143,6 +13715,36 @@ func (ec *executionContext) unmarshalNUint322uint32(ctx context.Context, v inter
 
 func (ec *executionContext) marshalNUint322uint32(ctx context.Context, sel ast.SelectionSet, v uint32) graphql.Marshaler {
 	res := graphql.MarshalUint32(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNUint642uint64(ctx context.Context, v interface{}) (uint64, error) {
+	res, err := graphql.UnmarshalUint64(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUint642uint64(ctx context.Context, sel ast.SelectionSet, v uint64) graphql.Marshaler {
+	res := graphql.MarshalUint64(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNUint82githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐUint8(ctx context.Context, v interface{}) (model.Uint8, error) {
+	res, err := model.UnmarshalUint8(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUint82githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐUint8(ctx context.Context, sel ast.SelectionSet, v model.Uint8) graphql.Marshaler {
+	res := model.MarshalUint8(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -13551,60 +14153,6 @@ func (ec *executionContext) marshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋad
 	return res
 }
 
-func (ec *executionContext) marshalODoubleSpend2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpendᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DoubleSpend) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNDoubleSpend2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalODoubleSpend2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDoubleSpend(ctx context.Context, sel ast.SelectionSet, v *model.DoubleSpend) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._DoubleSpend(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalOFollow2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐFollow(ctx context.Context, sel ast.SelectionSet, v []*model.Follow) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -14009,6 +14557,27 @@ func (ec *executionContext) marshalOSetProfile2ᚖgithubᚗcomᚋmemocashᚋinde
 	return ec._SetProfile(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOSlpBaton2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpBaton(ctx context.Context, sel ast.SelectionSet, v *model.SlpBaton) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SlpBaton(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOSlpGenesis2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpGenesis(ctx context.Context, sel ast.SelectionSet, v *model.SlpGenesis) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SlpGenesis(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOSlpOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpOutput(ctx context.Context, sel ast.SelectionSet, v *model.SlpOutput) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SlpOutput(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -14216,25 +14785,11 @@ func (ec *executionContext) marshalOTxInput2ᚖgithubᚗcomᚋmemocashᚋindex�
 	return ec._TxInput(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOTxLost2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxLost(ctx context.Context, sel ast.SelectionSet, v *model.TxLost) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._TxLost(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalOTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxOutput(ctx context.Context, sel ast.SelectionSet, v *model.TxOutput) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._TxOutput(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOTxSuspect2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐTxSuspect(ctx context.Context, sel ast.SelectionSet, v *model.TxSuspect) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._TxSuspect(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOUint322ᚖuint32(ctx context.Context, v interface{}) (*uint32, error) {

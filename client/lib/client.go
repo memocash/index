@@ -14,26 +14,33 @@ type Client struct {
 	Database Database
 }
 
-func (c *Client) updateDb(address wallet.Addr) error {
-	lastUpdate, err := c.Database.GetAddressLastUpdate(address)
+func (c *Client) updateDb(addresses []wallet.Addr) error {
+	lastUpdates, err := c.Database.GetAddressLastUpdate(addresses)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("error getting address last update; %w", err)
 	}
-	txs, err := graph.GetHistory(c.GraphUrl, address, lastUpdate)
+	history, err := graph.GetHistory(c.GraphUrl, lastUpdates)
 	if err != nil {
 		return fmt.Errorf("error getting history txs; %w", err)
 	}
-	if err := c.Database.SaveTxs(txs); err != nil {
+	if err := c.Database.SaveTxs(history.GetAllTxs()); err != nil {
 		return fmt.Errorf("error saving txs; %w", err)
 	}
-	var maxTime time.Time
-	for _, tx := range txs {
-		if tx.Seen.After(maxTime) {
-			maxTime = tx.Seen
+	var addressUpdates []graph.AddressUpdate
+	for _, addrTxs := range history {
+		var maxTime time.Time
+		for _, tx := range addrTxs.Txs {
+			if tx.Seen.After(maxTime) {
+				maxTime = tx.Seen
+			}
 		}
+		addressUpdates = append(addressUpdates, graph.AddressUpdate{
+			Address: addrTxs.Address,
+			Time:    maxTime,
+		})
 	}
-	if err := c.Database.SetAddressLastUpdate(address, maxTime); err != nil {
-		return fmt.Errorf("error setting address last update for client update db; %w", err)
+	if err := c.Database.SetAddressLastUpdate(addressUpdates); err != nil {
+		return fmt.Errorf("error setting address last updates for client update db; %w", err)
 	}
 	return nil
 }
@@ -45,27 +52,27 @@ func (c *Client) Broadcast(txRaw string) error {
 	return nil
 }
 
-func (c *Client) GetBalance(address wallet.Addr) (int64, error) {
-	err := c.updateDb(address)
+func (c *Client) GetBalance(addresses []wallet.Addr) (*Balance, error) {
+	err := c.updateDb(addresses)
 	if err != nil {
-		return 0, fmt.Errorf("error updating db for get balance; %w", err)
+		return nil, fmt.Errorf("error updating db for get balance; %w", err)
 	}
-	balance, err := c.Database.GetAddressBalance(address)
+	balance, err := c.Database.GetAddressBalance(addresses)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, nil
+			return nil, nil
 		}
-		return 0, fmt.Errorf("error getting address balance from database; %w", err)
+		return nil, fmt.Errorf("error getting address balance from database; %w", err)
 	}
 	return balance, nil
 }
 
-func (c *Client) GetUtxos(address wallet.Addr) ([]graph.Output, error) {
-	err := c.updateDb(address)
+func (c *Client) GetUtxos(addresses []wallet.Addr) ([]graph.Output, error) {
+	err := c.updateDb(addresses)
 	if err != nil {
 		return nil, fmt.Errorf("error updating db for get utxos; %w", err)
 	}
-	utxos, err := c.Database.GetUtxos(address)
+	utxos, err := c.Database.GetUtxos(addresses)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
