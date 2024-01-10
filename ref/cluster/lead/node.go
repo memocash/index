@@ -1,6 +1,7 @@
 package lead
 
 import (
+	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
@@ -18,7 +19,7 @@ type Node struct {
 	Verbose  bool
 }
 
-func (n *Node) SaveTxs(b *dbi.Block) error {
+func (n *Node) SaveTxs(ctx context.Context, b *dbi.Block) error {
 	if n.Off {
 		return nil
 	}

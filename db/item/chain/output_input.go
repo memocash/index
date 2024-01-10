@@ -1,13 +1,13 @@
 package chain
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
-	"sort"
 )
 
 type OutputInput struct {
@@ -66,53 +66,24 @@ func GetOutputInput(out memo.Out) ([]*OutputInput, error) {
 	return outputInputs, nil
 }
 
-func GetOutputInputs(outs []memo.Out) ([]*OutputInput, error) {
-	var shardOutGroups = make(map[uint32][]memo.Out)
+func GetOutputInputs(ctx context.Context, outs []memo.Out) ([]*OutputInput, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
 	for _, out := range outs {
 		shard := db.GetShardByte32(out.TxHash)
-		shardOutGroups[shard] = append(shardOutGroups[shard], out)
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.CombineBytes(
+			jutil.ByteReverse(out.TxHash),
+			jutil.GetUint32DataBig(out.Index),
+		))
 	}
-	wait := db.NewWait(len(shardOutGroups))
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainOutputInput, shardPrefixes)
+	if err != nil {
+		return nil, jerr.Get("error getting by prefixes for chain output inputs", err)
+	}
 	var outputInputs []*OutputInput
-	for shardT, outGroupT := range shardOutGroups {
-		go func(shard uint32, outGroup []memo.Out) {
-			defer wait.Group.Done()
-			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-			dbClient := client.NewClient(shardConfig.GetHost())
-			var prefixes = make([][]byte, len(outGroup))
-			for i := range outGroup {
-				prefixes[i] = jutil.CombineBytes(
-					jutil.ByteReverse(outGroup[i].TxHash),
-					jutil.GetUint32DataBig(outGroup[i].Index),
-				)
-			}
-			sort.Slice(prefixes, func(i, j int) bool {
-				return jutil.ByteLT(prefixes[i], prefixes[j])
-			})
-			for len(prefixes) > 0 {
-				var prefixesToUse [][]byte
-				if len(prefixes) > client.HugeLimit {
-					prefixesToUse, prefixes = prefixes[:client.HugeLimit], prefixes[client.HugeLimit:]
-				} else {
-					prefixesToUse, prefixes = prefixes, nil
-				}
-				if err := dbClient.GetByPrefixes(db.TopicChainOutputInput, prefixesToUse); err != nil {
-					wait.AddError(jerr.Get("error getting by prefixes for chain output inputs", err))
-					return
-				}
-				wait.Lock.Lock()
-				for i := range dbClient.Messages {
-					var outputInput = new(OutputInput)
-					db.Set(outputInput, dbClient.Messages[i])
-					outputInputs = append(outputInputs, outputInput)
-				}
-				wait.Lock.Unlock()
-			}
-		}(shardT, outGroupT)
-	}
-	wait.Group.Wait()
-	if len(wait.Errs) > 0 {
-		return nil, jerr.Get("error getting chain output input messages", jerr.Combine(wait.Errs...))
+	for i := range messages {
+		var outputInput = new(OutputInput)
+		db.Set(outputInput, messages[i])
+		outputInputs = append(outputInputs, outputInput)
 	}
 	return outputInputs, nil
 }

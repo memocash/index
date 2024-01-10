@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/model"
@@ -15,28 +14,25 @@ import (
 )
 
 // Txs is the resolver for the txs field.
-func (r *blockResolver) Txs(ctx context.Context, obj *model.Block, start *uint32) ([]*model.Tx, error) {
-	blockHash, err := chainhash.NewHashFromStr(obj.Hash)
-	if err != nil {
-		return nil, jerr.Get("error parsing block hash for block txs resolver", err)
-	}
+func (r *blockResolver) Txs(ctx context.Context, obj *model.Block, start *uint32) ([]*model.TxBlock, error) {
 	var startIndex uint32
 	if start != nil {
 		startIndex = *start
 	}
 	blockTxs, err := chain.GetBlockTxs(chain.BlockTxsRequest{
-		BlockHash:  *blockHash,
+		BlockHash:  obj.Hash,
 		StartIndex: startIndex,
 		Limit:      client.DefaultLimit,
 	})
 	if err != nil {
 		return nil, jerr.Get("error getting block transactions for hash", err)
 	}
-	var modelTxs = make([]*model.Tx, len(blockTxs))
+	var modelTxs = make([]*model.TxBlock, len(blockTxs))
 	for i := range blockTxs {
-		modelTxs[i] = &model.Tx{
-			Index: blockTxs[i].Index,
-			Hash:  chainhash.Hash(blockTxs[i].TxHash).String(),
+		modelTxs[i] = &model.TxBlock{
+			Index:  blockTxs[i].Index,
+			TxHash: blockTxs[i].TxHash,
+			Tx:     &model.Tx{Hash: blockTxs[i].TxHash},
 		}
 	}
 	return modelTxs, nil

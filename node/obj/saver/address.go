@@ -1,6 +1,7 @@
 package saver
 
 import (
+	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
@@ -18,7 +19,7 @@ type Address struct {
 	SkipP2pkh  bool
 }
 
-func (a *Address) SaveTxs(b *dbi.Block) error {
+func (a *Address) SaveTxs(ctx context.Context, b *dbi.Block) error {
 	if b.IsNil() {
 		return jerr.Newf("error nil block")
 	}

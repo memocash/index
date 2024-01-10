@@ -1,9 +1,9 @@
 type TxOutput {
     tx: Tx!
-    hash: String!
+    hash: Hash!
     index: Uint32!
     amount: Int64!
-    script: String!
+    script: Bytes!
     spends: [TxInput]
     slp: SlpOutput
     slp_baton: SlpBaton

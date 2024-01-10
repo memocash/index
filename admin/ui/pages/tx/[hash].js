@@ -8,6 +8,7 @@ import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
 import {PreInline} from "../../components/util/pre";
 import {graphQL} from "../../components/fetch";
+import {hexToString} from "../../components/hex";
 
 export default function Hash() {
     const router = useRouter()
@@ -24,6 +25,8 @@ export default function Hash() {
             hash
             raw
             seen
+            version
+            locktime
             inputs {
                 index
                 prev_hash
@@ -38,6 +41,21 @@ export default function Hash() {
                     lock {
                         address
                     }
+                    slp {
+                        token_hash
+                        amount
+                        genesis {
+                            ticker
+                            decimals
+                        }
+                    }
+                    slp_baton {
+                        token_hash
+                        genesis {
+                            ticker
+                            decimals
+                        }
+                    }
                 }
             }
             outputs {
@@ -51,11 +69,28 @@ export default function Hash() {
                 lock {
                     address
                 }
+                slp {
+                    token_hash
+                    amount
+                    genesis {
+                        ticker
+                        decimals
+                    }
+                }
+                slp_baton {
+                    token_hash
+                    genesis {
+                        ticker
+                        decimals
+                    }
+                }
             }
             blocks {
-                hash
-                height
-                timestamp
+                block {
+                    hash
+                    height
+                    timestamp
+                }
             }
         }
     }
@@ -115,6 +150,14 @@ export default function Hash() {
                         <div className={column.width85}><PreInline>{tx.raw}</PreInline></div>
                     </div>
                     <div className={column.container}>
+                        <div className={column.width15}>Version</div>
+                        <div className={column.width85}>{tx.version}</div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width15}>Locktime</div>
+                        <div className={column.width85}>{tx.locktime}</div>
+                    </div>
+                    <div className={column.container}>
                         <div className={column.width15}>Size</div>
                         <div className={column.width85}>{size} Bytes</div>
                     </div>
@@ -157,15 +200,15 @@ function BlockInfo({tx}) {
         <div className={column.container}>
             <div className={column.width15}>Block</div>
             <div className={column.width85}>
-                {tx.blocks ? tx.blocks.map((block) => {
+                {tx.blocks ? tx.blocks.map((txBlock) => {
                     return (
-                        <div key={block.hash}>
-                            Hash: <Link href={"/block/" + block.hash}>
-                            <a>{block.hash}</a></Link>
+                        <div key={txBlock.block.hash}>
+                            Hash: <Link href={"/block/" + txBlock.block.hash}>
+                            <a>{txBlock.block.hash}</a></Link>
                             <br/>
-                            Timestamp: {block.timestamp.length ? block.timestamp : "Not set"}
+                            Timestamp: {txBlock.block.timestamp.length ? txBlock.block.timestamp : "Not set"}
                             <br/>
-                            Height: {block.height}
+                            Height: {txBlock.block.height}
                         </div>
                     )
                 }) : null}
@@ -194,6 +237,22 @@ function Inputs({tx}) {
                             UnlockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{input.script}</pre>
                             <br/>
+                            {input.output.slp ? <div>
+                                SLP: {input.output.slp.amount} {input.output.slp.genesis ?
+                                <Link href={"/tx/" + input.output.slp.token_hash}>
+                                    <a>
+                                        {input.output.slp.genesis.ticker}
+                                    </a>
+                                </Link> : null}
+                            </div> : null}
+                            {input.output.slp_baton ? <div>
+                                SLP Baton: {input.output.slp_baton.genesis ?
+                                <Link href={"/tx/" + input.output.slp_baton.token_hash}>
+                                    <a>
+                                        {input.output.slp_baton.genesis.ticker}
+                                    </a>
+                                </Link> : null}
+                            </div> : null}
                             {input.output.spends && input.output.spends.length >= 2 ?
                                 <div className={[column.red, column.bold].join(" ")}>
                                     DOUBLE SPEND
@@ -261,6 +320,14 @@ const GetOutputScriptInfo = (script) => {
             case "6d05":
                 return "Memo profile text: " + Buffer.from(script.substr(10), "hex")
         }
+    } else if (script.substr(0, 12) === "6a04534c5000") {
+        if (hexToString(script.substr(18, 14)) === "GENESIS") {
+            return "SLP Genesis"
+        } else if (hexToString(script.substr(18, 8)) === "MINT") {
+            return "SLP Mint"
+        } else if (hexToString(script.substr(18, 8)) === "SEND") {
+            return "SLP Send"
+        }
     }
     return "Unknown" + (info.length ? ": " + info : "")
 }
@@ -285,6 +352,22 @@ function Outputs({tx}) {
                             <br/>
                             LockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
+                            {output.slp ? <div>
+                                SLP: {output.slp.amount} {output.slp.genesis ?
+                                <Link href={"/tx/" + output.slp.token_hash}>
+                                    <a>
+                                        {output.slp.genesis.ticker}
+                                    </a>
+                                </Link> : null}
+                            </div> : null}
+                            {output.slp_baton ? <div>
+                                SLP Baton: {output.slp_baton.genesis ?
+                                <Link href={"/tx/" + output.slp_baton.token_hash}>
+                                    <a>
+                                        {output.slp_baton.genesis.ticker}
+                                    </a>
+                                </Link> : null}
+                            </div> : null}
                             {output.spends ? <>
                                 {output.spends.length >= 2 ?
                                     <div className={[column.red, column.bold].join(" ")}>

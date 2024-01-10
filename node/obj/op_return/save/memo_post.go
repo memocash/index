@@ -1,6 +1,7 @@
 package save
 
 import (
+	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item/chain"
@@ -10,7 +11,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-func MemoPost(info parse.OpReturn, post string) error {
+func MemoPost(ctx context.Context, info parse.OpReturn, post string) error {
 	var lockMemoPost = &memo.AddrPost{
 		Addr:   info.Addr,
 		Seen:   info.Seen,
@@ -38,7 +39,7 @@ func MemoPost(info parse.OpReturn, post string) error {
 				likeTxHashes = append(likeTxHashes, memoPostLike.LikeTxHash)
 			}
 		}
-		likeTxOuts, err := chain.GetTxOutputsByHashes(likeTxHashes)
+		likeTxOuts, err := chain.GetTxOutputsByHashes(ctx, likeTxHashes)
 		if err != nil {
 			return jerr.Get("error getting like tx outputs for post op return handler", err)
 		}

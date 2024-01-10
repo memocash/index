@@ -5,6 +5,7 @@ package resolver
 
 import (
 	"context"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -33,7 +34,7 @@ func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Da
 		return nil, jerr.Get("error decoding lock hash for lock txs resolver", err)
 	}
 	var startUid []byte
-	if start != nil && !time.Time(*start).IsZero() {
+	if start != nil && time.Time(*start).After(memo.GetGenesisTime()) {
 		startUid = jutil.CombineBytes(
 			address[:],
 			jutil.GetTimeByteNanoBig(time.Time(*start)),
@@ -50,32 +51,15 @@ func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Da
 	if err != nil {
 		return nil, jerr.Get("error getting addr seen txs for lock txs resolver", err)
 	}
-	var txHashes = make([]string, len(seenTxs))
-	for i := range seenTxs {
-		txHashes[i] = chainhash.Hash(seenTxs[i].TxHash).String()
-	}
-	var txsWithRaw []*model.Tx
-	if load.HasFieldAny(ctx, []string{"raw"}) {
-		var errs []error
-		txsWithRaw, errs = load.TxRaw.LoadAll(txHashes)
-		for _, err := range errs {
-			if err != nil {
-				return nil, jerr.Get("error getting tx raw from dataloader for lock txs resolver", err)
-			}
-		}
-	}
 	var modelTxs = make([]*model.Tx, len(seenTxs))
 	for i := range seenTxs {
 		modelTxs[i] = &model.Tx{
-			Hash: chainhash.Hash(seenTxs[i].TxHash).String(),
+			Hash: seenTxs[i].TxHash,
 			Seen: model.Date(seenTxs[i].Seen),
 		}
-		for _, txWithRaw := range txsWithRaw {
-			if txWithRaw.Hash == modelTxs[i].Hash {
-				modelTxs[i].Raw = txWithRaw.Raw
-				break
-			}
-		}
+	}
+	if err := load.AttachToTxs(ctx, load.GetFields(ctx), modelTxs); err != nil {
+		return nil, jerr.Get("error attaching all to txs for lock txs resolver", err)
 	}
 	return modelTxs, nil
 }

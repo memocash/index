@@ -1,9 +1,10 @@
 type Tx {
-    hash: String!
-    index: Uint32!
-    raw: String!
+    hash: Hash!
+    raw: Bytes!
     inputs: [TxInput!]!
     outputs: [TxOutput!]!
-    blocks: [Block]
+    blocks: [TxBlock]
     seen: Date
+    version:  Int32!
+    locktime: Uint32!
 }

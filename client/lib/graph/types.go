@@ -59,7 +59,15 @@ type Tx struct {
 	Seen    time.Time `json:"seen"`
 	Inputs  []Input   `json:"inputs"`
 	Outputs []Output  `json:"outputs"`
-	Blocks  []Block   `json:"blocks"`
+	Blocks  []TxBlock `json:"blocks"`
+}
+
+type TxBlock struct {
+	TxHash    string `json:"tx_hash"`
+	BlockHash string `json:"block_hash"`
+	Tx        Tx     `json:"tx"`
+	Block     Block  `json:"block"`
+	Index     int    `json:"index"`
 }
 
 type Block struct {

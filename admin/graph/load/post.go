@@ -1,8 +1,9 @@
 package load
 
 import (
+	"errors"
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
@@ -12,10 +13,10 @@ import (
 
 const postNotFoundErrorMessage = "error post not found in loader"
 
-var postNotFoundError = jerr.New(postNotFoundErrorMessage)
+var postNotFoundError = fmt.Errorf(postNotFoundErrorMessage)
 
 func IsPostNotFoundError(err error) bool {
-	return jerr.HasError(err, postNotFoundErrorMessage)
+	return errors.Is(err, postNotFoundError)
 }
 
 var Post = dataloader.NewPostLoader(dataloader.PostLoaderConfig{
@@ -26,16 +27,16 @@ var Post = dataloader.NewPostLoader(dataloader.PostLoaderConfig{
 		for i, txHashString := range txHashStrings {
 			txHash, err := chainhash.NewHashFromStr(txHashString)
 			if err != nil {
-				errors[i] = jerr.Get("error getting tx hash from string", err)
+				errors[i] = fmt.Errorf("error getting tx hash from string; %w", err)
 				continue
 			}
 			memoPost, err := memo.GetPost(*txHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
-				errors[i] = jerr.Get("error getting lock memo post", err)
+				errors[i] = fmt.Errorf("error getting lock memo post; %w", err)
 				continue
 			}
 			if memoPost == nil {
-				errors[i] = jerr.Getf(postNotFoundError, "error post not found: "+txHashString)
+				errors[i] = fmt.Errorf("error post not found: %s; %w", txHashString, postNotFoundError)
 				continue
 			}
 			posts[i] = &model.Post{

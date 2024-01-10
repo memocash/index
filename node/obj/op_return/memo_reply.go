@@ -1,6 +1,7 @@
 package op_return
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
@@ -15,7 +16,7 @@ import (
 
 var memoReplyHandler = &Handler{
 	prefix: memo.PrefixReply,
-	handle: func(info parse.OpReturn) error {
+	handle: func(ctx context.Context, info parse.OpReturn) error {
 		if len(info.PushData) != 3 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -47,7 +48,7 @@ var memoReplyHandler = &Handler{
 			return jerr.Get("error saving memo post parent and child for memo reply handler", err)
 		}
 		var post = jutil.GetUtf8String(info.PushData[2])
-		if err := save.MemoPost(info, post); err != nil {
+		if err := save.MemoPost(ctx, info, post); err != nil {
 			return jerr.Get("error saving memo post for memo reply handler", err)
 		}
 		return nil

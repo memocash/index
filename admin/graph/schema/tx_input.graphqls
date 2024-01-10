@@ -1,9 +1,10 @@
 type TxInput {
     tx: Tx!
-    hash: String!
+    hash: Hash!
     index: Uint32!
-    script: String!
-    prev_hash: String!
+    script: Bytes!
+    prev_hash: Hash!
     prev_index: Uint32!
     output: TxOutput
+    sequence: Uint32!
 }

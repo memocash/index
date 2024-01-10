@@ -30,7 +30,9 @@ export default function LockHash() {
             tx_count
             txs(start: $start) {
                 index
-                hash
+                tx {
+                    hash
+                }
             }
         }
     }
@@ -105,12 +107,12 @@ export default function LockHash() {
                         <div>
                             <h3>Txs ({lastOffset + 1} - {lastOffset + block.txs.length} of
                                 {" " + (block.tx_count ? block.tx_count.toLocaleString() : 0)})</h3>
-                            {block.txs.map((tx) => {
+                            {block.txs.map((txBlock) => {
                                 return (
-                                    <div key={tx.hash} className={column.container}>
+                                    <div key={txBlock.tx.hash} className={column.container}>
                                         <div>
-                                            <Link href={"/tx/" + tx.hash}>
-                                                <a>{tx.hash}</a>
+                                            <Link href={"/tx/" + txBlock.tx.hash}>
+                                                <a>{txBlock.tx.hash}</a>
                                             </Link>
                                         </div>
                                     </div>

@@ -1,6 +1,7 @@
 package dbi
 
 import (
+	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jutil"
@@ -9,7 +10,7 @@ import (
 )
 
 type TxSave interface {
-	SaveTxs(*Block) error
+	SaveTxs(context.Context, *Block) error
 }
 
 type BlockSave interface {

@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	log.SetOutput(os.Stdout)
 	if len(os.Args) < 2 {
 		log.Fatal("error no command provided")
 	}
@@ -22,6 +23,9 @@ func main() {
 		}
 		var addresses []wallet.Addr
 		for i := 2; i < len(os.Args); i++ {
+			if os.Args[i] == "verbose" {
+				continue
+			}
 			address, err := wallet.GetAddrFromString(os.Args[i])
 			if err != nil {
 				log.Fatalf("error getting address from string; %v", err)
@@ -36,7 +40,12 @@ func main() {
 		if err != nil {
 			log.Fatalf("error getting utxos; %v", err)
 		}
-		fmt.Printf("Utxos: %d\n", len(utxos))
+		log.Printf("Utxos: %d\n", len(utxos))
+		if len(os.Args) >= 4 && os.Args[3] == "verbose" {
+			for _, utxo := range utxos {
+				log.Printf("utxo: %s:%d - %d\n", utxo.Hash, utxo.Index, utxo.Amount)
+			}
+		}
 	case "balance":
 		if len(os.Args) < 3 {
 			log.Fatal("no address provided")
@@ -57,7 +66,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("error getting balance; %v", err)
 		}
-		fmt.Printf("Balance: %d, utxos: %d, spendable: %d, spendable_count: %d\n",
+		log.Printf("Balance: %d, utxos: %d, spendable: %d, spendable_count: %d\n",
 			balance.Balance, balance.UtxoCount, balance.Spendable, balance.SpendableCount)
 	}
 }

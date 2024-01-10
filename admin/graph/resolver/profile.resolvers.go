@@ -18,7 +18,7 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error) {
-	tx, err := load.Tx(ctx, obj.TxHash)
+	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for follow resolver: %s", obj.TxHash)
 	}
@@ -45,7 +45,7 @@ func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*mo
 
 // Tx is the resolver for the tx field.
 func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, error) {
-	tx, err := load.Tx(ctx, obj.TxHash)
+	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for like resolver: %s", obj.TxHash)
 	}
@@ -72,7 +72,7 @@ func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, 
 
 // Tx is the resolver for the tx field.
 func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
-	tx, err := load.Tx(ctx, obj.TxHash)
+	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for post resolver: %s", obj.TxHash)
 	}
@@ -255,7 +255,11 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	if err != nil {
 		return nil, jerr.Getf(err, "error decoding address for profile resolver: %s", obj.Address)
 	}
-	addrMemoPosts, err := memo.GetAddrPosts(ctx, [][25]byte{*addr}, newest != nil && *newest)
+	var startTime time.Time
+	if start != nil {
+		startTime = time.Time(*start)
+	}
+	addrMemoPosts, err := memo.GetSingleAddrPosts(ctx, *addr, newest != nil && *newest, startTime)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting addr memo posts for profile resolver: %s", obj.Address)
 	}
@@ -299,7 +303,7 @@ func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *
 
 // Tx is the resolver for the tx field.
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
-	tx, err := load.Tx(ctx, obj.TxHash)
+	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for set name resolver: %s", obj.TxHash)
 	}
@@ -317,7 +321,7 @@ func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.
 
 // Tx is the resolver for the tx field.
 func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error) {
-	tx, err := load.Tx(ctx, obj.TxHash)
+	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for set pic resolver: %s", obj.TxHash)
 	}
@@ -335,7 +339,7 @@ func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lo
 
 // Tx is the resolver for the tx field.
 func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error) {
-	tx, err := load.Tx(ctx, obj.TxHash)
+	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for set profile resolver: %s", obj.TxHash)
 	}

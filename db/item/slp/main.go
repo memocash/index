@@ -7,5 +7,6 @@ func GetTopics() []db.Object {
 		&Genesis{},
 		&Mint{},
 		&Output{},
+		&Baton{},
 	}
 }

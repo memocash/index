@@ -3,6 +3,7 @@ package test_block
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 	"math/rand"
 	"time"
@@ -29,7 +30,7 @@ type BlockGenerator struct {
 
 func (g *BlockGenerator) GetNextBlock(txs []*wire.MsgTx) *wire.MsgBlock {
 	if g.Time.IsZero() {
-		g.Time = time.Date(2009, 1, 3, 18, 15, 5, 0, time.UTC)
+		g.Time = memo.GetGenesisTime()
 		chainHash, _ := chainhash.NewHashFromStr(config.GetInitBlockParent())
 		g.PrevBlock = *chainHash
 	} else {

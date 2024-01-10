@@ -1,7 +1,6 @@
 package peer
 
 import (
-	"bytes"
 	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/peer"
@@ -151,7 +150,7 @@ func (p *Peer) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 	msgGetData := wire.NewMsgGetData()
 	for _, blockHeader := range msg.Headers {
 		blockHash := blockHeader.BlockHash()
-		if p.HasExisting && bytes.Equal(blockHash.CloneBytes(), wallet.GetFirstBlock().Hash.CloneBytes()) {
+		if p.HasExisting && blockHash == *wallet.GetFirstBlock().Hash {
 			go func() {
 				time.Sleep(5 * time.Second)
 				p.HeightBack++
@@ -223,8 +222,10 @@ func (p *Peer) OnInv(_ *peer.Peer, msg *wire.MsgInv) {
 }
 
 func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
 	if p.TxSave != nil {
-		err := p.TxSave.SaveTxs(dbi.WireBlockToBlock(msg))
+		err := p.TxSave.SaveTxs(ctx, dbi.WireBlockToBlock(msg))
 		if err != nil {
 			p.Error(jerr.Get("error saving txs", err))
 		}
@@ -249,10 +250,12 @@ func (p *Peer) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 }
 
 func (p *Peer) OnTx(_ *peer.Peer, msg *wire.MsgTx) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	if p.TxSave != nil {
 		jlog.Logf("OnTx: %s, in: %s, out: %s, size: %s\n", msg.TxHash().String(), jfmt.AddCommasInt(len(msg.TxIn)),
 			jfmt.AddCommasInt(len(msg.TxOut)), jfmt.AddCommasInt(msg.SerializeSize()))
-		err := p.TxSave.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{msg}, nil)))
+		err := p.TxSave.SaveTxs(ctx, dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{msg}, nil)))
 		if err != nil {
 			p.Error(jerr.Get("error saving new tx", err))
 		}

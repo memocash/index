@@ -171,8 +171,9 @@ func (d *Database) SetAddressLastUpdate(lastUpdates []graph.AddressUpdate) error
 }
 
 func (d *Database) SaveTxs(txs []graph.Tx) error {
+	var queries []*Query
 	for _, tx := range txs {
-		var queries = []*Query{d.GetInsert(TableTxs, map[string]interface{}{"hash": tx.Hash})}
+		queries = append(queries, d.GetInsert(TableTxs, map[string]interface{}{"hash": tx.Hash}))
 		for _, input := range tx.Inputs {
 			queries = append(queries,
 				d.GetInsert(TableInputs, map[string]interface{}{
@@ -196,7 +197,7 @@ func (d *Database) SaveTxs(txs []graph.Tx) error {
 						"hash":       tx.Hash,
 						"index":      output.Index,
 						"token_hash": output.Slp.TokenHash,
-						"amount":     output.Slp.Amount,
+						"amount":     int64(output.Slp.Amount),
 					}))
 				if output.Slp.Genesis != nil {
 					queries = append(queries,
@@ -230,21 +231,21 @@ func (d *Database) SaveTxs(txs []graph.Tx) error {
 				}
 			}
 		}
-		for _, block := range tx.Blocks {
+		for _, txBlock := range tx.Blocks {
 			queries = append(queries,
 				d.GetInsert(TableBlocks, map[string]interface{}{
-					"hash":      block.Hash,
-					"timestamp": block.Timestamp.Format(time.RFC3339Nano),
-					"height":    block.Height,
+					"hash":      txBlock.Block.Hash,
+					"timestamp": txBlock.Block.Timestamp.Format(time.RFC3339Nano),
+					"height":    txBlock.Block.Height,
 				}),
 				d.GetInsert(TableBlockTxs, map[string]interface{}{
-					"block_hash": block.Hash,
+					"block_hash": txBlock.Block.Hash,
 					"tx_hash":    tx.Hash,
 				}))
 		}
-		if err := execQueries(d.Db, queries); err != nil {
-			return fmt.Errorf("error saving txs; %w", err)
-		}
+	}
+	if err := execQueries(d.Db, queries); err != nil {
+		return fmt.Errorf("error saving txs; %w", err)
 	}
 	return nil
 }

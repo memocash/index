@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/index/db/metric"
 	"sync"
+	"time"
 )
 
 type Subscribe struct {
@@ -91,6 +93,16 @@ func initNewListener() {
 		_globalPubSub = &PubSub{
 			Subs: make(map[int64]*Subscribe),
 		}
+		go func() {
+			t := time.NewTicker(10 * time.Second)
+			for {
+				<-t.C
+				_globalPubSub.Mutex.Lock()
+				quantity := len(_globalPubSub.Subs)
+				_globalPubSub.Mutex.Unlock()
+				metric.AddListenCount(metric.ListenCount{Quantity: quantity})
+			}
+		}()
 	}
 }
 
@@ -117,12 +129,18 @@ func Listen(ctx context.Context, shard uint, topic string, prefixes [][]byte) ch
 	var uidChan = make(chan []byte)
 	go func() {
 		sub := _globalPubSub.Subscribe(shard, topic, nil, prefixes)
-		defer sub.Close()
+		defer func() {
+			sub.Close()
+			close(uidChan)
+		}()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case uid := <-sub.UidChan:
+			case uid, ok := <-sub.UidChan:
+				if !ok {
+					return
+				}
 				uidChan <- uid
 			}
 		}

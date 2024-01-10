@@ -48,6 +48,32 @@ func (p *AddrPost) Serialize() []byte {
 
 func (p *AddrPost) Deserialize([]byte) {}
 
+func GetSingleAddrPosts(ctx context.Context, addr [25]byte, newest bool, start time.Time) ([]*AddrPost, error) {
+	var startByte []byte
+	if !jutil.IsTimeZero(start) {
+		startByte = jutil.CombineBytes(addr[:], jutil.GetTimeByteNanoBig(start))
+	} else {
+		startByte = addr[:]
+	}
+	dbClient := client.NewClient(config.GetShardConfig(client.GetByteShard32(addr[:]), config.GetQueueShards()).GetHost())
+	if err := dbClient.GetWOpts(client.Opts{
+		Topic:    db.TopicMemoAddrPost,
+		Prefixes: [][]byte{addr[:]},
+		Max:      client.ExLargeLimit,
+		Start:    startByte,
+		Newest:   newest,
+		Context:  ctx,
+	}); err != nil {
+		return nil, jerr.Get("error getting db addr memo post by prefix", err)
+	}
+	var addrPosts []*AddrPost
+	for _, msg := range dbClient.Messages {
+		var addrPost = new(AddrPost)
+		db.Set(addrPost, msg)
+		addrPosts = append(addrPosts, addrPost)
+	}
+	return addrPosts, nil
+}
 func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool) ([]*AddrPost, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
