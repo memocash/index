@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/memocash/index/db/metric"
 	"log"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -24,6 +25,7 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
+	metric.AddGraphQuery(metric.EndPointTx)
 	tx, err := load.GetTxByString(ctx, hash)
 	if err != nil {
 		if errors.Is(err, load.TxMissingError) {
@@ -41,17 +43,17 @@ func (r *queryResolver) Txs(ctx context.Context, hashes []string) ([]*model.Tx, 
 
 // Address is the resolver for the address field.
 func (r *queryResolver) Address(ctx context.Context, address string) (*model.Lock, error) {
-	if load.HasField(load.GetFields(ctx), "balance") {
-		// TODO: Reimplement if needed
-		return nil, jerr.New("error balance no longer implemented")
+	metric.AddGraphQuery(metric.EndPointAddress)
+	lock, err := load.Lock(ctx, address)
+	if err != nil {
+		return nil, jerr.Getf(err, "error getting lock from loader for query address resolver: %s", address)
 	}
-	return &model.Lock{
-		Address: address,
-	}, nil
+	return lock, nil
 }
 
 // Addresses is the resolver for the addresses field.
 func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error) {
+	metric.AddGraphQuery(metric.EndPointAddresses)
 	if load.HasField(load.GetFields(ctx), "balance") {
 		// TODO: Reimplement if needed
 		return nil, jerr.New("error balance no longer implemented")
@@ -67,6 +69,7 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*m
 
 // Block is the resolver for the block field.
 func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, error) {
+	metric.AddGraphQuery(metric.EndPointBlock)
 	blockHash, err := chainhash.NewHashFromStr(hash)
 	if err != nil {
 		return nil, jerr.Get("error parsing block hash for block query resolver", err)
@@ -107,6 +110,7 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 
 // BlockNewest is the resolver for the block_newest field.
 func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
+	metric.AddGraphQuery(metric.EndPointBlockNewest)
 	heightBlock, err := chain.GetRecentHeightBlock()
 	if err != nil {
 		return nil, jerr.Get("error getting recent height block for query", err)
@@ -132,6 +136,7 @@ func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 
 // Blocks is the resolver for the blocks field.
 func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error) {
+	metric.AddGraphQuery(metric.EndPointBlocks)
 	var startInt int64
 	if start != nil {
 		startInt = int64(*start)
@@ -186,6 +191,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 
 // Profiles is the resolver for the profiles field.
 func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error) {
+	metric.AddGraphQuery(metric.EndPointProfiles)
 	var profiles []*model.Profile
 	for _, addressString := range addresses {
 		profile, err := load.Profile.Load(addressString)
@@ -199,6 +205,7 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*mo
 
 // Posts is the resolver for the posts field.
 func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.Post, error) {
+	metric.AddGraphQuery(metric.EndPointPosts)
 	posts, errs := load.Post.LoadAll(txHashes)
 	for i, err := range errs {
 		if err != nil {
@@ -210,6 +217,7 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.
 
 // Room is the resolver for the room field.
 func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, error) {
+	metric.AddGraphQuery(metric.EndPointRoom)
 	return &model.Room{Name: name}, nil
 }
 

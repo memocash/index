@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/metric"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -29,6 +30,10 @@ func SaveMessages(topic string, shard uint, messages []*Message) error {
 	if err = db.Write(batch, nil); err != nil {
 		return jerr.Get("error writing items to level db", err)
 	}
+	metric.AddTopicSave(metric.TopicSave{
+		Topic:    topic,
+		Quantity: len(messages),
+	})
 	return nil
 }
 
@@ -44,6 +49,10 @@ func GetMessage(topic string, shard uint, uid []byte) (*Message, error) {
 		}
 		return nil, jerr.Get("error getting message", err)
 	}
+	metric.AddTopicRead(metric.TopicRead{
+		Topic:    topic,
+		Quantity: 1,
+	})
 	return &Message{
 		Uid:     uid,
 		Message: value,
@@ -69,6 +78,10 @@ func GetMessagesByUids(topic string, shard uint, uids [][]byte) ([]*Message, err
 			Message: value,
 		})
 	}
+	metric.AddTopicRead(metric.TopicRead{
+		Topic:    topic,
+		Quantity: len(messages),
+	})
 	return messages, nil
 }
 
@@ -96,6 +109,12 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 		}
 	}()
 	var messages []*Message
+	defer func() {
+		metric.AddTopicRead(metric.TopicRead{
+			Topic:    topic,
+			Quantity: len(messages),
+		})
+	}()
 	sort.Slice(prefixes, func(i, j int) bool {
 		return jutil.ByteLT(prefixes[i], prefixes[j])
 	})

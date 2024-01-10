@@ -59,6 +59,8 @@ type Config struct {
 	ProcessLimit struct {
 		Utxos int `mapstructure:"UTXOS"`
 	} `mapstructure:"PROCESS_LIMIT"`
+
+	Influx InfluxConfig `mapstructure:"INFLUX"`
 }
 
 var _config Config
@@ -214,4 +216,8 @@ func GetHost(port uint) string {
 
 func GetDataDir() string {
 	return _config.DataDir
+}
+
+func GetInfluxConfig() InfluxConfig {
+	return _config.Influx
 }
