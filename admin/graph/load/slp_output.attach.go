@@ -13,12 +13,12 @@ type SlpOutputs struct {
 	SlpOutputs []*model.SlpOutput
 }
 
-func AttachToSlpOutputs(ctx context.Context, preloads []string, slpOutputs []*model.SlpOutput) error {
+func AttachToSlpOutputs(ctx context.Context, fields []Field, slpOutputs []*model.SlpOutput) error {
 	if len(slpOutputs) == 0 {
 		return nil
 	}
 	o := SlpOutputs{
-		baseA:      baseA{Ctx: ctx, Preloads: preloads},
+		baseA:      baseA{Ctx: ctx, Fields: fields},
 		SlpOutputs: slpOutputs,
 	}
 	o.Wait.Add(1)
@@ -42,7 +42,7 @@ func (o *SlpOutputs) GetTokenHashes() [][32]byte {
 
 func (o *SlpOutputs) AttachGeneses() {
 	defer o.Wait.Done()
-	if !o.HasPreload([]string{"genesis"}) {
+	if !o.HasField([]string{"genesis"}) {
 		return
 	}
 	slpGeneses, err := slp.GetGeneses(o.Ctx, o.GetTokenHashes())

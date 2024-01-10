@@ -13,18 +13,19 @@ type Blocks struct {
 	Blocks []*model.Block
 }
 
-func AttachToBlocks(ctx context.Context, preloads []string, blocks []*model.Block) error {
+func AttachToBlocks(ctx context.Context, fields []Field, blocks []*model.Block) error {
 	if len(blocks) == 0 {
 		return nil
 	}
 	b := Blocks{
-		baseA:  baseA{Ctx: ctx, Preloads: preloads},
+		baseA:  baseA{Ctx: ctx, Fields: fields},
 		Blocks: blocks,
 	}
-	b.Wait.Add(3)
+	b.Wait.Add(4)
 	go b.AttachRaws()
 	go b.AttachHeights()
 	go b.AttachInfos()
+	go b.AttachTxs()
 	b.Wait.Wait()
 	if len(b.Errors) > 0 {
 		return fmt.Errorf("error attaching to blocks; %w", b.Errors[0])
@@ -44,7 +45,7 @@ func (b *Blocks) GetBlockHashes() [][32]byte {
 
 func (b *Blocks) AttachRaws() {
 	defer b.Wait.Done()
-	if !b.HasPreload([]string{"raw", "timestamp"}) {
+	if !b.HasField([]string{"raw", "timestamp"}) {
 		return
 	}
 	blockHashes := b.GetBlockHashes()
@@ -74,7 +75,7 @@ func (b *Blocks) AttachRaws() {
 
 func (b *Blocks) AttachHeights() {
 	defer b.Wait.Done()
-	if !b.HasPreload([]string{"height"}) {
+	if !b.HasField([]string{"height"}) {
 		return
 	}
 	blockHashes := b.GetBlockHashes()
@@ -99,7 +100,7 @@ func (b *Blocks) AttachHeights() {
 
 func (b *Blocks) AttachInfos() {
 	defer b.Wait.Done()
-	if !b.HasPreload([]string{"size", "tx_count"}) {
+	if !b.HasField([]string{"size", "tx_count"}) {
 		return
 	}
 	blockHashes := b.GetBlockHashes()
@@ -120,4 +121,13 @@ func (b *Blocks) AttachInfos() {
 			break
 		}
 	}
+}
+
+func (b *Blocks) AttachTxs() {
+	defer b.Wait.Done()
+	if !b.HasField([]string{"txs"}) {
+		return
+	}
+	b.Mutex.Lock()
+	defer b.Mutex.Unlock()
 }

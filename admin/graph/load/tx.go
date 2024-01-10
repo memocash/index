@@ -9,7 +9,7 @@ import (
 
 func GetTx(ctx context.Context, txHash [32]byte) (*model.Tx, error) {
 	var tx = &model.Tx{Hash: txHash}
-	if err := AttachToTxs(ctx, GetPreloads(ctx), []*model.Tx{tx}); err != nil {
+	if err := AttachToTxs(ctx, GetFields(ctx), []*model.Tx{tx}); err != nil {
 		return nil, fmt.Errorf("error attaching all to single tx; %w", err)
 	}
 	return tx, nil

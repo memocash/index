@@ -37,7 +37,7 @@ func (r *slpGenesisResolver) Output(ctx context.Context, obj *model.SlpGenesis) 
 		Hash:  obj.Hash,
 		Index: memo.SlpMintTokenIndex,
 	}
-	if err := load.AttachToSlpOutputs(ctx, load.GetPreloads(ctx), []*model.SlpOutput{slpOutput}); err != nil {
+	if err := load.AttachToSlpOutputs(ctx, load.GetFields(ctx), []*model.SlpOutput{slpOutput}); err != nil {
 		return nil, jerr.Get("error attaching slp output for slp genesis from loader", err)
 	}
 	return slpOutput, nil
@@ -49,7 +49,7 @@ func (r *slpGenesisResolver) Baton(ctx context.Context, obj *model.SlpGenesis) (
 		Hash:  obj.Hash,
 		Index: obj.BatonIndex,
 	}
-	if err := load.AttachToSlpBatons(ctx, load.GetPreloads(ctx), []*model.SlpBaton{slpBaton}); err != nil {
+	if err := load.AttachToSlpBatons(ctx, load.GetFields(ctx), []*model.SlpBaton{slpBaton}); err != nil {
 		return nil, jerr.Get("error attaching slp baton for slp genesis from loader", err)
 	}
 	return slpBaton, nil

@@ -79,7 +79,6 @@ func ListenAddrSeenTxs(ctx context.Context, addrs [][25]byte) (chan *SeenTx, err
 	}
 	var chanSeenTxs = make(chan *SeenTx)
 	go func() {
-		defer func() { close(chanMessages) }()
 		for {
 			msg, ok := <-chanMessages
 			if !ok {
