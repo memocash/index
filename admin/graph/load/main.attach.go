@@ -7,7 +7,7 @@ import (
 
 type baseA struct {
 	Ctx    context.Context
-	Fields []Field
+	Fields Fields
 	Mutex  sync.Mutex
 	mutexB sync.Mutex
 	Wait   sync.WaitGroup
@@ -17,7 +17,7 @@ type baseA struct {
 func (b *baseA) HasField(checks []string) bool {
 	b.mutexB.Lock()
 	defer b.mutexB.Unlock()
-	return HasFieldAny(b.Fields, checks)
+	return b.Fields.HasFieldAny(checks)
 }
 
 func (b *baseA) AddError(err error) {

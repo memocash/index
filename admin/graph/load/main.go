@@ -12,13 +12,15 @@ import (
 
 const defaultWait = 10 * time.Millisecond
 
-func HasField(fields []Field, check string) bool {
-	return HasFieldAny(fields, []string{check})
+type Fields []Field
+
+func (f Fields) HasField(check string) bool {
+	return f.HasFieldAny([]string{check})
 }
 
-func HasFieldAny(fields []Field, checks []string) bool {
+func (f Fields) HasFieldAny(checks []string) bool {
 	for _, check := range checks {
-		var checkFields = fields
+		var checkFields = f
 		var found bool
 		for _, childCheck := range strings.Split(check, ".") {
 			found = false
@@ -40,28 +42,8 @@ func HasFieldAny(fields []Field, checks []string) bool {
 	return false
 }
 
-func GetPreloads(ctx context.Context) []string {
-	return GetNestedPreloads(
-		graphql.GetOperationContext(ctx),
-		graphql.CollectFieldsCtx(ctx, nil),
-		"",
-	)
-}
-
-func GetNestedPreloads(ctx *graphql.OperationContext, fields []graphql.CollectedField, prefix string) (preloads []string) {
-	for _, column := range fields {
-		prefixColumn := GetPreloadString(prefix, column.Name)
-		preloads = append(preloads, prefixColumn)
-		preloads = append(preloads, GetNestedPreloads(ctx, graphql.CollectFields(ctx, column.Selections, nil), prefixColumn)...)
-	}
-	return
-}
-
-func GetPreloadString(prefix, name string) string {
-	if len(prefix) > 0 {
-		return prefix + "." + name
-	}
-	return name
+func (f Fields) Print(layer int) {
+	PrintFields(f, layer)
 }
 
 func GetPrefixFields(fields []Field, prefix string) (prefixFields []Field) {
@@ -87,7 +69,7 @@ type Field struct {
 	Fields    []Field
 }
 
-func GetFields(ctx context.Context) []Field {
+func GetFields(ctx context.Context) Fields {
 	return getFields(
 		graphql.GetOperationContext(ctx),
 		graphql.CollectFieldsCtx(ctx, nil),

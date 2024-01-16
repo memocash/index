@@ -18,12 +18,12 @@ type Profile struct {
 	PicAddresses     [][25]byte
 }
 
-func (p *Profile) Listen(ctx context.Context, addresses []string, fields []load.Field) (<-chan *model.Profile, error) {
+func (p *Profile) Listen(ctx context.Context, addresses []string, fields load.Fields) (<-chan *model.Profile, error) {
 	ctx, p.Cancel = context.WithCancel(ctx)
 	if err := p.SetupAddresses(addresses); err != nil {
 		return nil, jerr.Get("error setting up lock hashes for profile", err)
 	}
-	if load.HasField(fields, "following") {
+	if fields.HasField("following") {
 		if err := p.ListenFollowing(ctx, p.Addresses); err != nil {
 			return nil, jerr.Get("error listening following", err)
 		}
@@ -31,7 +31,7 @@ func (p *Profile) Listen(ctx context.Context, addresses []string, fields []load.
 			return nil, jerr.Get("error setting up following lock hashes for profile subscription", err)
 		}
 	}
-	if load.HasField(fields, "followers") {
+	if fields.HasField("followers") {
 		if err := p.ListenFollowers(ctx, p.Addresses); err != nil {
 			return nil, jerr.Get("error listening followers", err)
 		}
@@ -39,7 +39,7 @@ func (p *Profile) Listen(ctx context.Context, addresses []string, fields []load.
 			return nil, jerr.Get("error setting up followers lock hashes for profile subscription", err)
 		}
 	}
-	if load.HasField(fields, "name") {
+	if fields.HasField("name") {
 		p.NameAddresses = append(p.NameAddresses, p.Addresses...)
 	}
 	if len(p.NameAddresses) > 0 {
@@ -47,7 +47,7 @@ func (p *Profile) Listen(ctx context.Context, addresses []string, fields []load.
 			return nil, jerr.Get("error listening names", err)
 		}
 	}
-	if load.HasField(fields, "profile") {
+	if fields.HasField("profile") {
 		p.ProfileAddresses = append(p.ProfileAddresses, p.Addresses...)
 	}
 	if len(p.ProfileAddresses) > 0 {
@@ -55,7 +55,7 @@ func (p *Profile) Listen(ctx context.Context, addresses []string, fields []load.
 			return nil, jerr.Get("error listening profiles", err)
 		}
 	}
-	if load.HasField(fields, "pic") {
+	if fields.HasField("pic") {
 		p.PicAddresses = append(p.PicAddresses, p.Addresses...)
 	}
 	if len(p.PicAddresses) > 0 {
@@ -78,8 +78,8 @@ func (p *Profile) SetupAddresses(addresses []string) error {
 	return nil
 }
 
-func (p *Profile) SetupFollowingLockHashes(ctx context.Context, fields []load.Field) error {
-	if !load.HasFieldAny(fields, []string{
+func (p *Profile) SetupFollowingLockHashes(ctx context.Context, fields load.Fields) error {
+	if !fields.HasFieldAny([]string{
 		"following.follow_lock.profile.name",
 		"following.follow_lock.profile.profile",
 		"following.follow_lock.profile.pic",
@@ -96,13 +96,13 @@ func (p *Profile) SetupFollowingLockHashes(ctx context.Context, fields []load.Fi
 			continue
 		}
 		if !lockMemoFollow.Unfollow {
-			if load.HasField(fields, "following.follow_lock.profile.name") {
+			if fields.HasField("following.follow_lock.profile.name") {
 				p.NameAddresses = append(p.NameAddresses, lockMemoFollow.FollowAddr)
 			}
-			if load.HasField(fields, "following.follow_lock.profile.profile") {
+			if fields.HasField("following.follow_lock.profile.profile") {
 				p.ProfileAddresses = append(p.ProfileAddresses, lockMemoFollow.FollowAddr)
 			}
-			if load.HasField(fields, "following.follow_lock.profile.pic") {
+			if fields.HasField("following.follow_lock.profile.pic") {
 				p.PicAddresses = append(p.PicAddresses, lockMemoFollow.FollowAddr)
 			}
 		}
@@ -111,8 +111,8 @@ func (p *Profile) SetupFollowingLockHashes(ctx context.Context, fields []load.Fi
 	return nil
 }
 
-func (p *Profile) SetupFollowersLockHashes(ctx context.Context, fields []load.Field) error {
-	if !load.HasFieldAny(fields, []string{
+func (p *Profile) SetupFollowersLockHashes(ctx context.Context, fields load.Fields) error {
+	if !fields.HasFieldAny([]string{
 		"followers.lock.profile.name",
 		"followers.lock.profile.profile",
 		"followers.lock.profile.pic",
@@ -129,13 +129,13 @@ func (p *Profile) SetupFollowersLockHashes(ctx context.Context, fields []load.Fi
 			continue
 		}
 		if !lockMemoFollowed.Unfollow {
-			if load.HasField(fields, "followers.lock.profile.name") {
+			if fields.HasField("followers.lock.profile.name") {
 				p.NameAddresses = append(p.NameAddresses, lockMemoFollowed.Addr)
 			}
-			if load.HasField(fields, "followers.lock.profile.profile") {
+			if fields.HasField("followers.lock.profile.profile") {
 				p.ProfileAddresses = append(p.ProfileAddresses, lockMemoFollowed.Addr)
 			}
-			if load.HasField(fields, "followers.lock.profile.pic") {
+			if fields.HasField("followers.lock.profile.pic") {
 				p.PicAddresses = append(p.PicAddresses, lockMemoFollowed.Addr)
 			}
 		}

@@ -14,7 +14,7 @@ type Outputs struct {
 	Outputs []*model.TxOutput
 }
 
-func AttachToOutputs(ctx context.Context, fields []Field, outputs []*model.TxOutput) error {
+func AttachToOutputs(ctx context.Context, fields Fields, outputs []*model.TxOutput) error {
 	if len(outputs) == 0 {
 		return nil
 	}

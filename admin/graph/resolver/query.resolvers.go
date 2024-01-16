@@ -54,7 +54,7 @@ func (r *queryResolver) Address(ctx context.Context, address string) (*model.Loc
 // Addresses is the resolver for the addresses field.
 func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error) {
 	metric.AddGraphQuery(metric.EndPointAddresses)
-	if load.HasField(load.GetFields(ctx), "balance") {
+	if load.GetFields(ctx).HasField("balance") {
 		// TODO: Reimplement if needed
 		return nil, jerr.New("error balance no longer implemented")
 	}
@@ -93,8 +93,7 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 		Height:    &height,
 		Raw:       block.Raw,
 	}
-	load.PrintFields(load.GetFields(ctx), 0)
-	if !load.HasFieldAny(load.GetFields(ctx), []string{"size", "tx_count"}) {
+	if !load.GetFields(ctx).HasFieldAny([]string{"size", "tx_count"}) {
 		return modelBlock, nil
 	}
 	blockInfo, err := chain.GetBlockInfo(*blockHash)
@@ -158,7 +157,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 		return nil, jerr.Get("error getting raw blocks", err)
 	}
 	var blockInfos []*chain.BlockInfo
-	if load.HasFieldAny(load.GetFields(ctx), []string{"size", "tx_count"}) {
+	if load.GetFields(ctx).HasFieldAny([]string{"size", "tx_count"}) {
 		if blockInfos, err = chain.GetBlockInfos(ctx, blockHashes); err != nil {
 			return nil, jerr.Get("error getting block infos for blocks query resolver", err)
 		}

@@ -13,7 +13,7 @@ func Lock(ctx context.Context, addressString string) (*model.Lock, error) {
 		return nil, fmt.Errorf("error getting address from dataloader: %s; %w", addressString, err)
 	}
 	var lock = &model.Lock{Address: address.String()}
-	if HasField(GetFields(ctx), "balance") {
+	if GetFields(ctx).HasField("balance") {
 		// TODO: Reimplement if needed
 		return nil, fmt.Errorf("error balance no longer implemented")
 	}

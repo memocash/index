@@ -30,7 +30,7 @@ func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*mode
 	var modelLock = &model.Lock{
 		Address: wallet.GetAddressStringFromPkScript(obj.Script),
 	}
-	if load.HasField(load.GetFields(ctx), "balance") {
+	if load.GetFields(ctx).HasField("balance") {
 		// TODO: Reimplement if needed
 		return nil, jerr.New("error balance no longer implemented")
 	}
