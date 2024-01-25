@@ -59,6 +59,7 @@ func GetAddrProfilePic(ctx context.Context, addr [25]byte) (*AddrProfilePic, err
 		Topic:    db.TopicMemoAddrProfilePic,
 		Prefixes: [][]byte{addr[:]},
 		Max:      1,
+		Newest:   true,
 		Context:  ctx,
 	}); err != nil {
 		return nil, jerr.Get("error getting db addr memo profile pic by prefix", err)

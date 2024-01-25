@@ -3,14 +3,10 @@ package store
 import (
 	"bytes"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
-	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/metric"
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"sort"
 )
 
 type Message struct {
@@ -85,15 +81,17 @@ func GetMessagesByUids(topic string, shard uint, uids [][]byte) ([]*Message, err
 	return messages, nil
 }
 
+// GetMessages returns messages. Options:
+//   - Topic: required
+//   - Shard: required
+//   - Prefixes: optional, limits results
+//   - Start: optional, where to start
+//   - Max: optional, number of results
+//   - Newest: optional, reverse order (fff first, instead of 000)
 func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max int, newest bool) ([]*Message, error) {
 	db, err := getDb(topic, shard)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting db shard %d", shard)
-	}
-	var isGetLast bool
-	if client.IsMaxStart(start) {
-		isGetLast = true
-		start = nil
 	}
 	if max == 0 {
 		max = client.HugeLimit
@@ -101,13 +99,6 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 	if len(prefixes) == 0 {
 		prefixes = append(prefixes, []byte{})
 	}
-	var prefix []byte
-	defer func() {
-		if r := recover(); r != nil {
-			jlog.Logf("PANIC prefix: %x, start: %x\n", prefix, start)
-			panic(r)
-		}
-	}()
 	var messages []*Message
 	defer func() {
 		metric.AddTopicRead(metric.TopicRead{
@@ -115,85 +106,29 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 			Quantity: len(messages),
 		})
 	}()
-	sort.Slice(prefixes, func(i, j int) bool {
-		return jutil.ByteLT(prefixes[i], prefixes[j])
-	})
-	if !newest && !isGetLast {
-		iter := db.NewIterator(nil, nil)
-		defer iter.Release()
-		for _, prefix = range prefixes {
-			var prefixMessages []*Message
-			var seek = start
-			if len(seek) == 0 || jutil.ByteLT(start, prefix) {
-				seek = prefix
-			}
-			if !iter.Seek(seek) {
-				continue
-			}
-			for ok := true; ok; ok = iter.Next() {
-				uid := GetPtrSlice(iter.Key())
-				if !jutil.HasPrefix(uid, prefix) {
-					break
-				}
-				prefixMessages = append(prefixMessages, &Message{
-					Uid:     uid,
-					Message: GetPtrSlice(iter.Value()),
-				})
-				if len(prefixMessages) >= max {
-					break
-				}
-			}
-			messages = append(messages, prefixMessages...)
-		}
-		if err = iter.Error(); err != nil {
-			return nil, jerr.Get("error with iterator", err)
-		}
-		return messages, nil
-	}
-	for _, prefix = range prefixes {
+	for _, prefix := range prefixes {
 		var prefixMessages []*Message
-		var iter iterator.Iterator
-		if newest {
-			var iterRange *util.Range
-			if len(start) > 0 {
-				iterRange = &util.Range{
-					Limit: start,
-				}
-			}
-			iter = db.NewIterator(iterRange, nil)
-		} else {
-			iterRange := util.BytesPrefix(prefix)
-			if len(start) > 0 && bytes.Compare(start, prefix) != -1 {
+		iterRange := util.BytesPrefix(prefix)
+		if len(start) > 0 {
+			if newest && (len(prefix) == 0 || bytes.Compare(start, prefix) != 1) {
+				iterRange.Limit = start
+			} else if !newest && (len(prefix) == 0 || bytes.Compare(start, prefix) != -1) {
 				iterRange.Start = start
 			}
-			iter = db.NewIterator(iterRange, nil)
 		}
-		if isGetLast {
-			if iter.Last() {
-				prefixMessages = append(prefixMessages, &Message{
-					Uid:     GetPtrSlice(iter.Key()),
-					Message: GetPtrSlice(iter.Value()),
-				})
-			}
-		} else if newest {
-			for ok := iter.Last(); ok; ok = iter.Prev() {
-				prefixMessages = append(prefixMessages, &Message{
-					Uid:     GetPtrSlice(iter.Key()),
-					Message: GetPtrSlice(iter.Value()),
-				})
-				if len(prefixMessages) >= max {
-					break
-				}
+		iter := db.NewIterator(iterRange, nil)
+		storePrefixMessage := func() bool {
+			prefixMessages = append(prefixMessages, &Message{
+				Uid:     GetPtrSlice(iter.Key()),
+				Message: GetPtrSlice(iter.Value()),
+			})
+			return len(prefixMessages) < max
+		}
+		if newest {
+			for ok := iter.Last(); ok; ok = iter.Prev() && storePrefixMessage() {
 			}
 		} else {
-			for iter.Next() {
-				prefixMessages = append(prefixMessages, &Message{
-					Uid:     GetPtrSlice(iter.Key()),
-					Message: GetPtrSlice(iter.Value()),
-				})
-				if len(prefixMessages) >= max {
-					break
-				}
+			for iter.Next() && storePrefixMessage() {
 			}
 		}
 		messages = append(messages, prefixMessages...)

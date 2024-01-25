@@ -20,7 +20,7 @@ import (
 
 // Profile is the resolver for the profile field.
 func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error) {
-	profile, err := load.Profile.Load(obj.Address)
+	profile, err := load.Profile(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Get("error getting profile from dataloader for lock resolver", err)
 	}

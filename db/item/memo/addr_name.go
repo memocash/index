@@ -59,6 +59,7 @@ func GetAddrName(ctx context.Context, addr [25]byte) (*AddrName, error) {
 		Topic:    db.TopicMemoAddrName,
 		Prefixes: [][]byte{addr[:]},
 		Max:      1,
+		Newest:   true,
 		Context:  ctx,
 	}); err != nil {
 		return nil, jerr.Get("error getting db addr memo name by prefix", err)

@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"encoding/hex"
 	"github.com/jchavannes/jgo/db_util"
 	"github.com/jchavannes/jgo/jerr"
@@ -67,14 +66,6 @@ func GetByteShard(b []byte) uint {
 
 func GetByteShard32(b []byte) uint32 {
 	return uint32(GetByteShard(b))
-}
-
-func GetMaxStart() []byte {
-	return []byte{0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00}
-}
-
-func IsMaxStart(d []byte) bool {
-	return bytes.Equal(d, GetMaxStart())
 }
 
 func IncrementBytes(b []byte) []byte {

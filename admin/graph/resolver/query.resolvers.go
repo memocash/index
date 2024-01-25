@@ -193,7 +193,7 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*mo
 	metric.AddGraphQuery(metric.EndPointProfiles)
 	var profiles []*model.Profile
 	for _, addressString := range addresses {
-		profile, err := load.Profile.Load(addressString)
+		profile, err := load.Profile(ctx, addressString)
 		if err != nil {
 			return nil, jerr.Get("error getting profile from dataloader for profile query resolver", err)
 		}
