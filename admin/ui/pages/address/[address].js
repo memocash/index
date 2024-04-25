@@ -14,6 +14,11 @@ export default function LockHash() {
         address: "",
         balance: 0,
         txs: [],
+        profile: {
+            name: "",
+            profile: "",
+            pic: "",
+        },
     })
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
@@ -36,6 +41,20 @@ export default function LockHash() {
                         address
                     }
                     amount
+                }
+            }
+            profile {
+                name {
+                    name
+                    tx_hash
+                }
+                profile {
+                    text
+                    tx_hash
+                }
+                pic {
+                    pic
+                    tx_hash
                 }
             }
         }
@@ -96,6 +115,13 @@ export default function LockHash() {
                     <div className={column.container}>
                         <div className={column.width15}>Address</div>
                         <div className={column.width85}>{address.address}</div>
+                    </div>
+                    <div className={column.container}>
+                        <div className={column.width15}>Name</div>
+                        <div className={column.width85}>{address.profile.name ?
+                            <a href={"/tx/" + address.profile.name.tx_hash}>
+                                {address.profile.name.name}
+                            </a> : ""}</div>
                     </div>
                     <div className={column.container}>
                         <div className={column.width50}>
