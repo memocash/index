@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/memocash/index/db/metric"
 	"log"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -19,6 +18,7 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/db/metric"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )

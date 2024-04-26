@@ -125,7 +125,7 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 			return len(prefixMessages) < max
 		}
 		if newest {
-			for ok := iter.Last(); ok; ok = iter.Prev() && storePrefixMessage() {
+			for ok := iter.Last(); ok && storePrefixMessage(); ok = iter.Prev() {
 			}
 		} else {
 			for iter.Next() && storePrefixMessage() {

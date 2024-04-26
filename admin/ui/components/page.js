@@ -53,7 +53,7 @@ export default function Page(props) {
     return (
         <div className={styles.container}>
             <Head>
-                <title>Index Admin</title>
+                <title>Index</title>
                 <link rel="icon" href="/favicon.ico"/>
             </Head>
             <main className={styles.main}>
@@ -62,11 +62,12 @@ export default function Page(props) {
                         <h1 className={styles.title}>
                             <Link href="/">
                                 <a>
-                                    Index Admin
+                                    Index
                                 </a>
                             </Link>
                         </h1>
                     </div>
+                    <h3>Explore</h3>
                     <ul>
                         <li>
                             <Link href="/hello">

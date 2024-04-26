@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-	"github.com/memocash/index/ref/bitcoin/memo"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -15,6 +14,7 @@ import (
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/addr"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
