@@ -46,6 +46,15 @@ func (f Fields) Print(layer int) {
 	PrintFields(f, layer)
 }
 
+func (f Fields) GetField(check string) Field {
+	for _, field := range f {
+		if field.Name == check {
+			return field
+		}
+	}
+	return Field{}
+}
+
 func GetPrefixFields(fields []Field, prefix string) (prefixFields []Field) {
 	for _, childField := range strings.Split(strings.TrimRight(prefix, "."), ".") {
 		var foundFields []Field
@@ -66,7 +75,7 @@ func GetPrefixFields(fields []Field, prefix string) (prefixFields []Field) {
 type Field struct {
 	Name      string
 	Arguments map[string]interface{}
-	Fields    []Field
+	Fields    Fields
 }
 
 func GetFields(ctx context.Context) Fields {

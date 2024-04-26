@@ -37,7 +37,6 @@ type Config struct {
 }
 
 type ResolverRoot interface {
-	Block() BlockResolver
 	Follow() FollowResolver
 	Like() LikeResolver
 	Lock() LockResolver
@@ -264,9 +263,6 @@ type ComplexityRoot struct {
 	}
 }
 
-type BlockResolver interface {
-	Txs(ctx context.Context, obj *model.Block, start *uint32) ([]*model.TxBlock, error)
-}
 type FollowResolver interface {
 	Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error)
 
@@ -2500,7 +2496,7 @@ func (ec *executionContext) _Block_txs(ctx context.Context, field graphql.Collec
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Block().Txs(rctx, obj, fc.Args["start"].(*uint32))
+		return obj.Txs, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2518,8 +2514,8 @@ func (ec *executionContext) fieldContext_Block_txs(ctx context.Context, field gr
 	fc = &graphql.FieldContext{
 		Object:     "Block",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx_hash":
@@ -11553,21 +11549,21 @@ func (ec *executionContext) _Block(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Block_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "raw":
 
 			out.Values[i] = ec._Block_raw(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "timestamp":
 
 			out.Values[i] = ec._Block_timestamp(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "height":
 
@@ -11582,22 +11578,9 @@ func (ec *executionContext) _Block(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Block_tx_count(ctx, field, obj)
 
 		case "txs":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Block_txs(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Block_txs(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

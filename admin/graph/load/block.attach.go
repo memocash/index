@@ -2,8 +2,10 @@ package load
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/memocash/index/admin/graph/model"
+	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
@@ -128,6 +130,39 @@ func (b *Blocks) AttachTxs() {
 	if !b.HasField([]string{"txs"}) {
 		return
 	}
+	// TODO: More efficient mutex usage, doesn't need to lock the whole time
 	b.Mutex.Lock()
 	defer b.Mutex.Unlock()
+	txsField := b.Fields.GetField("txs")
+	var startIndex uint32
+	if startNum, ok := txsField.Arguments["start"].(json.Number); ok {
+		start64, _ := startNum.Int64()
+		startIndex = uint32(start64)
+	}
+	var allTxs []*model.Tx
+	for _, block := range b.Blocks {
+		blockTxs, err := chain.GetBlockTxs(chain.BlockTxsRequest{
+			BlockHash:  block.Hash,
+			StartIndex: startIndex,
+			Limit:      client.DefaultLimit,
+		})
+		if err != nil {
+			b.AddError(fmt.Errorf("error getting block transactions for attach; %w", err))
+			return
+		}
+		block.Txs = make([]*model.TxBlock, len(blockTxs))
+		for i := range blockTxs {
+			block.Txs[i] = &model.TxBlock{
+				Index:  blockTxs[i].Index,
+				TxHash: blockTxs[i].TxHash,
+				Tx:     &model.Tx{Hash: blockTxs[i].TxHash},
+			}
+			allTxs = append(allTxs, block.Txs[i].Tx)
+		}
+	}
+	prefixFields := GetPrefixFields(txsField.Fields, "tx.")
+	if err := AttachToTxs(b.Ctx, prefixFields, allTxs); err != nil {
+		b.AddError(fmt.Errorf("error attaching to block transactions; %w", err))
+		return
+	}
 }

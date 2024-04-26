@@ -15,7 +15,6 @@ import (
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/admin/graph/sub"
-	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/metric"
@@ -93,16 +92,8 @@ func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, e
 		Height:    &height,
 		Raw:       block.Raw,
 	}
-	if !load.GetFields(ctx).HasFieldAny([]string{"size", "tx_count"}) {
-		return modelBlock, nil
-	}
-	blockInfo, err := chain.GetBlockInfo(*blockHash)
-	if err != nil && !client.IsMessageNotSetError(err) {
-		return nil, jerr.Get("error getting block infos for query resolver", err)
-	}
-	if blockInfo != nil {
-		modelBlock.Size = blockInfo.Size
-		modelBlock.TxCount = blockInfo.TxCount
+	if err := load.AttachToBlocks(ctx, load.GetFields(ctx), []*model.Block{modelBlock}); err != nil {
+		return nil, jerr.Get("error attaching to block for query resolver", err)
 	}
 	return modelBlock, nil
 }
@@ -156,12 +147,6 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	if err != nil {
 		return nil, jerr.Get("error getting raw blocks", err)
 	}
-	var blockInfos []*chain.BlockInfo
-	if load.GetFields(ctx).HasFieldAny([]string{"size", "tx_count"}) {
-		if blockInfos, err = chain.GetBlockInfos(ctx, blockHashes); err != nil {
-			return nil, jerr.Get("error getting block infos for blocks query resolver", err)
-		}
-	}
 	var modelBlocks = make([]*model.Block, len(heightBlocks))
 	for i := range heightBlocks {
 		var height = int(heightBlocks[i].Height)
@@ -178,12 +163,10 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 				modelBlocks[i].Timestamp = model.Date(blockHeader.Timestamp)
 			}
 		}
-		for _, blockInfo := range blockInfos {
-			if blockInfo.BlockHash == heightBlocks[i].BlockHash {
-				modelBlocks[i].Size = blockInfo.Size
-				modelBlocks[i].TxCount = blockInfo.TxCount
-			}
-		}
+	}
+	if err := load.AttachToBlocks(ctx, load.GetFields(ctx), modelBlocks); err != nil {
+		return nil, jerr.Get("error attaching to blocks for query resolver", err)
+
 	}
 	return modelBlocks, nil
 }

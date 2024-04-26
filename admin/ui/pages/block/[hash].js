@@ -51,7 +51,7 @@ export default function LockHash() {
         }
         graphQL(query, {
             hash: hash,
-            start: start,
+            start: start ? start : undefined,
         }).then(res => {
             if (res.ok) {
                 return res.json()
@@ -65,8 +65,8 @@ export default function LockHash() {
             }
             setLoading(false)
             setBlock(data.data.block)
-            if (data.data.block.txs.length > 0) {
-                setOffset(data.data.block.txs[data.data.block.txs.length - 1].index)
+            if (data.data.block.txs && data.data.block.txs.length > 0) {
+                setOffset(data.data.block.txs[data.data.block.txs.length - 1].index + 1)
             }
         }).catch(res => {
             setErrorMessage("error loading block")
@@ -104,20 +104,26 @@ export default function LockHash() {
                         <div className={column.width85}>{block.size ? block.size.toLocaleString() : 0} bytes</div>
                     </div>
                     <div className={column.container}>
-                        <div>
-                            <h3>Txs ({lastOffset + 1} - {lastOffset + block.txs.length} of
-                                {" " + (block.tx_count ? block.tx_count.toLocaleString() : 0)})</h3>
-                            {block.txs.map((txBlock) => {
-                                return (
-                                    <div key={txBlock.tx.hash} className={column.container}>
-                                        <div>
-                                            <Link href={"/tx/" + txBlock.tx.hash}>
-                                                <a>{txBlock.tx.hash}</a>
-                                            </Link>
-                                        </div>
-                                    </div>
-                                )
-                            })}
+                        <div>{block.txs ? <>
+                            <h3>Txs ({lastOffset} - {lastOffset + block.txs.length - 1} of
+                                {" " + (block.tx_count ? block.tx_count.toLocaleString() : block.txs.length)})</h3>
+                            <table className={column.container}>
+                                <tbody>
+                                {block.txs.map((txBlock) => {
+                                    return (
+                                        <tr key={txBlock.index}>
+                                            <td>{txBlock.index}.</td>
+                                            <td>
+                                                <Link href={"/tx/" + txBlock.tx.hash}>
+                                                    <a>{txBlock.tx.hash}</a>
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                                </tbody>
+                            </table>
+                        </> : <>No transactions</>}
                         </div>
                     </div>
                     <div>
