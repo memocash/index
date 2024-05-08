@@ -78,15 +78,18 @@ func (p *Processor) Run() error {
 				recentBlock, err := chain.GetRecentHeightBlock()
 				if err != nil {
 					p.ErrorChan <- jerr.Get("error getting recent height block", err)
+					break
 				}
 				if err := db.Save([]db.Object{&item.SyncStatus{
 					Name:   item.SyncStatusComplete,
 					Height: recentBlock.Height,
 				}}); err != nil {
 					p.ErrorChan <- jerr.Get("error setting sync status complete", err)
+					break
 				}
 				if err := p.Run(); err != nil {
 					p.ErrorChan <- jerr.Get("error starting lead processor after block sync complete", err)
+					break
 				}
 			}
 			jlog.Log("Stopping block node")
