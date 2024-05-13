@@ -35,6 +35,7 @@ type Lock struct {
 	Address string   `json:"address"`
 	Balance int64    `json:"balance"`
 	Profile *Profile `json:"profile"`
+	Txs     []*Tx    `json:"txs"`
 }
 
 type TxBlock struct {

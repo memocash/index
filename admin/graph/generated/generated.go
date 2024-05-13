@@ -39,7 +39,6 @@ type Config struct {
 type ResolverRoot interface {
 	Follow() FollowResolver
 	Like() LikeResolver
-	Lock() LockResolver
 	Mutation() MutationResolver
 	Post() PostResolver
 	Profile() ProfileResolver
@@ -276,9 +275,6 @@ type LikeResolver interface {
 	Lock(ctx context.Context, obj *model.Like) (*model.Lock, error)
 
 	Post(ctx context.Context, obj *model.Like) (*model.Post, error)
-}
-type LockResolver interface {
-	Txs(ctx context.Context, obj *model.Lock, start *model.Date, tx *string) ([]*model.Tx, error)
 }
 type MutationResolver interface {
 	Broadcast(ctx context.Context, raw string) (bool, error)
@@ -3400,7 +3396,7 @@ func (ec *executionContext) _Lock_txs(ctx context.Context, field graphql.Collect
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Lock().Txs(rctx, obj, fc.Args["start"].(*model.Date), fc.Args["tx"].(*string))
+		return obj.Txs, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3418,8 +3414,8 @@ func (ec *executionContext) fieldContext_Lock_txs(ctx context.Context, field gra
 	fc = &graphql.FieldContext{
 		Object:     "Lock",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "hash":
@@ -11825,25 +11821,12 @@ func (ec *executionContext) _Lock(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Lock_balance(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "txs":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Lock_txs(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Lock_txs(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
