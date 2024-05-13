@@ -21,6 +21,6 @@ require (
 	github.com/jchavannes/jgo v0.0.0-20230222214331-95b230651774 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/tyler-smith/go-bip32 v1.0.0 // indirect
-	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 )
