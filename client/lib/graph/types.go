@@ -51,6 +51,7 @@ type Input struct {
 	Index     int    `json:"index"`
 	PrevHash  string `json:"prev_hash"`
 	PrevIndex int    `json:"prev_index"`
+	Output    Output `json:"output"`
 }
 
 type Tx struct {

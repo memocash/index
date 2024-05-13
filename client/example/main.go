@@ -6,6 +6,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	driver "github.com/memocash/index/client/drivers/sql"
 	"github.com/memocash/index/client/lib"
+	"github.com/memocash/index/client/lib/graph"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"log"
 	"os"
@@ -80,5 +81,5 @@ func GetClient() (*lib.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting database; %w", err)
 	}
-	return lib.NewClient("http://localhost:26770/graphql", database), nil
+	return lib.NewClient(graph.DefaultUrl, database), nil
 }
