@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"encoding/hex"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
@@ -29,7 +30,8 @@ var saveTxCmd = &cobra.Command{
 		}
 		txInfo := parse.GetTxInfoMsg(tx)
 		txInfo.Print()
-		if err := txSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{tx}, nil))); err != nil {
+		block := dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{tx}, nil))
+		if err := txSaver.SaveTxs(context.Background(), block); err != nil {
 			jerr.Get("error saving funding tx", err).Fatal()
 		}
 	},

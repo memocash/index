@@ -1,6 +1,7 @@
 package op_return
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -13,7 +14,7 @@ import (
 
 var memoProfileHandler = &Handler{
 	prefix: memo.PrefixSetProfile,
-	handle: func(info parse.OpReturn) error {
+	handle: func(ctx context.Context, info parse.OpReturn) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,

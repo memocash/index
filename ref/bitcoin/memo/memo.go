@@ -1,5 +1,7 @@
 package memo
 
+import "time"
+
 const (
 	MaxPostSize         = 65000
 	MaxReplySize        = 65000
@@ -59,7 +61,7 @@ const (
 	Int8Size = 8 // int64
 )
 
-const MaxAncestors = 25
+const MaxAncestors = 2000
 const FaucetMaxAncestors = 20
 
 const DustMinimumOutput int64 = 546
@@ -76,6 +78,10 @@ const (
 	PollTypeAny  PollType = "any"
 	PollTypeRank PollType = "rank"
 )
+
+func GetGenesisTime() time.Time {
+	return time.Date(2009, 1, 3, 18, 15, 5, 0, time.UTC)
+}
 
 func IsSpendable(balance int64) bool {
 	return balance > DustMinimumOutput+FeeP2pkh1In1OutTx

@@ -1,6 +1,7 @@
 package maint
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
@@ -22,10 +23,12 @@ type PopulateP2shDirect struct {
 	mu       sync.Mutex
 	Checked  int64
 	Saved    int64
+	Ctx      context.Context
 }
 
-func NewPopulateP2shDirect() *PopulateP2shDirect {
+func NewPopulateP2shDirect(ctx context.Context) *PopulateP2shDirect {
 	return &PopulateP2shDirect{
+		Ctx:    ctx,
 		status: make(map[uint]*item.ProcessStatus),
 	}
 }
@@ -145,7 +148,7 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 			Index:  txOutput.Index,
 		})
 	}
-	spends, err := chain.GetOutputInputs(spendOuts)
+	spends, err := chain.GetOutputInputs(p.Ctx, spendOuts)
 	if err != nil && !client.IsEntryNotFoundError(err) {
 		return false, jerr.Getf(err, "error getting output input for txs: %d", len(spendOuts))
 	}

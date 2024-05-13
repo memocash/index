@@ -1,0 +1,44 @@
+type SlpGenesis {
+    tx: Tx!
+    hash: Hash!
+    token_type: Uint8!
+    decimals: Uint8!
+    output: SlpOutput!
+    baton: SlpBaton!
+    baton_index: Uint32!
+    ticker: String!
+    name: String!
+    doc_url: String!
+    doc_hash: String!
+}
+
+type SlpOutput {
+    output: TxOutput!
+    hash: Hash!
+    index: Uint32!
+    amount: Uint64!
+    token_hash: Hash!
+    genesis: SlpGenesis
+}
+
+type SlpBaton {
+    output: TxOutput!
+    hash: Hash!
+    index: Uint32!
+    token_hash: Hash!
+    genesis: SlpGenesis
+}
+
+#type SlpMint {
+#    tx: Tx!
+#    hash: String!
+#    output: SlpOutput!
+#    baton: SlpBaton!
+#    baton_index: Uint32!
+#}
+#
+#type SlpSend {
+#    tx: Tx!
+#    hash: String!
+#    outputs: [SlpOutput!]!
+#}

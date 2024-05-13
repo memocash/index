@@ -89,7 +89,7 @@ func (s *Shard) Ping(_ context.Context, req *cluster_pb.PingReq) (*cluster_pb.Pi
 	}, nil
 }
 
-func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb.EmptyResp, error) {
+func (s *Shard) SaveTxs(ctx context.Context, req *cluster_pb.SaveReq) (*cluster_pb.EmptyResp, error) {
 	overallStart := time.Now()
 	header, err := memo.GetBlockHeaderFromRaw(req.Block.Header)
 	if err != nil {
@@ -116,7 +116,7 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 	seensStart := time.Now()
 	var seensDuration time.Duration
 	if !req.IsInitial {
-		txSeens, err := chain.GetTxSeens(txHashes)
+		txSeens, err := chain.GetTxSeens(ctx, txHashes)
 		if err != nil {
 			return nil, jerr.Get("error getting tx seens for shard save txs", err)
 		}
@@ -132,7 +132,7 @@ func (s *Shard) SaveTxs(_ context.Context, req *cluster_pb.SaveReq) (*cluster_pb
 		}
 	}
 	combinedSaver := saver.NewCombinedTx(s.Verbose)
-	if err := combinedSaver.SaveTxs(block); err != nil {
+	if err := combinedSaver.SaveTxs(ctx, block); err != nil {
 		return nil, jerr.Get("error saving block txs shard txs", err)
 	}
 	if s.Verbose {

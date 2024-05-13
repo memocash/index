@@ -2,6 +2,7 @@ package op_return
 
 import (
 	"bytes"
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
@@ -10,7 +11,7 @@ import (
 type Handler struct {
 	prefix       []byte
 	prefixScript []byte
-	handle       func(parse.OpReturn) error
+	handle       func(context.Context, parse.OpReturn) error
 }
 
 func (h *Handler) CanHandle(pkScript []byte) bool {
@@ -18,11 +19,11 @@ func (h *Handler) CanHandle(pkScript []byte) bool {
 		bytes.Equal(pkScript[:len(h.prefixScript)], h.prefixScript)
 }
 
-func (h *Handler) Handle(info parse.OpReturn) error {
+func (h *Handler) Handle(ctx context.Context, info parse.OpReturn) error {
 	if h.handle == nil {
 		return jerr.Newf("error handler not set (prefix: %x)", h.prefix)
 	}
-	if err := h.handle(info); err != nil {
+	if err := h.handle(ctx, info); err != nil {
 		return jerr.Getf(err, "error processing op return handler (prefix: %x)", h.prefix)
 	}
 	return nil
@@ -41,6 +42,7 @@ func GetHandlers() ([]*Handler, error) {
 		memoRoomPostHandler,
 		memoRoomFollowHandler,
 		memoRoomUnfollowHandler,
+		slpTokenHandler,
 	}
 	for _, opReturn := range handlers {
 		prefixScript, err := memo.GetBaseOpReturn().AddData(opReturn.prefix).Script()

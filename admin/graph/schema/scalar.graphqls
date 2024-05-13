@@ -1,4 +1,9 @@
+scalar Int32
 scalar Int64
+scalar Uint8
 scalar Uint32
+scalar Uint64
 scalar HashIndex
 scalar Date
+scalar Hash
+scalar Bytes

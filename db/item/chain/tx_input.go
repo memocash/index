@@ -1,7 +1,7 @@
 package chain
 
 import (
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -80,59 +80,40 @@ func GetTxInputUid(txHash [32]byte, index uint32) []byte {
 	return db.GetTxHashIndexUid(txHash[:], index)
 }
 
-func GetTxInputsByHashes(txHashes [][32]byte) ([]*TxInput, error) {
+func GetTxInputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxInput, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
 		shard := uint32(db.GetShardByte(txHashes[i][:]))
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxInput, shardPrefixes)
+	if err != nil {
+		return nil, jerr.Get("error getting client message chain tx input", err)
+	}
 	var txInputs []*TxInput
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicChainTxInput,
-			Prefixes: prefixes,
-			Max:      client.HugeLimit,
-		}); err != nil {
-			return nil, jerr.Get("error getting db message chain tx inputs", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var txInput = new(TxInput)
-			db.Set(txInput, msg)
-			txInputs = append(txInputs, txInput)
-		}
+	for _, msg := range messages {
+		var txInput = new(TxInput)
+		db.Set(txInput, msg)
+		txInputs = append(txInputs, txInput)
 	}
 	return txInputs, nil
 }
 
-func GetTxInputs(outs []memo.Out) ([]*TxInput, error) {
-	var shardOutGroups = make(map[uint32][]memo.Out)
+func GetTxInputs(ctx context.Context, outs []memo.Out) ([]*TxInput, error) {
+	var shardUids = make(map[uint32][][]byte)
 	for _, out := range outs {
 		shard := db.GetShardByte32(out.TxHash)
-		shardOutGroups[shard] = append(shardOutGroups[shard], out)
+		shardUids[shard] = append(shardUids[shard], GetTxInputUid(db.RawTxHashToFixed(out.TxHash), out.Index))
+	}
+	messages, err := db.GetSpecific(ctx, db.TopicChainTxInput, shardUids)
+	if err != nil {
+		return nil, jerr.Get("error getting client message chain tx input", err)
 	}
 	var txInputs []*TxInput
-	for shard, outGroup := range shardOutGroups {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		var uids = make([][]byte, len(outGroup))
-		for i := range outGroup {
-			txHash, err := chainhash.NewHash(outGroup[i].TxHash)
-			if err != nil {
-				return nil, jerr.Get("error getting tx hash for tx input", err)
-			}
-			uids[i] = GetTxInputUid(*txHash, outGroup[i].Index)
-		}
-		err := dbClient.GetSpecific(db.TopicChainTxInput, uids)
-		if err != nil {
-			return nil, jerr.Get("error getting db", err)
-		}
-		for i := range dbClient.Messages {
-			var txInput = new(TxInput)
-			db.Set(txInput, dbClient.Messages[i])
-			txInputs = append(txInputs, txInput)
-		}
+	for i := range messages {
+		var txInput = new(TxInput)
+		db.Set(txInput, messages[i])
+		txInputs = append(txInputs, txInput)
 	}
 	return txInputs, nil
 }

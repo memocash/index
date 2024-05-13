@@ -1,6 +1,7 @@
 package saver
 
 import (
+	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jlog"
@@ -13,7 +14,7 @@ type TxMinimal struct {
 	Verbose bool
 }
 
-func (t *TxMinimal) SaveTxs(block *dbi.Block) error {
+func (t *TxMinimal) SaveTxs(ctx context.Context, block *dbi.Block) error {
 	if block.IsNil() {
 		return jerr.Newf("error nil block")
 	}

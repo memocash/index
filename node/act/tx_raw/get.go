@@ -1,9 +1,11 @@
 package tx_raw
 
 import (
+	"context"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"sort"
@@ -14,8 +16,8 @@ type TxRaw struct {
 	Raw  []byte
 }
 
-func GetSingle(txHash [32]byte) (*TxRaw, error) {
-	raws, err := Get([][32]byte{txHash})
+func GetSingle(ctx context.Context, txHash [32]byte) (*TxRaw, error) {
+	raws, err := Get(ctx, [][32]byte{txHash})
 	if err != nil {
 		return nil, jerr.Get("error getting tx raws for single", err)
 	} else if len(raws) != 1 {
@@ -24,19 +26,22 @@ func GetSingle(txHash [32]byte) (*TxRaw, error) {
 	return raws[0], nil
 }
 
-func Get(txHashes [][32]byte) ([]*TxRaw, error) {
+func Get(ctx context.Context, txHashes [][32]byte) ([]*TxRaw, error) {
+	sort.Slice(txHashes, func(i, j int) bool {
+		return jutil.ByteLT(txHashes[i][:], txHashes[j][:])
+	})
 	txs, err := chain.GetTxsByHashes(txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx inputs for raw", err)
 	}
-	txInputs, err := chain.GetTxInputsByHashes(txHashes)
+	txInputs, err := chain.GetTxInputsByHashes(ctx, txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx inputs for raw", err)
 	}
 	sort.Slice(txInputs, func(i, j int) bool {
 		return txInputs[i].Index < txInputs[j].Index
 	})
-	txOutputs, err := chain.GetTxOutputsByHashes(txHashes)
+	txOutputs, err := chain.GetTxOutputsByHashes(ctx, txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx outputs for raw", err)
 	}

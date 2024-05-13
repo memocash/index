@@ -47,7 +47,11 @@ func GetRecentHeightBlock() (*HeightBlock, error) {
 	var heightBlocks []*HeightBlock
 	for i, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.Get(db.TopicChainHeightBlock, client.GetMaxStart(), false); err != nil {
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:  db.TopicChainHeightBlock,
+			Max:    1,
+			Newest: true,
+		}); err != nil {
 			return nil, jerr.Getf(err, "error getting recent height block for shard: %d", i)
 		}
 		for i := range dbClient.Messages {

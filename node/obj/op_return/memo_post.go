@@ -1,6 +1,7 @@
 package op_return
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -12,7 +13,7 @@ import (
 
 var memoPostHandler = &Handler{
 	prefix: memo.PrefixPost,
-	handle: func(info parse.OpReturn) error {
+	handle: func(ctx context.Context, info parse.OpReturn) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -23,7 +24,7 @@ var memoPostHandler = &Handler{
 			return nil
 		}
 		var post = jutil.GetUtf8String(info.PushData[1])
-		if err := save.MemoPost(info, post); err != nil {
+		if err := save.MemoPost(ctx, info, post); err != nil {
 			return jerr.Get("error saving memo post for memo post handler", err)
 		}
 		return nil

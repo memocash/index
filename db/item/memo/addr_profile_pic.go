@@ -2,6 +2,7 @@ package memo
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -58,6 +59,7 @@ func GetAddrProfilePic(ctx context.Context, addr [25]byte) (*AddrProfilePic, err
 		Topic:    db.TopicMemoAddrProfilePic,
 		Prefixes: [][]byte{addr[:]},
 		Max:      1,
+		Newest:   true,
 		Context:  ctx,
 	}); err != nil {
 		return nil, jerr.Get("error getting db addr memo profile pic by prefix", err)
@@ -71,34 +73,26 @@ func GetAddrProfilePic(ctx context.Context, addr [25]byte) (*AddrProfilePic, err
 }
 
 func ListenAddrProfilePics(ctx context.Context, addrs [][25]byte) (chan *AddrProfilePic, error) {
-	if len(addrs) == 0 {
-		return nil, nil
-	}
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
-		shard := client.GetByteShard32(addrs[i][:])
+		shard := db.GetShardByte32(addrs[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
-	shardConfigs := config.GetQueueShards()
-	var addrProfilePicChan = make(chan *AddrProfilePic)
-	cancelCtx := db.NewCancelContext(ctx, func() {
-		close(addrProfilePicChan)
-	})
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		dbClient := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoAddrProfilePic, prefixes)
-		if err != nil {
-			return nil, jerr.Get("error listening to db addr memo profile pic by prefix", err)
-		}
-		go func() {
-			for msg := range chanMessage {
-				var addrProfilePic = new(AddrProfilePic)
-				db.Set(addrProfilePic, *msg)
-				addrProfilePicChan <- addrProfilePic
-			}
-			cancelCtx.Cancel()
-		}()
+	chanMessages, err := db.ListenPrefixes(ctx, db.TopicMemoAddrProfilePic, shardPrefixes)
+	if err != nil {
+		return nil, fmt.Errorf("error getting listen prefixes for memo addr profile pics; %w", err)
 	}
+	var addrProfilePicChan = make(chan *AddrProfilePic)
+	go func() {
+		for {
+			msg, ok := <-chanMessages
+			if !ok {
+				return
+			}
+			var addrProfilePic = new(AddrProfilePic)
+			db.Set(addrProfilePic, *msg)
+			addrProfilePicChan <- addrProfilePic
+		}
+	}()
 	return addrProfilePicChan, nil
 }

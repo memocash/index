@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -62,24 +63,21 @@ func GetBlockInfo(blockHash [32]byte) (*BlockInfo, error) {
 	return blockInfo, nil
 }
 
-func GetBlockInfos(blockHashes [][]byte) ([]*BlockInfo, error) {
-	var shardBlockHashGroups = make(map[uint32][][]byte)
+func GetBlockInfos(ctx context.Context, blockHashes [][32]byte) ([]*BlockInfo, error) {
+	var shardUids = make(map[uint32][][]byte)
 	for _, blockHash := range blockHashes {
-		shard := db.GetShardByte32(blockHash)
-		shardBlockHashGroups[shard] = append(shardBlockHashGroups[shard], jutil.ByteReverse(blockHash))
+		shard := db.GetShardByte32(blockHash[:])
+		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(blockHash[:]))
 	}
-	var blocks []*BlockInfo
-	for shard, blockHashGroup := range shardBlockHashGroups {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetSpecific(db.TopicChainBlockInfo, blockHashGroup); err != nil {
-			return nil, jerr.Get("error getting client message chain block infos", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var block = new(BlockInfo)
-			db.Set(block, msg)
-			blocks = append(blocks, block)
-		}
+	messages, err := db.GetSpecific(ctx, db.TopicChainBlockInfo, shardUids)
+	if err != nil {
+		return nil, jerr.Get("error getting client message chain block infos", err)
 	}
-	return blocks, nil
+	var blockInfos []*BlockInfo
+	for _, msg := range messages {
+		var blockInfo = new(BlockInfo)
+		db.Set(blockInfo, msg)
+		blockInfos = append(blockInfos, blockInfo)
+	}
+	return blockInfos, nil
 }

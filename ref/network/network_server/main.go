@@ -37,7 +37,7 @@ func (s *Server) OutputMessage(_ context.Context, stringMessage *network_pb.Stri
 	return &network_pb.ErrorReply{}, nil
 }
 
-func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.SaveTxsReply, error) {
+func (s *Server) SaveTxs(ctx context.Context, txs *network_pb.Txs) (*network_pb.SaveTxsReply, error) {
 	var blockTxs = make(map[string][]*wire.MsgTx)
 	for _, tx := range txs.Txs {
 		txMsg, err := memo.GetMsgFromRaw(tx.Raw)
@@ -74,7 +74,7 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 				return nil, jerr.Get("error saving block", err)
 			}
 		}
-		if err := combinedSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
+		if err := combinedSaver.SaveTxs(ctx, dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))); err != nil {
 			err = jerr.Get("error saving transactions", err)
 			return &network_pb.SaveTxsReply{
 				Error: err.Error(),
@@ -84,9 +84,9 @@ func (s *Server) SaveTxs(_ context.Context, txs *network_pb.Txs) (*network_pb.Sa
 	return &network_pb.SaveTxsReply{}, nil
 }
 
-func (s *Server) GetTx(_ context.Context, req *network_pb.TxRequest) (*network_pb.TxReply, error) {
+func (s *Server) GetTx(ctx context.Context, req *network_pb.TxRequest) (*network_pb.TxReply, error) {
 	getTx := get.NewTx(db.RawTxHashToFixed(req.Hash))
-	if err := getTx.Get(); err != nil {
+	if err := getTx.Get(ctx); err != nil {
 		return nil, jerr.Get("error getting transaction", err)
 	}
 	return &network_pb.TxReply{Tx: &network_pb.Tx{
@@ -95,17 +95,17 @@ func (s *Server) GetTx(_ context.Context, req *network_pb.TxRequest) (*network_p
 	}}, nil
 }
 
-func (s *Server) GetTxBlock(_ context.Context, req *network_pb.TxBlockRequest) (*network_pb.TxBlockReply, error) {
-	getTxBlock := get.NewTxBlock()
+func (s *Server) GetTxBlock(ctx context.Context, req *network_pb.TxBlockRequest) (*network_pb.TxBlockReply, error) {
 	txHashes := db.RawTxHashesToFixed(req.Txs)
-	if err := getTxBlock.Get(txHashes); err != nil {
-		return nil, jerr.Get("error getting tx blocks by hashes", err)
+	chainTxs, err := chain.GetTxBlocks(ctx, txHashes)
+	if err != nil {
+		return nil, jerr.Get("error getting tx blocks from queue for server", err)
 	}
-	var txs = make([]*network_pb.BlockTx, len(getTxBlock.Txs))
-	for i := range getTxBlock.Txs {
+	var txs = make([]*network_pb.BlockTx, len(chainTxs))
+	for i := range chainTxs {
 		txs[i] = &network_pb.BlockTx{
-			Block: getTxBlock.Txs[i].BlockHash[:],
-			Tx:    getTxBlock.Txs[i].TxHash[:],
+			Block: chainTxs[i].BlockHash[:],
+			Tx:    chainTxs[i].TxHash[:],
 		}
 	}
 	return &network_pb.TxBlockReply{Txs: txs}, nil
@@ -121,7 +121,7 @@ func (s *Server) ListenTx(ctx context.Context, req *network_pb.TxRequest) (*netw
 	}, nil
 }
 
-func (s *Server) GetOutputInputs(_ context.Context, req *network_pb.OutputInputsRequest) (*network_pb.OutputInputsResponse, error) {
+func (s *Server) GetOutputInputs(ctx context.Context, req *network_pb.OutputInputsRequest) (*network_pb.OutputInputsResponse, error) {
 	var outs = make([]memo.Out, len(req.Outputs))
 	for i := range req.Outputs {
 		outs[i] = memo.Out{
@@ -129,7 +129,7 @@ func (s *Server) GetOutputInputs(_ context.Context, req *network_pb.OutputInputs
 			Index:  req.Outputs[i].Index,
 		}
 	}
-	outputInputs, err := chain.GetOutputInputs(outs)
+	outputInputs, err := chain.GetOutputInputs(ctx, outs)
 	if err != nil {
 		return nil, jerr.Get("error getting output inputs", err)
 	}
@@ -168,7 +168,7 @@ func (s *Server) GetBalance(_ context.Context, address *network_pb.Address) (*ne
 	return &network_pb.BalanceReply{}, nil
 }
 
-func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*network_pb.ErrorReply, error) {
+func (s *Server) SaveTxBlock(ctx context.Context, txBlock *network_pb.TxBlock) (*network_pb.ErrorReply, error) {
 	var msgTxs = make([]*wire.MsgTx, len(txBlock.Txs))
 	var err error
 	for i := range txBlock.Txs {
@@ -195,7 +195,7 @@ func (s *Server) SaveTxBlock(_ context.Context, txBlock *network_pb.TxBlock) (*n
 	for i := range blockTxs {
 		txHashes[i] = blockTxs[i].TxHash
 	}
-	txRaws, err := tx_raw.Get(txHashes)
+	txRaws, err := tx_raw.Get(ctx, txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting existing tx raws for tx block saver", err)
 	}
@@ -218,7 +218,7 @@ BlockTxsLoop:
 
 	block := dbi.WireBlockToBlock(memo.GetBlockFromTxs(msgTxs, blockHeader))
 	block.Height = blockSaver.NewHeight
-	if err := saver.NewCombinedTx(false).SaveTxs(block); err != nil {
+	if err := saver.NewCombinedTx(false).SaveTxs(ctx, block); err != nil {
 		return nil, jerr.Get("error saving transactions", err)
 	}
 	return &network_pb.ErrorReply{}, nil

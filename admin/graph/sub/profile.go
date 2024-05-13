@@ -3,8 +3,6 @@ package sub
 import (
 	"context"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/index/admin/graph/dataloader"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/item/memo"
@@ -20,28 +18,28 @@ type Profile struct {
 	PicAddresses     [][25]byte
 }
 
-func (p *Profile) Listen(ctx context.Context, addresses, preloads []string) (<-chan *model.Profile, error) {
+func (p *Profile) Listen(ctx context.Context, addresses []string, fields load.Fields) (<-chan *model.Profile, error) {
 	ctx, p.Cancel = context.WithCancel(ctx)
 	if err := p.SetupAddresses(addresses); err != nil {
 		return nil, jerr.Get("error setting up lock hashes for profile", err)
 	}
-	if jutil.StringInSlice("following", preloads) {
+	if fields.HasField("following") {
 		if err := p.ListenFollowing(ctx, p.Addresses); err != nil {
 			return nil, jerr.Get("error listening following", err)
 		}
-		if err := p.SetupFollowingLockHashes(ctx, preloads); err != nil {
+		if err := p.SetupFollowingLockHashes(ctx, fields); err != nil {
 			return nil, jerr.Get("error setting up following lock hashes for profile subscription", err)
 		}
 	}
-	if jutil.StringInSlice("followers", preloads) {
+	if fields.HasField("followers") {
 		if err := p.ListenFollowers(ctx, p.Addresses); err != nil {
 			return nil, jerr.Get("error listening followers", err)
 		}
-		if err := p.SetupFollowersLockHashes(ctx, preloads); err != nil {
+		if err := p.SetupFollowersLockHashes(ctx, fields); err != nil {
 			return nil, jerr.Get("error setting up followers lock hashes for profile subscription", err)
 		}
 	}
-	if jutil.StringInSlice("name", preloads) {
+	if fields.HasField("name") {
 		p.NameAddresses = append(p.NameAddresses, p.Addresses...)
 	}
 	if len(p.NameAddresses) > 0 {
@@ -49,7 +47,7 @@ func (p *Profile) Listen(ctx context.Context, addresses, preloads []string) (<-c
 			return nil, jerr.Get("error listening names", err)
 		}
 	}
-	if jutil.StringInSlice("profile", preloads) {
+	if fields.HasField("profile") {
 		p.ProfileAddresses = append(p.ProfileAddresses, p.Addresses...)
 	}
 	if len(p.ProfileAddresses) > 0 {
@@ -57,7 +55,7 @@ func (p *Profile) Listen(ctx context.Context, addresses, preloads []string) (<-c
 			return nil, jerr.Get("error listening profiles", err)
 		}
 	}
-	if jutil.StringInSlice("pic", preloads) {
+	if fields.HasField("pic") {
 		p.PicAddresses = append(p.PicAddresses, p.Addresses...)
 	}
 	if len(p.PicAddresses) > 0 {
@@ -80,12 +78,12 @@ func (p *Profile) SetupAddresses(addresses []string) error {
 	return nil
 }
 
-func (p *Profile) SetupFollowingLockHashes(ctx context.Context, preloads []string) error {
-	if !jutil.StringsInSlice([]string{
+func (p *Profile) SetupFollowingLockHashes(ctx context.Context, fields load.Fields) error {
+	if !fields.HasFieldAny([]string{
 		"following.follow_lock.profile.name",
 		"following.follow_lock.profile.profile",
 		"following.follow_lock.profile.pic",
-	}, preloads) {
+	}) {
 		return nil
 	}
 	lockMemoFollows, err := memo.GetAddrFollows(ctx, p.Addresses)
@@ -98,13 +96,13 @@ func (p *Profile) SetupFollowingLockHashes(ctx context.Context, preloads []strin
 			continue
 		}
 		if !lockMemoFollow.Unfollow {
-			if jutil.StringInSlice("following.follow_lock.profile.name", preloads) {
+			if fields.HasField("following.follow_lock.profile.name") {
 				p.NameAddresses = append(p.NameAddresses, lockMemoFollow.FollowAddr)
 			}
-			if jutil.StringInSlice("following.follow_lock.profile.profile", preloads) {
+			if fields.HasField("following.follow_lock.profile.profile") {
 				p.ProfileAddresses = append(p.ProfileAddresses, lockMemoFollow.FollowAddr)
 			}
-			if jutil.StringInSlice("following.follow_lock.profile.pic", preloads) {
+			if fields.HasField("following.follow_lock.profile.pic") {
 				p.PicAddresses = append(p.PicAddresses, lockMemoFollow.FollowAddr)
 			}
 		}
@@ -113,12 +111,12 @@ func (p *Profile) SetupFollowingLockHashes(ctx context.Context, preloads []strin
 	return nil
 }
 
-func (p *Profile) SetupFollowersLockHashes(ctx context.Context, preloads []string) error {
-	if !jutil.StringsInSlice([]string{
+func (p *Profile) SetupFollowersLockHashes(ctx context.Context, fields load.Fields) error {
+	if !fields.HasFieldAny([]string{
 		"followers.lock.profile.name",
 		"followers.lock.profile.profile",
 		"followers.lock.profile.pic",
-	}, preloads) {
+	}) {
 		return nil
 	}
 	lockMemoFolloweds, err := memo.GetAddrFolloweds(ctx, p.Addresses)
@@ -131,13 +129,13 @@ func (p *Profile) SetupFollowersLockHashes(ctx context.Context, preloads []strin
 			continue
 		}
 		if !lockMemoFollowed.Unfollow {
-			if jutil.StringInSlice("followers.lock.profile.name", preloads) {
+			if fields.HasField("followers.lock.profile.name") {
 				p.NameAddresses = append(p.NameAddresses, lockMemoFollowed.Addr)
 			}
-			if jutil.StringInSlice("followers.lock.profile.profile", preloads) {
+			if fields.HasField("followers.lock.profile.profile") {
 				p.ProfileAddresses = append(p.ProfileAddresses, lockMemoFollowed.Addr)
 			}
-			if jutil.StringInSlice("followers.lock.profile.pic", preloads) {
+			if fields.HasField("followers.lock.profile.pic") {
 				p.PicAddresses = append(p.PicAddresses, lockMemoFollowed.Addr)
 			}
 		}
@@ -277,7 +275,7 @@ func (p *Profile) GetProfileChan(ctx context.Context) <-chan *model.Profile {
 				if !ok {
 					return
 				}
-				profile, err := dataloader.NewProfileLoader(load.ProfileLoaderConfig).Load(wallet.Addr(addr).String())
+				profile, err := load.GetProfile(ctx, wallet.Addr(addr).String())
 				if err != nil {
 					jerr.Get("error getting profile from dataloader for profile subscription resolver", err).Print()
 					return

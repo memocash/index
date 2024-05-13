@@ -1,9 +1,9 @@
 type Block {
-    hash: String!
-    raw: String!
+    hash: Hash!
+    raw: Bytes!
     timestamp: Date!
     height: Int
     size: Int64
     tx_count: Int
-    txs(start: Uint32): [Tx!]
+    txs(start: Uint32): [TxBlock!]
 }

@@ -2,6 +2,7 @@ package memo
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -58,6 +59,7 @@ func GetAddrName(ctx context.Context, addr [25]byte) (*AddrName, error) {
 		Topic:    db.TopicMemoAddrName,
 		Prefixes: [][]byte{addr[:]},
 		Max:      1,
+		Newest:   true,
 		Context:  ctx,
 	}); err != nil {
 		return nil, jerr.Get("error getting db addr memo name by prefix", err)
@@ -71,34 +73,26 @@ func GetAddrName(ctx context.Context, addr [25]byte) (*AddrName, error) {
 }
 
 func ListenAddrNames(ctx context.Context, addrs [][25]byte) (chan *AddrName, error) {
-	if len(addrs) == 0 {
-		return nil, nil
-	}
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
-		shard := client.GetByteShard32(addrs[i][:])
+		shard := db.GetShardByte32(addrs[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
-	shardConfigs := config.GetQueueShards()
-	var addrNameChan = make(chan *AddrName)
-	cancelCtx := db.NewCancelContext(ctx, func() {
-		close(addrNameChan)
-	})
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		dbClient := client.NewClient(shardConfig.GetHost())
-		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoAddrName, prefixes)
-		if err != nil {
-			return nil, jerr.Get("error listening to db addr memo names by prefix", err)
-		}
-		go func() {
-			for msg := range chanMessage {
-				var addrName = new(AddrName)
-				db.Set(addrName, *msg)
-				addrNameChan <- addrName
-			}
-			cancelCtx.Cancel()
-		}()
+	chanMessages, err := db.ListenPrefixes(ctx, db.TopicMemoAddrName, shardPrefixes)
+	if err != nil {
+		return nil, fmt.Errorf("error getting listen prefixes for memo addr names; %w", err)
 	}
+	var addrNameChan = make(chan *AddrName)
+	go func() {
+		for {
+			msg, ok := <-chanMessages
+			if !ok {
+				return
+			}
+			var addrProfile = new(AddrName)
+			db.Set(addrProfile, *msg)
+			addrNameChan <- addrProfile
+		}
+	}()
 	return addrNameChan, nil
 }

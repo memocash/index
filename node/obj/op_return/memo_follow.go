@@ -2,6 +2,7 @@ package op_return
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
@@ -14,7 +15,7 @@ import (
 
 var memoFollowHandler = &Handler{
 	prefix: memo.PrefixFollow,
-	handle: func(info parse.OpReturn) error {
+	handle: func(ctx context.Context, info parse.OpReturn) error {
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -29,7 +30,7 @@ var memoFollowHandler = &Handler{
 		if err != nil {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
-				Error:  fmt.Sprintf("error getting address from follow pk hash: %s", err),
+				Error:  fmt.Sprintf("error getting address from follow pk hash; %s", err),
 			}); err != nil {
 				return jerr.Get("error saving process error memo follow address", err)
 			}

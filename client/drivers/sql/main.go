@@ -16,13 +16,20 @@ func initDb(db *sql.DB, prefix string) error {
 }
 
 func execQueries(db *sql.DB, queries []*Query) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("error starting sqlite transaction; %w", err)
+	}
 	for _, query := range queries {
 		if query == nil {
 			return fmt.Errorf("exec query is nil")
 		}
-		if _, err := db.Exec(query.Query, query.Variables...); err != nil {
+		if _, err := tx.Exec(query.Query, query.Variables...); err != nil {
 			return fmt.Errorf("error executing query: %s; %w", query.Name, err)
 		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("error committing sqlite transaction; %w", err)
 	}
 	return nil
 }
@@ -52,7 +59,7 @@ func (t Table) GetInsert(prefix string, values map[string]interface{}) Query {
 	}
 	return Query{
 		Name: t.GetName(prefix),
-		Query: "INSERT OR IGNORE INTO " + t.GetName(prefix) +
+		Query: "INSERT OR REPLACE INTO " + t.GetName(prefix) +
 			" (" + strings.Join(cols, ", ") + ") VALUES (" + "?" + strings.Repeat(", ?", len(cols)-1) + ")",
 		Variables: variables,
 	}
@@ -79,6 +86,9 @@ const (
 	TableOutputs        = "outputs"
 	TableBlocks         = "blocks"
 	TableBlockTxs       = "block_txs"
+	TableSlpBatons      = "slp_batons"
+	TableSlpGeneses     = "slp_geneses"
+	TableSlpOutputs     = "slp_outputs"
 )
 
 var tables = map[string]Table{
@@ -133,5 +143,36 @@ var tables = map[string]Table{
 			"tx_hash":    "CHAR",
 		},
 		Indexes: []string{"UNIQUE(block_hash, tx_hash)"},
+	},
+	TableSlpGeneses: {
+		Name: TableSlpGeneses,
+		Columns: map[string]string{
+			"hash":       "CHAR",
+			"token_type": "INT",
+			"decimals":   "INT",
+			"ticker":     "CHAR",
+			"name":       "CHAR",
+			"doc_url":    "CHAR",
+		},
+		Indexes: []string{"UNIQUE(hash)"},
+	},
+	TableSlpBatons: {
+		Name: TableSlpBatons,
+		Columns: map[string]string{
+			"hash":       "CHAR",
+			"index":      "INT",
+			"token_hash": "CHAR",
+		},
+		Indexes: []string{"UNIQUE(hash, `index`)"},
+	},
+	TableSlpOutputs: {
+		Name: TableSlpOutputs,
+		Columns: map[string]string{
+			"hash":       "CHAR",
+			"index":      "INT",
+			"token_hash": "CHAR",
+			"amount":     "INT",
+		},
+		Indexes: []string{"UNIQUE(hash, `index`)"},
 	},
 }

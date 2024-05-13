@@ -1,6 +1,7 @@
 package fund
 
 import (
+	"context"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -34,7 +35,7 @@ var addressCmd = &cobra.Command{
 		}
 		txInfo := parse.GetTxInfo(fundingTx)
 		txInfo.Print()
-		if err := txSaver.SaveTxs(dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{fundingTx.MsgTx}, nil))); err != nil {
+		if err := txSaver.SaveTxs(context.Background(), dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{fundingTx.MsgTx}, nil))); err != nil {
 			jerr.Get("error saving funding tx", err).Fatal()
 		}
 	},

@@ -53,6 +53,12 @@ const (
 	TopicChainTxProcessed     = "chain_tx_processed"
 	TopicChainTxSeen          = "chain_tx_seen"
 
+	TopicSlpBaton   = "slp_baton"
+	TopicSlpGenesis = "slp_genesis"
+	TopicSlpMint    = "slp_mint"
+	TopicSlpOutput  = "slp_output"
+	TopicSlpSend    = "slp_send"
+
 	TopicAddrSeenTx = "addr_seen_tx"
 )
 
@@ -185,6 +191,8 @@ type Wait struct {
 }
 
 func (w *Wait) AddError(err error) {
+	w.Lock.Lock()
+	defer w.Lock.Unlock()
 	w.Errs = append(w.Errs, err)
 }
 
