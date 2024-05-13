@@ -22,13 +22,14 @@ type TxOutput struct {
 }
 
 type TxInput struct {
-	Hash      Hash   `json:"hash"`
-	Index     uint32 `json:"index"`
-	PrevHash  Hash   `json:"prev_hash"`
-	PrevIndex uint32 `json:"prev_index"`
-	Script    Bytes  `json:"script"`
-	Sequence  uint32 `json:"sequence"`
-	Tx        *Tx    `json:"tx"`
+	Hash      Hash      `json:"hash"`
+	Index     uint32    `json:"index"`
+	PrevHash  Hash      `json:"prev_hash"`
+	PrevIndex uint32    `json:"prev_index"`
+	Script    Bytes     `json:"script"`
+	Sequence  uint32    `json:"sequence"`
+	Tx        *Tx       `json:"tx"`
+	Output    *TxOutput `json:"output"`
 }
 
 type Lock struct {

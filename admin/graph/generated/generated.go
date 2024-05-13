@@ -52,7 +52,6 @@ type ResolverRoot interface {
 	SlpGenesis() SlpGenesisResolver
 	SlpOutput() SlpOutputResolver
 	Subscription() SubscriptionResolver
-	TxInput() TxInputResolver
 	TxOutput() TxOutputResolver
 }
 
@@ -354,9 +353,6 @@ type SubscriptionResolver interface {
 	Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error)
 	Rooms(ctx context.Context, names []string) (<-chan *model.Post, error)
 	RoomFollows(ctx context.Context, addresses []string) (<-chan *model.RoomFollow, error)
-}
-type TxInputResolver interface {
-	Output(ctx context.Context, obj *model.TxInput) (*model.TxOutput, error)
 }
 type TxOutputResolver interface {
 	Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error)
@@ -9200,7 +9196,7 @@ func (ec *executionContext) _TxInput_output(ctx context.Context, field graphql.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TxInput().Output(rctx, obj)
+		return obj.Output, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9218,8 +9214,8 @@ func (ec *executionContext) fieldContext_TxInput_output(ctx context.Context, fie
 	fc = &graphql.FieldContext{
 		Object:     "TxInput",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -13267,66 +13263,53 @@ func (ec *executionContext) _TxInput(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = ec._TxInput_tx(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "hash":
 
 			out.Values[i] = ec._TxInput_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "index":
 
 			out.Values[i] = ec._TxInput_index(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "script":
 
 			out.Values[i] = ec._TxInput_script(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "prev_hash":
 
 			out.Values[i] = ec._TxInput_prev_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "prev_index":
 
 			out.Values[i] = ec._TxInput_prev_index(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "output":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._TxInput_output(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._TxInput_output(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "sequence":
 
 			out.Values[i] = ec._TxInput_sequence(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

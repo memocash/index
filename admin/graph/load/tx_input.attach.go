@@ -18,9 +18,10 @@ func AttachToInputs(ctx context.Context, fields []Field, inputs []*model.TxInput
 		baseA:  baseA{Ctx: ctx, Fields: fields},
 		Inputs: inputs,
 	}
-	i.Wait.Add(2)
+	i.Wait.Add(3)
 	go i.AttachScriptSequence()
 	go i.AttachTxs()
+	go i.AttachTxOutputs()
 	i.Wait.Wait()
 	if len(i.Errors) > 0 {
 		return fmt.Errorf("error attaching to inputs; %w", i.Errors[0])
@@ -103,6 +104,24 @@ func (i *Inputs) AttachTxs() {
 	i.Mutex.Unlock()
 	if err := AttachToTxs(i.Ctx, prefixFields, allTxs); err != nil {
 		i.AddError(fmt.Errorf("error attaching to txs for model tx inputs; %w", err))
+		return
+	}
+}
+
+func (i *Inputs) AttachTxOutputs() {
+	defer i.Wait.Done()
+	if !i.HasField([]string{"output"}) {
+		return
+	}
+	var allOutputs []*model.TxOutput
+	i.Mutex.Lock()
+	for j := range i.Inputs {
+		i.Inputs[j].Output = &model.TxOutput{Hash: i.Inputs[j].PrevHash, Index: i.Inputs[j].PrevIndex}
+		allOutputs = append(allOutputs, i.Inputs[j].Output)
+	}
+	i.Mutex.Unlock()
+	if err := AttachToOutputs(i.Ctx, GetPrefixFields(i.Fields, "output."), allOutputs); err != nil {
+		i.AddError(fmt.Errorf("error attaching all to input tx output; %w", err))
 		return
 	}
 }
