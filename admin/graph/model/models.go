@@ -32,8 +32,9 @@ type TxInput struct {
 }
 
 type Lock struct {
-	Address string `json:"address"`
-	Balance int64  `json:"balance"`
+	Address string   `json:"address"`
+	Balance int64    `json:"balance"`
+	Profile *Profile `json:"profile"`
 }
 
 type TxBlock struct {

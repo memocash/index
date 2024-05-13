@@ -18,15 +18,6 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-// Profile is the resolver for the profile field.
-func (r *lockResolver) Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error) {
-	profile, err := load.Profile(ctx, obj.Address)
-	if err != nil {
-		return nil, jerr.Get("error getting profile from dataloader for lock resolver", err)
-	}
-	return profile, nil
-}
-
 // Txs is the resolver for the txs field.
 func (r *lockResolver) Txs(ctx context.Context, obj *model.Lock, start *model.Date, tx *string) ([]*model.Tx, error) {
 	address, err := wallet.GetAddrFromString(obj.Address)

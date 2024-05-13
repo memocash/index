@@ -278,8 +278,6 @@ type LikeResolver interface {
 	Post(ctx context.Context, obj *model.Like) (*model.Post, error)
 }
 type LockResolver interface {
-	Profile(ctx context.Context, obj *model.Lock) (*model.Profile, error)
-
 	Txs(ctx context.Context, obj *model.Lock, start *model.Date, tx *string) ([]*model.Tx, error)
 }
 type MutationResolver interface {
@@ -3297,7 +3295,7 @@ func (ec *executionContext) _Lock_profile(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Lock().Profile(rctx, obj)
+		return obj.Profile, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3315,8 +3313,8 @@ func (ec *executionContext) fieldContext_Lock_profile(ctx context.Context, field
 	fc = &graphql.FieldContext{
 		Object:     "Lock",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "lock":
@@ -11819,22 +11817,9 @@ func (ec *executionContext) _Lock(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Lock_address(ctx, field, obj)
 
 		case "profile":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Lock_profile(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Lock_profile(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "balance":
 
 			out.Values[i] = ec._Lock_balance(ctx, field, obj)

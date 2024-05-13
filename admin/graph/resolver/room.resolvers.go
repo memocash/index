@@ -65,7 +65,7 @@ func (r *roomFollowResolver) Room(ctx context.Context, obj *model.RoomFollow) (*
 
 // Lock is the resolver for the lock field.
 func (r *roomFollowResolver) Lock(ctx context.Context, obj *model.RoomFollow) (*model.Lock, error) {
-	lock, err := load.Lock(ctx, obj.Address)
+	lock, err := load.GetLock(ctx, obj.Address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock from loader for room follow resolver: %s", obj.TxHash)
 	}

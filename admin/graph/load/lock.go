@@ -7,13 +7,17 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-func Lock(ctx context.Context, addressString string) (*model.Lock, error) {
+func GetLock(ctx context.Context, addressString string) (*model.Lock, error) {
 	address, err := wallet.GetAddrFromString(addressString)
 	if err != nil {
 		return nil, fmt.Errorf("error getting address from dataloader: %s; %w", addressString, err)
 	}
 	var lock = &model.Lock{Address: address.String()}
-	if GetFields(ctx).HasField("balance") {
+	fields := GetFields(ctx)
+	if err := AttachToLocks(ctx, fields, []*model.Lock{lock}); err != nil {
+		return nil, fmt.Errorf("error attaching details to lock; %w", err)
+	}
+	if fields.HasField("balance") {
 		// TODO: Reimplement if needed
 		return nil, fmt.Errorf("error balance no longer implemented")
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-func Profile(ctx context.Context, addressString string) (*model.Profile, error) {
+func GetProfile(ctx context.Context, addressString string) (*model.Profile, error) {
 	address, err := wallet.GetAddrFromString(addressString)
 	if err != nil {
 		return nil, fmt.Errorf("error getting address from profile dataloader: %s; %w", addressString, err)

@@ -43,7 +43,7 @@ func (r *queryResolver) Txs(ctx context.Context, hashes []string) ([]*model.Tx, 
 // Address is the resolver for the address field.
 func (r *queryResolver) Address(ctx context.Context, address string) (*model.Lock, error) {
 	metric.AddGraphQuery(metric.EndPointAddress)
-	lock, err := load.Lock(ctx, address)
+	lock, err := load.GetLock(ctx, address)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting lock from loader for query address resolver: %s", address)
 	}
@@ -62,6 +62,9 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*m
 		locks = append(locks, &model.Lock{
 			Address: address,
 		})
+	}
+	if err := load.AttachToLocks(ctx, load.GetFields(ctx), locks); err != nil {
+		return nil, jerr.Get("error attaching to locks for query resolver", err)
 	}
 	return locks, nil
 }
@@ -176,7 +179,7 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*mo
 	metric.AddGraphQuery(metric.EndPointProfiles)
 	var profiles []*model.Profile
 	for _, addressString := range addresses {
-		profile, err := load.Profile(ctx, addressString)
+		profile, err := load.GetProfile(ctx, addressString)
 		if err != nil {
 			return nil, jerr.Get("error getting profile from dataloader for profile query resolver", err)
 		}
