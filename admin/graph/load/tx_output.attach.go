@@ -22,11 +22,12 @@ func AttachToOutputs(ctx context.Context, fields Fields, outputs []*model.TxOutp
 		baseA:   baseA{Ctx: ctx, Fields: fields},
 		Outputs: outputs,
 	}
-	o.Wait.Add(6)
+	o.Wait.Add(5)
 	go o.AttachInfo()
 	go o.AttachSpends()
 	go o.AttachSlps()
 	go o.AttachSlpBatons()
+	go o.AttachTxs()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to outputs; %w", o.Errors[0])
@@ -115,9 +116,6 @@ func (o *Outputs) AttachSpends() {
 
 func (o *Outputs) AttachSlps() {
 	defer o.Wait.Done()
-	defer func() {
-		go o.AttachToSlpOutputs()
-	}()
 	if !o.HasField([]string{"slp"}) {
 		return
 	}
@@ -127,6 +125,7 @@ func (o *Outputs) AttachSlps() {
 		o.AddError(fmt.Errorf("error getting slp outputs for model tx outputs; %w", err))
 		return
 	}
+	var allSlpOutputs []*model.SlpOutput
 	o.Mutex.Lock()
 	for i := range o.Outputs {
 		for j := range slpOutputs {
@@ -139,16 +138,18 @@ func (o *Outputs) AttachSlps() {
 				TokenHash: slpOutputs[j].TokenHash,
 				Amount:    slpOutputs[j].Quantity,
 			}
+			allSlpOutputs = append(allSlpOutputs, o.Outputs[i].Slp)
 		}
 	}
 	o.Mutex.Unlock()
+	if err := AttachToSlpOutputs(o.Ctx, GetPrefixFields(o.Fields, "slp."), allSlpOutputs); err != nil {
+		o.AddError(fmt.Errorf("error attaching to slp outputs for tx outputs; %w", err))
+		return
+	}
 }
 
 func (o *Outputs) AttachSlpBatons() {
 	defer o.Wait.Done()
-	defer func() {
-		go o.AttachToSlpBatons()
-	}()
 	if !o.HasField([]string{"slp_baton"}) {
 		return
 	}
@@ -158,6 +159,7 @@ func (o *Outputs) AttachSlpBatons() {
 		o.AddError(fmt.Errorf("error getting slp batons for model tx outputs; %w", err))
 		return
 	}
+	var allSlpBatons []*model.SlpBaton
 	o.Mutex.Lock()
 	for i := range o.Outputs {
 		for j := range slpBatons {
@@ -169,41 +171,51 @@ func (o *Outputs) AttachSlpBatons() {
 				Index:     slpBatons[j].Index,
 				TokenHash: slpBatons[j].TokenHash,
 			}
+			allSlpBatons = append(allSlpBatons, o.Outputs[i].SlpBaton)
 		}
 	}
 	o.Mutex.Unlock()
-}
-
-func (o *Outputs) AttachToSlpOutputs() {
-	defer o.Wait.Done()
-	var allSlpOutputs []*model.SlpOutput
-	o.Mutex.Lock()
-	for i := range o.Outputs {
-		if o.Outputs[i].Slp != nil {
-			allSlpOutputs = append(allSlpOutputs, o.Outputs[i].Slp)
-		}
-	}
-	prefixFields := GetPrefixFields(o.Fields, "slp.")
-	o.Mutex.Unlock()
-	if err := AttachToSlpOutputs(o.Ctx, prefixFields, allSlpOutputs); err != nil {
-		o.AddError(fmt.Errorf("error attaching to slp outputs for tx outputs; %w", err))
+	if err := AttachToSlpBatons(o.Ctx, GetPrefixFields(o.Fields, "slp_baton."), allSlpBatons); err != nil {
+		o.AddError(fmt.Errorf("error attaching to slp batons for tx outputs; %w", err))
 		return
 	}
 }
 
-func (o *Outputs) AttachToSlpBatons() {
+func (o *Outputs) AttachTxs() {
 	defer o.Wait.Done()
-	var allSlpBatons []*model.SlpBaton
+	if !o.HasField([]string{"tx"}) {
+		return
+	}
+	var txHashes = make([][32]byte, len(o.Outputs))
 	o.Mutex.Lock()
-	for i := range o.Outputs {
-		if o.Outputs[i].SlpBaton != nil {
-			allSlpBatons = append(allSlpBatons, o.Outputs[i].SlpBaton)
+	for j := range o.Outputs {
+		txHashes[j] = o.Outputs[j].Hash
+	}
+	o.Mutex.Unlock()
+	txs, err := chain.GetTxsByHashes(txHashes)
+	if err != nil {
+		o.AddError(fmt.Errorf("error getting txs for model tx outputs; %w", err))
+		return
+	}
+	var allTxs []*model.Tx
+	o.Mutex.Lock()
+	for j := range o.Outputs {
+		for k := range txs {
+			if o.Outputs[j].Hash != txs[k].TxHash {
+				continue
+			}
+			o.Outputs[j].Tx = &model.Tx{
+				Hash:     txs[k].TxHash,
+				Version:  txs[k].Version,
+				LockTime: txs[k].LockTime,
+			}
+			allTxs = append(allTxs, o.Outputs[j].Tx)
+			break
 		}
 	}
-	prefixFields := GetPrefixFields(o.Fields, "slp_baton.")
 	o.Mutex.Unlock()
-	if err := AttachToSlpBatons(o.Ctx, prefixFields, allSlpBatons); err != nil {
-		o.AddError(fmt.Errorf("error attaching to slp batons for tx outputs; %w", err))
+	if err := AttachToTxs(o.Ctx, GetPrefixFields(o.Fields, "tx."), allTxs); err != nil {
+		o.AddError(fmt.Errorf("error attaching to txs for model tx outputs; %w", err))
 		return
 	}
 }

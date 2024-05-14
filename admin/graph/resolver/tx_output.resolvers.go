@@ -13,15 +13,6 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-// Tx is the resolver for the tx field.
-func (r *txOutputResolver) Tx(ctx context.Context, obj *model.TxOutput) (*model.Tx, error) {
-	var tx = &model.Tx{Hash: obj.Hash}
-	if err := load.AttachToTxs(ctx, load.GetFields(ctx), []*model.Tx{tx}); err != nil {
-		return nil, jerr.Get("error attaching all to output tx", err)
-	}
-	return tx, nil
-}
-
 // Lock is the resolver for the lock field.
 func (r *txOutputResolver) Lock(ctx context.Context, obj *model.TxOutput) (*model.Lock, error) {
 	if len(obj.Script) == 0 {
