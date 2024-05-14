@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/slp"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 type Outputs struct {
@@ -22,12 +23,13 @@ func AttachToOutputs(ctx context.Context, fields Fields, outputs []*model.TxOutp
 		baseA:   baseA{Ctx: ctx, Fields: fields},
 		Outputs: outputs,
 	}
-	o.Wait.Add(5)
+	o.Wait.Add(6)
 	go o.AttachInfo()
 	go o.AttachSpends()
 	go o.AttachSlps()
 	go o.AttachSlpBatons()
 	go o.AttachTxs()
+	go o.AttachLocks()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to outputs; %w", o.Errors[0])
@@ -216,6 +218,24 @@ func (o *Outputs) AttachTxs() {
 	o.Mutex.Unlock()
 	if err := AttachToTxs(o.Ctx, GetPrefixFields(o.Fields, "tx."), allTxs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to txs for model tx outputs; %w", err))
+		return
+	}
+}
+
+func (o *Outputs) AttachLocks() {
+	defer o.Wait.Done()
+	if !o.HasField([]string{"lock"}) {
+		return
+	}
+	var allLocks []*model.Lock
+	o.Mutex.Lock()
+	for j := range o.Outputs {
+		o.Outputs[j].Lock = &model.Lock{Address: wallet.GetAddressStringFromPkScript(o.Outputs[j].Script)}
+		allLocks = append(allLocks, o.Outputs[j].Lock)
+	}
+	o.Mutex.Unlock()
+	if err := AttachToLocks(o.Ctx, GetPrefixFields(o.Fields, "lock."), allLocks); err != nil {
+		o.AddError(fmt.Errorf("error attaching to locks for model tx outputs; %w", err))
 		return
 	}
 }

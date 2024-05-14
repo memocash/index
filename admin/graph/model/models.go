@@ -17,6 +17,7 @@ type TxOutput struct {
 	Amount   int64      `json:"amount"`
 	Script   Bytes      `json:"script"`
 	Tx       *Tx        `json:"tx"`
+	Lock     *Lock      `json:"lock"`
 	Spends   []*TxInput `json:"spends"`
 	Slp      *SlpOutput `json:"slp"`
 	SlpBaton *SlpBaton  `json:"slp_baton"`
