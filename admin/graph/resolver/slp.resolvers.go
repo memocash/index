@@ -12,15 +12,6 @@ import (
 	"github.com/memocash/index/admin/graph/model"
 )
 
-// Tx is the resolver for the tx field.
-func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*model.Tx, error) {
-	tx, err := load.GetTx(ctx, obj.Hash)
-	if err != nil {
-		return nil, jerr.Get("error getting tx for slp genesis resolver", err)
-	}
-	return tx, nil
-}
-
 // Baton is the resolver for the baton field.
 func (r *slpGenesisResolver) Baton(ctx context.Context, obj *model.SlpGenesis) (*model.SlpBaton, error) {
 	var slpBaton = &model.SlpBaton{

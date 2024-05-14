@@ -332,8 +332,6 @@ type SetProfileResolver interface {
 	Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error)
 }
 type SlpGenesisResolver interface {
-	Tx(ctx context.Context, obj *model.SlpGenesis) (*model.Tx, error)
-
 	Baton(ctx context.Context, obj *model.SlpGenesis) (*model.SlpBaton, error)
 }
 type SlpOutputResolver interface {
@@ -6841,7 +6839,7 @@ func (ec *executionContext) _SlpGenesis_tx(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.SlpGenesis().Tx(rctx, obj)
+		return obj.Tx, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6862,8 +6860,8 @@ func (ec *executionContext) fieldContext_SlpGenesis_tx(ctx context.Context, fiel
 	fc = &graphql.FieldContext{
 		Object:     "SlpGenesis",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "hash":
@@ -12866,25 +12864,12 @@ func (ec *executionContext) _SlpGenesis(ctx context.Context, sel ast.SelectionSe
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("SlpGenesis")
 		case "tx":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SlpGenesis_tx(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._SlpGenesis_tx(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "hash":
 
 			out.Values[i] = ec._SlpGenesis_hash(ctx, field, obj)

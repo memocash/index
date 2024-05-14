@@ -188,32 +188,11 @@ func (o *Outputs) AttachTxs() {
 	if !o.HasField([]string{"tx"}) {
 		return
 	}
-	var txHashes = make([][32]byte, len(o.Outputs))
-	o.Mutex.Lock()
-	for j := range o.Outputs {
-		txHashes[j] = o.Outputs[j].Hash
-	}
-	o.Mutex.Unlock()
-	txs, err := chain.GetTxsByHashes(txHashes)
-	if err != nil {
-		o.AddError(fmt.Errorf("error getting txs for model tx outputs; %w", err))
-		return
-	}
 	var allTxs []*model.Tx
 	o.Mutex.Lock()
 	for j := range o.Outputs {
-		for k := range txs {
-			if o.Outputs[j].Hash != txs[k].TxHash {
-				continue
-			}
-			o.Outputs[j].Tx = &model.Tx{
-				Hash:     txs[k].TxHash,
-				Version:  txs[k].Version,
-				LockTime: txs[k].LockTime,
-			}
-			allTxs = append(allTxs, o.Outputs[j].Tx)
-			break
-		}
+		o.Outputs[j].Tx = &model.Tx{Hash: o.Outputs[j].Hash}
+		allTxs = append(allTxs, o.Outputs[j].Tx)
 	}
 	o.Mutex.Unlock()
 	if err := AttachToTxs(o.Ctx, GetPrefixFields(o.Fields, "tx."), allTxs); err != nil {

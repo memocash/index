@@ -73,36 +73,14 @@ func (i *Inputs) AttachTxs() {
 	if !i.HasField([]string{"tx"}) {
 		return
 	}
-	var txHashes = make([][32]byte, len(i.Inputs))
-	i.Mutex.Lock()
-	for j := range i.Inputs {
-		txHashes[j] = i.Inputs[j].Hash
-	}
-	i.Mutex.Unlock()
-	txs, err := chain.GetTxsByHashes(txHashes)
-	if err != nil {
-		i.AddError(fmt.Errorf("error getting txs for model tx inputs; %w", err))
-		return
-	}
 	var allTxs []*model.Tx
 	i.Mutex.Lock()
 	for j := range i.Inputs {
-		for k := range txs {
-			if i.Inputs[j].Hash != txs[k].TxHash {
-				continue
-			}
-			i.Inputs[j].Tx = &model.Tx{
-				Hash:     txs[k].TxHash,
-				Version:  txs[k].Version,
-				LockTime: txs[k].LockTime,
-			}
-			allTxs = append(allTxs, i.Inputs[j].Tx)
-			break
-		}
+		i.Inputs[j].Tx = &model.Tx{Hash: i.Inputs[j].Hash}
+		allTxs = append(allTxs, i.Inputs[j].Tx)
 	}
-	prefixFields := GetPrefixFields(i.Fields, "tx.")
 	i.Mutex.Unlock()
-	if err := AttachToTxs(i.Ctx, prefixFields, allTxs); err != nil {
+	if err := AttachToTxs(i.Ctx, GetPrefixFields(i.Fields, "tx."), allTxs); err != nil {
 		i.AddError(fmt.Errorf("error attaching to txs for model tx inputs; %w", err))
 		return
 	}

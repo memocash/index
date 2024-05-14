@@ -132,6 +132,7 @@ type SlpGenesis struct {
 	Name       string     `json:"name"`
 	DocURL     string     `json:"doc_url"`
 	DocHash    string     `json:"doc_hash"`
+	Tx         *Tx        `json:"tx"`
 	Output     *SlpOutput `json:"output"`
 }
 

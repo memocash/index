@@ -21,8 +21,9 @@ func AttachToSlpGeneses(ctx context.Context, fields []Field, slpGeneses []*model
 		baseA:      baseA{Ctx: ctx, Fields: fields},
 		SlpGeneses: slpGeneses,
 	}
-	o.Wait.Add(1)
+	o.Wait.Add(2)
 	go o.AttachSlpOutputs()
+	go o.AttachTxs()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to slp geneses; %w", o.Errors[0])
@@ -73,6 +74,24 @@ func (o *SlpGeneses) AttachSlpOutputs() {
 	o.Mutex.Unlock()
 	if err := AttachToSlpOutputs(o.Ctx, GetPrefixFields(o.Fields, "output."), allSlpOutputs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp outputs for slp geneses; %w", err))
+		return
+	}
+}
+
+func (o *SlpGeneses) AttachTxs() {
+	defer o.Wait.Done()
+	if !o.HasField([]string{"tx"}) {
+		return
+	}
+	var allTxs []*model.Tx
+	o.Mutex.Lock()
+	for j := range o.SlpGeneses {
+		o.SlpGeneses[j].Tx = &model.Tx{Hash: o.SlpGeneses[j].Hash}
+		allTxs = append(allTxs, o.SlpGeneses[j].Tx)
+	}
+	o.Mutex.Unlock()
+	if err := AttachToTxs(o.Ctx, GetPrefixFields(o.Fields, "tx."), allTxs); err != nil {
+		o.AddError(fmt.Errorf("error attaching to txs for model slp geneses; %w", err))
 		return
 	}
 }
