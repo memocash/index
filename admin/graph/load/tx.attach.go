@@ -26,7 +26,7 @@ func AttachToTxs(ctx context.Context, fields []Field, txs []*model.Tx) error {
 		Txs:   txs,
 	}
 	t.DetailsWait.Add(3)
-	t.Wait.Add(5)
+	t.Wait.Add(4)
 	go t.AttachInputs()
 	go t.AttachOutputs()
 	go t.AttachInfo()
@@ -243,9 +243,6 @@ func (t *Tx) AttachSeens() {
 
 func (t *Tx) AttachBlocks() {
 	defer t.Wait.Done()
-	defer func() {
-		go t.AttachToBlocks()
-	}()
 	if !t.HasField([]string{"blocks"}) {
 		return
 	}
@@ -255,39 +252,29 @@ func (t *Tx) AttachBlocks() {
 		t.AddError(fmt.Errorf("error getting blocks for tx for block loader; %w", err))
 		return
 	}
+	var allBlocks []*model.Block
 	t.Mutex.Lock()
-	defer t.Mutex.Unlock()
 	for i := range t.Txs {
 		for j := range txBlocks {
 			if t.Txs[i].Hash != txBlocks[j].TxHash {
 				continue
 			}
-			t.Txs[i].Blocks = append(t.Txs[i].Blocks, &model.TxBlock{
+			var block = &model.TxBlock{
 				TxHash:    t.Txs[i].Hash,
 				Tx:        t.Txs[i],
 				BlockHash: txBlocks[j].BlockHash,
 				Block:     &model.Block{Hash: txBlocks[j].BlockHash},
 				Index:     txBlocks[j].Index,
-			})
+			}
+			t.Txs[i].Blocks = append(t.Txs[i].Blocks, block)
+			allBlocks = append(allBlocks, block.Block)
 		}
 		sort.Slice(t.Txs[i].Outputs, func(a, b int) bool {
 			return t.Txs[i].Outputs[a].Index < t.Txs[i].Outputs[b].Index
 		})
 	}
-}
-
-func (t *Tx) AttachToBlocks() {
-	defer t.Wait.Done()
-	var allBlocks []*model.Block
-	t.Mutex.Lock()
-	for _, tx := range t.Txs {
-		for _, txBlock := range tx.Blocks {
-			allBlocks = append(allBlocks, txBlock.Block)
-		}
-	}
-	prefixFields := GetPrefixFields(t.Fields, "blocks.block.")
 	t.Mutex.Unlock()
-	if err := AttachToBlocks(t.Ctx, prefixFields, allBlocks); err != nil {
+	if err := AttachToBlocks(t.Ctx, GetPrefixFields(t.Fields, "blocks.block."), allBlocks); err != nil {
 		t.AddError(fmt.Errorf("error attaching to blocks for tx; %w", err))
 		return
 	}
