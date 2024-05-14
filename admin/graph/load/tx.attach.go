@@ -67,8 +67,8 @@ func (t *Tx) AttachInputs() {
 		t.AddError(fmt.Errorf("error getting tx inputs for model tx; %w", err))
 		return
 	}
+	var allInputs []*model.TxInput
 	t.Mutex.Lock()
-	defer t.Mutex.Unlock()
 	for i := range t.Txs {
 		for j := range txInputs {
 			if t.Txs[i].Hash != txInputs[j].TxHash {
@@ -83,9 +83,15 @@ func (t *Tx) AttachInputs() {
 				Script:    txInputs[j].UnlockScript,
 			})
 		}
+		allInputs = append(allInputs, t.Txs[i].Inputs...)
 		sort.Slice(t.Txs[i].Inputs, func(a, b int) bool {
 			return t.Txs[i].Inputs[a].Index < t.Txs[i].Inputs[b].Index
 		})
+	}
+	t.Mutex.Unlock()
+	if err := AttachToInputs(t.Ctx, GetPrefixFields(t.Fields, "inputs."), allInputs); err != nil {
+		t.AddError(fmt.Errorf("error attaching to inputs for tx; %w", err))
+		return
 	}
 }
 
