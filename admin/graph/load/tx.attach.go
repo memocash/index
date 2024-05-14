@@ -136,9 +136,8 @@ func (t *Tx) AttachToOutputs() {
 	for _, tx := range t.Txs {
 		allOutputs = append(allOutputs, tx.Outputs...)
 	}
-	prefixFields := GetPrefixFields(t.Fields, "outputs.")
 	t.Mutex.Unlock()
-	if err := AttachToOutputs(t.Ctx, prefixFields, allOutputs); err != nil {
+	if err := AttachToOutputs(t.Ctx, GetPrefixFields(t.Fields, "outputs."), allOutputs); err != nil {
 		t.AddError(fmt.Errorf("error attaching to outputs for tx; %w", err))
 		return
 	}

@@ -120,6 +120,7 @@ type SlpBaton struct {
 	Index     uint32      `json:"index"`
 	TokenHash Hash        `json:"token_hash"`
 	Genesis   *SlpGenesis `json:"genesis"`
+	Output    *TxOutput   `json:"output"`
 }
 
 type SlpGenesis struct {
