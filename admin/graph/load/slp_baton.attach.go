@@ -66,6 +66,7 @@ func (o *SlpBatons) AttachGeneses() {
 		o.AddError(fmt.Errorf("error getting slp geneses from dataloader; %w", err))
 		return
 	}
+	var allSlpGeneses []*model.SlpGenesis
 	o.Mutex.Lock()
 	for i := range o.SlpBatons {
 		for j := range slpGeneses {
@@ -82,10 +83,15 @@ func (o *SlpBatons) AttachGeneses() {
 				DocURL:     slpGeneses[j].DocUrl,
 				DocHash:    hex.EncodeToString(slpGeneses[j].DocHash[:]),
 			}
+			allSlpGeneses = append(allSlpGeneses, o.SlpBatons[i].Genesis)
 			break
 		}
 	}
 	o.Mutex.Unlock()
+	if err := AttachToSlpGeneses(o.Ctx, GetPrefixFields(o.Fields, "genesis."), allSlpGeneses); err != nil {
+		o.AddError(fmt.Errorf("error attaching to slp geneses for slp batons; %w", err))
+		return
+	}
 }
 
 func (o *SlpBatons) AttachOutputs() {

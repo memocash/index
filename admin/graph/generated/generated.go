@@ -334,7 +334,6 @@ type SetProfileResolver interface {
 type SlpGenesisResolver interface {
 	Tx(ctx context.Context, obj *model.SlpGenesis) (*model.Tx, error)
 
-	Output(ctx context.Context, obj *model.SlpGenesis) (*model.SlpOutput, error)
 	Baton(ctx context.Context, obj *model.SlpGenesis) (*model.SlpBaton, error)
 }
 type SlpOutputResolver interface {
@@ -7036,7 +7035,7 @@ func (ec *executionContext) _SlpGenesis_output(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.SlpGenesis().Output(rctx, obj)
+		return obj.Output, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7057,8 +7056,8 @@ func (ec *executionContext) fieldContext_SlpGenesis_output(ctx context.Context, 
 	fc = &graphql.FieldContext{
 		Object:     "SlpGenesis",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "output":
@@ -12908,25 +12907,12 @@ func (ec *executionContext) _SlpGenesis(ctx context.Context, sel ast.SelectionSe
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "output":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SlpGenesis_output(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._SlpGenesis_output(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "baton":
 			field := field
 
@@ -13865,10 +13851,6 @@ func (ec *executionContext) marshalNSlpBaton2ᚖgithubᚗcomᚋmemocashᚋindex�
 		return graphql.Null
 	}
 	return ec._SlpBaton(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNSlpOutput2githubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpOutput(ctx context.Context, sel ast.SelectionSet, v model.SlpOutput) graphql.Marshaler {
-	return ec._SlpOutput(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNSlpOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐSlpOutput(ctx context.Context, sel ast.SelectionSet, v *model.SlpOutput) graphql.Marshaler {

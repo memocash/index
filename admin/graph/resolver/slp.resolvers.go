@@ -10,7 +10,6 @@ import (
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
-	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
 // Tx is the resolver for the tx field.
@@ -20,18 +19,6 @@ func (r *slpGenesisResolver) Tx(ctx context.Context, obj *model.SlpGenesis) (*mo
 		return nil, jerr.Get("error getting tx for slp genesis resolver", err)
 	}
 	return tx, nil
-}
-
-// Output is the resolver for the output field.
-func (r *slpGenesisResolver) Output(ctx context.Context, obj *model.SlpGenesis) (*model.SlpOutput, error) {
-	var slpOutput = &model.SlpOutput{
-		Hash:  obj.Hash,
-		Index: memo.SlpMintTokenIndex,
-	}
-	if err := load.AttachToSlpOutputs(ctx, load.GetFields(ctx), []*model.SlpOutput{slpOutput}); err != nil {
-		return nil, jerr.Get("error attaching slp output for slp genesis from loader", err)
-	}
-	return slpOutput, nil
 }
 
 // Baton is the resolver for the baton field.

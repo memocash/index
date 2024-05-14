@@ -124,14 +124,15 @@ type SlpBaton struct {
 }
 
 type SlpGenesis struct {
-	Hash       Hash   `json:"hash"`
-	TokenType  Uint8  `json:"token_type"`
-	Decimals   Uint8  `json:"decimals"`
-	BatonIndex uint32 `json:"baton_index"`
-	Ticker     string `json:"ticker"`
-	Name       string `json:"name"`
-	DocURL     string `json:"doc_url"`
-	DocHash    string `json:"doc_hash"`
+	Hash       Hash       `json:"hash"`
+	TokenType  Uint8      `json:"token_type"`
+	Decimals   Uint8      `json:"decimals"`
+	BatonIndex uint32     `json:"baton_index"`
+	Ticker     string     `json:"ticker"`
+	Name       string     `json:"name"`
+	DocURL     string     `json:"doc_url"`
+	DocHash    string     `json:"doc_hash"`
+	Output     *SlpOutput `json:"output"`
 }
 
 type SlpOutput struct {
