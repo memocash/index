@@ -129,6 +129,7 @@ type ComplexityRoot struct {
 		BlockNewest func(childComplexity int) int
 		Blocks      func(childComplexity int, newest *bool, start *uint32) int
 		Posts       func(childComplexity int, txHashes []string) int
+		PostsNewest func(childComplexity int, start *model.Date, tx *string) int
 		Profiles    func(childComplexity int, addresses []string) int
 		Room        func(childComplexity int, name string) int
 		Tx          func(childComplexity int, hash string) int
@@ -304,6 +305,7 @@ type QueryResolver interface {
 	Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error)
 	Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error)
 	Posts(ctx context.Context, txHashes []string) ([]*model.Post, error)
+	PostsNewest(ctx context.Context, start *model.Date, tx *string) ([]*model.Post, error)
 	Room(ctx context.Context, name string) (*model.Room, error)
 }
 type RoomResolver interface {
@@ -771,6 +773,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Posts(childComplexity, args["txHashes"].([]string)), true
+
+	case "Query.posts_newest":
+		if e.complexity.Query.PostsNewest == nil {
+			break
+		}
+
+		args, err := ec.field_Query_posts_newest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PostsNewest(childComplexity, args["start"].(*model.Date), args["tx"].(*string)), true
 
 	case "Query.profiles":
 		if e.complexity.Query.Profiles == nil {
@@ -1631,6 +1645,7 @@ type Like {
     blocks(newest: Boolean, start: Uint32): [Block!]
     profiles(addresses: [String!]): [Profile]
     posts(txHashes: [String!]): [Post]
+    posts_newest(start: Date, tx: String): [Post]
     room(name: String!): Room!
 }
 
@@ -1983,6 +1998,30 @@ func (ec *executionContext) field_Query_posts_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["txHashes"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_posts_newest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.Date
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg0, err = ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐDate(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["tx"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tx"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["tx"] = arg1
 	return args, nil
 }
 
@@ -5094,6 +5133,78 @@ func (ec *executionContext) fieldContext_Query_posts(ctx context.Context, field 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_posts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_posts_newest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_posts_newest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().PostsNewest(rctx, fc.Args["start"].(*model.Date), fc.Args["tx"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Post)
+	fc.Result = res
+	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋadminᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_posts_newest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "tx":
+				return ec.fieldContext_Post_tx(ctx, field)
+			case "tx_hash":
+				return ec.fieldContext_Post_tx_hash(ctx, field)
+			case "lock":
+				return ec.fieldContext_Post_lock(ctx, field)
+			case "address":
+				return ec.fieldContext_Post_address(ctx, field)
+			case "text":
+				return ec.fieldContext_Post_text(ctx, field)
+			case "likes":
+				return ec.fieldContext_Post_likes(ctx, field)
+			case "parent":
+				return ec.fieldContext_Post_parent(ctx, field)
+			case "replies":
+				return ec.fieldContext_Post_replies(ctx, field)
+			case "room":
+				return ec.fieldContext_Post_room(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Post", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_posts_newest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -12327,6 +12438,26 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_posts(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "posts_newest":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_posts_newest(ctx, field)
 				return res
 			}
 

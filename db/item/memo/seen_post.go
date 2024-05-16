@@ -1,6 +1,7 @@
 package memo
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -59,7 +60,7 @@ func (i *SeenPost) Serialize() []byte {
 
 func (i *SeenPost) Deserialize([]byte) {}
 
-func GetSeenPosts(start time.Time, startTxHash [32]byte) ([]*SeenPost, error) {
+func GetSeenPosts(ctx context.Context, start time.Time, startTxHash [32]byte) ([]*SeenPost, error) {
 	const limit = client.DefaultLimit
 	shardConfigs := config.GetQueueShards()
 	startShard := GetSeenPostShard32(start)
@@ -73,6 +74,7 @@ func GetSeenPosts(start time.Time, startTxHash [32]byte) ([]*SeenPost, error) {
 		shardConfig := shardConfigs[shardId]
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetWOpts(client.Opts{
+			Context: ctx,
 			Topic: db.TopicMemoSeenPost,
 			Start: startByte,
 			Max:   limit,

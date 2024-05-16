@@ -7,6 +7,7 @@ const (
 	EndPointBlocks      = "blocks"
 	EndPointBlockNewest = "block_newest"
 	EndPointPosts       = "posts"
+	EndPointPostsNewest = "posts_newest"
 	EndPointProfiles    = "profiles"
 	EndPointRoom        = "room"
 	EndPointTx          = "tx"
