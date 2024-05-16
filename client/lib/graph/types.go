@@ -81,6 +81,13 @@ type Lock struct {
 	Address string `json:"address"`
 }
 
+type Post struct {
+	TxHash  string `json:"tx_hash"`
+	Address string `json:"address"`
+	Text    string `json:"text"`
+	Tx      *Tx     `json:"tx"`
+}
+
 // The following are not part of graph but are used in queries
 
 type AddressUpdate struct {

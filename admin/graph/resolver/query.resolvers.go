@@ -205,15 +205,16 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.
 // PostsNewest is the resolver for the posts_newest field.
 func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *string) ([]*model.Post, error) {
 	metric.AddGraphQuery(metric.EndPointPostsNewest)
-	var txHash *chainhash.Hash
+	var txHash chainhash.Hash
 	if tx != nil {
-		txHash, _ = chainhash.NewHashFromStr(*tx)
+		txHashPointer, _ := chainhash.NewHashFromStr(*tx)
+		txHash = *txHashPointer
 	}
 	var startTime time.Time
 	if start != nil {
 		startTime = time.Time(*start)
 	}
-	seenPosts, err := memo_db.GetSeenPosts(ctx, startTime, *txHash)
+	seenPosts, err := memo_db.GetSeenPosts(ctx, startTime, txHash)
 	if err != nil {
 		return nil, jerr.Get("error getting seen posts for newest graphql query", err)
 	}
@@ -227,7 +228,16 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 			return nil, jerr.Getf(err, "error getting post from post dataloader for query resolver: %s", txHashes[i])
 		}
 	}
-	return posts, nil
+	var returnPosts []*model.Post
+	for i := range txHashes {
+		for _, post := range posts {
+			if post.TxHash == txHashes[i] {
+				returnPosts = append(returnPosts, post)
+				break
+			}
+		}
+	}
+	return returnPosts, nil
 }
 
 // Room is the resolver for the room field.

@@ -75,9 +75,10 @@ func GetSeenPosts(ctx context.Context, start time.Time, startTxHash [32]byte) ([
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetWOpts(client.Opts{
 			Context: ctx,
-			Topic: db.TopicMemoSeenPost,
-			Start: startByte,
-			Max:   limit,
+			Topic:   db.TopicMemoSeenPost,
+			Start:   startByte,
+			Max:     limit,
+			Newest:  true,
 		}); err != nil {
 			return nil, fmt.Errorf("error getting db seen posts; %w", err)
 		}
@@ -91,6 +92,11 @@ func GetSeenPosts(ctx context.Context, start time.Time, startTxHash [32]byte) ([
 		}
 		allSeenPosts = append(allSeenPosts, seenPosts...)
 		sort.Slice(allSeenPosts, func(i, j int) bool {
+			if allSeenPosts[i].Seen.Equal(allSeenPosts[j].Seen) {
+				return jutil.ByteLT(
+					jutil.ByteReverse(allSeenPosts[i].PostTxHash[:]),
+					jutil.ByteReverse(allSeenPosts[j].PostTxHash[:]))
+			}
 			return allSeenPosts[i].Seen.Before(allSeenPosts[j].Seen)
 		})
 		if len(allSeenPosts) >= limit && IsSeenPostSameShardWindow(start, allSeenPosts[len(allSeenPosts)-1].Seen) {
