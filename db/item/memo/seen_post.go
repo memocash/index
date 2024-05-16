@@ -1,7 +1,7 @@
 package memo
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -77,7 +77,10 @@ func GetSeenPosts(start time.Time, startTxHash [32]byte) ([]*SeenPost, error) {
 			Start: startByte,
 			Max:   limit,
 		}); err != nil {
-			return nil, jerr.Get("error getting db seen posts", err)
+			return nil, fmt.Errorf("error getting db seen posts; %w", err)
+		}
+		if len(dbClient.Messages) == 0 {
+			continue
 		}
 		var seenPosts = make([]*SeenPost, len(dbClient.Messages))
 		for i := range dbClient.Messages {

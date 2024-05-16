@@ -17,7 +17,11 @@ func MemoPost(ctx context.Context, info parse.OpReturn, post string) error {
 		Seen:   info.Seen,
 		TxHash: info.TxHash,
 	}
-	var objects = []db.Object{lockMemoPost}
+	var memoSeenPost = &memo.SeenPost{
+		Seen:       info.Seen,
+		PostTxHash: info.TxHash,
+	}
+	var objects = []db.Object{lockMemoPost, memoSeenPost}
 	existingMemoPost, err := memo.GetPost(info.TxHash)
 	if err != nil {
 		return jerr.Get("error getting existing memo post for post op return handler", err)
