@@ -60,8 +60,12 @@ func (i *SeenPost) Serialize() []byte {
 
 func (i *SeenPost) Deserialize([]byte) {}
 
-func GetSeenPosts(ctx context.Context, start time.Time, startTxHash [32]byte) ([]*SeenPost, error) {
-	const limit = client.ExLargeLimit
+func GetSeenPosts(ctx context.Context, start time.Time, startTxHash [32]byte, limit uint32) ([]*SeenPost, error) {
+	if limit == 0 {
+		limit = client.DefaultLimit
+	} else if limit > client.ExLargeLimit {
+		limit = client.ExLargeLimit
+	}
 	shardConfigs := config.GetQueueShards()
 	startShard := GetSeenPostShard32(start)
 	var startByte []byte
@@ -99,11 +103,11 @@ func GetSeenPosts(ctx context.Context, start time.Time, startTxHash [32]byte) ([
 			}
 			return allSeenPosts[i].Seen.After(allSeenPosts[j].Seen)
 		})
-		if len(allSeenPosts) >= limit && IsSeenPostSameShardWindow(start, allSeenPosts[len(allSeenPosts)-1].Seen) {
+		if len(allSeenPosts) >= int(limit) && IsSeenPostSameShardWindow(start, allSeenPosts[len(allSeenPosts)-1].Seen) {
 			break
 		}
 	}
-	if len(allSeenPosts) > limit {
+	if len(allSeenPosts) > int(limit) {
 		allSeenPosts = allSeenPosts[:limit]
 	}
 	return allSeenPosts, nil

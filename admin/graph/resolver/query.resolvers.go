@@ -203,7 +203,7 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.
 }
 
 // PostsNewest is the resolver for the posts_newest field.
-func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *string) ([]*model.Post, error) {
+func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *string, limit *uint32) ([]*model.Post, error) {
 	metric.AddGraphQuery(metric.EndPointPostsNewest)
 	var txHash chainhash.Hash
 	if tx != nil {
@@ -223,7 +223,11 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 			startTime = txSeens[0].Timestamp
 		}
 	}
-	seenPosts, err := memo_db.GetSeenPosts(ctx, startTime, txHash)
+	var limitInt uint32
+	if limit != nil {
+		limitInt = *limit
+	}
+	seenPosts, err := memo_db.GetSeenPosts(ctx, startTime, txHash, limitInt)
 	if err != nil {
 		return nil, jerr.Get("error getting seen posts for newest graphql query", err)
 	}

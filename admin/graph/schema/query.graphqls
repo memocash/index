@@ -9,7 +9,7 @@ type Query {
     profiles(addresses: [String!]): [Profile]
     posts(txHashes: [String!]): [Post]
     # posts_newest can take a date or a tx hash to start from for pagination
-    posts_newest(start: Date, tx: String): [Post]
+    posts_newest(start: Date, tx: String, limit: Uint32): [Post]
     room(name: String!): Room!
 }
 

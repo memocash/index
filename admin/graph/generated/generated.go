@@ -129,7 +129,7 @@ type ComplexityRoot struct {
 		BlockNewest func(childComplexity int) int
 		Blocks      func(childComplexity int, newest *bool, start *uint32) int
 		Posts       func(childComplexity int, txHashes []string) int
-		PostsNewest func(childComplexity int, start *model.Date, tx *string) int
+		PostsNewest func(childComplexity int, start *model.Date, tx *string, limit *uint32) int
 		Profiles    func(childComplexity int, addresses []string) int
 		Room        func(childComplexity int, name string) int
 		Tx          func(childComplexity int, hash string) int
@@ -305,7 +305,7 @@ type QueryResolver interface {
 	Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error)
 	Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error)
 	Posts(ctx context.Context, txHashes []string) ([]*model.Post, error)
-	PostsNewest(ctx context.Context, start *model.Date, tx *string) ([]*model.Post, error)
+	PostsNewest(ctx context.Context, start *model.Date, tx *string, limit *uint32) ([]*model.Post, error)
 	Room(ctx context.Context, name string) (*model.Room, error)
 }
 type RoomResolver interface {
@@ -784,7 +784,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.PostsNewest(childComplexity, args["start"].(*model.Date), args["tx"].(*string)), true
+		return e.complexity.Query.PostsNewest(childComplexity, args["start"].(*model.Date), args["tx"].(*string), args["limit"].(*uint32)), true
 
 	case "Query.profiles":
 		if e.complexity.Query.Profiles == nil {
@@ -1645,7 +1645,8 @@ type Like {
     blocks(newest: Boolean, start: Uint32): [Block!]
     profiles(addresses: [String!]): [Profile]
     posts(txHashes: [String!]): [Post]
-    posts_newest(start: Date, tx: String): [Post]
+    # posts_newest can take a date or a tx hash to start from for pagination
+    posts_newest(start: Date, tx: String, limit: Uint32): [Post]
     room(name: String!): Room!
 }
 
@@ -2022,6 +2023,15 @@ func (ec *executionContext) field_Query_posts_newest_args(ctx context.Context, r
 		}
 	}
 	args["tx"] = arg1
+	var arg2 *uint32
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+		arg2, err = ec.unmarshalOUint322ᚖuint32(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg2
 	return args, nil
 }
 
@@ -5153,7 +5163,7 @@ func (ec *executionContext) _Query_posts_newest(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().PostsNewest(rctx, fc.Args["start"].(*model.Date), fc.Args["tx"].(*string))
+		return ec.resolvers.Query().PostsNewest(rctx, fc.Args["start"].(*model.Date), fc.Args["tx"].(*string), fc.Args["limit"].(*uint32))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
