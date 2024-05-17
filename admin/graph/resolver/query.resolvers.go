@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
@@ -17,6 +18,7 @@ import (
 	"github.com/memocash/index/admin/graph/sub"
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/db/item/chain"
+	memo_db "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/db/metric"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -198,6 +200,53 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.
 		}
 	}
 	return posts, nil
+}
+
+// PostsNewest is the resolver for the posts_newest field.
+func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *string) ([]*model.Post, error) {
+	metric.AddGraphQuery(metric.EndPointPostsNewest)
+	var txHash chainhash.Hash
+	if tx != nil {
+		txHashPointer, _ := chainhash.NewHashFromStr(*tx)
+		txHash = *txHashPointer
+	}
+	var startTime time.Time
+	if start != nil {
+		startTime = time.Time(*start)
+	}
+	if tx != nil && start == nil {
+		txSeens, err := chain.GetTxSeens(ctx, [][32]byte{txHash})
+		if err != nil {
+			return nil, jerr.Get("error getting tx seen param for newest graphql query", err)
+		}
+		if len(txSeens) > 0 {
+			startTime = txSeens[0].Timestamp
+		}
+	}
+	seenPosts, err := memo_db.GetSeenPosts(ctx, startTime, txHash)
+	if err != nil {
+		return nil, jerr.Get("error getting seen posts for newest graphql query", err)
+	}
+	var txHashes = make([]string, len(seenPosts))
+	for i := range seenPosts {
+		txHashes[i] = chainhash.Hash(seenPosts[i].PostTxHash).String()
+	}
+	posts, errs := load.Post.LoadAll(txHashes)
+	for i, err := range errs {
+		if err != nil {
+			return nil, jerr.Getf(err, "error getting post from post dataloader for query resolver: %s", txHashes[i])
+		}
+	}
+	var returnPosts []*model.Post
+	for i := range txHashes {
+		for _, post := range posts {
+			if post.TxHash == txHashes[i] {
+				returnPosts = append(returnPosts, post)
+				break
+			}
+		}
+	}
+	return returnPosts, nil
 }
 
 // Room is the resolver for the room field.

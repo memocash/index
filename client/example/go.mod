@@ -18,7 +18,7 @@ require (
 	github.com/jchavannes/btcutil v1.1.4 // indirect
 	github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65 // indirect
 	github.com/jchavannes/gorm v0.0.0-20190714222221-6e209826f9bd // indirect
-	github.com/jchavannes/jgo v0.0.0-20230222214331-95b230651774 // indirect
+	github.com/jchavannes/jgo v0.0.0-20240515195449-361d07b9e227 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/tyler-smith/go-bip32 v1.0.0 // indirect
 	golang.org/x/crypto v0.17.0 // indirect

@@ -26,6 +26,7 @@ func GetCommand() *cobra.Command {
 		populateP2shDirectCmd,
 		populateAddrOutputsCmd,
 		populateAddrInputsCmd,
+		populateSeenPostsCmd,
 	)
 	return maintCommand
 }

@@ -59,12 +59,12 @@ func GetSeenTxs(addr [25]byte, start []byte) ([]*SeenTx, error) {
 	}); err != nil {
 		return nil, jerr.Get("error getting db addr seen txs by prefix", err)
 	}
-	var heightInputs = make([]*SeenTx, len(dbClient.Messages))
+	var seenTxs = make([]*SeenTx, len(dbClient.Messages))
 	for i := range dbClient.Messages {
-		heightInputs[i] = new(SeenTx)
-		db.Set(heightInputs[i], dbClient.Messages[i])
+		seenTxs[i] = new(SeenTx)
+		db.Set(seenTxs[i], dbClient.Messages[i])
 	}
-	return heightInputs, nil
+	return seenTxs, nil
 }
 
 func ListenAddrSeenTxs(ctx context.Context, addrs [][25]byte) (chan *SeenTx, error) {

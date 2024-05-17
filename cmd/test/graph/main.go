@@ -9,6 +9,7 @@ var graphCmd = &cobra.Command{
 func GetCommand() *cobra.Command {
 	graphCmd.AddCommand(
 		txCmd,
+		postsCmd,
 	)
 	return graphCmd
 }
