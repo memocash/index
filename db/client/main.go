@@ -2,6 +2,8 @@ package client
 
 import (
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"github.com/jchavannes/jgo/db_util"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -37,7 +39,7 @@ const (
 var (
 	MultipleEntryError       = jerr.New(MultipleEntryErrorMessage)
 	EntryNotFoundError       = jerr.New(EntryNotFoundErrorMessage)
-	MessageNotSetError       = jerr.New(MessageNotSetErrorMessage)
+	MessageNotSetError       = fmt.Errorf(MessageNotSetErrorMessage)
 	ResourceUnavailableError = jerr.New(ResourceUnavailableMessage)
 )
 
@@ -91,7 +93,7 @@ func IsEntryNotFoundError(e error) bool {
 }
 
 func IsMessageNotSetError(err error) bool {
-	return jerr.HasError(err, MessageNotSetErrorMessage)
+	return errors.Is(err, MessageNotSetError) || jerr.HasError(err, MessageNotSetErrorMessage)
 }
 
 func IsResourceUnavailableError(err error) bool {

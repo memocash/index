@@ -19,6 +19,9 @@ func GetPosts(start time.Time) ([]*Post, error) {
 			tx {
 				seen
 			}
+			room {
+			    name
+			}
 		}
 	}`
 	jsonData := map[string]interface{}{
