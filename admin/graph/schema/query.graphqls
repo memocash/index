@@ -8,6 +8,7 @@ type Query {
     blocks(newest: Boolean, start: Uint32): [Block!]
     profiles(addresses: [String!]): [Profile]
     posts(txHashes: [String!]): [Post]
+    # posts_newest can take a date or a tx hash to start from for pagination
     posts_newest(start: Date, tx: String): [Post]
     room(name: String!): Room!
 }

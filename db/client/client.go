@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/proto/queue_pb"
@@ -151,11 +152,11 @@ func (s *Client) GetSingleContext(ctx context.Context, topic string, uid []byte)
 		Uid:   uid,
 	})
 	if err != nil {
-		return jerr.Get("error getting single message rpc", err)
+		return fmt.Errorf("error getting single message rpc; %w", err)
 	}
 	if len(message.Uid) == 0 {
-		return jerr.Getf(MessageNotSetError, "empty message returned, uid empty: %d (%s)",
-			len(message.Message), message.Topic)
+		return fmt.Errorf("empty message returned, uid empty: %d (%s); %w",
+			len(message.Message), message.Topic, MessageNotSetError)
 	}
 	s.Messages = []Message{{
 		Topic:   message.Topic,

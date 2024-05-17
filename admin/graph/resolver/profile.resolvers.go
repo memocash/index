@@ -5,10 +5,10 @@ package resolver
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/graph/generated"
 	"github.com/memocash/index/admin/graph/load"
 	"github.com/memocash/index/admin/graph/model"
@@ -20,7 +20,7 @@ import (
 func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error) {
 	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting tx from loader for follow resolver: %s", obj.TxHash)
+		return nil, fmt.Errorf("error getting tx from loader for follow resolver: %s; %w", obj.TxHash, err)
 	}
 	return tx, nil
 }
@@ -29,7 +29,7 @@ func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, 
 func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
 	lock, err := load.GetLock(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for follow resolver: %s", obj.TxHash)
+		return nil, fmt.Errorf("error getting lock from loader for follow resolver: %s; %w", obj.TxHash, err)
 	}
 	return lock, nil
 }
@@ -38,7 +38,7 @@ func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lo
 func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
 	lock, err := load.GetLock(ctx, obj.FollowAddress)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting follow lock from loader for follow resolver: %s", obj.TxHash)
+		return nil, fmt.Errorf("error getting follow lock from loader for follow resolver: %s; %w", obj.TxHash, err)
 	}
 	return lock, nil
 }
@@ -47,7 +47,7 @@ func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*mo
 func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, error) {
 	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting tx from loader for like resolver: %s", obj.TxHash)
+		return nil, fmt.Errorf("error getting tx from loader for like resolver: %s; %w", obj.TxHash, err)
 	}
 	return tx, nil
 }
@@ -56,7 +56,7 @@ func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, erro
 func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, error) {
 	lock, err := load.GetLock(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for like resolver: %s %x", obj.TxHash, obj.Address)
+		return nil, fmt.Errorf("error getting lock from loader for like resolver: %s %x; %w", obj.TxHash, obj.Address, err)
 	}
 	return lock, nil
 }
@@ -65,7 +65,7 @@ func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, 
 func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, error) {
 	post, err := load.Post.Load(obj.TxHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting post from post dataloader for like resolver: %s", obj.Address)
+		return nil, fmt.Errorf("error getting post from post dataloader for like resolver: %s; %w", obj.Address, err)
 	}
 	return post, nil
 }
@@ -74,7 +74,7 @@ func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, 
 func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
 	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting tx from loader for post resolver: %s", obj.TxHash)
+		return nil, fmt.Errorf("error getting tx from loader for post resolver: %s; %w", obj.TxHash, err)
 	}
 	return tx, nil
 }
@@ -83,7 +83,7 @@ func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, erro
 func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, error) {
 	lock, err := load.GetLock(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for post resolver: %s %x", obj.TxHash, obj.Address)
+		return nil, fmt.Errorf("error getting lock from loader for post resolver: %s %x; %w", obj.TxHash, obj.Address, err)
 	}
 	return lock, nil
 }
@@ -92,11 +92,11 @@ func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, 
 func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Like, error) {
 	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
 	if err != nil {
-		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
+		return nil, fmt.Errorf("error parsing tx hash for likes for post resolver; %w", err)
 	}
 	memoPostLikes, err := memo.GetPostLikes([][32]byte{*postTxHash})
 	if err != nil {
-		return nil, jerr.Get("error getting memo post likeds for post resolver", err)
+		return nil, fmt.Errorf("error getting memo post likeds for post resolver; %w", err)
 	}
 	var likeTxHashes = make([][32]byte, len(memoPostLikes))
 	for i := range memoPostLikes {
@@ -104,7 +104,7 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 	}
 	memoLikeTips, err := memo.GetLikeTips(likeTxHashes)
 	if err != nil {
-		return nil, jerr.Get("error getting memo like tips for post resolver", err)
+		return nil, fmt.Errorf("error getting memo like tips for post resolver; %w", err)
 	}
 	var likes = make([]*model.Like, len(memoPostLikes))
 	for i := range memoPostLikes {
@@ -130,11 +130,11 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post, error) {
 	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
 	if err != nil {
-		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
+		return nil, fmt.Errorf("error parsing tx hash for likes for post resolver; %w", err)
 	}
 	postParent, err := memo.GetPostParent(ctx, *postTxHash)
 	if err != nil {
-		return nil, jerr.Get("error getting memo post parent for post resolver", err)
+		return nil, fmt.Errorf("error getting memo post parent for post resolver; %w", err)
 	}
 	if postParent == nil {
 		return nil, nil
@@ -144,7 +144,7 @@ func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post
 		if load.IsPostNotFoundError(err) {
 			return nil, nil
 		}
-		return nil, jerr.Getf(err, "error getting from post dataloader for post parent resolver: %s", obj.Address)
+		return nil, fmt.Errorf("error getting from post dataloader for post parent resolver: %s; %w", obj.Address, err)
 	}
 	return post, nil
 }
@@ -153,11 +153,11 @@ func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post
 func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.Post, error) {
 	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
 	if err != nil {
-		return nil, jerr.Get("error parsing tx hash for likes for post resolver", err)
+		return nil, fmt.Errorf("error parsing tx hash for likes for post resolver; %w", err)
 	}
 	postChildren, err := memo.GetPostChildren(ctx, *postTxHash)
 	if err != nil {
-		return nil, jerr.Get("error getting memo post children for post resolver", err)
+		return nil, fmt.Errorf("error getting memo post children for post resolver; %w", err)
 	}
 	var childrenTxHashes = make([]string, len(postChildren))
 	for i := range postChildren {
@@ -166,7 +166,7 @@ func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.P
 	replies, errs := load.Post.LoadAll(childrenTxHashes)
 	for _, err := range errs {
 		if err != nil {
-			return nil, jerr.Getf(err, "error getting from post dataloader for post reply resolver: %s", obj.TxHash)
+			return nil, fmt.Errorf("error getting from post dataloader for post reply resolver: %s; %w", obj.TxHash, err)
 		}
 	}
 	return replies, nil
@@ -176,12 +176,15 @@ func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.P
 func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, error) {
 	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
 	if err != nil {
-		return nil, jerr.Get("error parsing tx hash for room for post resolver", err)
+		return nil, fmt.Errorf("error parsing tx hash for room for post resolver; %w", err)
 	}
 
 	postRoom, err := memo.GetPostRoom(ctx, postTxHash.CloneBytes())
 	if err != nil {
-		return nil, jerr.Get("error getting memo post room for post resolver", err)
+		return nil, fmt.Errorf("error getting memo post room for post resolver; %w", err)
+	}
+	if postRoom == nil {
+		return nil, nil
 	}
 	return &model.Room{
 		Name: postRoom.Room,
@@ -192,7 +195,7 @@ func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, 
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
 	lock, err := load.GetLock(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting addr from loader for profile resolver: %s", obj.Address)
+		return nil, fmt.Errorf("error getting addr from loader for profile resolver: %s; %w", obj.Address, err)
 	}
 	return lock, nil
 }
@@ -201,7 +204,7 @@ func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.
 func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error) {
 	address, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting address from string for profile following resolver: %s", obj.Address)
+		return nil, fmt.Errorf("error getting address from string for profile following resolver: %s; %w", obj.Address, err)
 	}
 	var startTime time.Time
 	if start != nil {
@@ -209,7 +212,7 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	}
 	addrMemoFollows, err := memo.GetAddrFollowsSingle(ctx, *address, startTime)
 	if err != nil {
-		return nil, jerr.Get("error getting address memo follows for address", err)
+		return nil, fmt.Errorf("error getting address memo follows for address; %w", err)
 	}
 	var follows []*model.Follow
 	for _, addrMemoFollow := range addrMemoFollows {
@@ -227,7 +230,7 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error) {
 	address, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting address from string for profile followers resolver: %s", obj.Address)
+		return nil, fmt.Errorf("error getting address from string for profile followers resolver: %s; %w", obj.Address, err)
 	}
 	var startTime time.Time
 	if start != nil {
@@ -235,7 +238,7 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 	}
 	addrMemoFolloweds, err := memo.GetAddrFollowedsSingle(ctx, *address, startTime)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting addr memo follows for address: %s", obj.Address)
+		return nil, fmt.Errorf("error getting addr memo follows for address: %s; %w", obj.Address, err)
 	}
 	var follows []*model.Follow
 	for _, addrMemoFollowed := range addrMemoFolloweds {
@@ -253,7 +256,7 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *model.Date, newest *bool) ([]*model.Post, error) {
 	addr, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error decoding address for profile resolver: %s", obj.Address)
+		return nil, fmt.Errorf("error decoding address for profile resolver: %s; %w", obj.Address, err)
 	}
 	var startTime time.Time
 	if start != nil {
@@ -261,7 +264,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	}
 	addrMemoPosts, err := memo.GetSingleAddrPosts(ctx, *addr, newest != nil && *newest, startTime)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting addr memo posts for profile resolver: %s", obj.Address)
+		return nil, fmt.Errorf("error getting addr memo posts for profile resolver: %s; %w", obj.Address, err)
 	}
 	var postTxHashes = make([][32]byte, len(addrMemoPosts))
 	for i := range addrMemoPosts {
@@ -269,7 +272,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	}
 	memoPosts, err := memo.GetPosts(postTxHashes)
 	if err != nil {
-		return nil, jerr.Get("error getting memo posts for profile resolver", err)
+		return nil, fmt.Errorf("error getting memo posts for profile resolver; %w", err)
 	}
 	var posts = make([]*model.Post, len(memoPosts))
 	for i, memoPost := range memoPosts {
@@ -286,7 +289,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.RoomFollow, error) {
 	addr, err := wallet.GetAddrFromString(obj.Address)
 	if err != nil {
-		return nil, jerr.Get("error decoding lock for room follows in profile resolver", err)
+		return nil, fmt.Errorf("error decoding lock for room follows in profile resolver; %w", err)
 	}
 	lockRoomFollows, err := memo.GetAddrRoomFollows(ctx, [][25]byte{*addr})
 	var roomFollows = make([]*model.RoomFollow, len(lockRoomFollows))
@@ -305,7 +308,7 @@ func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
 	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting tx from loader for set name resolver: %s", obj.TxHash)
+		return nil, fmt.Errorf("error getting tx from loader for set name resolver: %s; %w", obj.TxHash, err)
 	}
 	return tx, nil
 }
@@ -314,7 +317,7 @@ func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx
 func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.Lock, error) {
 	lock, err := load.GetLock(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for set name resolver: %s %x", obj.TxHash, obj.Address)
+		return nil, fmt.Errorf("error getting lock from loader for set name resolver: %s %x; %w", obj.TxHash, obj.Address, err)
 	}
 	return lock, nil
 }
@@ -323,7 +326,7 @@ func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.
 func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error) {
 	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting tx from loader for set pic resolver: %s", obj.TxHash)
+		return nil, fmt.Errorf("error getting tx from loader for set pic resolver: %s; %w", obj.TxHash, err)
 	}
 	return tx, nil
 }
@@ -332,7 +335,7 @@ func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, 
 func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lock, error) {
 	lock, err := load.GetLock(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for set pic resolver: %s %x", obj.TxHash, obj.Address)
+		return nil, fmt.Errorf("error getting lock from loader for set pic resolver: %s %x; %w", obj.TxHash, obj.Address, err)
 	}
 	return lock, nil
 }
@@ -341,7 +344,7 @@ func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lo
 func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error) {
 	tx, err := load.GetTxByString(ctx, obj.TxHash)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting tx from loader for set profile resolver: %s", obj.TxHash)
+		return nil, fmt.Errorf("error getting tx from loader for set profile resolver: %s; %w", obj.TxHash, err)
 	}
 	return tx, nil
 }
@@ -350,7 +353,7 @@ func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*mo
 func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error) {
 	lock, err := load.GetLock(ctx, obj.Address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for set profile resolver: %s", obj.TxHash)
+		return nil, fmt.Errorf("error getting lock from loader for set profile resolver: %s; %w", obj.TxHash, err)
 	}
 	return lock, nil
 }

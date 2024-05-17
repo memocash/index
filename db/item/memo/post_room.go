@@ -2,7 +2,7 @@ package memo
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -45,11 +45,12 @@ func (r *PostRoom) Deserialize(data []byte) {
 func GetPostRoom(ctx context.Context, txHash []byte) (*PostRoom, error) {
 	shard := client.GetByteShard32(txHash)
 	dbClient := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
-	if err := dbClient.GetSingleContext(ctx, db.TopicMemoPostRoom, jutil.ByteReverse(txHash)); err != nil {
-		return nil, jerr.Get("error getting client message post room single", err)
+	err := dbClient.GetSingleContext(ctx, db.TopicMemoPostRoom, jutil.ByteReverse(txHash))
+	if err != nil && !client.IsMessageNotSetError(err) {
+		return nil, fmt.Errorf("error getting client message post room single; %w", err)
 	}
 	if len(dbClient.Messages) > 1 {
-		return nil, jerr.Newf("error unexpected number of post room client messages: %d", len(dbClient.Messages))
+		return nil, fmt.Errorf("error unexpected number of post room client messages: %d", len(dbClient.Messages))
 	} else if len(dbClient.Messages) == 0 {
 		return nil, nil
 	}
