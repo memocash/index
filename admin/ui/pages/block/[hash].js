@@ -16,7 +16,7 @@ export default function LockHash() {
         txs: [],
     })
     const [lastOffset, setLastOffset] = useState(0)
-    const [offset, setOffset] = useState("")
+    const [offset, setOffset] = useState(0)
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const query = `

@@ -2,7 +2,6 @@ package load
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/memocash/index/admin/graph/model"
 	"github.com/memocash/index/db/client"
@@ -135,9 +134,8 @@ func (b *Blocks) AttachTxs() {
 	defer b.Mutex.Unlock()
 	txsField := b.Fields.GetField("txs")
 	var startIndex uint32
-	if startNum, ok := txsField.Arguments["start"].(json.Number); ok {
-		start64, _ := startNum.Int64()
-		startIndex = uint32(start64)
+	if startNum, err := model.UnmarshalUint32(txsField.Arguments["start"]); err == nil {
+		startIndex = uint32(startNum)
 	}
 	var allTxs []*model.Tx
 	for _, block := range b.Blocks {
