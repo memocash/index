@@ -61,7 +61,7 @@ func (i *SeenPost) Serialize() []byte {
 func (i *SeenPost) Deserialize([]byte) {}
 
 func GetSeenPosts(ctx context.Context, start time.Time, startTxHash [32]byte) ([]*SeenPost, error) {
-	const limit = client.DefaultLimit
+	const limit = client.ExLargeLimit
 	shardConfigs := config.GetQueueShards()
 	startShard := GetSeenPostShard32(start)
 	var startByte []byte
