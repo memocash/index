@@ -214,6 +214,15 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 	if start != nil {
 		startTime = time.Time(*start)
 	}
+	if tx != nil && start == nil {
+		txSeens, err := chain.GetTxSeens(ctx, [][32]byte{txHash})
+		if err != nil {
+			return nil, jerr.Get("error getting tx seen param for newest graphql query", err)
+		}
+		if len(txSeens) > 0 {
+			startTime = txSeens[0].Timestamp
+		}
+	}
 	seenPosts, err := memo_db.GetSeenPosts(ctx, startTime, txHash)
 	if err != nil {
 		return nil, jerr.Get("error getting seen posts for newest graphql query", err)

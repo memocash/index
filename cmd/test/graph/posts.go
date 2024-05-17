@@ -24,7 +24,7 @@ var postsCmd = &cobra.Command{
 			log.Fatalf("error getting posts; %v", err)
 		}
 		for i, post := range posts {
-			log.Printf("Post %2d (%s): %s %s %s\n", i, post.Tx.Seen.Format(time.RFC3339),
+			log.Printf("Post %2d (%s): %s %s %s\n", i, post.Tx.Seen.Format(time.RFC3339Nano),
 				post.TxHash, post.Address, post.Text)
 		}
 	},

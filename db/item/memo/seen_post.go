@@ -97,7 +97,7 @@ func GetSeenPosts(ctx context.Context, start time.Time, startTxHash [32]byte) ([
 					jutil.ByteReverse(allSeenPosts[i].PostTxHash[:]),
 					jutil.ByteReverse(allSeenPosts[j].PostTxHash[:]))
 			}
-			return allSeenPosts[i].Seen.Before(allSeenPosts[j].Seen)
+			return allSeenPosts[i].Seen.After(allSeenPosts[j].Seen)
 		})
 		if len(allSeenPosts) >= limit && IsSeenPostSameShardWindow(start, allSeenPosts[len(allSeenPosts)-1].Seen) {
 			break
