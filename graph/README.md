@@ -1,0 +1,50 @@
+# Dataloader
+
+Create new:
+
+```bash
+cd github.com/memocash/index/graph/dataloader
+go get github.com/vektah/dataloaden
+go run github.com/vektah/dataloaden TxLostLoader string *github.com/memocash/index/graph/model.TxLost
+go run github.com/vektah/dataloaden TxSuspectLoader string *github.com/memocash/index/graph/model.TxSuspect
+go run github.com/vektah/dataloaden BlockLoader string []*github.com/memocash/index/graph/model.Block
+go run github.com/vektah/dataloaden TxSeenLoader string *github.com/memocash/index/graph/model.Date
+go run github.com/vektah/dataloaden TxInputsLoader string []*github.com/memocash/index/graph/model.TxInput
+go run github.com/vektah/dataloaden TxOutputLoader github.com/memocash/index/graph/model.HashIndex *github.com/memocash/index/graph/model.TxOutput
+go run github.com/vektah/dataloaden TxOutputsLoader string []*github.com/memocash/index/graph/model.TxOutput
+go run github.com/vektah/dataloaden TxRawLoader string *github.com/memocash/index/graph/model.Tx
+go run github.com/vektah/dataloaden ProfileLoader string *github.com/memocash/index/graph/model.Profile
+go run github.com/vektah/dataloaden AddressBalanceLoader string int64
+go run github.com/vektah/dataloaden PostLoader string *github.com/memocash/index/graph/model.Post
+go run github.com/vektah/dataloaden SlpOutputLoader github.com/memocash/index/graph/model.HashIndex *github.com/memocash/index/graph/model.SlpOutput
+go run github.com/vektah/dataloaden SlpBatonLoader github.com/memocash/index/graph/model.HashIndex *github.com/memocash/index/graph/model.SlpBaton
+go run github.com/vektah/dataloaden SlpGenesisLoader string *github.com/memocash/index/graph/model.SlpGenesis
+
+go get github.com/vektah/dataloaden@none
+go mod tidy
+```
+
+# GQL Gen
+
+```bash
+go get github.com/99designs/gqlgen@v0.17.20
+go generate ./...
+go get github.com/99designs/gqlgen@none
+```
+
+### Adding field resolvers
+
+Automatic: Move model from `models_gen.go` to `models.go`.
+Remove fields from model and regenerate resolvers.
+
+Manual: Add to `gqlgen.yml` (replace with desired model/fields).
+
+```yaml
+models:
+  Profile:
+    fields:
+      following:
+        resolver: true
+      followers:
+        resolver: true
+```

@@ -3,8 +3,8 @@ package graphql
 import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	_ "github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/memocash/index/admin/graph/generated"
-	"github.com/memocash/index/admin/graph/resolver"
+	"github.com/memocash/index/graph/generated"
+	"github.com/memocash/index/graph/resolver"
 	"net/http"
 )
 
