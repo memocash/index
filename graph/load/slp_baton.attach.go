@@ -63,7 +63,7 @@ func (o *SlpBatons) AttachGeneses() {
 	}
 	slpGeneses, err := slp.GetGeneses(o.Ctx, o.GetTokenHashes())
 	if err != nil {
-		o.AddError(fmt.Errorf("error getting slp geneses from dataloader; %w", err))
+		o.AddError(fmt.Errorf("error getting slp geneses for attach to slp baton; %w", err))
 		return
 	}
 	var allSlpGeneses []*model.SlpGenesis

@@ -50,7 +50,7 @@ func (l *Lock) AttachProfiles() {
 	for _, lockAddr := range l.GetLockAddrs() {
 		profile, err := GetProfile(l.Ctx, lockAddr)
 		if err != nil {
-			l.AddError(fmt.Errorf("error getting profile from dataloader for lock resolver; %w", err))
+			l.AddError(fmt.Errorf("error getting profile for lock resolver; %w", err))
 			return
 		}
 		profiles = append(profiles, profile)
