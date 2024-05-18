@@ -108,9 +108,8 @@ func (o *Outputs) AttachSpends() {
 		}
 		allSpends = append(allSpends, o.Outputs[i].Spends...)
 	}
-	prefixFields := GetPrefixFields(o.Fields, "spends.")
 	o.Mutex.Unlock()
-	if err := AttachToInputs(o.Ctx, prefixFields, allSpends); err != nil {
+	if err := AttachToInputs(o.Ctx, GetPrefixFields(o.Fields, "spends."), allSpends); err != nil {
 		o.AddError(fmt.Errorf("error attaching to tx inputs spends for model tx outputs; %w", err))
 		return
 	}
@@ -211,13 +210,15 @@ func (o *Outputs) AttachLocks() {
 	for j := range o.Outputs {
 		address, err := wallet.GetAddrFromLockScript(o.Outputs[j].Script)
 		if err != nil {
-			o.AddError(fmt.Errorf("error getting address from pk script for outputs attach locks; %w", err))
-			return
+			continue
 		}
 		o.Outputs[j].Lock = &model.Lock{Address: model.Address(*address)}
 		allLocks = append(allLocks, o.Outputs[j].Lock)
 	}
 	o.Mutex.Unlock()
+	if len(allLocks) == 0 {
+		return
+	}
 	if err := AttachToLocks(o.Ctx, GetPrefixFields(o.Fields, "lock."), allLocks); err != nil {
 		o.AddError(fmt.Errorf("error attaching to locks for model tx outputs; %w", err))
 		return
