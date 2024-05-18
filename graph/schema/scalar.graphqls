@@ -6,4 +6,5 @@ scalar Uint64
 scalar HashIndex
 scalar Date
 scalar Hash
+scalar Address
 scalar Bytes

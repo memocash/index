@@ -6,7 +6,6 @@ import (
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 type Profile struct {
@@ -18,7 +17,7 @@ type Profile struct {
 	PicAddresses     [][25]byte
 }
 
-func (p *Profile) Listen(ctx context.Context, addresses []string, fields load.Fields) (<-chan *model.Profile, error) {
+func (p *Profile) Listen(ctx context.Context, addresses [][25]byte, fields load.Fields) (<-chan *model.Profile, error) {
 	ctx, p.Cancel = context.WithCancel(ctx)
 	if err := p.SetupAddresses(addresses); err != nil {
 		return nil, jerr.Get("error setting up lock hashes for profile", err)
@@ -66,14 +65,8 @@ func (p *Profile) Listen(ctx context.Context, addresses []string, fields load.Fi
 	return p.GetProfileChan(ctx), nil
 }
 
-func (p *Profile) SetupAddresses(addresses []string) error {
-	for _, address := range addresses {
-		addr, err := wallet.GetAddrFromString(address)
-		if err != nil {
-			return jerr.Get("error getting address from string for profile", err)
-		}
-		p.Addresses = append(p.Addresses, *addr)
-	}
+func (p *Profile) SetupAddresses(addresses [][25]byte) error {
+	p.Addresses = addresses
 	p.AddrUpdateChan = make(chan [25]byte)
 	return nil
 }
@@ -275,7 +268,7 @@ func (p *Profile) GetProfileChan(ctx context.Context) <-chan *model.Profile {
 				if !ok {
 					return
 				}
-				profile, err := load.GetProfile(ctx, wallet.Addr(addr).String())
+				profile, err := load.GetProfile(ctx, addr)
 				if err != nil {
 					jerr.Get("error getting profile from dataloader for profile subscription resolver", err).Print()
 					return

@@ -13,7 +13,6 @@ import (
 	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 // Tx is the resolver for the tx field.
@@ -115,7 +114,7 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 		likes[i] = &model.Like{
 			TxHash:     memoPostLikes[i].LikeTxHash,
 			PostTxHash: memoPostLikes[i].PostTxHash,
-			Address:    wallet.Addr(memoPostLikes[i].Addr).String(),
+			Address:    memoPostLikes[i].Addr,
 			Tip:        tip,
 		}
 	}
@@ -187,15 +186,11 @@ func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.
 
 // Following is the resolver for the following field.
 func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error) {
-	address, err := wallet.GetAddrFromString(obj.Address)
-	if err != nil {
-		return nil, fmt.Errorf("error getting address from string for profile following resolver: %s; %w", obj.Address, err)
-	}
 	var startTime time.Time
 	if start != nil {
 		startTime = time.Time(*start)
 	}
-	addrMemoFollows, err := memo.GetAddrFollowsSingle(ctx, *address, startTime)
+	addrMemoFollows, err := memo.GetAddrFollowsSingle(ctx, obj.Address, startTime)
 	if err != nil {
 		return nil, fmt.Errorf("error getting address memo follows for address; %w", err)
 	}
@@ -203,8 +198,8 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	for _, addrMemoFollow := range addrMemoFollows {
 		follows = append(follows, &model.Follow{
 			TxHash:        addrMemoFollow.TxHash,
-			Address:       wallet.Addr(addrMemoFollow.Addr).String(),
-			FollowAddress: wallet.Addr(addrMemoFollow.FollowAddr).String(),
+			Address:       addrMemoFollow.Addr,
+			FollowAddress: addrMemoFollow.FollowAddr,
 			Unfollow:      addrMemoFollow.Unfollow,
 		})
 	}
@@ -213,15 +208,11 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 
 // Followers is the resolver for the followers field.
 func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error) {
-	address, err := wallet.GetAddrFromString(obj.Address)
-	if err != nil {
-		return nil, fmt.Errorf("error getting address from string for profile followers resolver: %s; %w", obj.Address, err)
-	}
 	var startTime time.Time
 	if start != nil {
 		startTime = time.Time(*start)
 	}
-	addrMemoFolloweds, err := memo.GetAddrFollowedsSingle(ctx, *address, startTime)
+	addrMemoFolloweds, err := memo.GetAddrFollowedsSingle(ctx, obj.Address, startTime)
 	if err != nil {
 		return nil, fmt.Errorf("error getting addr memo follows for address: %s; %w", obj.Address, err)
 	}
@@ -229,8 +220,8 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 	for _, addrMemoFollowed := range addrMemoFolloweds {
 		follows = append(follows, &model.Follow{
 			TxHash:        addrMemoFollowed.TxHash,
-			Address:       wallet.Addr(addrMemoFollowed.Addr).String(),
-			FollowAddress: wallet.Addr(addrMemoFollowed.FollowAddr).String(),
+			Address:       addrMemoFollowed.Addr,
+			FollowAddress: addrMemoFollowed.FollowAddr,
 			Unfollow:      addrMemoFollowed.Unfollow,
 		})
 	}
@@ -239,15 +230,11 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 
 // Posts is the resolver for the posts field.
 func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *model.Date, newest *bool) ([]*model.Post, error) {
-	addr, err := wallet.GetAddrFromString(obj.Address)
-	if err != nil {
-		return nil, fmt.Errorf("error decoding address for profile resolver: %s; %w", obj.Address, err)
-	}
 	var startTime time.Time
 	if start != nil {
 		startTime = time.Time(*start)
 	}
-	addrMemoPosts, err := memo.GetSingleAddrPosts(ctx, *addr, newest != nil && *newest, startTime)
+	addrMemoPosts, err := memo.GetSingleAddrPosts(ctx, obj.Address, newest != nil && *newest, startTime)
 	if err != nil {
 		return nil, fmt.Errorf("error getting addr memo posts for profile resolver: %s; %w", obj.Address, err)
 	}
@@ -263,7 +250,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	for i, memoPost := range memoPosts {
 		posts[i] = &model.Post{
 			TxHash:  memoPost.TxHash,
-			Address: wallet.Addr(memoPost.Addr).String(),
+			Address: memoPost.Addr,
 			Text:    memoPost.Post,
 		}
 	}
@@ -272,16 +259,15 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 
 // Rooms is the resolver for the rooms field.
 func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.RoomFollow, error) {
-	addr, err := wallet.GetAddrFromString(obj.Address)
+	lockRoomFollows, err := memo.GetAddrRoomFollows(ctx, [][25]byte{obj.Address})
 	if err != nil {
-		return nil, fmt.Errorf("error decoding lock for room follows in profile resolver; %w", err)
+		return nil, fmt.Errorf("error getting addr room follows for profile resolver: %s; %w", obj.Address, err)
 	}
-	lockRoomFollows, err := memo.GetAddrRoomFollows(ctx, [][25]byte{*addr})
 	var roomFollows = make([]*model.RoomFollow, len(lockRoomFollows))
 	for i := range lockRoomFollows {
 		roomFollows[i] = &model.RoomFollow{
 			Name:     lockRoomFollows[i].Room,
-			Address:  wallet.Addr(lockRoomFollows[i].Addr).String(),
+			Address:  lockRoomFollows[i].Addr,
 			Unfollow: lockRoomFollows[i].Unfollow,
 			TxHash:   lockRoomFollows[i].TxHash,
 		}

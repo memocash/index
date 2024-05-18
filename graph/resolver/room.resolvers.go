@@ -11,7 +11,6 @@ import (
 	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 // Followers is the resolver for the followers field.
@@ -24,7 +23,7 @@ func (r *roomResolver) Followers(ctx context.Context, obj *model.Room, start *in
 	for i := range lockRoomFollows {
 		roomFollows[i] = &model.RoomFollow{
 			Name:     obj.Name,
-			Address:  wallet.Addr(lockRoomFollows[i].Addr).String(),
+			Address:  lockRoomFollows[i].Addr,
 			Unfollow: lockRoomFollows[i].Unfollow,
 			TxHash:   lockRoomFollows[i].TxHash,
 		}

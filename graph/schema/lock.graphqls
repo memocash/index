@@ -1,5 +1,5 @@
 type Lock {
-    address: String
+    address: Address
     profile: Profile
     balance: Int64!
     txs(start: Date, tx: String): [Tx!]

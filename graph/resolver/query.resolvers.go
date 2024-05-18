@@ -21,13 +21,12 @@ import (
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/graph/sub"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 // Tx is the resolver for the tx field.
-func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) {
+func (r *queryResolver) Tx(ctx context.Context, hash model.Hash) (*model.Tx, error) {
 	metric.AddGraphQuery(metric.EndPointTx)
-	tx, err := load.GetTxByString(ctx, hash)
+	tx, err := load.GetTx(ctx, hash)
 	if err != nil {
 		if errors.Is(err, load.TxMissingError) {
 			return nil, fmt.Errorf("tx not found for hash: %s", hash)
@@ -38,12 +37,12 @@ func (r *queryResolver) Tx(ctx context.Context, hash string) (*model.Tx, error) 
 }
 
 // Txs is the resolver for the txs field.
-func (r *queryResolver) Txs(ctx context.Context, hashes []string) ([]*model.Tx, error) {
+func (r *queryResolver) Txs(ctx context.Context, hashes []model.Hash) ([]*model.Tx, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
 // Address is the resolver for the address field.
-func (r *queryResolver) Address(ctx context.Context, address string) (*model.Lock, error) {
+func (r *queryResolver) Address(ctx context.Context, address model.Address) (*model.Lock, error) {
 	metric.AddGraphQuery(metric.EndPointAddress)
 	lock, err := load.GetLock(ctx, address)
 	if err != nil {
@@ -53,7 +52,7 @@ func (r *queryResolver) Address(ctx context.Context, address string) (*model.Loc
 }
 
 // Addresses is the resolver for the addresses field.
-func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error) {
+func (r *queryResolver) Addresses(ctx context.Context, addresses []model.Address) ([]*model.Lock, error) {
 	metric.AddGraphQuery(metric.EndPointAddresses)
 	if load.GetFields(ctx).HasField("balance") {
 		// TODO: Reimplement if needed
@@ -72,17 +71,13 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []string) ([]*m
 }
 
 // Block is the resolver for the block field.
-func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, error) {
+func (r *queryResolver) Block(ctx context.Context, hash model.Hash) (*model.Block, error) {
 	metric.AddGraphQuery(metric.EndPointBlock)
-	blockHash, err := chainhash.NewHashFromStr(hash)
-	if err != nil {
-		return nil, jerr.Get("error parsing block hash for block query resolver", err)
-	}
-	blockHeight, err := chain.GetBlockHeight(*blockHash)
+	blockHeight, err := chain.GetBlockHeight(hash)
 	if err != nil {
 		return nil, jerr.Get("error getting block height for query resolver", err)
 	}
-	block, err := chain.GetBlock(*blockHash)
+	block, err := chain.GetBlock(hash)
 	if err != nil {
 		return nil, jerr.Get("error getting raw block", err)
 	}
@@ -177,7 +172,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 }
 
 // Profiles is the resolver for the profiles field.
-func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error) {
+func (r *queryResolver) Profiles(ctx context.Context, addresses []model.Address) ([]*model.Profile, error) {
 	metric.AddGraphQuery(metric.EndPointProfiles)
 	var profiles []*model.Profile
 	for _, addressString := range addresses {
@@ -191,9 +186,13 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []string) ([]*mo
 }
 
 // Posts is the resolver for the posts field.
-func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.Post, error) {
+func (r *queryResolver) Posts(ctx context.Context, txHashes []model.Hash) ([]*model.Post, error) {
 	metric.AddGraphQuery(metric.EndPointPosts)
-	posts, errs := load.Post.LoadAll(txHashes)
+	var txHashStrings = make([]string, len(txHashes))
+	for i := range txHashes {
+		txHashStrings[i] = txHashes[i].String()
+	}
+	posts, errs := load.Post.LoadAll(txHashStrings)
 	for i, err := range errs {
 		if err != nil {
 			return nil, jerr.Getf(err, "error getting post from post dataloader for query resolver: %s", txHashes[i])
@@ -203,12 +202,11 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []string) ([]*model.
 }
 
 // PostsNewest is the resolver for the posts_newest field.
-func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *string, limit *uint32) ([]*model.Post, error) {
+func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *model.Hash, limit *uint32) ([]*model.Post, error) {
 	metric.AddGraphQuery(metric.EndPointPostsNewest)
 	var txHash chainhash.Hash
 	if tx != nil {
-		txHashPointer, _ := chainhash.NewHashFromStr(*tx)
-		txHash = *txHashPointer
+		txHash = chainhash.Hash(*tx)
 	}
 	var startTime time.Time
 	if start != nil {
@@ -264,8 +262,8 @@ func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, err
 }
 
 // Address is the resolver for the address field.
-func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-chan *model.Tx, error) {
-	txChan, err := r.Addresses(ctx, []string{address})
+func (r *subscriptionResolver) Address(ctx context.Context, address model.Address) (<-chan *model.Tx, error) {
+	txChan, err := r.Addresses(ctx, []model.Address{address})
 	if err != nil {
 		return nil, jerr.Get("error getting address for address subscription", err)
 	}
@@ -273,17 +271,9 @@ func (r *subscriptionResolver) Address(ctx context.Context, address string) (<-c
 }
 
 // Addresses is the resolver for the address field.
-func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error) {
-	addrs := make([][25]byte, len(addresses))
-	for i := range addresses {
-		walletAddr, err := wallet.GetAddrFromString(addresses[i])
-		if err != nil {
-			return nil, jerr.Get("error getting addr for address subscription", err)
-		}
-		addrs[i] = *walletAddr
-	}
+func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []model.Address) (<-chan *model.Tx, error) {
 	ctx, cancel := context.WithCancel(ctx)
-	addrSeenTxsListener, err := addr.ListenAddrSeenTxs(ctx, addrs)
+	addrSeenTxsListener, err := addr.ListenAddrSeenTxs(ctx, model.AddressesToArrays(addresses))
 	if err != nil {
 		cancel()
 		return nil, jerr.Get("error getting addr seen txs listener for address subscription", err)
@@ -361,8 +351,8 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 }
 
 // Posts is the resolver for the posts field.
-func (r *subscriptionResolver) Posts(ctx context.Context, hashes []string) (<-chan *model.Post, error) {
-	postChan, err := new(sub.Post).Listen(ctx, hashes)
+func (r *subscriptionResolver) Posts(ctx context.Context, hashes []model.Hash) (<-chan *model.Post, error) {
+	postChan, err := new(sub.Post).Listen(ctx, model.HashesToArrays(hashes))
 	if err != nil {
 		return nil, jerr.Get("error getting post listener for subscription", err)
 	}
@@ -370,9 +360,9 @@ func (r *subscriptionResolver) Posts(ctx context.Context, hashes []string) (<-ch
 }
 
 // Profiles is the resolver for the profiles field.
-func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error) {
+func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []model.Address) (<-chan *model.Profile, error) {
 	var profile = new(sub.Profile)
-	profileChan, err := profile.Listen(ctx, addresses, load.GetFields(ctx))
+	profileChan, err := profile.Listen(ctx, model.AddressesToArrays(addresses), load.GetFields(ctx))
 	if err != nil {
 		return nil, jerr.Get("error getting profile listener for subscription", err)
 	}
@@ -390,9 +380,9 @@ func (r *subscriptionResolver) Rooms(ctx context.Context, names []string) (<-cha
 }
 
 // RoomFollows is the resolver for the room_follows field.
-func (r *subscriptionResolver) RoomFollows(ctx context.Context, addresses []string) (<-chan *model.RoomFollow, error) {
+func (r *subscriptionResolver) RoomFollows(ctx context.Context, addresses []model.Address) (<-chan *model.RoomFollow, error) {
 	var roomFollow = new(sub.RoomFollow)
-	roomFollowsChan, err := roomFollow.Listen(ctx, addresses)
+	roomFollowsChan, err := roomFollow.Listen(ctx, model.AddressesToArrays(addresses))
 	if err != nil {
 		return nil, jerr.Get("error getting room follow listener for subscription", err)
 	}

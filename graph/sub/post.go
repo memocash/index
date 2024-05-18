@@ -15,15 +15,7 @@ type Post struct {
 	Cancel       context.CancelFunc
 }
 
-func (r *Post) Listen(ctx context.Context, txHashes []string) (<-chan *model.Post, error) {
-	var txHashesBytes = make([][32]byte, len(txHashes))
-	for i := range txHashes {
-		txHash, err := chainhash.NewHashFromStr(txHashes[i])
-		if err != nil {
-			return nil, jerr.Get("error getting tx hash from string for post subscription", err)
-		}
-		txHashesBytes[i] = *txHash
-	}
+func (r *Post) Listen(ctx context.Context, txHashes [][32]byte) (<-chan *model.Post, error) {
 	ctx, r.Cancel = context.WithCancel(ctx)
 	var postChan = make(chan *model.Post)
 	r.PostHashChan = make(chan [32]byte)
@@ -48,12 +40,12 @@ func (r *Post) Listen(ctx context.Context, txHashes []string) (<-chan *model.Pos
 			}
 		}()
 	} else {
-		postChildListener, err := memo.ListenPostChildren(ctx, txHashesBytes)
+		postChildListener, err := memo.ListenPostChildren(ctx, txHashes)
 		if err != nil {
 			r.Cancel()
 			return nil, jerr.Get("error getting memo post child listener for post subscription", err)
 		}
-		postLikesListener, err := memo.ListenPostLikes(ctx, txHashesBytes)
+		postLikesListener, err := memo.ListenPostLikes(ctx, txHashes)
 		if err != nil {
 			r.Cancel()
 			return nil, jerr.Get("error getting memo post likes listener for post subscription", err)

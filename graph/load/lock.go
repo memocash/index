@@ -4,15 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/memocash/index/graph/model"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-func GetLock(ctx context.Context, addressString string) (*model.Lock, error) {
-	address, err := wallet.GetAddrFromString(addressString)
-	if err != nil {
-		return nil, fmt.Errorf("error getting address from dataloader: %s; %w", addressString, err)
-	}
-	var lock = &model.Lock{Address: address.String()}
+func GetLock(ctx context.Context, address model.Address) (*model.Lock, error) {
+	var lock = &model.Lock{Address: address}
 	fields := GetFields(ctx)
 	if err := AttachToLocks(ctx, fields, []*model.Lock{lock}); err != nil {
 		return nil, fmt.Errorf("error attaching details to lock; %w", err)

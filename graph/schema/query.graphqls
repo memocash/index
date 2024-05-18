@@ -1,24 +1,24 @@
 type Query {
-    tx(hash: String!): Tx
-    txs(hashes: [String!]): [Tx]
-    address(address: String!): Lock
-    addresses(addresses: [String!]): [Lock]
-    block(hash: String!): Block
+    tx(hash: Hash!): Tx
+    txs(hashes: [Hash!]): [Tx]
+    address(address: Address!): Lock
+    addresses(addresses: [Address!]): [Lock]
+    block(hash: Hash!): Block
     block_newest: Block
     blocks(newest: Boolean, start: Uint32): [Block!]
-    profiles(addresses: [String!]): [Profile]
-    posts(txHashes: [String!]): [Post]
+    profiles(addresses: [Address!]): [Profile]
+    posts(txHashes: [Hash!]): [Post]
     # posts_newest can take a date or a tx hash to start from for pagination
-    posts_newest(start: Date, tx: String, limit: Uint32): [Post]
+    posts_newest(start: Date, tx: Hash, limit: Uint32): [Post]
     room(name: String!): Room!
 }
 
 type Subscription {
-    address(address: String!): Tx
-    addresses(addresses: [String!]): Tx
+    address(address: Address!): Tx
+    addresses(addresses: [Address!]): Tx
     blocks: Block
-    posts(hashes: [String!]): Post
-    profiles(addresses: [String!]): Profile
+    posts(hashes: [Hash!]): Post
+    profiles(addresses: [Address!]): Profile
     rooms(names: [String!]): Post
-    room_follows(addresses: [String!]): RoomFollow
+    room_follows(addresses: [Address!]): RoomFollow
 }

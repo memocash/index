@@ -8,7 +8,6 @@ import (
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 	"time"
 )
 
@@ -32,10 +31,10 @@ func AttachToLocks(ctx context.Context, fields []Field, locks []*model.Lock) err
 	return nil
 }
 
-func (l *Lock) GetLockAddrs() []string {
+func (l *Lock) GetLockAddrs() [][25]byte {
 	l.Mutex.Lock()
 	defer l.Mutex.Unlock()
-	var lockAddrs []string
+	var lockAddrs [][25]byte
 	for _, lock := range l.Locks {
 		lockAddrs = append(lockAddrs, lock.Address)
 	}
@@ -48,8 +47,8 @@ func (l *Lock) AttachProfiles() {
 		return
 	}
 	var profiles []*model.Profile
-	for _, addrString := range l.GetLockAddrs() {
-		profile, err := GetProfile(l.Ctx, addrString)
+	for _, lockAddr := range l.GetLockAddrs() {
+		profile, err := GetProfile(l.Ctx, lockAddr)
 		if err != nil {
 			l.AddError(fmt.Errorf("error getting profile from dataloader for lock resolver; %w", err))
 			return
@@ -78,12 +77,7 @@ func (l *Lock) AttachTxs() {
 	startDate, _ := txsField.Arguments["start"].(model.Date)
 	startTx, _ := txsField.Arguments["tx"].(string)
 	var allTxs []*model.Tx
-	for _, addrString := range l.GetLockAddrs() {
-		address, err := wallet.GetAddrFromString(addrString)
-		if err != nil {
-			l.AddError(fmt.Errorf("error decoding lock hash for lock txs resolver; %w", err))
-			return
-		}
+	for _, address := range l.GetLockAddrs() {
 		var startUid []byte
 		if time.Time(startDate).After(memo.GetGenesisTime()) {
 			startUid = jutil.CombineBytes(address[:], jutil.GetTimeByteNanoBig(time.Time(startDate)))
@@ -96,7 +90,7 @@ func (l *Lock) AttachTxs() {
 				startUid = append(startUid, jutil.ByteReverse(txHash[:])...)
 			}
 		}
-		seenTxs, err := addr.GetSeenTxs(*address, startUid)
+		seenTxs, err := addr.GetSeenTxs(address, startUid)
 		if err != nil {
 			l.AddError(fmt.Errorf("error getting addr seen txs for lock txs resolver; %w", err))
 			return

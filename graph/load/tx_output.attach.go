@@ -209,7 +209,12 @@ func (o *Outputs) AttachLocks() {
 	var allLocks []*model.Lock
 	o.Mutex.Lock()
 	for j := range o.Outputs {
-		o.Outputs[j].Lock = &model.Lock{Address: wallet.GetAddressStringFromPkScript(o.Outputs[j].Script)}
+		address, err := wallet.GetAddrFromLockScript(o.Outputs[j].Script)
+		if err != nil {
+			o.AddError(fmt.Errorf("error getting address from pk script for outputs attach locks; %w", err))
+			return
+		}
+		o.Outputs[j].Lock = &model.Lock{Address: model.Address(*address)}
 		allLocks = append(allLocks, o.Outputs[j].Lock)
 	}
 	o.Mutex.Unlock()

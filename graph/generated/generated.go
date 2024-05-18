@@ -121,17 +121,17 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Address     func(childComplexity int, address string) int
-		Addresses   func(childComplexity int, addresses []string) int
-		Block       func(childComplexity int, hash string) int
+		Address     func(childComplexity int, address model.Address) int
+		Addresses   func(childComplexity int, addresses []model.Address) int
+		Block       func(childComplexity int, hash model.Hash) int
 		BlockNewest func(childComplexity int) int
 		Blocks      func(childComplexity int, newest *bool, start *uint32) int
-		Posts       func(childComplexity int, txHashes []string) int
-		PostsNewest func(childComplexity int, start *model.Date, tx *string, limit *uint32) int
-		Profiles    func(childComplexity int, addresses []string) int
+		Posts       func(childComplexity int, txHashes []model.Hash) int
+		PostsNewest func(childComplexity int, start *model.Date, tx *model.Hash, limit *uint32) int
+		Profiles    func(childComplexity int, addresses []model.Address) int
 		Room        func(childComplexity int, name string) int
-		Tx          func(childComplexity int, hash string) int
-		Txs         func(childComplexity int, hashes []string) int
+		Tx          func(childComplexity int, hash model.Hash) int
+		Txs         func(childComplexity int, hashes []model.Hash) int
 	}
 
 	Room struct {
@@ -206,12 +206,12 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		Address     func(childComplexity int, address string) int
-		Addresses   func(childComplexity int, addresses []string) int
+		Address     func(childComplexity int, address model.Address) int
+		Addresses   func(childComplexity int, addresses []model.Address) int
 		Blocks      func(childComplexity int) int
-		Posts       func(childComplexity int, hashes []string) int
-		Profiles    func(childComplexity int, addresses []string) int
-		RoomFollows func(childComplexity int, addresses []string) int
+		Posts       func(childComplexity int, hashes []model.Hash) int
+		Profiles    func(childComplexity int, addresses []model.Address) int
+		RoomFollows func(childComplexity int, addresses []model.Address) int
 		Rooms       func(childComplexity int, names []string) int
 	}
 
@@ -294,16 +294,16 @@ type ProfileResolver interface {
 	Rooms(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.RoomFollow, error)
 }
 type QueryResolver interface {
-	Tx(ctx context.Context, hash string) (*model.Tx, error)
-	Txs(ctx context.Context, hashes []string) ([]*model.Tx, error)
-	Address(ctx context.Context, address string) (*model.Lock, error)
-	Addresses(ctx context.Context, addresses []string) ([]*model.Lock, error)
-	Block(ctx context.Context, hash string) (*model.Block, error)
+	Tx(ctx context.Context, hash model.Hash) (*model.Tx, error)
+	Txs(ctx context.Context, hashes []model.Hash) ([]*model.Tx, error)
+	Address(ctx context.Context, address model.Address) (*model.Lock, error)
+	Addresses(ctx context.Context, addresses []model.Address) ([]*model.Lock, error)
+	Block(ctx context.Context, hash model.Hash) (*model.Block, error)
 	BlockNewest(ctx context.Context) (*model.Block, error)
 	Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error)
-	Profiles(ctx context.Context, addresses []string) ([]*model.Profile, error)
-	Posts(ctx context.Context, txHashes []string) ([]*model.Post, error)
-	PostsNewest(ctx context.Context, start *model.Date, tx *string, limit *uint32) ([]*model.Post, error)
+	Profiles(ctx context.Context, addresses []model.Address) ([]*model.Profile, error)
+	Posts(ctx context.Context, txHashes []model.Hash) ([]*model.Post, error)
+	PostsNewest(ctx context.Context, start *model.Date, tx *model.Hash, limit *uint32) ([]*model.Post, error)
 	Room(ctx context.Context, name string) (*model.Room, error)
 }
 type RoomResolver interface {
@@ -331,13 +331,13 @@ type SetProfileResolver interface {
 	Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error)
 }
 type SubscriptionResolver interface {
-	Address(ctx context.Context, address string) (<-chan *model.Tx, error)
-	Addresses(ctx context.Context, addresses []string) (<-chan *model.Tx, error)
+	Address(ctx context.Context, address model.Address) (<-chan *model.Tx, error)
+	Addresses(ctx context.Context, addresses []model.Address) (<-chan *model.Tx, error)
 	Blocks(ctx context.Context) (<-chan *model.Block, error)
-	Posts(ctx context.Context, hashes []string) (<-chan *model.Post, error)
-	Profiles(ctx context.Context, addresses []string) (<-chan *model.Profile, error)
+	Posts(ctx context.Context, hashes []model.Hash) (<-chan *model.Post, error)
+	Profiles(ctx context.Context, addresses []model.Address) (<-chan *model.Profile, error)
 	Rooms(ctx context.Context, names []string) (<-chan *model.Post, error)
-	RoomFollows(ctx context.Context, addresses []string) (<-chan *model.RoomFollow, error)
+	RoomFollows(ctx context.Context, addresses []model.Address) (<-chan *model.RoomFollow, error)
 }
 
 type executableSchema struct {
@@ -708,7 +708,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Address(childComplexity, args["address"].(string)), true
+		return e.complexity.Query.Address(childComplexity, args["address"].(model.Address)), true
 
 	case "Query.addresses":
 		if e.complexity.Query.Addresses == nil {
@@ -720,7 +720,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Addresses(childComplexity, args["addresses"].([]string)), true
+		return e.complexity.Query.Addresses(childComplexity, args["addresses"].([]model.Address)), true
 
 	case "Query.block":
 		if e.complexity.Query.Block == nil {
@@ -732,7 +732,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Block(childComplexity, args["hash"].(string)), true
+		return e.complexity.Query.Block(childComplexity, args["hash"].(model.Hash)), true
 
 	case "Query.block_newest":
 		if e.complexity.Query.BlockNewest == nil {
@@ -763,7 +763,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Posts(childComplexity, args["txHashes"].([]string)), true
+		return e.complexity.Query.Posts(childComplexity, args["txHashes"].([]model.Hash)), true
 
 	case "Query.posts_newest":
 		if e.complexity.Query.PostsNewest == nil {
@@ -775,7 +775,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.PostsNewest(childComplexity, args["start"].(*model.Date), args["tx"].(*string), args["limit"].(*uint32)), true
+		return e.complexity.Query.PostsNewest(childComplexity, args["start"].(*model.Date), args["tx"].(*model.Hash), args["limit"].(*uint32)), true
 
 	case "Query.profiles":
 		if e.complexity.Query.Profiles == nil {
@@ -787,7 +787,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Profiles(childComplexity, args["addresses"].([]string)), true
+		return e.complexity.Query.Profiles(childComplexity, args["addresses"].([]model.Address)), true
 
 	case "Query.room":
 		if e.complexity.Query.Room == nil {
@@ -811,7 +811,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Tx(childComplexity, args["hash"].(string)), true
+		return e.complexity.Query.Tx(childComplexity, args["hash"].(model.Hash)), true
 
 	case "Query.txs":
 		if e.complexity.Query.Txs == nil {
@@ -823,7 +823,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Txs(childComplexity, args["hashes"].([]string)), true
+		return e.complexity.Query.Txs(childComplexity, args["hashes"].([]model.Hash)), true
 
 	case "Room.followers":
 		if e.complexity.Room.Followers == nil {
@@ -1174,7 +1174,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Subscription.Address(childComplexity, args["address"].(string)), true
+		return e.complexity.Subscription.Address(childComplexity, args["address"].(model.Address)), true
 
 	case "Subscription.addresses":
 		if e.complexity.Subscription.Addresses == nil {
@@ -1186,7 +1186,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Subscription.Addresses(childComplexity, args["addresses"].([]string)), true
+		return e.complexity.Subscription.Addresses(childComplexity, args["addresses"].([]model.Address)), true
 
 	case "Subscription.blocks":
 		if e.complexity.Subscription.Blocks == nil {
@@ -1205,7 +1205,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Subscription.Posts(childComplexity, args["hashes"].([]string)), true
+		return e.complexity.Subscription.Posts(childComplexity, args["hashes"].([]model.Hash)), true
 
 	case "Subscription.profiles":
 		if e.complexity.Subscription.Profiles == nil {
@@ -1217,7 +1217,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Subscription.Profiles(childComplexity, args["addresses"].([]string)), true
+		return e.complexity.Subscription.Profiles(childComplexity, args["addresses"].([]model.Address)), true
 
 	case "Subscription.room_follows":
 		if e.complexity.Subscription.RoomFollows == nil {
@@ -1229,7 +1229,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Subscription.RoomFollows(childComplexity, args["addresses"].([]string)), true
+		return e.complexity.Subscription.RoomFollows(childComplexity, args["addresses"].([]model.Address)), true
 
 	case "Subscription.rooms":
 		if e.complexity.Subscription.Rooms == nil {
@@ -1548,7 +1548,7 @@ var sources = []*ast.Source{
 }
 `, BuiltIn: false},
 	{Name: "../schema/lock.graphqls", Input: `type Lock {
-    address: String
+    address: Address
     profile: Profile
     balance: Int64!
     txs(start: Date, tx: String): [Tx!]
@@ -1560,7 +1560,7 @@ var sources = []*ast.Source{
 `, BuiltIn: false},
 	{Name: "../schema/profile.graphqls", Input: `type Profile {
     lock: Lock!
-    address: String!
+    address: Address!
     name: SetName
     profile: SetProfile
     pic: SetPic
@@ -1572,43 +1572,43 @@ var sources = []*ast.Source{
 
 type SetName {
     tx: Tx!
-    tx_hash: String!
+    tx_hash: Hash!
     lock: Lock!
-    address: String!
+    address: Address!
     name: String!
 }
 
 type SetProfile {
     tx: Tx!
-    tx_hash: String!
+    tx_hash: Hash!
     lock: Lock!
-    address: String!
+    address: Address!
     text: String!
 }
 
 type SetPic {
     tx: Tx!
-    tx_hash: String!
+    tx_hash: Hash!
     lock: Lock!
-    address: String!
+    address: Address!
     pic: String!
 }
 
 type Follow {
     tx: Tx!
-    tx_hash: String!
+    tx_hash: Hash!
     lock: Lock!
-    address: String!
+    address: Address!
     follow_lock: Lock!
-    follow_address: String!
+    follow_address: Address!
     unfollow: Boolean!
 }
 
 type Post {
     tx: Tx!
-    tx_hash: String!
+    tx_hash: Hash!
     lock: Lock!
-    address: String!
+    address: Address!
     text: String!
     likes: [Like!]
     parent: Post
@@ -1618,37 +1618,37 @@ type Post {
 
 type Like {
     tx: Tx!
-    tx_hash: String!
+    tx_hash: Hash!
     lock: Lock!
-    address: String!
-    post_tx_hash: String!
+    address: Address!
+    post_tx_hash: Hash!
     post: Post
     tip: Int64
 }
 `, BuiltIn: false},
 	{Name: "../schema/query.graphqls", Input: `type Query {
-    tx(hash: String!): Tx
-    txs(hashes: [String!]): [Tx]
-    address(address: String!): Lock
-    addresses(addresses: [String!]): [Lock]
-    block(hash: String!): Block
+    tx(hash: Hash!): Tx
+    txs(hashes: [Hash!]): [Tx]
+    address(address: Address!): Lock
+    addresses(addresses: [Address!]): [Lock]
+    block(hash: Hash!): Block
     block_newest: Block
     blocks(newest: Boolean, start: Uint32): [Block!]
-    profiles(addresses: [String!]): [Profile]
-    posts(txHashes: [String!]): [Post]
+    profiles(addresses: [Address!]): [Profile]
+    posts(txHashes: [Hash!]): [Post]
     # posts_newest can take a date or a tx hash to start from for pagination
-    posts_newest(start: Date, tx: String, limit: Uint32): [Post]
+    posts_newest(start: Date, tx: Hash, limit: Uint32): [Post]
     room(name: String!): Room!
 }
 
 type Subscription {
-    address(address: String!): Tx
-    addresses(addresses: [String!]): Tx
+    address(address: Address!): Tx
+    addresses(addresses: [Address!]): Tx
     blocks: Block
-    posts(hashes: [String!]): Post
-    profiles(addresses: [String!]): Profile
+    posts(hashes: [Hash!]): Post
+    profiles(addresses: [Address!]): Profile
     rooms(names: [String!]): Post
-    room_follows(addresses: [String!]): RoomFollow
+    room_follows(addresses: [Address!]): RoomFollow
 }
 `, BuiltIn: false},
 	{Name: "../schema/room.graphqls", Input: `type Room {
@@ -1661,9 +1661,9 @@ type RoomFollow {
     name: String!
     room: Room!
     lock: Lock!
-    address: String!
+    address: Address!
     unfollow: Boolean!
-    tx_hash: String!
+    tx_hash: Hash!
     tx: Tx!
 }
 `, BuiltIn: false},
@@ -1675,6 +1675,7 @@ scalar Uint64
 scalar HashIndex
 scalar Date
 scalar Hash
+scalar Address
 scalar Bytes
 `, BuiltIn: false},
 	{Name: "../schema/slp.graphqls", Input: `type SlpGenesis {
@@ -1912,10 +1913,10 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_address_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 model.Address
 	if tmp, ok := rawArgs["address"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1927,10 +1928,10 @@ func (ec *executionContext) field_Query_address_args(ctx context.Context, rawArg
 func (ec *executionContext) field_Query_addresses_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []string
+	var arg0 []model.Address
 	if tmp, ok := rawArgs["addresses"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("addresses"))
-		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		arg0, err = ec.unmarshalOAddress2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddressᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1942,10 +1943,10 @@ func (ec *executionContext) field_Query_addresses_args(ctx context.Context, rawA
 func (ec *executionContext) field_Query_block_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 model.Hash
 	if tmp, ok := rawArgs["hash"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hash"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1981,10 +1982,10 @@ func (ec *executionContext) field_Query_blocks_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_posts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []string
+	var arg0 []model.Hash
 	if tmp, ok := rawArgs["txHashes"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("txHashes"))
-		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		arg0, err = ec.unmarshalOHash2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHashᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2005,10 +2006,10 @@ func (ec *executionContext) field_Query_posts_newest_args(ctx context.Context, r
 		}
 	}
 	args["start"] = arg0
-	var arg1 *string
+	var arg1 *model.Hash
 	if tmp, ok := rawArgs["tx"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tx"))
-		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		arg1, err = ec.unmarshalOHash2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2029,10 +2030,10 @@ func (ec *executionContext) field_Query_posts_newest_args(ctx context.Context, r
 func (ec *executionContext) field_Query_profiles_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []string
+	var arg0 []model.Address
 	if tmp, ok := rawArgs["addresses"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("addresses"))
-		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		arg0, err = ec.unmarshalOAddress2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddressᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2059,10 +2060,10 @@ func (ec *executionContext) field_Query_room_args(ctx context.Context, rawArgs m
 func (ec *executionContext) field_Query_tx_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 model.Hash
 	if tmp, ok := rawArgs["hash"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hash"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2074,10 +2075,10 @@ func (ec *executionContext) field_Query_tx_args(ctx context.Context, rawArgs map
 func (ec *executionContext) field_Query_txs_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []string
+	var arg0 []model.Hash
 	if tmp, ok := rawArgs["hashes"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hashes"))
-		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		arg0, err = ec.unmarshalOHash2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHashᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2119,10 +2120,10 @@ func (ec *executionContext) field_Room_posts_args(ctx context.Context, rawArgs m
 func (ec *executionContext) field_Subscription_address_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 model.Address
 	if tmp, ok := rawArgs["address"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2134,10 +2135,10 @@ func (ec *executionContext) field_Subscription_address_args(ctx context.Context,
 func (ec *executionContext) field_Subscription_addresses_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []string
+	var arg0 []model.Address
 	if tmp, ok := rawArgs["addresses"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("addresses"))
-		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		arg0, err = ec.unmarshalOAddress2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddressᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2149,10 +2150,10 @@ func (ec *executionContext) field_Subscription_addresses_args(ctx context.Contex
 func (ec *executionContext) field_Subscription_posts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []string
+	var arg0 []model.Hash
 	if tmp, ok := rawArgs["hashes"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hashes"))
-		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		arg0, err = ec.unmarshalOHash2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHashᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2164,10 +2165,10 @@ func (ec *executionContext) field_Subscription_posts_args(ctx context.Context, r
 func (ec *executionContext) field_Subscription_profiles_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []string
+	var arg0 []model.Address
 	if tmp, ok := rawArgs["addresses"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("addresses"))
-		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		arg0, err = ec.unmarshalOAddress2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddressᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2179,10 +2180,10 @@ func (ec *executionContext) field_Subscription_profiles_args(ctx context.Context
 func (ec *executionContext) field_Subscription_room_follows_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []string
+	var arg0 []model.Address
 	if tmp, ok := rawArgs["addresses"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("addresses"))
-		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		arg0, err = ec.unmarshalOAddress2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddressᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2651,9 +2652,9 @@ func (ec *executionContext) _Follow_tx_hash(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Follow_tx_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2663,7 +2664,7 @@ func (ec *executionContext) fieldContext_Follow_tx_hash(ctx context.Context, fie
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2749,9 +2750,9 @@ func (ec *executionContext) _Follow_address(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Address)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Follow_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2761,7 +2762,7 @@ func (ec *executionContext) fieldContext_Follow_address(ctx context.Context, fie
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Address does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2847,9 +2848,9 @@ func (ec *executionContext) _Follow_follow_address(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Address)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Follow_follow_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2859,7 +2860,7 @@ func (ec *executionContext) fieldContext_Follow_follow_address(ctx context.Conte
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Address does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2997,9 +2998,9 @@ func (ec *executionContext) _Like_tx_hash(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Like_tx_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3009,7 +3010,7 @@ func (ec *executionContext) fieldContext_Like_tx_hash(ctx context.Context, field
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3095,9 +3096,9 @@ func (ec *executionContext) _Like_address(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Address)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Like_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3107,7 +3108,7 @@ func (ec *executionContext) fieldContext_Like_address(ctx context.Context, field
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Address does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3139,9 +3140,9 @@ func (ec *executionContext) _Like_post_tx_hash(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Like_post_tx_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3151,7 +3152,7 @@ func (ec *executionContext) fieldContext_Like_post_tx_hash(ctx context.Context, 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3282,9 +3283,9 @@ func (ec *executionContext) _Lock_address(ctx context.Context, field graphql.Col
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Address)
 	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalOAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Lock_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3294,7 +3295,7 @@ func (ec *executionContext) fieldContext_Lock_address(ctx context.Context, field
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Address does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3618,9 +3619,9 @@ func (ec *executionContext) _Post_tx_hash(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Post_tx_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3630,7 +3631,7 @@ func (ec *executionContext) fieldContext_Post_tx_hash(ctx context.Context, field
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3716,9 +3717,9 @@ func (ec *executionContext) _Post_address(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Address)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Post_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3728,7 +3729,7 @@ func (ec *executionContext) fieldContext_Post_address(ctx context.Context, field
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Address does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4086,9 +4087,9 @@ func (ec *executionContext) _Profile_address(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Address)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Profile_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4098,7 +4099,7 @@ func (ec *executionContext) fieldContext_Profile_address(ctx context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Address does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4553,7 +4554,7 @@ func (ec *executionContext) _Query_tx(ctx context.Context, field graphql.Collect
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Tx(rctx, fc.Args["hash"].(string))
+		return ec.resolvers.Query().Tx(rctx, fc.Args["hash"].(model.Hash))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4623,7 +4624,7 @@ func (ec *executionContext) _Query_txs(ctx context.Context, field graphql.Collec
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Txs(rctx, fc.Args["hashes"].([]string))
+		return ec.resolvers.Query().Txs(rctx, fc.Args["hashes"].([]model.Hash))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4693,7 +4694,7 @@ func (ec *executionContext) _Query_address(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Address(rctx, fc.Args["address"].(string))
+		return ec.resolvers.Query().Address(rctx, fc.Args["address"].(model.Address))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4755,7 +4756,7 @@ func (ec *executionContext) _Query_addresses(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Addresses(rctx, fc.Args["addresses"].([]string))
+		return ec.resolvers.Query().Addresses(rctx, fc.Args["addresses"].([]model.Address))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4817,7 +4818,7 @@ func (ec *executionContext) _Query_block(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Block(rctx, fc.Args["hash"].(string))
+		return ec.resolvers.Query().Block(rctx, fc.Args["hash"].(model.Hash))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5010,7 +5011,7 @@ func (ec *executionContext) _Query_profiles(ctx context.Context, field graphql.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Profiles(rctx, fc.Args["addresses"].([]string))
+		return ec.resolvers.Query().Profiles(rctx, fc.Args["addresses"].([]model.Address))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5082,7 +5083,7 @@ func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Posts(rctx, fc.Args["txHashes"].([]string))
+		return ec.resolvers.Query().Posts(rctx, fc.Args["txHashes"].([]model.Hash))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5154,7 +5155,7 @@ func (ec *executionContext) _Query_posts_newest(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().PostsNewest(rctx, fc.Args["start"].(*model.Date), fc.Args["tx"].(*string), fc.Args["limit"].(*uint32))
+		return ec.resolvers.Query().PostsNewest(rctx, fc.Args["start"].(*model.Date), fc.Args["tx"].(*model.Hash), fc.Args["limit"].(*uint32))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5764,9 +5765,9 @@ func (ec *executionContext) _RoomFollow_address(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Address)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_RoomFollow_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5776,7 +5777,7 @@ func (ec *executionContext) fieldContext_RoomFollow_address(ctx context.Context,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Address does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5852,9 +5853,9 @@ func (ec *executionContext) _RoomFollow_tx_hash(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_RoomFollow_tx_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5864,7 +5865,7 @@ func (ec *executionContext) fieldContext_RoomFollow_tx_hash(ctx context.Context,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6020,9 +6021,9 @@ func (ec *executionContext) _SetName_tx_hash(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SetName_tx_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6032,7 +6033,7 @@ func (ec *executionContext) fieldContext_SetName_tx_hash(ctx context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6118,9 +6119,9 @@ func (ec *executionContext) _SetName_address(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Address)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SetName_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6130,7 +6131,7 @@ func (ec *executionContext) fieldContext_SetName_address(ctx context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Address does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6268,9 +6269,9 @@ func (ec *executionContext) _SetPic_tx_hash(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SetPic_tx_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6280,7 +6281,7 @@ func (ec *executionContext) fieldContext_SetPic_tx_hash(ctx context.Context, fie
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6366,9 +6367,9 @@ func (ec *executionContext) _SetPic_address(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Address)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SetPic_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6378,7 +6379,7 @@ func (ec *executionContext) fieldContext_SetPic_address(ctx context.Context, fie
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Address does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6516,9 +6517,9 @@ func (ec *executionContext) _SetProfile_tx_hash(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Hash)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SetProfile_tx_hash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6528,7 +6529,7 @@ func (ec *executionContext) fieldContext_SetProfile_tx_hash(ctx context.Context,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Hash does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6614,9 +6615,9 @@ func (ec *executionContext) _SetProfile_address(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Address)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SetProfile_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6626,7 +6627,7 @@ func (ec *executionContext) fieldContext_SetProfile_address(ctx context.Context,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Address does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7784,7 +7785,7 @@ func (ec *executionContext) _Subscription_address(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().Address(rctx, fc.Args["address"].(string))
+		return ec.resolvers.Subscription().Address(rctx, fc.Args["address"].(model.Address))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7868,7 +7869,7 @@ func (ec *executionContext) _Subscription_addresses(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().Addresses(rctx, fc.Args["addresses"].([]string))
+		return ec.resolvers.Subscription().Addresses(rctx, fc.Args["addresses"].([]model.Address))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8023,7 +8024,7 @@ func (ec *executionContext) _Subscription_posts(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().Posts(rctx, fc.Args["hashes"].([]string))
+		return ec.resolvers.Subscription().Posts(rctx, fc.Args["hashes"].([]model.Hash))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8109,7 +8110,7 @@ func (ec *executionContext) _Subscription_profiles(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().Profiles(rctx, fc.Args["addresses"].([]string))
+		return ec.resolvers.Subscription().Profiles(rctx, fc.Args["addresses"].([]model.Address))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -8281,7 +8282,7 @@ func (ec *executionContext) _Subscription_room_follows(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().RoomFollows(rctx, fc.Args["addresses"].([]string))
+		return ec.resolvers.Subscription().RoomFollows(rctx, fc.Args["addresses"].([]model.Address))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -13753,6 +13754,21 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) unmarshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx context.Context, v interface{}) (model.Address, error) {
+	res, err := model.UnmarshalAddress(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx context.Context, sel ast.SelectionSet, v model.Address) graphql.Marshaler {
+	res := model.MarshalAddress(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐBlock(ctx context.Context, sel ast.SelectionSet, v *model.Block) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -14382,6 +14398,54 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) unmarshalOAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx context.Context, v interface{}) (model.Address, error) {
+	res, err := model.UnmarshalAddress(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx context.Context, sel ast.SelectionSet, v model.Address) graphql.Marshaler {
+	res := model.MarshalAddress(v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOAddress2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddressᚄ(ctx context.Context, v interface{}) ([]model.Address, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]model.Address, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOAddress2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddressᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Address) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalOBlock2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐBlockᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Block) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -14534,6 +14598,60 @@ func (ec *executionContext) marshalOFollow2ᚖgithubᚗcomᚋmemocashᚋindexᚋ
 		return graphql.Null
 	}
 	return ec._Follow(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOHash2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHashᚄ(ctx context.Context, v interface{}) ([]model.Hash, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]model.Hash, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOHash2ᚕgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHashᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Hash) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalOHash2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx context.Context, v interface{}) (*model.Hash, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := model.UnmarshalHash(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOHash2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx context.Context, sel ast.SelectionSet, v *model.Hash) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := model.MarshalHash(*v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -14911,16 +15029,6 @@ func (ec *executionContext) marshalOSlpOutput2ᚖgithubᚗcomᚋmemocashᚋindex
 		return graphql.Null
 	}
 	return ec._SlpOutput(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
-	res, err := graphql.UnmarshalString(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	res := graphql.MarshalString(v)
-	return res
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {

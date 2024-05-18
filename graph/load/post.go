@@ -8,7 +8,6 @@ import (
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/dataloader"
 	"github.com/memocash/index/graph/model"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 const postNotFoundErrorMessage = "error post not found in loader"
@@ -41,7 +40,7 @@ var Post = dataloader.NewPostLoader(dataloader.PostLoaderConfig{
 			}
 			posts[i] = &model.Post{
 				TxHash:  model.Hash(*txHash),
-				Address: wallet.Addr(memoPost.Addr).String(),
+				Address: memoPost.Addr,
 				Text:    memoPost.Post,
 			}
 		}

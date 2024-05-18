@@ -33,3 +33,11 @@ func UnmarshalHash(v interface{}) (Hash, error) {
 		return Hash{}, jerr.Newf("error unmarshal unexpected hash type not string: %T", v)
 	}
 }
+
+func HashesToArrays(hashes []Hash) [][32]byte {
+	var hashArrays [][32]byte
+	for _, hash := range hashes {
+		hashArrays = append(hashArrays, hash)
+	}
+	return hashArrays
+}
