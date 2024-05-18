@@ -20,8 +20,8 @@ func (o *Output) GetTopic() string {
 	return db.TopicSlpOutput
 }
 
-func (o *Output) GetShard() uint {
-	return client.GetByteShard(o.TxHash[:])
+func (o *Output) GetShardSource() uint {
+	return client.GenShardSource(o.TxHash[:])
 }
 
 func (o *Output) GetUid() []byte {
@@ -57,7 +57,7 @@ func (o *Output) Deserialize(data []byte) {
 func GetOutputs(ctx context.Context, outs []memo.Out) ([]*Output, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, out := range outs {
-		shard := db.GetShardByte32(out.TxHash)
+		shard := db.GetShardIdFromByte32(out.TxHash)
 		shardUids[shard] = append(shardUids[shard], jutil.CombineBytes(
 			jutil.ByteReverse(out.TxHash[:]),
 			jutil.GetUint32Data(out.Index),

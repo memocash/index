@@ -21,8 +21,8 @@ func (t *OutputInput) GetTopic() string {
 	return db.TopicChainOutputInput
 }
 
-func (t *OutputInput) GetShard() uint {
-	return client.GetByteShard(t.PrevHash[:])
+func (t *OutputInput) GetShardSource() uint {
+	return client.GenShardSource(t.PrevHash[:])
 }
 
 func (t *OutputInput) GetUid() []byte {
@@ -51,7 +51,7 @@ func (t *OutputInput) Serialize() []byte {
 func (t *OutputInput) Deserialize([]byte) {}
 
 func GetOutputInput(out memo.Out) ([]*OutputInput, error) {
-	shard := db.GetShardByte32(out.TxHash)
+	shard := db.GetShardIdFromByte32(out.TxHash)
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	prefix := jutil.CombineBytes(jutil.ByteReverse(out.TxHash), jutil.GetUint32Data(out.Index))
@@ -69,7 +69,7 @@ func GetOutputInput(out memo.Out) ([]*OutputInput, error) {
 func GetOutputInputs(ctx context.Context, outs []memo.Out) ([]*OutputInput, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, out := range outs {
-		shard := db.GetShardByte32(out.TxHash)
+		shard := db.GetShardIdFromByte32(out.TxHash)
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.CombineBytes(
 			jutil.ByteReverse(out.TxHash),
 			jutil.GetUint32DataBig(out.Index),
@@ -91,7 +91,7 @@ func GetOutputInputs(ctx context.Context, outs []memo.Out) ([]*OutputInput, erro
 func GetOutputInputsForTxHashes(txHashes [][]byte) ([]*OutputInput, error) {
 	var shardOutGroups = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := db.GetShardByte32(txHash)
+		shard := db.GetShardIdFromByte32(txHash)
 		shardOutGroups[shard] = append(shardOutGroups[shard], txHash)
 	}
 	var outputInputs []*OutputInput

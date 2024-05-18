@@ -18,8 +18,8 @@ func (t *Tx) GetTopic() string {
 	return db.TopicChainTx
 }
 
-func (t *Tx) GetShard() uint {
-	return client.GetByteShard(t.TxHash[:])
+func (t *Tx) GetShardSource() uint {
+	return client.GenShardSource(t.TxHash[:])
 }
 
 func (t *Tx) GetUid() []byte {
@@ -51,7 +51,7 @@ func (t *Tx) Deserialize(data []byte) {
 func GetTxsByHashes(txHashes [][32]byte) ([]*Tx, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
-		shard := uint32(db.GetShardByte(txHashes[i][:]))
+		shard := uint32(db.GetShardIdFromByte(txHashes[i][:]))
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
 	var txs []*Tx

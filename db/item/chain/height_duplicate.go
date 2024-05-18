@@ -17,7 +17,7 @@ func (d *HeightDuplicate) GetTopic() string {
 	return db.TopicChainHeightDuplicate
 }
 
-func (d *HeightDuplicate) GetShard() uint {
+func (d *HeightDuplicate) GetShardSource() uint {
 	return uint(d.Height)
 }
 

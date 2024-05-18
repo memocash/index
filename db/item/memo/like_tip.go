@@ -18,8 +18,8 @@ func (t *LikeTip) GetTopic() string {
 	return db.TopicMemoLikeTip
 }
 
-func (t *LikeTip) GetShard() uint {
-	return client.GetByteShard(t.LikeTxHash[:])
+func (t *LikeTip) GetShardSource() uint {
+	return client.GenShardSource(t.LikeTxHash[:])
 }
 
 func (t *LikeTip) GetUid() []byte {
@@ -49,7 +49,7 @@ func (t *LikeTip) Deserialize(data []byte) {
 func GetLikeTips(likeTxHashes [][32]byte) ([]*LikeTip, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range likeTxHashes {
-		shard := db.GetShardByte32(likeTxHashes[i][:])
+		shard := db.GetShardIdFromByte32(likeTxHashes[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(likeTxHashes[i][:]))
 	}
 	var likeTips []*LikeTip

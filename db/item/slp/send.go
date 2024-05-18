@@ -16,8 +16,8 @@ func (s *Send) GetTopic() string {
 	return db.TopicSlpSend
 }
 
-func (s *Send) GetShard() uint {
-	return client.GetByteShard(s.TxHash[:])
+func (s *Send) GetShardSource() uint {
+	return client.GenShardSource(s.TxHash[:])
 }
 
 func (s *Send) GetUid() []byte {

@@ -19,8 +19,8 @@ func (c *PostChild) GetTopic() string {
 	return db.TopicMemoPostChild
 }
 
-func (c *PostChild) GetShard() uint {
-	return client.GetByteShard(c.PostTxHash[:])
+func (c *PostChild) GetShardSource() uint {
+	return client.GenShardSource(c.PostTxHash[:])
 }
 
 func (c *PostChild) GetUid() []byte {
@@ -45,7 +45,7 @@ func (c *PostChild) Serialize() []byte {
 func (c *PostChild) Deserialize([]byte) {}
 
 func GetPostChildren(ctx context.Context, postTxHash [32]byte) ([]*PostChild, error) {
-	shardConfig := config.GetShardConfig(db.GetShardByte32(postTxHash[:]), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(db.GetShardIdFromByte32(postTxHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Context:  ctx,
@@ -68,7 +68,7 @@ func ListenPostChildren(ctx context.Context, postTxHashes [][32]byte) (chan *Pos
 	}
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range postTxHashes {
-		shard := client.GetByteShard32(postTxHashes[i][:])
+		shard := client.GenShardSource32(postTxHashes[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHashes[i][:]))
 	}
 	shardConfigs := config.GetQueueShards()

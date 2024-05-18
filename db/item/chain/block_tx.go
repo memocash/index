@@ -20,8 +20,8 @@ func (b *BlockTx) GetTopic() string {
 	return db.TopicChainBlockTx
 }
 
-func (b *BlockTx) GetShard() uint {
-	return client.GetByteShard(b.BlockHash[:])
+func (b *BlockTx) GetShardSource() uint {
+	return client.GenShardSource(b.BlockHash[:])
 }
 
 func (b *BlockTx) GetUid() []byte {
@@ -55,7 +55,7 @@ func GetBlockTxUid(blockHash [32]byte, index uint32) []byte {
 }
 
 func GetBlockTx(blockHash [32]byte, index uint32) (*BlockTx, error) {
-	shard := client.GetByteShard32(blockHash[:])
+	shard := client.GenShardSource32(blockHash[:])
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetSingle(db.TopicChainBlockTx, GetBlockTxUid(blockHash, index)); err != nil {
@@ -76,7 +76,7 @@ type BlockTxsRequest struct {
 }
 
 func GetBlockTxs(request BlockTxsRequest) ([]*BlockTx, error) {
-	shard := client.GetByteShard32(request.BlockHash[:])
+	shard := client.GenShardSource32(request.BlockHash[:])
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var limit uint32

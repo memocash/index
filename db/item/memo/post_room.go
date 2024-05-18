@@ -19,8 +19,8 @@ func (r *PostRoom) GetTopic() string {
 	return db.TopicMemoPostRoom
 }
 
-func (r *PostRoom) GetShard() uint {
-	return client.GetByteShard(r.TxHash[:])
+func (r *PostRoom) GetShardSource() uint {
+	return client.GenShardSource(r.TxHash[:])
 }
 
 func (r *PostRoom) GetUid() []byte {
@@ -43,7 +43,7 @@ func (r *PostRoom) Deserialize(data []byte) {
 }
 
 func GetPostRoom(ctx context.Context, txHash []byte) (*PostRoom, error) {
-	shard := client.GetByteShard32(txHash)
+	shard := client.GenShardSource32(txHash)
 	dbClient := client.NewClient(config.GetShardConfig(shard, config.GetQueueShards()).GetHost())
 	err := dbClient.GetSingleContext(ctx, db.TopicMemoPostRoom, jutil.ByteReverse(txHash))
 	if err != nil && !client.IsMessageNotSetError(err) {

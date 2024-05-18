@@ -26,7 +26,7 @@ type Msg struct {
 }
 
 func (m Msg) GetShard() uint {
-	return client.GetByteShard(m.Uid)
+	return client.GenShardSource(m.Uid)
 }
 
 type Request struct {

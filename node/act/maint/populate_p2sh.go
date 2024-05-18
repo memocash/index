@@ -60,7 +60,7 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 					if blockTxs[i].Index > startIndex {
 						startIndex = blockTxs[i].Index
 					}
-					shard := db.GetShardByte32(blockTxs[i].TxHash[:])
+					shard := db.GetShardIdFromByte32(blockTxs[i].TxHash[:])
 					txHashShards[shard] = append(txHashShards[shard], blockTxs[i].TxHash)
 				}
 				var shardProcess ShardProcess

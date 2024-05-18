@@ -66,7 +66,7 @@ const (
 type Object interface {
 	GetUid() []byte
 	GetTopic() string
-	GetShard() uint
+	GetShardSource() uint
 	SetUid(uid []byte)
 	Serialize() []byte
 	Deserialize(data []byte)
@@ -80,20 +80,20 @@ func CombineObjects(objectGroups ...[]Object) []Object {
 	return objects
 }
 
-func GetShardByte(b []byte) uint {
-	return GetShard(client.GetByteShard(b))
+func GetShardIdFromByte(b []byte) uint {
+	return GetShardId(client.GenShardSource(b))
 }
 
-func GetShardByte32(b []byte) uint32 {
-	return uint32(GetShardByte(b))
+func GetShardIdFromByte32(b []byte) uint32 {
+	return uint32(GetShardIdFromByte(b))
 }
 
-func GetShard(shard uint) uint {
+func GetShardId(shard uint) uint {
 	return shard % uint(GetShardCount())
 }
 
-func GetShard32(shard uint) uint32 {
-	return uint32(GetShard(shard))
+func GetShardId32(shard uint) uint32 {
+	return uint32(GetShardId(shard))
 }
 
 var _shardCount uint32
@@ -122,7 +122,7 @@ func Save(objects []Object) error {
 			}
 			object.SetUid(uid)
 		}
-		shard := GetShard(object.GetShard())
+		shard := GetShardId(object.GetShardSource())
 		shardMessages[shard] = append(shardMessages[shard], &client.Message{
 			Uid:     uid,
 			Message: object.Serialize(),
@@ -157,15 +157,15 @@ func Save(objects []Object) error {
 func Remove(objects []Object) error {
 	var shardTopicUids = make(map[uint]map[string][][]byte)
 	for _, obj := range objects {
-		if shardTopicUids[obj.GetShard()] == nil {
-			shardTopicUids[obj.GetShard()] = make(map[string][][]byte)
+		if shardTopicUids[obj.GetShardSource()] == nil {
+			shardTopicUids[obj.GetShardSource()] = make(map[string][][]byte)
 		}
-		shardTopicUids[obj.GetShard()][obj.GetTopic()] =
-			append(shardTopicUids[obj.GetShard()][obj.GetTopic()], obj.GetUid())
+		shardTopicUids[obj.GetShardSource()][obj.GetTopic()] =
+			append(shardTopicUids[obj.GetShardSource()][obj.GetTopic()], obj.GetUid())
 	}
 	queueShards := config.GetQueueShards()
 	for shard, topicObjects := range shardTopicUids {
-		shardConfig := config.GetShardConfig(GetShard32(shard), queueShards)
+		shardConfig := config.GetShardConfig(GetShardId32(shard), queueShards)
 		db := client.NewClient(shardConfig.GetHost())
 		for topic, uids := range topicObjects {
 			if err := db.DeleteMessages(topic, uids); err != nil {

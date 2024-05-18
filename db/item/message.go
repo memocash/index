@@ -19,8 +19,8 @@ func (t *Message) GetUid() []byte {
 	return jutil.GetUintData(t.Id)
 }
 
-func (t *Message) GetShard() uint {
-	return client.GetByteShard(t.GetUid())
+func (t *Message) GetShardSource() uint {
+	return t.Id
 }
 
 func (t *Message) GetTopic() string {
@@ -44,7 +44,7 @@ func (t *Message) Deserialize(data []byte) {
 }
 
 func GetMessage(id uint) (*Message, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(jutil.GetUintData(id)), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(client.GenShardSource32(jutil.GetUintData(id)), config.GetQueueShards())
 	queueClient := client.NewClient(shardConfig.GetHost())
 	if err := queueClient.GetSingle(db.TopicMessage, jutil.GetUintData(id)); err != nil {
 		return nil, jerr.Get("error getting single client message", err)

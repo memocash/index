@@ -20,8 +20,8 @@ func (p *Post) GetTopic() string {
 	return db.TopicMemoPost
 }
 
-func (p *Post) GetShard() uint {
-	return client.GetByteShard(p.TxHash[:])
+func (p *Post) GetShardSource() uint {
+	return client.GenShardSource(p.TxHash[:])
 }
 
 func (p *Post) GetUid() []byte {
@@ -64,7 +64,7 @@ func GetPost(txHash [32]byte) (*Post, error) {
 func GetPosts(txHashes [][32]byte) ([]*Post, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
-		shard := db.GetShardByte32(txHashes[i][:])
+		shard := db.GetShardIdFromByte32(txHashes[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
 	var posts []*Post

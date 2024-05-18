@@ -22,8 +22,8 @@ func (l *PostLike) GetTopic() string {
 	return db.TopicMemoPostLike
 }
 
-func (l *PostLike) GetShard() uint {
-	return client.GetByteShard(l.PostTxHash[:])
+func (l *PostLike) GetShardSource() uint {
+	return client.GenShardSource(l.PostTxHash[:])
 }
 
 func (l *PostLike) GetUid() []byte {
@@ -57,7 +57,7 @@ func (l *PostLike) Deserialize(data []byte) {
 func GetPostLikes(postTxHashes [][32]byte) ([]*PostLike, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range postTxHashes {
-		shard := db.GetShardByte32(postTxHashes[i][:])
+		shard := db.GetShardIdFromByte32(postTxHashes[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHashes[i][:]))
 	}
 	var likeds []*PostLike
@@ -82,7 +82,7 @@ func ListenPostLikes(ctx context.Context, postTxHashes [][32]byte) (chan *PostLi
 	}
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range postTxHashes {
-		shard := client.GetByteShard32(postTxHashes[i][:])
+		shard := client.GenShardSource32(postTxHashes[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHashes[i][:]))
 	}
 	shardConfigs := config.GetQueueShards()

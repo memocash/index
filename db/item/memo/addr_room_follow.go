@@ -23,8 +23,8 @@ func (f *AddrRoomFollow) GetTopic() string {
 	return db.TopicMemoAddrRoomFollow
 }
 
-func (f *AddrRoomFollow) GetShard() uint {
-	return client.GetByteShard(f.Addr[:])
+func (f *AddrRoomFollow) GetShardSource() uint {
+	return client.GenShardSource(f.Addr[:])
 }
 
 func (f *AddrRoomFollow) GetUid() []byte {
@@ -66,7 +66,7 @@ func (f *AddrRoomFollow) Deserialize(data []byte) {
 func GetAddrRoomFollows(ctx context.Context, addrs [][25]byte) ([]*AddrRoomFollow, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
-		shard := client.GetByteShard32(addrs[i][:])
+		shard := client.GenShardSource32(addrs[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
 	shardConfigs := config.GetQueueShards()
@@ -97,7 +97,7 @@ func ListenAddrRoomFollows(ctx context.Context, addrs [][25]byte) (chan *AddrRoo
 	}
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, addr := range addrs {
-		shard := client.GetByteShard32(addr[:])
+		shard := client.GenShardSource32(addr[:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addr[:])
 	}
 	shardConfigs := config.GetQueueShards()

@@ -19,8 +19,8 @@ func (b *BlockInfo) GetTopic() string {
 	return db.TopicChainBlockInfo
 }
 
-func (b *BlockInfo) GetShard() uint {
-	return client.GetByteShard(b.BlockHash[:])
+func (b *BlockInfo) GetShardSource() uint {
+	return client.GenShardSource(b.BlockHash[:])
 }
 
 func (b *BlockInfo) GetUid() []byte {
@@ -50,7 +50,7 @@ func (b *BlockInfo) Deserialize(data []byte) {
 }
 
 func GetBlockInfo(blockHash [32]byte) (*BlockInfo, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(blockHash[:]), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(client.GenShardSource32(blockHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetSingle(db.TopicChainBlockInfo, jutil.ByteReverse(blockHash[:])); err != nil {
 		return nil, jerr.Get("error getting client message block info", err)
@@ -66,7 +66,7 @@ func GetBlockInfo(blockHash [32]byte) (*BlockInfo, error) {
 func GetBlockInfos(ctx context.Context, blockHashes [][32]byte) ([]*BlockInfo, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, blockHash := range blockHashes {
-		shard := db.GetShardByte32(blockHash[:])
+		shard := db.GetShardIdFromByte32(blockHash[:])
 		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(blockHash[:]))
 	}
 	messages, err := db.GetSpecific(ctx, db.TopicChainBlockInfo, shardUids)

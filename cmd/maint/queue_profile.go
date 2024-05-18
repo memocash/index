@@ -28,7 +28,7 @@ var queueProfileCmd = &cobra.Command{
 		start := time.Now()
 		jlog.Log("starting queue profile...")
 		for _, heightBlock := range heightBlocks {
-			if db.GetShardByte(heightBlock.BlockHash[:]) != Shard {
+			if db.GetShardIdFromByte(heightBlock.BlockHash[:]) != Shard {
 				continue
 			}
 			blockTxs, err := chain.GetBlockTxs(chain.BlockTxsRequest{
@@ -40,7 +40,7 @@ var queueProfileCmd = &cobra.Command{
 			}
 			var uids [][]byte
 			for _, blockTx := range blockTxs {
-				if db.GetShardByte(blockTx.TxHash[:]) == Shard {
+				if db.GetShardIdFromByte(blockTx.TxHash[:]) == Shard {
 					uids = append(uids, jutil.ByteReverse(blockTx.TxHash[:]))
 				}
 			}

@@ -18,8 +18,8 @@ func (m *Mint) GetTopic() string {
 	return db.TopicSlpMint
 }
 
-func (m *Mint) GetShard() uint {
-	return client.GetByteShard(m.TxHash[:])
+func (m *Mint) GetShardSource() uint {
+	return client.GenShardSource(m.TxHash[:])
 }
 
 func (m *Mint) GetUid() []byte {

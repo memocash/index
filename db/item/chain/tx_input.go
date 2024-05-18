@@ -23,8 +23,8 @@ func (t *TxInput) GetTopic() string {
 	return db.TopicChainTxInput
 }
 
-func (t *TxInput) GetShard() uint {
-	return client.GetByteShard(t.TxHash[:])
+func (t *TxInput) GetShardSource() uint {
+	return client.GenShardSource(t.TxHash[:])
 }
 
 func (t *TxInput) GetUid() []byte {
@@ -83,7 +83,7 @@ func GetTxInputUid(txHash [32]byte, index uint32) []byte {
 func GetTxInputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxInput, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
-		shard := uint32(db.GetShardByte(txHashes[i][:]))
+		shard := uint32(db.GetShardIdFromByte(txHashes[i][:]))
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
 	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxInput, shardPrefixes)
@@ -102,7 +102,7 @@ func GetTxInputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxInput, 
 func GetTxInputs(ctx context.Context, outs []memo.Out) ([]*TxInput, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, out := range outs {
-		shard := db.GetShardByte32(out.TxHash)
+		shard := db.GetShardIdFromByte32(out.TxHash)
 		shardUids[shard] = append(shardUids[shard], GetTxInputUid(db.RawTxHashToFixed(out.TxHash), out.Index))
 	}
 	messages, err := db.GetSpecific(ctx, db.TopicChainTxInput, shardUids)

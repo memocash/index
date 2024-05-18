@@ -27,8 +27,8 @@ func (n *AddrName) GetUid() []byte {
 	)
 }
 
-func (n *AddrName) GetShard() uint {
-	return client.GetByteShard(n.Addr[:])
+func (n *AddrName) GetShardSource() uint {
+	return client.GenShardSource(n.Addr[:])
 }
 
 func (n *AddrName) GetTopic() string {
@@ -53,7 +53,7 @@ func (n *AddrName) Deserialize(data []byte) {
 }
 
 func GetAddrName(ctx context.Context, addr [25]byte) (*AddrName, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(addr[:]), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Topic:    db.TopicMemoAddrName,
@@ -75,7 +75,7 @@ func GetAddrName(ctx context.Context, addr [25]byte) (*AddrName, error) {
 func ListenAddrNames(ctx context.Context, addrs [][25]byte) (chan *AddrName, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
-		shard := db.GetShardByte32(addrs[i][:])
+		shard := db.GetShardIdFromByte32(addrs[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
 	chanMessages, err := db.ListenPrefixes(ctx, db.TopicMemoAddrName, shardPrefixes)

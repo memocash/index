@@ -28,8 +28,8 @@ func (p *PeerFound) GetUid() []byte {
 	)
 }
 
-func (p *PeerFound) GetShard() uint {
-	return client.GetByteShard(p.Ip)
+func (p *PeerFound) GetShardSource() uint {
+	return client.GenShardSource(p.Ip)
 }
 
 func (p *PeerFound) GetTopic() string {

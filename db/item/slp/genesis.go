@@ -25,8 +25,8 @@ func (g *Genesis) GetTopic() string {
 	return db.TopicSlpGenesis
 }
 
-func (g *Genesis) GetShard() uint {
-	return client.GetByteShard(g.TxHash[:])
+func (g *Genesis) GetShardSource() uint {
+	return client.GenShardSource(g.TxHash[:])
 }
 
 func (g *Genesis) GetUid() []byte {
@@ -71,7 +71,7 @@ func (g *Genesis) Deserialize(data []byte) {
 func GetGeneses(ctx context.Context, txHashes [][32]byte) ([]*Genesis, error) {
 	var shardUids = make(map[uint32][][]byte)
 	for _, txHash := range txHashes {
-		shard := db.GetShardByte32(txHash[:])
+		shard := db.GetShardIdFromByte32(txHash[:])
 		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(txHash[:]))
 	}
 	messages, err := db.GetSpecific(ctx, db.TopicSlpGenesis, shardUids)

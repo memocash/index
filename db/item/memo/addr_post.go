@@ -21,8 +21,8 @@ func (p *AddrPost) GetTopic() string {
 	return db.TopicMemoAddrPost
 }
 
-func (p *AddrPost) GetShard() uint {
-	return client.GetByteShard(p.Addr[:])
+func (p *AddrPost) GetShardSource() uint {
+	return client.GenShardSource(p.Addr[:])
 }
 
 func (p *AddrPost) GetUid() []byte {
@@ -55,7 +55,7 @@ func GetSingleAddrPosts(ctx context.Context, addr [25]byte, newest bool, start t
 	} else {
 		startByte = addr[:]
 	}
-	dbClient := client.NewClient(config.GetShardConfig(client.GetByteShard32(addr[:]), config.GetQueueShards()).GetHost())
+	dbClient := client.NewClient(config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards()).GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Topic:    db.TopicMemoAddrPost,
 		Prefixes: [][]byte{addr[:]},
@@ -77,7 +77,7 @@ func GetSingleAddrPosts(ctx context.Context, addr [25]byte, newest bool, start t
 func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool) ([]*AddrPost, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
-		shard := client.GetByteShard32(addrs[i][:])
+		shard := client.GenShardSource32(addrs[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
 	shardConfigs := config.GetQueueShards()

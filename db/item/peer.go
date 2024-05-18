@@ -18,8 +18,8 @@ func (p *Peer) GetUid() []byte {
 	return jutil.CombineBytes(jutil.GetUintData(uint(p.Port)), p.Ip)
 }
 
-func (p *Peer) GetShard() uint {
-	return client.GetByteShard(p.Ip)
+func (p *Peer) GetShardSource() uint {
+	return client.GenShardSource(p.Ip)
 }
 
 func (p *Peer) GetTopic() string {

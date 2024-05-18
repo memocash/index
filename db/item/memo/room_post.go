@@ -22,8 +22,8 @@ func (p *RoomPost) GetTopic() string {
 	return db.TopicMemoRoomPost
 }
 
-func (p *RoomPost) GetShard() uint {
-	return client.GetByteShard(p.RoomHash)
+func (p *RoomPost) GetShardSource() uint {
+	return client.GenShardSource(p.RoomHash)
 }
 
 func (p *RoomPost) GetUid() []byte {
@@ -56,7 +56,7 @@ func GetRoomHash(room string) []byte {
 
 func GetRoomPosts(ctx context.Context, room string) ([]*RoomPost, error) {
 	roomHash := GetRoomHash(room)
-	shard := client.GetByteShard32(roomHash)
+	shard := client.GenShardSource32(roomHash)
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
@@ -82,7 +82,7 @@ func ListenRoomPosts(ctx context.Context, rooms []string) (chan *RoomPost, error
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, room := range rooms {
 		roomHash := GetRoomHash(room)
-		shard := client.GetByteShard32(roomHash)
+		shard := client.GenShardSource32(roomHash)
 		shardPrefixes[shard] = append(shardPrefixes[shard], roomHash)
 	}
 	shardConfigs := config.GetQueueShards()

@@ -20,8 +20,8 @@ func (s *SyncStatus) GetUid() []byte {
 	return []byte(s.Name)
 }
 
-func (s *SyncStatus) GetShard() uint {
-	return client.GetByteShard([]byte(s.Name))
+func (s *SyncStatus) GetShardSource() uint {
+	return client.GenShardSource([]byte(s.Name))
 }
 
 func (s *SyncStatus) GetTopic() string {

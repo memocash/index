@@ -19,8 +19,8 @@ func (p *PostParent) GetTopic() string {
 	return db.TopicMemoPostParent
 }
 
-func (p *PostParent) GetShard() uint {
-	return client.GetByteShard(p.PostTxHash[:])
+func (p *PostParent) GetShardSource() uint {
+	return client.GenShardSource(p.PostTxHash[:])
 }
 
 func (p *PostParent) GetUid() []byte {
@@ -46,7 +46,7 @@ func (p *PostParent) Deserialize(data []byte) {
 }
 
 func GetPostParent(ctx context.Context, postTxHash [32]byte) (*PostParent, error) {
-	shardConfig := config.GetShardConfig(db.GetShardByte32(postTxHash[:]), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(db.GetShardIdFromByte32(postTxHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Context: ctx,

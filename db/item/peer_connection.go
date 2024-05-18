@@ -42,8 +42,8 @@ func (p *PeerConnection) GetUid() []byte {
 	)
 }
 
-func (p *PeerConnection) GetShard() uint {
-	return client.GetByteShard(p.Ip)
+func (p *PeerConnection) GetShardSource() uint {
+	return client.GenShardSource(p.Ip)
 }
 
 func (p *PeerConnection) GetTopic() string {
@@ -77,7 +77,7 @@ type PeerConnectionsRequest struct {
 
 func (r PeerConnectionsRequest) GetShard() uint32 {
 	if len(r.Ip) > 0 {
-		return client.GetByteShard32(r.Ip)
+		return client.GenShardSource32(r.Ip)
 	}
 	return r.Shard
 }
@@ -132,7 +132,7 @@ func GetPeerConnectionLasts(ipPorts []IpPort) ([]*PeerConnection, error) {
 	}
 	var shardIpPorts = make(map[uint32][]IpPort)
 	for _, ipPort := range ipPorts {
-		shard := db.GetShardByte32(ipPort.Ip)
+		shard := db.GetShardIdFromByte32(ipPort.Ip)
 		shardIpPorts[shard] = append(shardIpPorts[shard], ipPort)
 	}
 	var peerConnections []*PeerConnection

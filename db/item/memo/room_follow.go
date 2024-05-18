@@ -23,8 +23,8 @@ func (f *RoomFollow) GetTopic() string {
 	return db.TopicMemoRoomFollow
 }
 
-func (f *RoomFollow) GetShard() uint {
-	return client.GetByteShard(f.RoomHash)
+func (f *RoomFollow) GetShardSource() uint {
+	return client.GenShardSource(f.RoomHash)
 }
 
 func (f *RoomFollow) GetUid() []byte {
@@ -65,7 +65,7 @@ func (f *RoomFollow) Deserialize(data []byte) {
 
 func GetRoomFollows(ctx context.Context, room string) ([]*RoomFollow, error) {
 	roomHash := GetRoomHash(room)
-	shardConfig := config.GetShardConfig(client.GetByteShard32(roomHash), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(client.GenShardSource32(roomHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Topic:    db.TopicMemoRoomFollow,

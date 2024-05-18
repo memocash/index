@@ -29,9 +29,10 @@ func (s Shard) Int() int {
 	return int(s.Shard)
 }
 
-func GetShardConfig(shard uint32, configs []Shard) Shard {
+func GetShardConfig(shardSource uint32, configs []Shard) Shard {
+	var shard = shardSource
 	if len(configs) > 1 && configs[0].Total > 0 {
-		shard = shard % configs[0].Total
+		shard = shardSource % configs[0].Total
 	}
 	for _, config := range configs {
 		if config.Shard == shard {

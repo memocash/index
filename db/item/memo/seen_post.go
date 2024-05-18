@@ -23,16 +23,16 @@ func (i *SeenPost) GetTopic() string {
 	return db.TopicMemoSeenPost
 }
 
-func (i *SeenPost) GetShard() uint {
+func (i *SeenPost) GetShardSource() uint {
 	return GetSeenPostShardSource(i.Seen)
 }
 
 func GetSeenPostShardSource(seen time.Time) uint {
-	return client.GetByteShard(jutil.GetTimeByte(jutil.TimeRoundSeconds(seen, SeenPostShardSeconds)))
+	return client.GenShardSource(jutil.GetTimeByte(jutil.TimeRoundSeconds(seen, SeenPostShardSeconds)))
 }
 
 func GetSeenPostShard32(seen time.Time) uint32 {
-	return db.GetShard32(GetSeenPostShardSource(seen))
+	return db.GetShardId32(GetSeenPostShardSource(seen))
 }
 
 func IsSeenPostSameShardWindow(a, b time.Time) bool {

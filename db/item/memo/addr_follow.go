@@ -24,8 +24,8 @@ func (f *AddrFollow) GetTopic() string {
 	return db.TopicMemoAddrFollow
 }
 
-func (f *AddrFollow) GetShard() uint {
-	return client.GetByteShard(f.Addr[:])
+func (f *AddrFollow) GetShardSource() uint {
+	return client.GenShardSource(f.Addr[:])
 }
 
 func (f *AddrFollow) GetUid() []byte {
@@ -67,7 +67,7 @@ func (f *AddrFollow) Deserialize(data []byte) {
 func GetAddrFollows(ctx context.Context, addrs [][25]byte) ([]*AddrFollow, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
-		shard := client.GetByteShard32(addrs[i][:])
+		shard := client.GenShardSource32(addrs[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
 	shardConfigs := config.GetQueueShards()
@@ -93,7 +93,7 @@ func GetAddrFollows(ctx context.Context, addrs [][25]byte) ([]*AddrFollow, error
 }
 
 func GetAddrFollowsSingle(ctx context.Context, addr [25]byte, start time.Time) ([]*AddrFollow, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(addr[:]), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var startByte []byte
 	if !jutil.IsTimeZero(start) {
@@ -121,7 +121,7 @@ func GetAddrFollowsSingle(ctx context.Context, addr [25]byte, start time.Time) (
 func ListenAddrFollows(ctx context.Context, addrs [][25]byte) (chan *AddrFollow, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
-		shard := db.GetShardByte32(addrs[i][:])
+		shard := db.GetShardIdFromByte32(addrs[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
 	chanMessages, err := db.ListenPrefixes(ctx, db.TopicMemoAddrFollow, shardPrefixes)

@@ -19,8 +19,8 @@ func (s *TxProcessed) GetUid() []byte {
 	return GetTxProcessedUid(s.TxHash, s.Timestamp)
 }
 
-func (s *TxProcessed) GetShard() uint {
-	return client.GetByteShard(s.TxHash)
+func (s *TxProcessed) GetShardSource() uint {
+	return client.GenShardSource(s.TxHash)
 }
 
 func (s *TxProcessed) GetTopic() string {
@@ -46,7 +46,7 @@ func GetTxProcessedUid(txHash []byte, timestamp time.Time) []byte {
 }
 
 func WaitForTxProcessed(ctx context.Context, txHash []byte) (*TxProcessed, error) {
-	shardConfig := config.GetShardConfig(db.GetShardByte32(txHash), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(db.GetShardIdFromByte32(txHash), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Context:  ctx,

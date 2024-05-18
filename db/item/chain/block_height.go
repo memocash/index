@@ -19,8 +19,8 @@ func (b *BlockHeight) GetTopic() string {
 	return db.TopicChainBlockHeight
 }
 
-func (b *BlockHeight) GetShard() uint {
-	return client.GetByteShard(b.BlockHash[:])
+func (b *BlockHeight) GetShardSource() uint {
+	return client.GenShardSource(b.BlockHash[:])
 }
 
 func (b *BlockHeight) GetUid() []byte {
@@ -42,7 +42,7 @@ func (b *BlockHeight) Serialize() []byte {
 func (b *BlockHeight) Deserialize([]byte) {}
 
 func GetBlockHeight(blockHash [32]byte) (*BlockHeight, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(blockHash[:]), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(client.GenShardSource32(blockHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetByPrefix(db.TopicChainBlockHeight, jutil.ByteReverse(blockHash[:])); err != nil {
 		return nil, jerr.Get("error getting client message for block height", err)
@@ -65,7 +65,7 @@ func GetBlockHeight(blockHash [32]byte) (*BlockHeight, error) {
 func GetBlockHeights(ctx context.Context, blockHashes [][32]byte) ([]*BlockHeight, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for _, blockHash := range blockHashes {
-		shard := db.GetShardByte32(blockHash[:])
+		shard := db.GetShardIdFromByte32(blockHash[:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(blockHash[:]))
 	}
 	messages, err := db.GetByPrefixes(ctx, db.TopicChainBlockHeight, shardPrefixes)

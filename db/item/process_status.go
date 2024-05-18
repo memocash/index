@@ -23,7 +23,7 @@ func (s *ProcessStatus) GetTopic() string {
 	return db.TopicProcessStatus
 }
 
-func (s *ProcessStatus) GetShard() uint {
+func (s *ProcessStatus) GetShardSource() uint {
 	return s.Shard
 }
 

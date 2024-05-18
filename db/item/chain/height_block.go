@@ -21,7 +21,7 @@ func (b *HeightBlock) GetTopic() string {
 	return db.TopicChainHeightBlock
 }
 
-func (b *HeightBlock) GetShard() uint {
+func (b *HeightBlock) GetShardSource() uint {
 	return uint(b.Height)
 }
 
@@ -174,7 +174,7 @@ func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32, n
 	shardConfigs := config.GetQueueShards()
 	shardLimit := limit / uint32(len(shardConfigs))
 	for _, shardConfig := range shardConfigs {
-		if waitSingle && db.GetShard32(uint(startHeight)) != shardConfig.Shard {
+		if waitSingle && db.GetShardId32(uint(startHeight)) != shardConfig.Shard {
 			continue
 		}
 		dbClient := client.NewClient(shardConfig.GetHost())

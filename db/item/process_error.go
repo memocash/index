@@ -18,8 +18,8 @@ func (e *ProcessError) GetTopic() string {
 	return db.TopicProcessError
 }
 
-func (e *ProcessError) GetShard() uint {
-	return client.GetByteShard(e.TxHash[:])
+func (e *ProcessError) GetShardSource() uint {
+	return client.GenShardSource(e.TxHash[:])
 }
 
 func (e *ProcessError) GetUid() []byte {

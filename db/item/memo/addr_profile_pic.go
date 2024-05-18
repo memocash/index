@@ -23,8 +23,8 @@ func (p *AddrProfilePic) GetTopic() string {
 	return db.TopicMemoAddrProfilePic
 }
 
-func (p *AddrProfilePic) GetShard() uint {
-	return client.GetByteShard(p.Addr[:])
+func (p *AddrProfilePic) GetShardSource() uint {
+	return client.GenShardSource(p.Addr[:])
 }
 
 func (p *AddrProfilePic) GetUid() []byte {
@@ -53,7 +53,7 @@ func (p *AddrProfilePic) Deserialize(data []byte) {
 }
 
 func GetAddrProfilePic(ctx context.Context, addr [25]byte) (*AddrProfilePic, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(addr[:]), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Topic:    db.TopicMemoAddrProfilePic,
@@ -75,7 +75,7 @@ func GetAddrProfilePic(ctx context.Context, addr [25]byte) (*AddrProfilePic, err
 func ListenAddrProfilePics(ctx context.Context, addrs [][25]byte) (chan *AddrProfilePic, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range addrs {
-		shard := db.GetShardByte32(addrs[i][:])
+		shard := db.GetShardIdFromByte32(addrs[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
 	chanMessages, err := db.ListenPrefixes(ctx, db.TopicMemoAddrProfilePic, shardPrefixes)

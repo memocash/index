@@ -62,12 +62,12 @@ func (m Message) MessageHex() string {
 	return hex.EncodeToString(m.Message)
 }
 
-func GetByteShard(b []byte) uint {
+func GenShardSource(b []byte) uint {
 	return jutil.GetByteMd5Int(b)
 }
 
-func GetByteShard32(b []byte) uint32 {
-	return uint32(GetByteShard(b))
+func GenShardSource32(b []byte) uint32 {
+	return uint32(GenShardSource(b))
 }
 
 func IncrementBytes(b []byte) []byte {

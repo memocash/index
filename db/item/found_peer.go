@@ -19,8 +19,8 @@ func (p *FoundPeer) GetTopic() string {
 	return db.TopicFoundPeer
 }
 
-func (p *FoundPeer) GetShard() uint {
-	return client.GetByteShard(p.FoundIp)
+func (p *FoundPeer) GetShardSource() uint {
+	return client.GenShardSource(p.FoundIp)
 }
 
 func (p *FoundPeer) GetUid() []byte {

@@ -21,8 +21,8 @@ func (s *TxSeen) GetUid() []byte {
 	)
 }
 
-func (s *TxSeen) GetShard() uint {
-	return client.GetByteShard(s.TxHash[:])
+func (s *TxSeen) GetShardSource() uint {
+	return client.GenShardSource(s.TxHash[:])
 }
 
 func (s *TxSeen) GetTopic() string {
@@ -46,7 +46,7 @@ func (s *TxSeen) Deserialize([]byte) {}
 func GetTxSeens(ctx context.Context, txHashes [][32]byte) ([]*TxSeen, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
-		shard := db.GetShardByte32(txHashes[i][:])
+		shard := db.GetShardIdFromByte32(txHashes[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
 	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxSeen, shardPrefixes)

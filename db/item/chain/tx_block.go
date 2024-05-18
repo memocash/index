@@ -19,8 +19,8 @@ func (b *TxBlock) GetTopic() string {
 	return db.TopicChainTxBlock
 }
 
-func (b *TxBlock) GetShard() uint {
-	return client.GetByteShard(b.TxHash[:])
+func (b *TxBlock) GetShardSource() uint {
+	return client.GenShardSource(b.TxHash[:])
 }
 
 func (b *TxBlock) GetUid() []byte {
@@ -46,7 +46,7 @@ func GetTxBlockUid(txHash, blockHash [32]byte) []byte {
 }
 
 func GetSingleTxBlock(txHash, blockHash [32]byte) (*TxBlock, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash[:]), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(client.GenShardSource32(txHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetSingle(db.TopicChainTxBlock, GetTxBlockUid(txHash, blockHash)); err != nil {
 		return nil, jerr.Get("error getting client message single tx block", err)
@@ -60,7 +60,7 @@ func GetSingleTxBlock(txHash, blockHash [32]byte) (*TxBlock, error) {
 }
 
 func GetSingleTxBlocks(txHash [32]byte) ([]*TxBlock, error) {
-	shardConfig := config.GetShardConfig(client.GetByteShard32(txHash[:]), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(client.GenShardSource32(txHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetByPrefix(db.TopicChainTxBlock, jutil.ByteReverse(txHash[:])); err != nil {
 		return nil, jerr.Get("error getting client message chain tx block by prefix", err)
@@ -77,7 +77,7 @@ func GetSingleTxBlocks(txHash [32]byte) ([]*TxBlock, error) {
 func GetTxBlocks(ctx context.Context, txHashes [][32]byte) ([]*TxBlock, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
-		shard := uint32(db.GetShardByte(txHashes[i][:]))
+		shard := uint32(db.GetShardIdFromByte(txHashes[i][:]))
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
 	}
 	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxBlock, shardPrefixes)

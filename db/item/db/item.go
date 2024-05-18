@@ -11,8 +11,7 @@ import (
 )
 
 func GetItem(obj Object) error {
-	shard := obj.GetShard()
-	shardConfig := config.GetShardConfig(uint32(shard), config.GetQueueShards())
+	shardConfig := config.GetShardConfig(uint32(obj.GetShardSource()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetSingle(obj.GetTopic(), obj.GetUid()); err != nil && !client.IsMessageNotSetError(err) {
 		return jerr.Get("error getting db item single", err)

@@ -19,8 +19,8 @@ func (l *AddrLike) GetTopic() string {
 	return db.TopicMemoAddrLike
 }
 
-func (l *AddrLike) GetShard() uint {
-	return client.GetByteShard(l.Addr[:])
+func (l *AddrLike) GetShardSource() uint {
+	return client.GenShardSource(l.Addr[:])
 }
 
 func (l *AddrLike) GetUid() []byte {
