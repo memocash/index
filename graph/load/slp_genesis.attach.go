@@ -3,8 +3,8 @@ package load
 import (
 	"context"
 	"fmt"
-	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/db/item/slp"
+	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -44,6 +44,19 @@ func (o *SlpGeneses) GetTokenOuts() []memo.Out {
 	return txOuts
 }
 
+func (o *SlpGeneses) GetBatonOuts() []memo.Out {
+	o.Mutex.Lock()
+	defer o.Mutex.Unlock()
+	var txOuts []memo.Out
+	for i := range o.SlpGeneses {
+		txOuts = append(txOuts, memo.Out{
+			TxHash: o.SlpGeneses[i].Hash[:],
+			Index:  o.SlpGeneses[i].BatonIndex,
+		})
+	}
+	return txOuts
+}
+
 func (o *SlpGeneses) AttachSlpOutputs() {
 	defer o.Wait.Done()
 	if !o.HasField([]string{"output"}) {
@@ -74,6 +87,39 @@ func (o *SlpGeneses) AttachSlpOutputs() {
 	o.Mutex.Unlock()
 	if err := AttachToSlpOutputs(o.Ctx, GetPrefixFields(o.Fields, "output."), allSlpOutputs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp outputs for slp geneses; %w", err))
+		return
+	}
+}
+
+func (o *SlpGeneses) AttachSlpBatons() {
+	defer o.Wait.Done()
+	if !o.HasField([]string{"baton"}) {
+		return
+	}
+	batonOutputs, err := slp.GetBatons(o.Ctx, o.GetBatonOuts())
+	if err != nil {
+		o.AddError(fmt.Errorf("error getting tx outputs for model slp geneses; %w", err))
+		return
+	}
+	var allBatons []*model.SlpBaton
+	o.Mutex.Lock()
+	for i := range o.SlpGeneses {
+		for j := range batonOutputs {
+			if o.SlpGeneses[i].Hash != batonOutputs[j].TxHash || o.SlpGeneses[i].BatonIndex != batonOutputs[j].Index {
+				continue
+			}
+			o.SlpGeneses[i].Baton = &model.SlpBaton{
+				Hash:      batonOutputs[j].TxHash,
+				Index:     batonOutputs[j].Index,
+				TokenHash: batonOutputs[j].TokenHash,
+			}
+			allBatons = append(allBatons, o.SlpGeneses[i].Baton)
+			break
+		}
+	}
+	o.Mutex.Unlock()
+	if err := AttachToSlpBatons(o.Ctx, GetPrefixFields(o.Fields, "baton."), allBatons); err != nil {
+		o.AddError(fmt.Errorf("error attaching to slp batons for slp geneses; %w", err))
 		return
 	}
 }

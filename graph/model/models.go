@@ -134,6 +134,7 @@ type SlpGenesis struct {
 	DocHash    string     `json:"doc_hash"`
 	Tx         *Tx        `json:"tx"`
 	Output     *SlpOutput `json:"output"`
+	Baton      *SlpBaton  `json:"baton"`
 }
 
 type SlpOutput struct {
