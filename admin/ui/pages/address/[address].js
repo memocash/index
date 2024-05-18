@@ -23,7 +23,7 @@ export default function LockHash() {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const query = `
-    query ($address: String!) {
+    query ($address: Address!) {
         address(address: $address) {
             address
             txs {

@@ -77,10 +77,10 @@ func (l *Lock) AttachTxs() {
 	startDate, _ := txsField.Arguments["start"].(model.Date)
 	startTx, _ := txsField.Arguments["tx"].(string)
 	var allTxs []*model.Tx
-	for _, address := range l.GetLockAddrs() {
+	for _, lock := range l.Locks {
 		var startUid []byte
 		if time.Time(startDate).After(memo.GetGenesisTime()) {
-			startUid = jutil.CombineBytes(address[:], jutil.GetTimeByteNanoBig(time.Time(startDate)))
+			startUid = jutil.CombineBytes(lock.Address[:], jutil.GetTimeByteNanoBig(time.Time(startDate)))
 			if len(startTx) > 0 {
 				txHash, err := chainhash.NewHashFromStr(startTx)
 				if err != nil {
@@ -90,21 +90,21 @@ func (l *Lock) AttachTxs() {
 				startUid = append(startUid, jutil.ByteReverse(txHash[:])...)
 			}
 		}
-		seenTxs, err := addr.GetSeenTxs(l.Ctx, address, startUid)
+		seenTxs, err := addr.GetSeenTxs(l.Ctx, lock.Address, startUid)
 		if err != nil {
 			l.AddError(fmt.Errorf("error getting addr seen txs for lock txs resolver; %w", err))
 			return
 		}
-		var modelTxs = make([]*model.Tx, len(seenTxs))
+		lock.Txs = make([]*model.Tx, len(seenTxs))
 		for i := range seenTxs {
-			modelTxs[i] = &model.Tx{
+			lock.Txs[i] = &model.Tx{
 				Hash: seenTxs[i].TxHash,
 				Seen: model.Date(seenTxs[i].Seen),
 			}
 		}
-		allTxs = append(allTxs, modelTxs...)
+		allTxs = append(allTxs, lock.Txs...)
 	}
-	prefixFields := GetPrefixFields(txsField.Fields, "tx.")
+	prefixFields := GetPrefixFields(txsField.Fields, "txs.")
 	if err := AttachToTxs(l.Ctx, prefixFields, allTxs); err != nil {
 		l.AddError(fmt.Errorf("error attaching to lock transactions; %w", err))
 		return
