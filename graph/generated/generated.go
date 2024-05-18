@@ -48,7 +48,6 @@ type ResolverRoot interface {
 	SetName() SetNameResolver
 	SetPic() SetPicResolver
 	SetProfile() SetProfileResolver
-	SlpOutput() SlpOutputResolver
 	Subscription() SubscriptionResolver
 }
 
@@ -331,9 +330,6 @@ type SetProfileResolver interface {
 	Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error)
 
 	Lock(ctx context.Context, obj *model.SetProfile) (*model.Lock, error)
-}
-type SlpOutputResolver interface {
-	Output(ctx context.Context, obj *model.SlpOutput) (*model.TxOutput, error)
 }
 type SubscriptionResolver interface {
 	Address(ctx context.Context, address string) (<-chan *model.Tx, error)
@@ -7484,7 +7480,7 @@ func (ec *executionContext) _SlpOutput_output(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.SlpOutput().Output(rctx, obj)
+		return obj.Output, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7505,8 +7501,8 @@ func (ec *executionContext) fieldContext_SlpOutput_output(ctx context.Context, f
 	fc = &graphql.FieldContext{
 		Object:     "SlpOutput",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -13099,52 +13095,39 @@ func (ec *executionContext) _SlpOutput(ctx context.Context, sel ast.SelectionSet
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("SlpOutput")
 		case "output":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SlpOutput_output(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._SlpOutput_output(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "hash":
 
 			out.Values[i] = ec._SlpOutput_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "index":
 
 			out.Values[i] = ec._SlpOutput_index(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "amount":
 
 			out.Values[i] = ec._SlpOutput_amount(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "token_hash":
 
 			out.Values[i] = ec._SlpOutput_token_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "genesis":
 
@@ -14059,10 +14042,6 @@ func (ec *executionContext) marshalNTxInput2ᚖgithubᚗcomᚋmemocashᚋindex�
 		return graphql.Null
 	}
 	return ec._TxInput(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNTxOutput2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTxOutput(ctx context.Context, sel ast.SelectionSet, v model.TxOutput) graphql.Marshaler {
-	return ec._TxOutput(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNTxOutput2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTxOutputᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TxOutput) graphql.Marshaler {

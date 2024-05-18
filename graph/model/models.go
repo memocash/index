@@ -143,4 +143,5 @@ type SlpOutput struct {
 	TokenHash Hash        `json:"token_hash"`
 	Amount    uint64      `json:"amount"`
 	Genesis   *SlpGenesis `json:"genesis"`
+	Output    *TxOutput   `json:"output"`
 }
