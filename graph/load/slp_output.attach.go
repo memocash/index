@@ -23,8 +23,9 @@ func AttachToSlpOutputs(ctx context.Context, fields []Field, slpOutputs []*model
 		baseA:      baseA{Ctx: ctx, Fields: fields},
 		SlpOutputs: slpOutputs,
 	}
-	o.Wait.Add(1)
+	o.Wait.Add(2)
 	go o.AttachGeneses()
+	go o.AttachOutputs()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to slp outputs; %w", o.Errors[0])

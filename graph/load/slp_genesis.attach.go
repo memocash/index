@@ -21,8 +21,9 @@ func AttachToSlpGeneses(ctx context.Context, fields []Field, slpGeneses []*model
 		baseA:      baseA{Ctx: ctx, Fields: fields},
 		SlpGeneses: slpGeneses,
 	}
-	o.Wait.Add(2)
+	o.Wait.Add(3)
 	go o.AttachSlpOutputs()
+	go o.AttachSlpBatons()
 	go o.AttachTxs()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
