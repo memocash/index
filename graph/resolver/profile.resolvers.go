@@ -18,7 +18,7 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error) {
-	tx, err := load.GetTxByString(ctx, obj.TxHash)
+	tx, err := load.GetTx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting tx from loader for follow resolver: %s; %w", obj.TxHash, err)
 	}
@@ -45,7 +45,7 @@ func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*mo
 
 // Tx is the resolver for the tx field.
 func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, error) {
-	tx, err := load.GetTxByString(ctx, obj.TxHash)
+	tx, err := load.GetTx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting tx from loader for like resolver: %s; %w", obj.TxHash, err)
 	}
@@ -63,7 +63,7 @@ func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, 
 
 // Post is the resolver for the post field.
 func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, error) {
-	post, err := load.Post.Load(obj.TxHash)
+	post, err := load.Post.Load(chainhash.Hash(obj.TxHash).String())
 	if err != nil {
 		return nil, fmt.Errorf("error getting post from post dataloader for like resolver: %s; %w", obj.Address, err)
 	}
@@ -72,7 +72,7 @@ func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, 
 
 // Tx is the resolver for the tx field.
 func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
-	tx, err := load.GetTxByString(ctx, obj.TxHash)
+	tx, err := load.GetTx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting tx from loader for post resolver: %s; %w", obj.TxHash, err)
 	}
@@ -90,11 +90,7 @@ func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, 
 
 // Likes is the resolver for the likes field.
 func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Like, error) {
-	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing tx hash for likes for post resolver; %w", err)
-	}
-	memoPostLikes, err := memo.GetPostLikes([][32]byte{*postTxHash})
+	memoPostLikes, err := memo.GetPostLikes([][32]byte{obj.TxHash})
 	if err != nil {
 		return nil, fmt.Errorf("error getting memo post likeds for post resolver; %w", err)
 	}
@@ -117,8 +113,8 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 			}
 		}
 		likes[i] = &model.Like{
-			TxHash:     chainhash.Hash(memoPostLikes[i].LikeTxHash).String(),
-			PostTxHash: chainhash.Hash(memoPostLikes[i].PostTxHash).String(),
+			TxHash:     memoPostLikes[i].LikeTxHash,
+			PostTxHash: memoPostLikes[i].PostTxHash,
 			Address:    wallet.Addr(memoPostLikes[i].Addr).String(),
 			Tip:        tip,
 		}
@@ -128,11 +124,7 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 
 // Parent is the resolver for the parent field.
 func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post, error) {
-	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing tx hash for likes for post resolver; %w", err)
-	}
-	postParent, err := memo.GetPostParent(ctx, *postTxHash)
+	postParent, err := memo.GetPostParent(ctx, obj.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting memo post parent for post resolver; %w", err)
 	}
@@ -151,11 +143,7 @@ func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post
 
 // Replies is the resolver for the replies field.
 func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.Post, error) {
-	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing tx hash for likes for post resolver; %w", err)
-	}
-	postChildren, err := memo.GetPostChildren(ctx, *postTxHash)
+	postChildren, err := memo.GetPostChildren(ctx, obj.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting memo post children for post resolver; %w", err)
 	}
@@ -174,18 +162,14 @@ func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.P
 
 // Room is the resolver for the room field.
 func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, error) {
-	postTxHash, err := chainhash.NewHashFromStr(obj.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing tx hash for room for post resolver; %w", err)
-	}
-	postRoom, err := memo.GetPostRoom(ctx, postTxHash.CloneBytes())
+	postRoom, err := memo.GetPostRoom(ctx, obj.TxHash[:])
 	if err != nil {
 		return nil, fmt.Errorf("error getting memo post room for post resolver; %w", err)
 	}
 	if postRoom == nil {
 		return nil, nil
 	}
-	var room= &model.Room{Name: postRoom.Room}
+	var room = &model.Room{Name: postRoom.Room}
 	if err := load.AttachToMemoRooms(ctx, load.GetFields(ctx), []*model.Room{room}); err != nil {
 		return nil, fmt.Errorf("error attaching to memo rooms for post resolver: %s; %w", obj.TxHash, err)
 	}
@@ -218,7 +202,7 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 	var follows []*model.Follow
 	for _, addrMemoFollow := range addrMemoFollows {
 		follows = append(follows, &model.Follow{
-			TxHash:        chainhash.Hash(addrMemoFollow.TxHash).String(),
+			TxHash:        addrMemoFollow.TxHash,
 			Address:       wallet.Addr(addrMemoFollow.Addr).String(),
 			FollowAddress: wallet.Addr(addrMemoFollow.FollowAddr).String(),
 			Unfollow:      addrMemoFollow.Unfollow,
@@ -244,7 +228,7 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 	var follows []*model.Follow
 	for _, addrMemoFollowed := range addrMemoFolloweds {
 		follows = append(follows, &model.Follow{
-			TxHash:        chainhash.Hash(addrMemoFollowed.TxHash).String(),
+			TxHash:        addrMemoFollowed.TxHash,
 			Address:       wallet.Addr(addrMemoFollowed.Addr).String(),
 			FollowAddress: wallet.Addr(addrMemoFollowed.FollowAddr).String(),
 			Unfollow:      addrMemoFollowed.Unfollow,
@@ -278,7 +262,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	var posts = make([]*model.Post, len(memoPosts))
 	for i, memoPost := range memoPosts {
 		posts[i] = &model.Post{
-			TxHash:  chainhash.Hash(memoPost.TxHash).String(),
+			TxHash:  memoPost.TxHash,
 			Address: wallet.Addr(memoPost.Addr).String(),
 			Text:    memoPost.Post,
 		}
@@ -299,7 +283,7 @@ func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *
 			Name:     lockRoomFollows[i].Room,
 			Address:  wallet.Addr(lockRoomFollows[i].Addr).String(),
 			Unfollow: lockRoomFollows[i].Unfollow,
-			TxHash:   chainhash.Hash(lockRoomFollows[i].TxHash).String(),
+			TxHash:   lockRoomFollows[i].TxHash,
 		}
 	}
 	return roomFollows, nil
@@ -307,7 +291,7 @@ func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *
 
 // Tx is the resolver for the tx field.
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
-	tx, err := load.GetTxByString(ctx, obj.TxHash)
+	tx, err := load.GetTx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting tx from loader for set name resolver: %s; %w", obj.TxHash, err)
 	}
@@ -325,7 +309,7 @@ func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.
 
 // Tx is the resolver for the tx field.
 func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error) {
-	tx, err := load.GetTxByString(ctx, obj.TxHash)
+	tx, err := load.GetTx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting tx from loader for set pic resolver: %s; %w", obj.TxHash, err)
 	}
@@ -343,7 +327,7 @@ func (r *setPicResolver) Lock(ctx context.Context, obj *model.SetPic) (*model.Lo
 
 // Tx is the resolver for the tx field.
 func (r *setProfileResolver) Tx(ctx context.Context, obj *model.SetProfile) (*model.Tx, error) {
-	tx, err := load.GetTxByString(ctx, obj.TxHash)
+	tx, err := load.GetTx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting tx from loader for set profile resolver: %s; %w", obj.TxHash, err)
 	}

@@ -10,6 +10,6 @@ type RoomFollow {
     lock: Lock!
     address: String!
     unfollow: Boolean!
-    tx_hash: String!
+    tx_hash: Hash!
     tx: Tx!
 }

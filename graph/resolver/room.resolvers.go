@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/generated"
@@ -27,7 +26,7 @@ func (r *roomResolver) Followers(ctx context.Context, obj *model.Room, start *in
 			Name:     obj.Name,
 			Address:  wallet.Addr(lockRoomFollows[i].Addr).String(),
 			Unfollow: lockRoomFollows[i].Unfollow,
-			TxHash:   chainhash.Hash(lockRoomFollows[i].TxHash).String(),
+			TxHash:   lockRoomFollows[i].TxHash,
 		}
 	}
 	return roomFollows, nil
@@ -53,7 +52,7 @@ func (r *roomFollowResolver) Lock(ctx context.Context, obj *model.RoomFollow) (*
 
 // Tx is the resolver for the tx field.
 func (r *roomFollowResolver) Tx(ctx context.Context, obj *model.RoomFollow) (*model.Tx, error) {
-	tx, err := load.GetTxByString(ctx, obj.TxHash)
+	tx, err := load.GetTx(ctx, obj.TxHash)
 	if err != nil {
 		return nil, jerr.Getf(err, "error getting tx from loader for room follow resolver: %s", obj.TxHash)
 	}

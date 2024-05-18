@@ -3,7 +3,6 @@ package load
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
 )
@@ -54,7 +53,7 @@ func (o *MemoRoomAttach) AttachPosts() {
 		}
 		var posts = make([]*model.Post, len(roomPosts))
 		for i := range roomPosts {
-			posts[i] = &model.Post{TxHash: chainhash.Hash(roomPosts[i].TxHash).String()}
+			posts[i] = &model.Post{TxHash: roomPosts[i].TxHash}
 			allPosts = append(allPosts, posts[i])
 		}
 		o.Mutex.Lock()

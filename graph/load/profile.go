@@ -3,7 +3,6 @@ package load
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
@@ -22,7 +21,7 @@ func GetProfile(ctx context.Context, addressString string) (*model.Profile, erro
 	}
 	if addrMemoName != nil {
 		profile.Name = &model.SetName{
-			TxHash:  chainhash.Hash(addrMemoName.TxHash).String(),
+			TxHash:  addrMemoName.TxHash,
 			Name:    addrMemoName.Name,
 			Address: addressString,
 		}
@@ -33,7 +32,7 @@ func GetProfile(ctx context.Context, addressString string) (*model.Profile, erro
 	}
 	if addrMemoProfile != nil {
 		profile.Profile = &model.SetProfile{
-			TxHash:  chainhash.Hash(addrMemoProfile.TxHash).String(),
+			TxHash:  addrMemoProfile.TxHash,
 			Text:    addrMemoProfile.Profile,
 			Address: addressString,
 		}
@@ -44,7 +43,7 @@ func GetProfile(ctx context.Context, addressString string) (*model.Profile, erro
 	}
 	if addrMemoProfilePic != nil {
 		profile.Pic = &model.SetPic{
-			TxHash:  chainhash.Hash(addrMemoProfilePic.TxHash).String(),
+			TxHash:  addrMemoProfilePic.TxHash,
 			Address: addressString,
 			Pic:     addrMemoProfilePic.Pic,
 		}

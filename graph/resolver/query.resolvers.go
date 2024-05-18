@@ -244,7 +244,7 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 	var returnPosts []*model.Post
 	for i := range txHashes {
 		for _, post := range posts {
-			if post.TxHash == txHashes[i] {
+			if post.TxHash.String() == txHashes[i] {
 				returnPosts = append(returnPosts, post)
 				break
 			}

@@ -3,9 +3,9 @@ package sub
 import (
 	"context"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
-	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 

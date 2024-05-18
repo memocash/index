@@ -67,40 +67,40 @@ type Profile struct {
 }
 
 type Follow struct {
-	TxHash        string `json:"tx_hash"`
+	TxHash        Hash   `json:"tx_hash"`
 	Address       string `json:"address"`
 	FollowAddress string `json:"follow_address"`
 	Unfollow      bool   `json:"unfollow"`
 }
 
 type SetName struct {
-	TxHash  string `json:"tx_hash"`
+	TxHash  Hash   `json:"tx_hash"`
 	Address string `json:"address"`
 	Name    string `json:"name"`
 }
 
 type SetPic struct {
-	TxHash  string `json:"tx_hash"`
+	TxHash  Hash   `json:"tx_hash"`
 	Address string `json:"address"`
 	Pic     string `json:"pic"`
 }
 
 type SetProfile struct {
-	TxHash  string `json:"tx_hash"`
+	TxHash  Hash   `json:"tx_hash"`
 	Address string `json:"address"`
 	Text    string `json:"text"`
 }
 
 type Post struct {
-	TxHash  string `json:"tx_hash"`
+	TxHash  Hash   `json:"tx_hash"`
 	Address string `json:"address"`
 	Text    string `json:"text"`
 }
 
 type Like struct {
-	TxHash     string `json:"tx_hash"`
+	TxHash     Hash   `json:"tx_hash"`
 	Address    string `json:"address"`
-	PostTxHash string `json:"post_tx_hash"`
+	PostTxHash Hash   `json:"post_tx_hash"`
 	Tip        int64  `json:"tip"`
 }
 
@@ -113,7 +113,7 @@ type RoomFollow struct {
 	Name     string `json:"name"`
 	Address  string `json:"address"`
 	Unfollow bool   `json:"unfollow"`
-	TxHash   string `json:"tx_hash"`
+	TxHash   Hash   `json:"tx_hash"`
 }
 
 type SlpBaton struct {

@@ -2,10 +2,9 @@ package sub
 
 import (
 	"context"
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/db/item/memo"
+	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
@@ -47,7 +46,7 @@ func (r *RoomFollow) Listen(ctx context.Context, addresses []string) (<-chan *mo
 					Name:     lockRoomFollow.Room,
 					Address:  wallet.Addr(lockRoomFollow.Addr).String(),
 					Unfollow: lockRoomFollow.Unfollow,
-					TxHash:   chainhash.Hash(lockRoomFollow.TxHash).String(),
+					TxHash:   lockRoomFollow.TxHash,
 				}
 			}
 		}

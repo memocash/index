@@ -40,7 +40,7 @@ var Post = dataloader.NewPostLoader(dataloader.PostLoaderConfig{
 				continue
 			}
 			posts[i] = &model.Post{
-				TxHash:  txHash.String(),
+				TxHash:  model.Hash(*txHash),
 				Address: wallet.Addr(memoPost.Addr).String(),
 				Text:    memoPost.Post,
 			}
