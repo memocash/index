@@ -3,9 +3,9 @@ package load
 import (
 	"context"
 	"fmt"
-	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/slp"
+	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )

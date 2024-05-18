@@ -256,7 +256,11 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 // Room is the resolver for the room field.
 func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, error) {
 	metric.AddGraphQuery(metric.EndPointRoom)
-	return &model.Room{Name: name}, nil
+	var room = &model.Room{Name: name}
+	if err := load.AttachToMemoRooms(ctx, load.GetFields(ctx), []*model.Room{room}); err != nil {
+		return nil, jerr.Get("error attaching to rooms for room query resolver", err)
+	}
+	return room, nil
 }
 
 // Address is the resolver for the address field.

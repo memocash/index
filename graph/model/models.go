@@ -105,7 +105,8 @@ type Like struct {
 }
 
 type Room struct {
-	Name string `json:"name"`
+	Name  string  `json:"name"`
+	Posts []*Post `json:"posts"`
 }
 
 type RoomFollow struct {

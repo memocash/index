@@ -307,7 +307,6 @@ type QueryResolver interface {
 	Room(ctx context.Context, name string) (*model.Room, error)
 }
 type RoomResolver interface {
-	Posts(ctx context.Context, obj *model.Room, start *int) ([]*model.Post, error)
 	Followers(ctx context.Context, obj *model.Room, start *int) ([]*model.RoomFollow, error)
 }
 type RoomFollowResolver interface {
@@ -5463,7 +5462,7 @@ func (ec *executionContext) _Room_posts(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Room().Posts(rctx, obj, fc.Args["start"].(*int))
+		return obj.Posts, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5481,8 +5480,8 @@ func (ec *executionContext) fieldContext_Room_posts(ctx context.Context, field g
 	fc = &graphql.FieldContext{
 		Object:     "Room",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -12534,22 +12533,9 @@ func (ec *executionContext) _Room(ctx context.Context, sel ast.SelectionSet, obj
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "posts":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Room_posts(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Room_posts(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "followers":
 			field := field
 

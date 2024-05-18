@@ -178,7 +178,6 @@ func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, 
 	if err != nil {
 		return nil, fmt.Errorf("error parsing tx hash for room for post resolver; %w", err)
 	}
-
 	postRoom, err := memo.GetPostRoom(ctx, postTxHash.CloneBytes())
 	if err != nil {
 		return nil, fmt.Errorf("error getting memo post room for post resolver; %w", err)
@@ -186,9 +185,11 @@ func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, 
 	if postRoom == nil {
 		return nil, nil
 	}
-	return &model.Room{
-		Name: postRoom.Room,
-	}, nil
+	var room= &model.Room{Name: postRoom.Room}
+	if err := load.AttachToMemoRooms(ctx, load.GetFields(ctx), []*model.Room{room}); err != nil {
+		return nil, fmt.Errorf("error attaching to memo rooms for post resolver: %s; %w", obj.TxHash, err)
+	}
+	return room, nil
 }
 
 // Lock is the resolver for the lock field.

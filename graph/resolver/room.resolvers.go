@@ -15,31 +15,6 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-// Posts is the resolver for the posts field.
-func (r *roomResolver) Posts(ctx context.Context, obj *model.Room, start *int) ([]*model.Post, error) {
-	roomPosts, err := memo.GetRoomPosts(ctx, obj.Name)
-	if err != nil {
-		return nil, jerr.Get("error getting room height posts for room resolver", err)
-	}
-	var txHashes = make([][32]byte, len(roomPosts))
-	for i := range roomPosts {
-		txHashes[i] = roomPosts[i].TxHash
-	}
-	memoPosts, err := memo.GetPosts(txHashes)
-	if err != nil {
-		return nil, jerr.Get("error getting posts for room resolver", err)
-	}
-	var posts = make([]*model.Post, len(memoPosts))
-	for i := range memoPosts {
-		posts[i] = &model.Post{
-			TxHash:  chainhash.Hash(memoPosts[i].TxHash).String(),
-			Address: wallet.Addr(memoPosts[i].Addr).String(),
-			Text:    memoPosts[i].Post,
-		}
-	}
-	return posts, nil
-}
-
 // Followers is the resolver for the followers field.
 func (r *roomResolver) Followers(ctx context.Context, obj *model.Room, start *int) ([]*model.RoomFollow, error) {
 	lockRoomFollows, err := memo.GetRoomFollows(ctx, obj.Name)
@@ -60,7 +35,11 @@ func (r *roomResolver) Followers(ctx context.Context, obj *model.Room, start *in
 
 // Room is the resolver for the room field.
 func (r *roomFollowResolver) Room(ctx context.Context, obj *model.RoomFollow) (*model.Room, error) {
-	return &model.Room{Name: obj.Name}, nil
+	var room = &model.Room{Name: obj.Name}
+	if err := load.AttachToMemoRooms(ctx, load.GetFields(ctx), []*model.Room{room}); err != nil {
+		return nil, jerr.Getf(err, "error attaching to memo rooms for room follow resolver: %s", obj.TxHash)
+	}
+	return room, nil
 }
 
 // Lock is the resolver for the lock field.

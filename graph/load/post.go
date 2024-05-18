@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/memocash/index/graph/dataloader"
-	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/memo"
+	"github.com/memocash/index/graph/dataloader"
+	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
