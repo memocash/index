@@ -47,7 +47,7 @@ var memoLikeHandler = &Handler{
 			LikeTxHash: info.TxHash,
 			Addr:       info.Addr,
 		}
-		memoPost, err := dbMemo.GetPost(postTxHash)
+		memoPost, err := dbMemo.GetPost(ctx, postTxHash)
 		if err != nil {
 			return jerr.Get("error getting memo post for like op return handler", err)
 		}

@@ -22,7 +22,7 @@ func MemoPost(ctx context.Context, info parse.OpReturn, post string) error {
 		PostTxHash: info.TxHash,
 	}
 	var objects = []db.Object{lockMemoPost, memoSeenPost}
-	existingMemoPost, err := memo.GetPost(info.TxHash)
+	existingMemoPost, err := memo.GetPost(ctx, info.TxHash)
 	if err != nil {
 		return jerr.Get("error getting existing memo post for post op return handler", err)
 	}

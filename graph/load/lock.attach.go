@@ -90,7 +90,7 @@ func (l *Lock) AttachTxs() {
 				startUid = append(startUid, jutil.ByteReverse(txHash[:])...)
 			}
 		}
-		seenTxs, err := addr.GetSeenTxs(address, startUid)
+		seenTxs, err := addr.GetSeenTxs(l.Ctx, address, startUid)
 		if err != nil {
 			l.AddError(fmt.Errorf("error getting addr seen txs for lock txs resolver; %w", err))
 			return

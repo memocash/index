@@ -140,6 +140,7 @@ func (b *Blocks) AttachTxs() {
 	var allTxs []*model.Tx
 	for _, block := range b.Blocks {
 		blockTxs, err := chain.GetBlockTxs(chain.BlockTxsRequest{
+			Context:    b.Ctx,
 			BlockHash:  block.Hash,
 			StartIndex: startIndex,
 			Limit:      client.DefaultLimit,

@@ -1,6 +1,7 @@
 package load
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -8,6 +9,7 @@ import (
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/dataloader"
 	"github.com/memocash/index/graph/model"
+	"time"
 )
 
 const postNotFoundErrorMessage = "error post not found in loader"
@@ -23,13 +25,15 @@ var Post = dataloader.NewPostLoader(dataloader.PostLoaderConfig{
 	Fetch: func(txHashStrings []string) ([]*model.Post, []error) {
 		var posts = make([]*model.Post, len(txHashStrings))
 		var errors = make([]error, len(txHashStrings))
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
 		for i, txHashString := range txHashStrings {
 			txHash, err := chainhash.NewHashFromStr(txHashString)
 			if err != nil {
 				errors[i] = fmt.Errorf("error getting tx hash from string; %w", err)
 				continue
 			}
-			memoPost, err := memo.GetPost(*txHash)
+			memoPost, err := memo.GetPost(ctx, *txHash)
 			if err != nil && !client.IsEntryNotFoundError(err) {
 				errors[i] = fmt.Errorf("error getting lock memo post; %w", err)
 				continue

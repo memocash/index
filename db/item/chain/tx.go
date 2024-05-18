@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -48,7 +49,7 @@ func (t *Tx) Deserialize(data []byte) {
 	t.LockTime = jutil.GetUint32(data[4:8])
 }
 
-func GetTxsByHashes(txHashes [][32]byte) ([]*Tx, error) {
+func GetTxsByHashes(ctx context.Context, txHashes [][32]byte) ([]*Tx, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
 		shard := uint32(db.GetShardIdFromByte(txHashes[i][:]))
@@ -58,7 +59,7 @@ func GetTxsByHashes(txHashes [][32]byte) ([]*Tx, error) {
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		err := dbClient.GetByPrefixes(db.TopicChainTx, prefixes)
+		err := dbClient.GetWOpts(client.Opts{Context: ctx, Topic: db.TopicChainTx, Prefixes: prefixes})
 		if err != nil {
 			return nil, jerr.Get("error getting db message chain txs by hashes", err)
 		}

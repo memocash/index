@@ -20,7 +20,7 @@ export default function Hash() {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const query = `
-    query ($hash: String!) {
+    query ($hash: Hash!) {
         tx(hash: $hash) {
             hash
             raw

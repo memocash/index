@@ -26,7 +26,9 @@ import (
 // Tx is the resolver for the tx field.
 func (r *queryResolver) Tx(ctx context.Context, hash model.Hash) (*model.Tx, error) {
 	metric.AddGraphQuery(metric.EndPointTx)
-	tx, err := load.GetTx(ctx, hash)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	tx, err := load.GetTx(ctxWithTimeout, hash)
 	if err != nil {
 		if errors.Is(err, load.TxMissingError) {
 			return nil, fmt.Errorf("tx not found for hash: %s", hash)

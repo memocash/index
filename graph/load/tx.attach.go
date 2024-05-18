@@ -152,7 +152,7 @@ func (t *Tx) AttachInfo() {
 	if len(txHashes) == 0 {
 		return
 	}
-	chainTxs, err := chain.GetTxsByHashes(txHashes)
+	chainTxs, err := chain.GetTxsByHashes(t.Ctx, txHashes)
 	if err != nil {
 		t.AddError(fmt.Errorf("error getting chain txs for raw; %w", err))
 		return

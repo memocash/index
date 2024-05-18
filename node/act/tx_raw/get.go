@@ -30,7 +30,7 @@ func Get(ctx context.Context, txHashes [][32]byte) ([]*TxRaw, error) {
 	sort.Slice(txHashes, func(i, j int) bool {
 		return jutil.ByteLT(txHashes[i][:], txHashes[j][:])
 	})
-	txs, err := chain.GetTxsByHashes(txHashes)
+	txs, err := chain.GetTxsByHashes(ctx, txHashes)
 	if err != nil {
 		return nil, jerr.Get("error getting tx inputs for raw", err)
 	}

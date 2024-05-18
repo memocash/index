@@ -20,7 +20,7 @@ export default function LockHash() {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const query = `
-    query ($hash: String!, $start: Uint32) {
+    query ($hash: Hash!, $start: Uint32) {
         block(hash: $hash) {
             hash
             height

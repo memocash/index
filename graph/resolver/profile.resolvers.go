@@ -242,7 +242,7 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	for i := range addrMemoPosts {
 		postTxHashes[i] = addrMemoPosts[i].TxHash
 	}
-	memoPosts, err := memo.GetPosts(postTxHashes)
+	memoPosts, err := memo.GetPosts(ctx, postTxHashes)
 	if err != nil {
 		return nil, fmt.Errorf("error getting memo posts for profile resolver; %w", err)
 	}

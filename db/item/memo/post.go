@@ -50,8 +50,8 @@ func (p *Post) Deserialize(data []byte) {
 	p.Post = string(data[25:])
 }
 
-func GetPost(txHash [32]byte) (*Post, error) {
-	posts, err := GetPosts([][32]byte{txHash})
+func GetPost(ctx context.Context, txHash [32]byte) (*Post, error) {
+	posts, err := GetPosts(ctx, [][32]byte{txHash})
 	if err != nil {
 		return nil, jerr.Get("error getting memo posts for single", err)
 	}
@@ -61,7 +61,7 @@ func GetPost(txHash [32]byte) (*Post, error) {
 	return posts[0], nil
 }
 
-func GetPosts(txHashes [][32]byte) ([]*Post, error) {
+func GetPosts(ctx context.Context, txHashes [][32]byte) ([]*Post, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
 		shard := db.GetShardIdFromByte32(txHashes[i][:])
@@ -71,7 +71,11 @@ func GetPosts(txHashes [][32]byte) ([]*Post, error) {
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetByPrefixes(db.TopicMemoPost, prefixes); err != nil {
+		if err := dbClient.GetWOpts(client.Opts{
+			Context:  ctx,
+			Topic:    db.TopicMemoPost,
+			Prefixes: prefixes,
+		}); err != nil {
 			return nil, jerr.Get("error getting client message memo posts", err)
 		}
 		for _, msg := range dbClient.Messages {

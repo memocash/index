@@ -2,6 +2,7 @@ package chain
 
 import (
 	"bytes"
+	"context"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -70,6 +71,7 @@ func GetBlockTx(blockHash [32]byte, index uint32) (*BlockTx, error) {
 }
 
 type BlockTxsRequest struct {
+	Context    context.Context
 	BlockHash  [32]byte
 	StartIndex uint32
 	Limit      uint32
@@ -94,6 +96,7 @@ func GetBlockTxs(request BlockTxsRequest) ([]*BlockTx, error) {
 		Prefixes: [][]byte{jutil.ByteReverse(request.BlockHash[:])},
 		Start:    startUid,
 		Max:      limit,
+		Context:  request.Context,
 	}); err != nil {
 		return nil, jerr.Get("error getting client message", err)
 	}

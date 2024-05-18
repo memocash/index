@@ -48,10 +48,11 @@ func (i *SeenTx) Serialize() []byte {
 
 func (i *SeenTx) Deserialize([]byte) {}
 
-func GetSeenTxs(addr [25]byte, start []byte) ([]*SeenTx, error) {
+func GetSeenTxs(ctx context.Context, addr [25]byte, start []byte) ([]*SeenTx, error) {
 	shardConfig := config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
+		Context:  ctx,
 		Topic:    db.TopicAddrSeenTx,
 		Start:    start,
 		Prefixes: [][]byte{addr[:]},
