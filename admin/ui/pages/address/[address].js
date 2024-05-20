@@ -91,7 +91,7 @@ export default function LockHash() {
                 }
                 for (let j = 0; j < tx.outputs.length; j++) {
                     const output = tx.outputs[j]
-                    if (output.lock.address === address) {
+                    if (output.lock && output.lock.address === address) {
                         tx.amount += output.amount
                     }
                 }

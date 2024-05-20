@@ -8,11 +8,13 @@ import (
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"sync"
 )
 
 type Outputs struct {
 	baseA
-	Outputs []*model.TxOutput
+	Outputs     []*model.TxOutput
+	DetailsWait sync.WaitGroup
 }
 
 func AttachToOutputs(ctx context.Context, fields Fields, outputs []*model.TxOutput) error {
@@ -23,12 +25,14 @@ func AttachToOutputs(ctx context.Context, fields Fields, outputs []*model.TxOutp
 		baseA:   baseA{Ctx: ctx, Fields: fields},
 		Outputs: outputs,
 	}
-	o.Wait.Add(6)
+	o.DetailsWait.Add(1)
+	o.Wait.Add(5)
 	go o.AttachInfo()
 	go o.AttachSpends()
 	go o.AttachSlps()
 	go o.AttachSlpBatons()
 	go o.AttachTxs()
+	o.DetailsWait.Wait()
 	go o.AttachLocks()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
@@ -54,7 +58,7 @@ func (o *Outputs) GetOuts(checkScript bool) []memo.Out {
 }
 
 func (o *Outputs) AttachInfo() {
-	defer o.Wait.Done()
+	defer o.DetailsWait.Done()
 	if !o.HasField([]string{"amount", "script", "lock"}) {
 		return
 	}
