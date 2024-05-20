@@ -104,8 +104,7 @@ func (l *Lock) AttachTxs() {
 		}
 		allTxs = append(allTxs, lock.Txs...)
 	}
-	prefixFields := GetPrefixFields(txsField.Fields, "txs.")
-	if err := AttachToTxs(l.Ctx, prefixFields, allTxs); err != nil {
+	if err := AttachToTxs(l.Ctx, txsField.Fields, allTxs); err != nil {
 		l.AddError(fmt.Errorf("error attaching to lock transactions; %w", err))
 		return
 	}
