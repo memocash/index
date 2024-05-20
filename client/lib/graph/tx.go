@@ -13,7 +13,7 @@ import (
 
 func GetTx(hash string) (*Tx, error) {
 	const query = `
-	query ($hash: String!) {
+	query ($hash: Hash!) {
 		tx (hash: $hash) {
 			hash
 			seen
