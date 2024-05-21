@@ -80,8 +80,9 @@ func NewServer(group *node.Group) *Server {
 func getHandler(handler func(http.ResponseWriter, *http.Request), corsAllOrigins bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if corsAllOrigins {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Server")
+			h := w.Header()
+			h.Set("Access-Control-Allow-Origin", "*")
+			h.Set("Access-Control-Allow-Headers", "Content-Type, Server")
 		}
 		handler(w, r)
 		jlog.Logf("Processed admin request: %s\n", r.URL)
