@@ -49,13 +49,13 @@ func (s *Server) Start() error {
 				NodeGroup: s.Nodes,
 				Route:     route,
 			})
-		}))
+		}, false))
 	}
 	graphqlHandler, err := graphql.GetHandler()
 	if err != nil {
 		return jerr.Get("error getting graphql handler", err)
 	}
-	mux.HandleFunc(admin.UrlGraphql, getHandler(graphqlHandler.ServeHTTP))
+	mux.HandleFunc(admin.UrlGraphql, getHandler(graphqlHandler.ServeHTTP, true))
 	s.server = http.Server{Handler: mux}
 	if s.listener, err = net.Listen("tcp", config.GetHost(s.Port)); err != nil {
 		return jerr.Get("failed to listen admin server", err)
@@ -77,8 +77,12 @@ func NewServer(group *node.Group) *Server {
 	}
 }
 
-func getHandler(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func getHandler(handler func(http.ResponseWriter, *http.Request), corsAllOrigins bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if corsAllOrigins {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Server")
+		}
 		handler(w, r)
 		jlog.Logf("Processed admin request: %s\n", r.URL)
 	}
