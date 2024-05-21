@@ -53,6 +53,7 @@ func GetSeenTxs(ctx context.Context, addr [25]byte, start []byte) ([]*SeenTx, er
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
 		Context:  ctx,
+		Newest:   true,
 		Topic:    db.TopicAddrSeenTx,
 		Start:    start,
 		Prefixes: [][]byte{addr[:]},

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/db/item/chain"
 	memo_db "github.com/memocash/index/db/item/memo"
@@ -31,9 +30,9 @@ func (r *queryResolver) Tx(ctx context.Context, hash model.Hash) (*model.Tx, err
 	tx, err := load.GetTx(ctxWithTimeout, hash)
 	if err != nil {
 		if errors.Is(err, load.TxMissingError) {
-			return nil, fmt.Errorf("tx not found for hash: %s", hash)
+			return nil, InternalError{fmt.Errorf("tx not found for hash: %s", hash)}
 		}
-		return nil, fmt.Errorf("error getting tx from dataloader for tx query resolver; %w", err)
+		return nil, InternalError{fmt.Errorf("error getting tx from dataloader for tx query resolver; %w", err)}
 	}
 	return tx, nil
 }
@@ -48,7 +47,8 @@ func (r *queryResolver) Address(ctx context.Context, address model.Address) (*mo
 	metric.AddGraphQuery(metric.EndPointAddress)
 	lock, err := load.GetLock(ctx, address)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting lock from loader for query address resolver: %s", address)
+		return nil, InternalError{fmt.Errorf("error getting lock from loader for query address resolver: %s; %w",
+			address, err)}
 	}
 	return lock, nil
 }
@@ -58,7 +58,7 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []model.Address
 	metric.AddGraphQuery(metric.EndPointAddresses)
 	if load.GetFields(ctx).HasField("balance") {
 		// TODO: Reimplement if needed
-		return nil, jerr.New("error balance no longer implemented")
+		return nil, InternalError{fmt.Errorf("error balance no longer implemented")}
 	}
 	var locks []*model.Lock
 	for _, address := range addresses {
@@ -67,7 +67,7 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []model.Address
 		})
 	}
 	if err := load.AttachToLocks(ctx, load.GetFields(ctx), locks); err != nil {
-		return nil, jerr.Get("error attaching to locks for query resolver", err)
+		return nil, InternalError{fmt.Errorf("error attaching to locks for query resolver; %w", err)}
 	}
 	return locks, nil
 }
@@ -77,15 +77,15 @@ func (r *queryResolver) Block(ctx context.Context, hash model.Hash) (*model.Bloc
 	metric.AddGraphQuery(metric.EndPointBlock)
 	blockHeight, err := chain.GetBlockHeight(hash)
 	if err != nil {
-		return nil, jerr.Get("error getting block height for query resolver", err)
+		return nil, InternalError{fmt.Errorf("error getting block height for query resolver; %w", err)}
 	}
 	block, err := chain.GetBlock(hash)
 	if err != nil {
-		return nil, jerr.Get("error getting raw block", err)
+		return nil, InternalError{fmt.Errorf("error getting raw block; %w", err)}
 	}
 	blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
 	if err != nil {
-		return nil, jerr.Get("error getting block header from raw", err)
+		return nil, InternalError{fmt.Errorf("error getting block header from raw; %w", err)}
 	}
 	height := int(blockHeight.Height)
 	var modelBlock = &model.Block{
@@ -95,7 +95,7 @@ func (r *queryResolver) Block(ctx context.Context, hash model.Hash) (*model.Bloc
 		Raw:       block.Raw,
 	}
 	if err := load.AttachToBlocks(ctx, load.GetFields(ctx), []*model.Block{modelBlock}); err != nil {
-		return nil, jerr.Get("error attaching to block for query resolver", err)
+		return nil, InternalError{fmt.Errorf("error attaching to block for query resolver; %w", err)}
 	}
 	return modelBlock, nil
 }
@@ -105,18 +105,18 @@ func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	metric.AddGraphQuery(metric.EndPointBlockNewest)
 	heightBlock, err := chain.GetRecentHeightBlock()
 	if err != nil {
-		return nil, jerr.Get("error getting recent height block for query", err)
+		return nil, InternalError{fmt.Errorf("error getting recent height block for query; %w", err)}
 	}
 	if heightBlock == nil {
 		return nil, nil
 	}
 	block, err := chain.GetBlock(heightBlock.BlockHash)
 	if err != nil {
-		return nil, jerr.Get("error getting raw block", err)
+		return nil, InternalError{fmt.Errorf("error getting raw block; %w", err)}
 	}
 	blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
 	if err != nil {
-		return nil, jerr.Get("error getting block header from raw", err)
+		return nil, InternalError{fmt.Errorf("error getting block header from raw; %w", err)}
 	}
 	height := int(heightBlock.Height)
 	return &model.Block{
@@ -139,7 +139,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	}
 	heightBlocks, err := chain.GetHeightBlocksAllDefault(startInt, false, newestBool)
 	if err != nil {
-		return nil, jerr.Get("error getting height blocks for query", err)
+		return nil, InternalError{fmt.Errorf("error getting height blocks for query; %w", err)}
 	}
 	var blockHashes = make([][32]byte, len(heightBlocks))
 	for i := range heightBlocks {
@@ -147,7 +147,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	}
 	blocks, err := chain.GetBlocks(ctx, blockHashes)
 	if err != nil {
-		return nil, jerr.Get("error getting raw blocks", err)
+		return nil, InternalError{fmt.Errorf("error getting raw blocks; %w", err)}
 	}
 	var modelBlocks = make([]*model.Block, len(heightBlocks))
 	for i := range heightBlocks {
@@ -160,14 +160,14 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 			if block.Hash == heightBlocks[i].BlockHash {
 				blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
 				if err != nil {
-					return nil, jerr.Get("error getting block header from raw", err)
+					return nil, InternalError{fmt.Errorf("error getting block header from raw; %w", err)}
 				}
 				modelBlocks[i].Timestamp = model.Date(blockHeader.Timestamp)
 			}
 		}
 	}
 	if err := load.AttachToBlocks(ctx, load.GetFields(ctx), modelBlocks); err != nil {
-		return nil, jerr.Get("error attaching to blocks for query resolver", err)
+		return nil, InternalError{fmt.Errorf("error attaching to blocks for query resolver; %w", err)}
 
 	}
 	return modelBlocks, nil
@@ -180,7 +180,8 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []model.Address)
 	for _, addressString := range addresses {
 		profile, err := load.GetProfile(ctx, addressString)
 		if err != nil {
-			return nil, jerr.Get("error getting profile from dataloader for profile query resolver", err)
+			return nil, InternalError{fmt.Errorf(
+				"error getting profile from dataloader for profile query resolver; %w", err)}
 		}
 		profiles = append(profiles, profile)
 	}
@@ -197,7 +198,8 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []model.Hash) ([]*mo
 	posts, errs := load.Post.LoadAll(txHashStrings)
 	for i, err := range errs {
 		if err != nil {
-			return nil, jerr.Getf(err, "error getting post from post dataloader for query resolver: %s", txHashes[i])
+			return nil, InternalError{fmt.Errorf(
+				"error getting post from post dataloader for query resolver: %s; %w", txHashes[i], err)}
 		}
 	}
 	return posts, nil
@@ -217,7 +219,7 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 	if tx != nil && start == nil {
 		txSeens, err := chain.GetTxSeens(ctx, [][32]byte{txHash})
 		if err != nil {
-			return nil, jerr.Get("error getting tx seen param for newest graphql query", err)
+			return nil, InternalError{fmt.Errorf("error getting tx seen param for newest graphql query; %w", err)}
 		}
 		if len(txSeens) > 0 {
 			startTime = txSeens[0].Timestamp
@@ -229,7 +231,7 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 	}
 	seenPosts, err := memo_db.GetSeenPosts(ctx, startTime, txHash, limitInt)
 	if err != nil {
-		return nil, jerr.Get("error getting seen posts for newest graphql query", err)
+		return nil, InternalError{fmt.Errorf("error getting seen posts for newest graphql query; %w", err)}
 	}
 	var txHashes = make([]string, len(seenPosts))
 	for i := range seenPosts {
@@ -238,7 +240,8 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 	posts, errs := load.Post.LoadAll(txHashes)
 	for i, err := range errs {
 		if err != nil {
-			return nil, jerr.Getf(err, "error getting post from post dataloader for query resolver: %s", txHashes[i])
+			return nil, InternalError{fmt.Errorf(
+				"error getting post from post dataloader for query resolver: %s; %w", txHashes[i], err)}
 		}
 	}
 	var returnPosts []*model.Post
@@ -258,7 +261,7 @@ func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, err
 	metric.AddGraphQuery(metric.EndPointRoom)
 	var room = &model.Room{Name: name}
 	if err := load.AttachToMemoRooms(ctx, load.GetFields(ctx), []*model.Room{room}); err != nil {
-		return nil, jerr.Get("error attaching to rooms for room query resolver", err)
+		return nil, InternalError{fmt.Errorf("error attaching to rooms for room query resolver; %w", err)}
 	}
 	return room, nil
 }
@@ -267,7 +270,7 @@ func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, err
 func (r *subscriptionResolver) Address(ctx context.Context, address model.Address) (<-chan *model.Tx, error) {
 	txChan, err := r.Addresses(ctx, []model.Address{address})
 	if err != nil {
-		return nil, jerr.Get("error getting address for address subscription", err)
+		return nil, InternalError{fmt.Errorf("error getting address for address subscription; %w", err)}
 	}
 	return txChan, nil
 }
@@ -278,7 +281,7 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []model.
 	addrSeenTxsListener, err := addr.ListenAddrSeenTxs(ctx, model.AddressesToArrays(addresses))
 	if err != nil {
 		cancel()
-		return nil, jerr.Get("error getting addr seen txs listener for address subscription", err)
+		return nil, InternalError{fmt.Errorf("error getting addr seen txs listener for address subscription; %w", err)}
 	}
 	fields := load.GetFields(ctx)
 	var txChan = make(chan *model.Tx)
@@ -312,7 +315,7 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 	blockHeightListener, err := chain.ListenBlockHeights(ctx)
 	if err != nil {
 		cancel()
-		return nil, jerr.Get("error getting block height listener for subscription", err)
+		return nil, InternalError{fmt.Errorf("error getting block height listener for subscription; %w", err)}
 	}
 	var blockChan = make(chan *model.Block)
 	go func() {
@@ -333,12 +336,12 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 			}
 			block, err := chain.GetBlock(blockHeight.BlockHash)
 			if err != nil {
-				jerr.Get("error getting block for block height subscription", err).Print()
+				log.Println(fmt.Errorf("error getting block for block height subscription; %w", err))
 				return
 			}
 			blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
 			if err != nil {
-				jerr.Get("error getting block header from raw", err).Print()
+				log.Println(fmt.Errorf("error getting block header from raw; %w", err))
 				return
 			}
 			height := int(blockHeight.Height)
@@ -356,7 +359,7 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 func (r *subscriptionResolver) Posts(ctx context.Context, hashes []model.Hash) (<-chan *model.Post, error) {
 	postChan, err := new(sub.Post).Listen(ctx, model.HashesToArrays(hashes))
 	if err != nil {
-		return nil, jerr.Get("error getting post listener for subscription", err)
+		return nil, InternalError{fmt.Errorf("error getting post listener for subscription; %w", err)}
 	}
 	return postChan, nil
 }
@@ -366,7 +369,7 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []model.A
 	var profile = new(sub.Profile)
 	profileChan, err := profile.Listen(ctx, model.AddressesToArrays(addresses), load.GetFields(ctx))
 	if err != nil {
-		return nil, jerr.Get("error getting profile listener for subscription", err)
+		return nil, InternalError{fmt.Errorf("error getting profile listener for subscription; %w", err)}
 	}
 	return profileChan, nil
 }
@@ -376,7 +379,7 @@ func (r *subscriptionResolver) Rooms(ctx context.Context, names []string) (<-cha
 	var room = new(sub.Room)
 	roomPostsChan, err := room.Listen(ctx, names)
 	if err != nil {
-		return nil, jerr.Get("error getting room listener for subscription", err)
+		return nil, InternalError{fmt.Errorf("error getting room listener for subscription; %w", err)}
 	}
 	return roomPostsChan, nil
 }
@@ -386,7 +389,7 @@ func (r *subscriptionResolver) RoomFollows(ctx context.Context, addresses []mode
 	var roomFollow = new(sub.RoomFollow)
 	roomFollowsChan, err := roomFollow.Listen(ctx, model.AddressesToArrays(addresses))
 	if err != nil {
-		return nil, jerr.Get("error getting room follow listener for subscription", err)
+		return nil, InternalError{fmt.Errorf("error getting room follow listener for subscription; %w", err)}
 	}
 	return roomFollowsChan, nil
 }

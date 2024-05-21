@@ -343,7 +343,7 @@ function Outputs({tx}) {
                             {output.index}
                         </div>
                         <div className={column.width85}>
-                            {output.lock.address.includes(": ") ? <>{GetOutputScriptInfo(output.script)}</> : <>
+                            {(!output.lock || output.lock.address.includes(": ")) ? <>{GetOutputScriptInfo(output.script)}</> : <>
                                 Address: <Link href={"/address/" + output.lock.address}>
                                 <a>{output.lock.address}</a>
                             </Link></>}

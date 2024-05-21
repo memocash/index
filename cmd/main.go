@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/cmd/maint"
 	"github.com/memocash/index/cmd/peer"
 	"github.com/memocash/index/cmd/serve"
@@ -12,6 +11,7 @@ import (
 	"github.com/memocash/index/ref/config"
 	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,6 +28,7 @@ var indexCmd = &cobra.Command{
 		DisableDefaultCmd: true,
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		config.SetLogger()
 		if err := config.Init(cmd); err != nil {
 			jerr.Get("fatal error initializing config", err).Fatal()
 		}
@@ -41,7 +42,7 @@ var indexCmd = &cobra.Command{
 		go func() {
 			<-sigc
 			store.CloseAll()
-			jlog.Logf("Index server caught SIGTERM, stopping...\n")
+			log.Printf("Index server caught SIGTERM, stopping...\n")
 			os.Exit(0)
 		}()
 	},

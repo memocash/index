@@ -51,14 +51,16 @@ func GetHistory(url string, addressUpdates []AddressUpdate) (History, error) {
 	var dataStruct = struct {
 		Data   map[string]Address `json:"data"`
 		Errors []struct {
-			Message string `json:"message"`
+			Message string        `json:"message"`
+			Path    []interface{} `json:"path"`
 		} `json:"errors"`
 	}{}
 	if err := json.Unmarshal(data, &dataStruct); err != nil {
 		return nil, fmt.Errorf("error unmarshalling json; %w", err)
 	}
 	if len(dataStruct.Errors) > 0 {
-		return nil, fmt.Errorf("error index client history response data; %w", fmt.Errorf(dataStruct.Errors[0].Message))
+		return nil, fmt.Errorf("error index client history response data; %w",
+			fmt.Errorf("%v %s", dataStruct.Errors[0].Path, dataStruct.Errors[0].Message))
 	}
 	var history History
 	for _, v := range dataStruct.Data {
