@@ -39,12 +39,12 @@ func main() {
 		KeyRing: wlt.KeyRing,
 	})
 	if err != nil {
-		log.Fatalf("error getting unsigned tx; %v", err)
+		log.Fatalf("error generating memo post tx; %v", err)
 	}
 	txInfo := parse.GetTxInfo(tx)
 	txInfo.Print()
 	if err := wlt.Client.Broadcast(hex.EncodeToString(txInfo.Raw)); err != nil {
 		log.Fatalf("error broadcasting tx; %v", err)
 	}
-	log.Println("Tx broadcasted")
+	log.Println("Tx broadcast!")
 }
