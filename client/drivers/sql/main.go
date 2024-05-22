@@ -124,6 +124,7 @@ var tables = map[string]Table{
 			"index":   "INT",
 			"address": "CHAR",
 			"value":   "INT",
+			"script":  "CHAR",
 		},
 		Indexes: []string{"UNIQUE(hash, `index`)"},
 	},

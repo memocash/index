@@ -7,34 +7,30 @@ import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
-	"log"
 )
 
 type Wallet struct {
-	Utxos  []memo.UTXO
-	Used   bool
-	Change wallet.Change
+	Utxos   []memo.UTXO
+	Used    bool
+	Change  wallet.Change
+	KeyRing wallet.KeyRing
 }
 
-func NewWallet(addressStrings []string) (*Wallet, error) {
-	var addresses []wallet.Addr
-	for _, addressString := range addressStrings {
-		address, err := wallet.GetAddrFromString(addressString)
-		if err != nil {
-			log.Fatalf("error getting address from string; %v", err)
-		}
-		addresses = append(addresses, *address)
+func NewWallet(wif string) (*Wallet, error) {
+	privateKey, err := wallet.ImportPrivateKey(wif)
+	if err != nil {
+		return nil, fmt.Errorf("error getting private key; %w", err)
 	}
 	client, err := GetClient()
 	if err != nil {
-		log.Fatalf("error getting client; %v", err)
+		return nil, fmt.Errorf("error getting client; %w", err)
 	}
-	graphUtxos, err := client.GetUtxos(addresses)
+	clientUtxos, err := client.GetUtxos([]wallet.Addr{privateKey.GetAddr()})
 	if err != nil {
-		log.Fatalf("error getting utxos; %v", err)
+		return nil, fmt.Errorf("error getting client utxos; %w", err)
 	}
 	var memoUtxos []memo.UTXO
-	for _, utxo := range graphUtxos {
+	for _, utxo := range clientUtxos {
 		txHash, err := chainhash.NewHashFromStr(utxo.Hash)
 		if err != nil {
 			return nil, fmt.Errorf("error getting hash from string for wallet utxos; %w", err)
@@ -56,8 +52,9 @@ func NewWallet(addressStrings []string) (*Wallet, error) {
 		}})
 	}
 	return &Wallet{
-		Utxos:  memoUtxos,
-		Change: wallet.Change{Main: addresses[0].OldAddress()},
+		Utxos:   memoUtxos,
+		Change:  wallet.Change{Main: privateKey.GetAddress()},
+		KeyRing: wallet.KeyRing{Keys: []wallet.PrivateKey{privateKey}},
 	}, nil
 }
 

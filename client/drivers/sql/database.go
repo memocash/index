@@ -129,6 +129,7 @@ func (d *Database) GetUtxos(addresses []wallet.Addr) ([]graph.Output, error) {
 		"	outputs.hash, " +
 		"	outputs.`index`, " +
 		"	outputs.address, " +
+		"	outputs.script, " +
 		"	outputs.value " +
 		"FROM " + d.GetTableName(TableOutputs) + " outputs " +
 		"LEFT JOIN " + d.GetTableName(TableInputs) + " inputs ON (inputs.prev_hash = outputs.hash AND inputs.prev_index = outputs.`index`) " +
@@ -145,7 +146,7 @@ func (d *Database) GetUtxos(addresses []wallet.Addr) ([]graph.Output, error) {
 	var results []graph.Output
 	for rows.Next() {
 		var result graph.Output
-		if err := rows.Scan(&result.Hash, &result.Index, &result.Lock.Address, &result.Amount); err != nil {
+		if err := rows.Scan(&result.Hash, &result.Index, &result.Lock.Address, &result.Script, &result.Amount); err != nil {
 			return nil, fmt.Errorf("error getting address utxos scan query; %w", err)
 		}
 		results = append(results, result)
@@ -188,6 +189,7 @@ func (d *Database) SaveTxs(txs []graph.Tx) error {
 				d.GetInsert(TableOutputs, map[string]interface{}{
 					"hash":    tx.Hash,
 					"index":   output.Index,
+					"script":  output.Script,
 					"address": output.Lock.Address,
 					"value":   output.Amount,
 				}))
