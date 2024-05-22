@@ -15,32 +15,49 @@ type Client struct {
 }
 
 func (c *Client) updateDb(addresses []wallet.Addr) error {
-	lastUpdates, err := c.Database.GetAddressLastUpdate(addresses)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("error getting address last update; %w", err)
-	}
-	history, err := graph.GetHistory(c.GraphUrl, lastUpdates)
-	if err != nil {
-		return fmt.Errorf("error getting history txs; %w", err)
-	}
-	if err := c.Database.SaveTxs(history.GetAllTxs()); err != nil {
-		return fmt.Errorf("error saving txs; %w", err)
-	}
-	var addressUpdates []graph.AddressUpdate
-	for _, addrTxs := range history {
-		var maxTime time.Time
-		for _, tx := range addrTxs.Txs {
-			if tx.Seen.After(maxTime) {
-				maxTime = tx.Seen
-			}
+	var prevLastUpdates []graph.AddressUpdate
+	for {
+		lastUpdates, err := c.Database.GetAddressLastUpdate(addresses)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("error getting address last update; %w", err)
 		}
-		addressUpdates = append(addressUpdates, graph.AddressUpdate{
-			Address: addrTxs.Address,
-			Time:    maxTime,
-		})
-	}
-	if err := c.Database.SetAddressLastUpdate(addressUpdates); err != nil {
-		return fmt.Errorf("error setting address last updates for client update db; %w", err)
+		var needsUpdate bool
+	LastUpdateLoop:
+		for _, lastUpdate := range lastUpdates {
+			for _, prevLastUpdate := range prevLastUpdates {
+				if lastUpdate.Address == prevLastUpdate.Address && lastUpdate.Time.Equal(prevLastUpdate.Time) {
+					continue LastUpdateLoop
+				}
+			}
+			needsUpdate = true
+		}
+		if !needsUpdate {
+			break
+		}
+		prevLastUpdates = lastUpdates
+		history, err := graph.GetHistory(c.GraphUrl, lastUpdates)
+		if err != nil {
+			return fmt.Errorf("error getting history txs; %w", err)
+		}
+		if err := c.Database.SaveTxs(history.GetAllTxs()); err != nil {
+			return fmt.Errorf("error saving txs; %w", err)
+		}
+		var addressUpdates []graph.AddressUpdate
+		for _, addrTxs := range history {
+			var maxTime time.Time
+			for _, tx := range addrTxs.Txs {
+				if tx.Seen.After(maxTime) {
+					maxTime = tx.Seen
+				}
+			}
+			addressUpdates = append(addressUpdates, graph.AddressUpdate{
+				Address: addrTxs.Address,
+				Time:    maxTime,
+			})
+		}
+		if err := c.Database.SetAddressLastUpdate(addressUpdates); err != nil {
+			return fmt.Errorf("error setting address last updates for client update db; %w", err)
+		}
 	}
 	return nil
 }
