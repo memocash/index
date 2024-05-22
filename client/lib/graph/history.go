@@ -165,7 +165,7 @@ func GetHistoryQuery(addressUpdates []AddressUpdate) ([]byte, error) {
 		var paramString = fmt.Sprintf("$address%d: Address!", i)
 		var startString string
 		if addressUpdate.Time.After(memo.GetGenesisTime()) {
-			variables[fmt.Sprintf("start%d", i)] = addressUpdate.Time.Format(time.RFC3339)
+			variables[fmt.Sprintf("start%d", i)] = addressUpdate.Time.Format(time.RFC3339Nano)
 			paramString += fmt.Sprintf(", $start%d: Date", i)
 			startString = fmt.Sprintf("start: $start%d", i)
 		}

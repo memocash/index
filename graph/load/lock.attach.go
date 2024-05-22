@@ -74,7 +74,7 @@ func (l *Lock) AttachTxs() {
 	l.Mutex.Lock()
 	defer l.Mutex.Unlock()
 	txsField := l.Fields.GetField("txs")
-	startDate, _ := txsField.Arguments["start"].(model.Date)
+	startDate, _ := model.UnmarshalDate(txsField.Arguments["start"])
 	startTx, _ := txsField.Arguments["tx"].(string)
 	var allTxs []*model.Tx
 	for _, lock := range l.Locks {

@@ -105,7 +105,7 @@ func (d *Database) GetAddressLastUpdate(addresses []wallet.Addr) ([]graph.Addres
 		}
 		addressUpdates = append(addressUpdates, graph.AddressUpdate{
 			Address: *addr,
-			Time:    time.Unix(result.Time, 0),
+			Time:    time.Unix(0, result.Time),
 		})
 	}
 AddressLoop:
@@ -162,7 +162,7 @@ func (d *Database) SetAddressLastUpdate(lastUpdates []graph.AddressUpdate) error
 		}
 		queries = append(queries, d.GetInsert(TableAddressUpdates, map[string]interface{}{
 			"address": lastUpdates[i].Address.String(),
-			"time":    lastUpdates[i].Time.Unix(),
+			"time":    lastUpdates[i].Time.UnixNano(),
 		}))
 	}
 	if err := execQueries(d.Db, queries); err != nil {
