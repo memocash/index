@@ -5,11 +5,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
+	"github.com/memocash/index/client/lib"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 type Wallet struct {
+	Client  *lib.Client
 	Utxos   []memo.UTXO
 	Used    bool
 	Change  wallet.Change
@@ -52,6 +54,7 @@ func NewWallet(wif string) (*Wallet, error) {
 		}})
 	}
 	return &Wallet{
+		Client:  client,
 		Utxos:   memoUtxos,
 		Change:  wallet.Change{Main: privateKey.GetAddress()},
 		KeyRing: wallet.KeyRing{Keys: []wallet.PrivateKey{privateKey}},

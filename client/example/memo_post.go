@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"example/common"
 	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -40,5 +41,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("error getting unsigned tx; %v", err)
 	}
-	parse.GetTxInfo(tx).Print()
+	txInfo := parse.GetTxInfo(tx)
+	txInfo.Print()
+	if err := wlt.Client.Broadcast(hex.EncodeToString(txInfo.Raw)); err != nil {
+		log.Fatalf("error broadcasting tx; %v", err)
+	}
+	log.Println("Tx broadcasted")
 }
