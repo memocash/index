@@ -8,6 +8,8 @@ import (
 	"github.com/memocash/index/client/lib"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"golang.org/x/term"
+	"syscall"
 )
 
 type Wallet struct {
@@ -16,6 +18,20 @@ type Wallet struct {
 	Used    bool
 	Change  wallet.Change
 	KeyRing wallet.KeyRing
+}
+
+func NewWalletFromStdinWif() (*Wallet, error) {
+	fmt.Printf("Enter WIF: ")
+	wif, err := term.ReadPassword(syscall.Stdin)
+	if err != nil {
+		return nil, fmt.Errorf("error reading wif from stdin; %w", err)
+	}
+	fmt.Println()
+	wlt, err := NewWallet(string(wif))
+	if err != nil {
+		return nil, fmt.Errorf("error creating new wallet from stdin wif; %w", err)
+	}
+	return wlt, nil
 }
 
 func NewWallet(wif string) (*Wallet, error) {
