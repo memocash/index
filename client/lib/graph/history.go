@@ -88,6 +88,7 @@ const txQuery = `{
 	outputs {
 		index
 		amount
+		script
 		lock {
 			address
 		}
@@ -131,6 +132,7 @@ const txQuery = `{
 				outputs {
 					index
 					amount
+					script
 					lock {
 						address
 					}

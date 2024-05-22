@@ -13,6 +13,7 @@ type Address struct {
 type Output struct {
 	Tx       Tx        `json:"tx"`
 	Hash     string    `json:"hash"`
+	Script   string    `json:"script"`
 	Index    int       `json:"index"`
 	Amount   int64     `json:"amount"`
 	Spends   []Input   `json:"spends"`
@@ -85,7 +86,7 @@ type Post struct {
 	TxHash  string `json:"tx_hash"`
 	Address string `json:"address"`
 	Text    string `json:"text"`
-	Tx      *Tx     `json:"tx"`
+	Tx      *Tx    `json:"tx"`
 }
 
 // The following are not part of graph but are used in queries
