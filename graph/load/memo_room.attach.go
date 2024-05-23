@@ -44,6 +44,7 @@ func (o *MemoRoomAttach) AttachPosts() {
 	if !o.HasField([]string{"posts"}) {
 		return
 	}
+	// TODO: Implement "start" field support
 	var allPosts []*model.Post
 	for _, roomName := range o.GetRoomNames() {
 		roomPosts, err := memo.GetRoomPosts(o.Ctx, roomName)
@@ -68,6 +69,45 @@ func (o *MemoRoomAttach) AttachPosts() {
 	}
 	/*if err := AttachToPosts(o.Ctx, GetPrefixFields(o.Fields, "posts."), allOutputs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to posts for memo rooms; %w", err))
+		return
+	}*/
+}
+
+func (o *MemoRoomAttach) AttachFollowers() {
+	defer o.Wait.Done()
+	if !o.HasField([]string{"followers"}) {
+		return
+	}
+	// TODO: Implement "start" field support
+	var allRoomFollows []*model.RoomFollow
+	for _, roomName := range o.GetRoomNames() {
+		dbRoomFollows, err := memo.GetRoomFollows(o.Ctx, roomName)
+		if err != nil {
+			o.AddError(fmt.Errorf("error getting room follows for room resolver; %w", err))
+			return
+		}
+		var modelRoomFollows = make([]*model.RoomFollow, len(dbRoomFollows))
+		for i := range modelRoomFollows {
+			modelRoomFollows[i] = &model.RoomFollow{
+				Name:     roomName,
+				Address:  dbRoomFollows[i].Addr,
+				Unfollow: dbRoomFollows[i].Unfollow,
+				TxHash:   dbRoomFollows[i].TxHash,
+			}
+			allRoomFollows = append(allRoomFollows, modelRoomFollows[i])
+		}
+		o.Mutex.Lock()
+		for i := range o.Rooms {
+			if o.Rooms[i].Name != roomName {
+				continue
+			}
+			o.Rooms[i].Followers = modelRoomFollows
+			break
+		}
+		o.Mutex.Unlock()
+	}
+	/*if err := AttachToRoomFollows(o.Ctx, GetPrefixFields(o.Fields, "followers."), allRoomFollows); err != nil {
+		o.AddError(fmt.Errorf("error attaching to followers for memo rooms; %w", err))
 		return
 	}*/
 }

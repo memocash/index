@@ -7,29 +7,10 @@ import (
 	"context"
 
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
 )
-
-// Followers is the resolver for the followers field.
-func (r *roomResolver) Followers(ctx context.Context, obj *model.Room, start *int) ([]*model.RoomFollow, error) {
-	lockRoomFollows, err := memo.GetRoomFollows(ctx, obj.Name)
-	if err != nil {
-		return nil, jerr.Get("error getting room height follows for followers in room resolver", err)
-	}
-	var roomFollows = make([]*model.RoomFollow, len(lockRoomFollows))
-	for i := range lockRoomFollows {
-		roomFollows[i] = &model.RoomFollow{
-			Name:     obj.Name,
-			Address:  lockRoomFollows[i].Addr,
-			Unfollow: lockRoomFollows[i].Unfollow,
-			TxHash:   lockRoomFollows[i].TxHash,
-		}
-	}
-	return roomFollows, nil
-}
 
 // Room is the resolver for the room field.
 func (r *roomFollowResolver) Room(ctx context.Context, obj *model.RoomFollow) (*model.Room, error) {
@@ -58,11 +39,7 @@ func (r *roomFollowResolver) Tx(ctx context.Context, obj *model.RoomFollow) (*mo
 	return tx, nil
 }
 
-// Room returns generated.RoomResolver implementation.
-func (r *Resolver) Room() generated.RoomResolver { return &roomResolver{r} }
-
 // RoomFollow returns generated.RoomFollowResolver implementation.
 func (r *Resolver) RoomFollow() generated.RoomFollowResolver { return &roomFollowResolver{r} }
 
-type roomResolver struct{ *Resolver }
 type roomFollowResolver struct{ *Resolver }
