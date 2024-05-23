@@ -43,7 +43,6 @@ type ResolverRoot interface {
 	Post() PostResolver
 	Profile() ProfileResolver
 	Query() QueryResolver
-	RoomFollow() RoomFollowResolver
 	SetName() SetNameResolver
 	SetPic() SetPicResolver
 	SetProfile() SetProfileResolver
@@ -304,12 +303,6 @@ type QueryResolver interface {
 	Posts(ctx context.Context, txHashes []model.Hash) ([]*model.Post, error)
 	PostsNewest(ctx context.Context, start *model.Date, tx *model.Hash, limit *uint32) ([]*model.Post, error)
 	Room(ctx context.Context, name string) (*model.Room, error)
-}
-type RoomFollowResolver interface {
-	Room(ctx context.Context, obj *model.RoomFollow) (*model.Room, error)
-	Lock(ctx context.Context, obj *model.RoomFollow) (*model.Lock, error)
-
-	Tx(ctx context.Context, obj *model.RoomFollow) (*model.Tx, error)
 }
 type SetNameResolver interface {
 	Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error)
@@ -5643,7 +5636,7 @@ func (ec *executionContext) _RoomFollow_room(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.RoomFollow().Room(rctx, obj)
+		return obj.Room, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5664,8 +5657,8 @@ func (ec *executionContext) fieldContext_RoomFollow_room(ctx context.Context, fi
 	fc = &graphql.FieldContext{
 		Object:     "RoomFollow",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "name":
@@ -5695,7 +5688,7 @@ func (ec *executionContext) _RoomFollow_lock(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.RoomFollow().Lock(rctx, obj)
+		return obj.Lock, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5716,8 +5709,8 @@ func (ec *executionContext) fieldContext_RoomFollow_lock(ctx context.Context, fi
 	fc = &graphql.FieldContext{
 		Object:     "RoomFollow",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "address":
@@ -5881,7 +5874,7 @@ func (ec *executionContext) _RoomFollow_tx(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.RoomFollow().Tx(rctx, obj)
+		return obj.Tx, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5902,8 +5895,8 @@ func (ec *executionContext) fieldContext_RoomFollow_tx(ctx context.Context, fiel
 	fc = &graphql.FieldContext{
 		Object:     "RoomFollow",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "hash":
@@ -12563,89 +12556,50 @@ func (ec *executionContext) _RoomFollow(ctx context.Context, sel ast.SelectionSe
 			out.Values[i] = ec._RoomFollow_name(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "room":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RoomFollow_room(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._RoomFollow_room(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "lock":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RoomFollow_lock(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._RoomFollow_lock(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "address":
 
 			out.Values[i] = ec._RoomFollow_address(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "unfollow":
 
 			out.Values[i] = ec._RoomFollow_unfollow(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "tx_hash":
 
 			out.Values[i] = ec._RoomFollow_tx_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "tx":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RoomFollow_tx(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._RoomFollow_tx(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

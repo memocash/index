@@ -20,8 +20,9 @@ func AttachToMemoRooms(ctx context.Context, fields []Field, rooms []*model.Room)
 		baseA: baseA{Ctx: ctx, Fields: fields},
 		Rooms: rooms,
 	}
-	o.Wait.Add(1)
+	o.Wait.Add(2)
 	go o.AttachPosts()
+	go o.AttachFollowers()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to memo rooms; %w", o.Errors[0])
@@ -106,8 +107,8 @@ func (o *MemoRoomAttach) AttachFollowers() {
 		}
 		o.Mutex.Unlock()
 	}
-	/*if err := AttachToRoomFollows(o.Ctx, GetPrefixFields(o.Fields, "followers."), allRoomFollows); err != nil {
+	if err := AttachToMemoRoomFollows(o.Ctx, GetPrefixFields(o.Fields, "followers."), allRoomFollows); err != nil {
 		o.AddError(fmt.Errorf("error attaching to followers for memo rooms; %w", err))
 		return
-	}*/
+	}
 }

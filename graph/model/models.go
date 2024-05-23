@@ -105,7 +105,7 @@ type Like struct {
 }
 
 type Room struct {
-	Name    string        `json:"name"`
+	Name      string        `json:"name"`
 	Posts     []*Post       `json:"posts"`
 	Followers []*RoomFollow `json:"followers"`
 }
@@ -115,6 +115,9 @@ type RoomFollow struct {
 	Address  Address `json:"address"`
 	Unfollow bool    `json:"unfollow"`
 	TxHash   Hash    `json:"tx_hash"`
+	Room     *Room   `json:"room"`
+	Lock     *Lock   `json:"lock"`
+	Tx       *Tx     `json:"tx"`
 }
 
 type SlpBaton struct {
