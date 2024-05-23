@@ -30,7 +30,7 @@ func (r *queryResolver) Tx(ctx context.Context, hash model.Hash) (*model.Tx, err
 	tx, err := load.GetTx(ctxWithTimeout, hash)
 	if err != nil {
 		if errors.Is(err, load.TxMissingError) {
-			return nil, InternalError{fmt.Errorf("tx not found for hash: %s", hash)}
+			return nil, fmt.Errorf("tx not found: %s", hash)
 		}
 		return nil, InternalError{fmt.Errorf("error getting tx from dataloader for tx query resolver; %w", err)}
 	}
