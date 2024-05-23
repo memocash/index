@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	admin "github.com/memocash/index/admin/server"
+	graph "github.com/memocash/index/graph/server"
 	"github.com/memocash/index/node"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/broadcast/broadcast_server"
@@ -26,9 +27,18 @@ func (s *Server) Run() error {
 	if err := adminServer.Start(); err != nil {
 		return fmt.Errorf("fatal error starting admin server; %w", err)
 	}
-	log.Printf("Admin server (including graphql) started on port: %d...\n", adminServer.Port)
+	log.Printf("Admin server started on port: %d...\n", adminServer.Port)
 	go func() {
 		errorHandler <- fmt.Errorf("error running admin server; %w", adminServer.Serve())
+	}()
+	// GraphQL server
+	graphServer := graph.NewServer()
+	if err := graphServer.Start(); err != nil {
+		return fmt.Errorf("fatal error starting graph server; %w", err)
+	}
+	log.Printf("GraphQL server started on port: %d...\n", graphServer.Port)
+	go func() {
+		errorHandler <- fmt.Errorf("error running GraphQL server; %w", graphServer.Serve())
 	}()
 	// Cluster shard servers
 	for _, shardConfig := range config.GetClusterShards() {

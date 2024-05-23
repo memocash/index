@@ -9,12 +9,17 @@ const SetHost = (host) => {
 };
 
 const GetHost = () => {
+    return "http://127.0.0.1:26768"
+};
+
+const GetHostGraphQL = () => {
     return Host
 };
 
 export {
     SetHost,
     GetHost,
+    GetHostGraphQL,
     DevHost,
     LiveHost,
     LiveSvHost,

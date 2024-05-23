@@ -1,4 +1,4 @@
-package graphql
+package server
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"net/http"
 )
 
-func GetHandler() (http.Handler, error) {
+func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{}}))
 	srv.SetErrorPresenter(func(ctx context.Context, e error) *gqlerror.Error {
 		log.Printf("error processing request (%s); %v", graphql.GetPath(ctx), e)
@@ -28,5 +28,11 @@ func GetHandler() (http.Handler, error) {
 		}
 		return graphql.DefaultErrorPresenter(ctx, e)
 	})
-	return srv, nil
+	return func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Access-Control-Allow-Origin", "*")
+		h.Set("Access-Control-Allow-Headers", "Content-Type, Server")
+		srv.ServeHTTP(w, r)
+		log.Printf("Processed graph request: /graphql\n")
+	}
 }

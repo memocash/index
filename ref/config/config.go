@@ -12,8 +12,9 @@ const (
 	FlagProfile = "profile"
 
 	Localhost            = "127.0.0.1"
+	DefaultAdminPort     = 26768
 	DefaultBroadcastPort = 26769
-	DefaultAdminPort     = 26770
+	DefaultGraphQLPort   = 26770
 	DefaultQueue0Port    = 26780
 	DefaultQueue1Port    = 26781
 	DefaultShard0Port    = 26790
@@ -44,6 +45,7 @@ type Config struct {
 
 	SaveMetrics bool `mapstructure:"SAVE_METRICS"`
 
+	GraphQLPort   uint `mapstructure:"GRAPHQL_PORT"`
 	AdminPort     uint `mapstructure:"ADMIN_PORT"`
 	BroadcastPort int  `mapstructure:"BROADCAST_PORT"`
 
@@ -73,6 +75,7 @@ var DefaultConfig = Config{
 	ServerHost:      Localhost,
 	ServerPort:      DefaultServerPort,
 	AdminPort:       DefaultAdminPort,
+	GraphQLPort:     DefaultGraphQLPort,
 	BroadcastPort:   DefaultBroadcastPort,
 	DataDir:         DefaultDataDir,
 	QueueShards: []Shard{{
@@ -180,6 +183,10 @@ func GetProcessLimitUtxos() int {
 
 func GetAdminPort() uint {
 	return _config.AdminPort
+}
+
+func GetGraphQLPort() uint {
+	return _config.GraphQLPort
 }
 
 func GetBroadcastRpc() RpcConfig {

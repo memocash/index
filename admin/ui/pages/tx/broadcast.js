@@ -30,7 +30,7 @@ export default function Broadcast() {
             <h2 className={styles.subTitle}>
                 Broadcast
             </h2>
-            <p>
+            <div>
                 <form onSubmit={onSubmit}>
                     <label>
                         Raw tx:<br/>
@@ -39,7 +39,7 @@ export default function Broadcast() {
                     <br/>
                     {" "}<input type={"submit"} value={"Broadcast"}/>
                 </form>
-            </p>
+            </div>
         </div>
     </Page>)
 }

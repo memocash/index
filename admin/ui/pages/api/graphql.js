@@ -1,11 +1,11 @@
-import {GetHost} from "../../components/config"
+import {GetHostGraphQL} from "../../components/config"
 
 export default function handler(req, res) {
     return new Promise((resolve, reject) => {
         const {query, variables} = JSON.parse(req.body)
         let {server} = req.headers
         if (!server || !server.length) {
-            server = GetHost()
+            server = GetHostGraphQL()
         }
         fetch(server + "/graphql", {
             method: "POST",

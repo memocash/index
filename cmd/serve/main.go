@@ -19,6 +19,7 @@ func GetCommand() *cobra.Command {
 		liveCmd,
 		dbCmd,
 		adminCmd,
+		graphCmd,
 		broadcasterCmd,
 		networkCmd,
 		leadCmd,

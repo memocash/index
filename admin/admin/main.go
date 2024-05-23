@@ -45,7 +45,6 @@ const (
 	UrlNodePeers           = "/node/peers"
 	UrlNodePeerReport      = "/node/peer_report"
 	UrlNetworkTx           = "/network/tx"
-	UrlGraphql             = "/graphql"
 	UrlTopicList           = "/topic/list"
 	UrlTopicView           = "/topic/view"
 	UrlTopicItem           = "/topic/item"
