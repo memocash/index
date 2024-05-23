@@ -1,9 +1,9 @@
 package gen
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
@@ -15,17 +15,17 @@ func Sign(msg *wire.MsgTx, inputs []memo.TxInput, keyRing wallet.KeyRing) error 
 		}
 		sig, err := InputSignature(msg, i, keyRing, inputs)
 		if err != nil {
-			return jerr.Get("error signing input signature", err)
+			return fmt.Errorf("error signing input signature; %w", err)
 		}
 		privateKey := keyRing.GetKey(inputs[i].PkHash)
 		if !privateKey.IsSet() {
-			return jerr.Newf("error unable to get private key from key ring for input: %s",
+			return fmt.Errorf("error unable to get private key from key ring for input: %s",
 				inputs[i].GetHashIndexString())
 		}
 		pkData := privateKey.GetPublicKey().GetSerialized()
 		err = AttachSignatureToInput(msg.TxIn[i], sig, pkData)
 		if err != nil {
-			return jerr.Get("error attaching signature to input", err)
+			return fmt.Errorf("error attaching signature to input; %w", err)
 		}
 	}
 	return nil
@@ -33,9 +33,9 @@ func Sign(msg *wire.MsgTx, inputs []memo.TxInput, keyRing wallet.KeyRing) error 
 
 func InputSignature(tx *wire.MsgTx, index int, keyRing wallet.KeyRing, spendOuts []memo.TxInput) ([]byte, error) {
 	if len(spendOuts[index].PkScript) == 0 {
-		return nil, jerr.Newf("error no pk script for input signature: %s", spendOuts[index].GetHashIndexString())
+		return nil, fmt.Errorf("error no pk script for input signature: %s", spendOuts[index].GetHashIndexString())
 	} else if len(spendOuts[index].PkHash) == 0 {
-		return nil, jerr.Newf("error no pk hash for input signature: %s", spendOuts[index].GetHashIndexString())
+		return nil, fmt.Errorf("error no pk hash for input signature: %s", spendOuts[index].GetHashIndexString())
 	}
 	sig, err := txscript.RawTxInECDSASignature(
 		tx, index, spendOuts[index].PkScript, txscript.SigHashAll|wallet.SigHashForkID,
@@ -59,7 +59,7 @@ func InputSignatureSingle(tx *wire.MsgTx, index int, privateKey wallet.PrivateKe
 func AttachSignatureToInput(in *wire.TxIn, sig []byte, pkData []byte) error {
 	sigScript, err := txscript.NewScriptBuilder().AddData(sig).AddData(pkData).Script()
 	if err != nil {
-		return jerr.Get("error getting signature script", err)
+		return fmt.Errorf("error getting signature script; %w", err)
 	}
 	in.SignatureScript = sigScript
 	return nil

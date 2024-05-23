@@ -3,7 +3,6 @@ package op_return
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
@@ -21,14 +20,14 @@ var memoRoomPostHandler = &Handler{
 				TxHash: info.TxHash,
 				Error:  fmt.Sprintf("invalid chat room post, incorrect push data (%d)", len(info.PushData)),
 			}); err != nil {
-				return jerr.Get("error saving process error for memo chat room post incorrect push data", err)
+				return fmt.Errorf("error saving process error for memo chat room post incorrect push data; %w", err)
 			}
 			return nil
 		}
 		var room = jutil.GetUtf8String(info.PushData[1])
 		var post = jutil.GetUtf8String(info.PushData[2])
 		if err := save.MemoPost(ctx, info, post); err != nil {
-			return jerr.Get("error saving memo post for memo chat room post handler", err)
+			return fmt.Errorf("error saving memo post for memo chat room post handler; %w", err)
 		}
 		var memoPostRoom = &dbMemo.PostRoom{
 			TxHash: info.TxHash,
@@ -36,7 +35,7 @@ var memoRoomPostHandler = &Handler{
 		}
 		// Save first to prevent race condition
 		if err := db.Save([]db.Object{memoPostRoom}); err != nil {
-			return jerr.Get("error saving db memo room post object", err)
+			return fmt.Errorf("error saving db memo room post object; %w", err)
 		}
 		var memoRoomHeightPost = &dbMemo.RoomPost{
 			RoomHash: dbMemo.GetRoomHash(room),
@@ -44,7 +43,7 @@ var memoRoomPostHandler = &Handler{
 			TxHash:   info.TxHash,
 		}
 		if err := db.Save([]db.Object{memoRoomHeightPost}); err != nil {
-			return jerr.Get("error saving db memo room height post object", err)
+			return fmt.Errorf("error saving db memo room height post object; %w", err)
 		}
 		return nil
 	},

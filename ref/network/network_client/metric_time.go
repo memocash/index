@@ -3,7 +3,7 @@ package network_client
 import (
 	"context"
 	"encoding/hex"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
@@ -30,11 +30,11 @@ type MetricTimeGetter struct {
 func (g *MetricTimeGetter) Get(start time.Time) error {
 	rpcConfig := GetConfig()
 	if !rpcConfig.IsSet() {
-		return jerr.New("error config not set")
+		return fmt.Errorf("error config not set")
 	}
 	conn, err := grpc.Dial(rpcConfig.String(), grpc.WithInsecure())
 	if err != nil {
-		return jerr.Get("error dial grpc did not connect network", err)
+		return fmt.Errorf("error dial grpc did not connect network; %w", err)
 	}
 	defer conn.Close()
 	c := network_pb.NewNetworkClient(conn)
@@ -44,7 +44,7 @@ func (g *MetricTimeGetter) Get(start time.Time) error {
 		Start: start.Unix(),
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network balance by address", err)
+		return fmt.Errorf("error getting rpc network balance by address; %w", err)
 	}
 	for _, metric := range metricList.Metrics {
 		g.MetricTimes = append(g.MetricTimes, &MetricTime{

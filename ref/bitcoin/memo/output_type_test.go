@@ -1,11 +1,11 @@
 package memo_test
 
 import (
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
+	"log"
 	"testing"
 )
 
@@ -17,17 +17,17 @@ type OutputTypeTest struct {
 func (tst OutputTypeTest) Test(t *testing.T) {
 	outputTypeNew := memo.GetOutputType(tst.Script)
 	if outputTypeNew != tst.Type {
-		t.Error(jerr.Newf("OutputType new %s does not match expected %s", outputTypeNew, tst.Type))
+		t.Error(fmt.Errorf("OutputType new %s does not match expected %s", outputTypeNew, tst.Type))
 	}
 	if testing.Verbose() {
-		jlog.Logf("OutputTypeNew %s, expected %s\n", outputTypeNew, tst.Type)
+		log.Printf("OutputTypeNew %s, expected %s\n", outputTypeNew, tst.Type)
 	}
 	outputType := memo.GetOutputTypeNew(tst.Script)
 	if outputType != tst.Type {
-		t.Error(jerr.Newf("OutputType %s does not match expected %s", outputType, tst.Type))
+		t.Error(fmt.Errorf("OutputType %s does not match expected %s", outputType, tst.Type))
 	}
 	if testing.Verbose() {
-		jlog.Logf("OutputType %s, expected %s\n", outputType, tst.Type)
+		log.Printf("OutputType %s, expected %s\n", outputType, tst.Type)
 	}
 }
 

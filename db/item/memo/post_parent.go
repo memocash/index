@@ -2,7 +2,7 @@ package memo
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -53,7 +53,7 @@ func GetPostParent(ctx context.Context, postTxHash [32]byte) (*PostParent, error
 		Topic:   db.TopicMemoPostParent,
 		Uids:    [][]byte{jutil.ByteReverse(postTxHash[:])},
 	}); err != nil {
-		return nil, jerr.Get("error getting client message memo post parents", err)
+		return nil, fmt.Errorf("error getting client message memo post parents; %w", err)
 	}
 	if len(dbClient.Messages) == 0 {
 		return nil, nil

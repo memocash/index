@@ -2,8 +2,8 @@ package network_client
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
@@ -19,11 +19,11 @@ type GetTx struct {
 func (t *GetTx) Get(hash []byte) error {
 	rpcConfig := GetConfig()
 	if !rpcConfig.IsSet() {
-		return jerr.New("error config not set")
+		return fmt.Errorf("error config not set")
 	}
 	conn, err := grpc.Dial(rpcConfig.String(), grpc.WithInsecure())
 	if err != nil {
-		return jerr.Get("error dial grpc did not connect network", err)
+		return fmt.Errorf("error dial grpc did not connect network; %w", err)
 	}
 	defer conn.Close()
 	c := network_pb.NewNetworkClient(conn)
@@ -33,14 +33,14 @@ func (t *GetTx) Get(hash []byte) error {
 		Hash: hash,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network tx by hash", err)
+		return fmt.Errorf("error getting rpc network tx by hash; %w", err)
 	}
 	tx := txReply.GetTx()
 	t.Raw = tx.GetRaw()
 	t.BlockHash = tx.GetBlock()
 	t.Msg, err = memo.GetMsgFromRaw(t.Raw)
 	if err != nil {
-		return jerr.Get("error getting wire tx from raw", err)
+		return fmt.Errorf("error getting wire tx from raw; %w", err)
 	}
 	return nil
 }

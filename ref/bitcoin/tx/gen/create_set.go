@@ -2,7 +2,7 @@ package gen
 
 import (
 	"bytes"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"sort"
@@ -11,7 +11,7 @@ import (
 func (c *Create) setInputs() error {
 	hasEnoughInputValue, err := c.isEnoughInputValue()
 	if err != nil {
-		return jerr.Get("error determining if has enough input value", err)
+		return fmt.Errorf("error determining if has enough input value; %w", err)
 	}
 	if hasEnoughInputValue {
 		return nil
@@ -26,7 +26,7 @@ func (c *Create) setInputs() error {
 		c.InputsToUse = append(c.InputsToUse, potentialInput)
 		hasEnoughInputValue, err = c.isEnoughInputValue()
 		if err != nil {
-			return jerr.Get("error determining if has enough input value", err)
+			return fmt.Errorf("error determining if has enough input value; %w", err)
 		}
 		if hasEnoughInputValue {
 			break
@@ -46,7 +46,7 @@ func (c *Create) setChange() error {
 	for _, spendOutput := range c.Outputs {
 		outputValuePlusFee, err := spendOutput.GetValuePlusFee()
 		if err != nil {
-			return jerr.Get("error getting memo output fee", err)
+			return fmt.Errorf("error getting memo output fee; %w", err)
 		}
 		outputValueRequired += outputValuePlusFee
 	}
@@ -67,7 +67,7 @@ func (c *Create) setChange() error {
 		}
 	} else {
 		if !c.Request.Change.Main.IsSet() {
-			return jerr.New("change address not set")
+			return fmt.Errorf("change address not set")
 		}
 		change -= memo.OutputFeeP2PKH
 		c.Outputs = append(c.Outputs, GetAddressOutput(c.Request.Change.Main, change))
@@ -114,7 +114,7 @@ loop:
 				continue loop
 			}
 		}
-		return jerr.New("found unknown potential input")
+		return fmt.Errorf("found unknown potential input")
 	}
 	return nil
 }
@@ -127,7 +127,7 @@ func (c *Create) setSlpChange() error {
 	if c.getTokenInputValue() > tokenSendOutput.GetTotalQuantity() {
 		slpChange := c.Request.Change.GetSlp()
 		if !slpChange.IsSet() {
-			return jerr.New("error slp change address not set")
+			return fmt.Errorf("error slp change address not set")
 		}
 		c.Outputs = append(c.Outputs, GetAddressOutput(slpChange, memo.DustMinimumOutput))
 		tokenSendOutput.Quantities = append(tokenSendOutput.Quantities, c.getTokenInputValue()-tokenSendOutput.GetTotalQuantity())

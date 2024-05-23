@@ -1,7 +1,7 @@
 package memo_test
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"testing"
@@ -26,7 +26,7 @@ func TestGetSlpQuantity(t *testing.T) {
 		slpQuantity := memo.GetSlpQuantity(slpQuantityTest.Quantity, slpQuantityTest.Decimals)
 		var str = jfmt.AddCommasFloat(slpQuantity)
 		if str != slpQuantityTest.SlpQuantity {
-			t.Error(jerr.Newf("slpQuantity (%s) does not match slpQuantityTest.SlpQuantity (%s)", str, slpQuantityTest.SlpQuantity))
+			t.Error(fmt.Errorf("slpQuantity (%s) does not match slpQuantityTest.SlpQuantity (%s)", str, slpQuantityTest.SlpQuantity))
 		}
 	}
 }

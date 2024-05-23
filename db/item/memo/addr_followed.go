@@ -2,7 +2,7 @@ package memo
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -80,7 +80,7 @@ func GetAddrFolloweds(ctx context.Context, followAddresses [][25]byte) ([]*AddrF
 			Max:      client.ExLargeLimit,
 			Context:  ctx,
 		}); err != nil {
-			return nil, jerr.Get("error getting db addr memo followed by prefix", err)
+			return nil, fmt.Errorf("error getting db addr memo followed by prefix; %w", err)
 		}
 		for _, msg := range dbClient.Messages {
 			var addrFollowed = new(AddrFollowed)
@@ -107,7 +107,7 @@ func GetAddrFollowedsSingle(ctx context.Context, followAddr [25]byte, start time
 		Max:      client.ExLargeLimit,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db addr memo follow by prefix", err)
+		return nil, fmt.Errorf("error getting db addr memo follow by prefix; %w", err)
 	}
 	var addrFolloweds = make([]*AddrFollowed, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -133,7 +133,7 @@ func ListenAddrFolloweds(ctx context.Context, followAddrs [][25]byte) (chan *Add
 		chanMessage, err := client.NewClient(shardConfig.GetHost()).
 			Listen(cancelCtx.Context, db.TopicMemoAddrFollowed, prefixes)
 		if err != nil {
-			return nil, jerr.Get("error listening to db addr memo followeds by prefix", err)
+			return nil, fmt.Errorf("error listening to db addr memo followeds by prefix; %w", err)
 		}
 		go func() {
 			for msg := range chanMessage {

@@ -1,7 +1,7 @@
 package maint
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/memo"
@@ -24,7 +24,7 @@ func (c *CheckFollows) Check() error {
 				Start: startUid,
 				Max:   client.ExLargeLimit,
 			}); err != nil {
-				return jerr.Get("error getting db memo follow by prefix", err)
+				return fmt.Errorf("error getting db memo follow by prefix; %w", err)
 			}
 			for _, msg := range dbClient.Messages {
 				c.Processed++
@@ -44,7 +44,7 @@ func (c *CheckFollows) Check() error {
 						Unfollow:   addrMemoFollow.Unfollow,
 					}
 					if err := db.Remove([]db.Object{addrMemoFollow, addrMemoFollowed}); err != nil {
-						return jerr.Get("error removing addr memo follow/followed", err)
+						return fmt.Errorf("error removing addr memo follow/followed; %w", err)
 					}
 				}
 			}

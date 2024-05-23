@@ -2,7 +2,6 @@ package queue
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
 	"time"
@@ -20,7 +19,7 @@ func (r *Get) GetByPrefixes(topic string, prefixes [][]byte) error {
 		Topic:    topic,
 		Prefixes: prefixes,
 	}); err != nil {
-		return jerr.Get("error getting by prefixes using queue client", err)
+		return fmt.Errorf("error getting by prefixes using queue client; %w", err)
 	}
 	r.Items = make([]Item, len(db.Messages))
 	for i := range db.Messages {
@@ -42,7 +41,7 @@ func (r *Get) GetAndWait(topic string, start []byte) error {
 		Wait:    true,
 		Timeout: time.Second,
 	}); err != nil {
-		return jerr.Get("error getting and waiting with start using queue client", err)
+		return fmt.Errorf("error getting and waiting with start using queue client; %w", err)
 	}
 	r.Items = make([]Item, len(db.Messages))
 	for i := range db.Messages {

@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -13,10 +13,10 @@ type PollVote struct {
 func (v PollVote) Get() ([]byte, error) {
 	message := []byte(v.Message)
 	if len(v.PollOptionTxHash) != memo.TxHashLength {
-		return nil, jerr.Newf("invalid poll option tx hash length (%d)", len(v.PollOptionTxHash))
+		return nil, fmt.Errorf("invalid poll option tx hash length (%d)", len(v.PollOptionTxHash))
 	}
 	if len(message) > memo.MaxVoteCommentSize {
-		return nil, jerr.New("message data too large")
+		return nil, fmt.Errorf("message data too large")
 	}
 	pkScript, err := memo.GetBaseOpReturn().
 		AddData(memo.PrefixPollVote).
@@ -24,7 +24,7 @@ func (v PollVote) Get() ([]byte, error) {
 		AddData(message).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error building poll vote script", err)
+		return nil, fmt.Errorf("error building poll vote script; %w", err)
 	}
 	return pkScript, nil
 }

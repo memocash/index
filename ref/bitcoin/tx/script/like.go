@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -12,17 +12,17 @@ type Like struct {
 func (l Like) Get() ([]byte, error) {
 	data := l.TxHash
 	if len(data) > memo.MaxPostSize {
-		return nil, jerr.New("data too large")
+		return nil, fmt.Errorf("data too large")
 	}
 	if len(data) == 0 {
-		return nil, jerr.New("empty data")
+		return nil, fmt.Errorf("empty data")
 	}
 	pkScript, err := memo.GetBaseOpReturn().
 		AddData(memo.PrefixLike).
 		AddData(data).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error creating memo like script", err)
+		return nil, fmt.Errorf("error creating memo like script; %w", err)
 	}
 	return pkScript, nil
 }

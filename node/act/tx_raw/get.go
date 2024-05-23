@@ -2,9 +2,9 @@ package tx_raw
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -19,9 +19,9 @@ type TxRaw struct {
 func GetSingle(ctx context.Context, txHash [32]byte) (*TxRaw, error) {
 	raws, err := Get(ctx, [][32]byte{txHash})
 	if err != nil {
-		return nil, jerr.Get("error getting tx raws for single", err)
+		return nil, fmt.Errorf("error getting tx raws for single; %w", err)
 	} else if len(raws) != 1 {
-		return nil, jerr.Newf("error tx raw not found for single", err)
+		return nil, fmt.Errorf("error tx raw not found for single; %w", err)
 	}
 	return raws[0], nil
 }
@@ -32,18 +32,18 @@ func Get(ctx context.Context, txHashes [][32]byte) ([]*TxRaw, error) {
 	})
 	txs, err := chain.GetTxsByHashes(ctx, txHashes)
 	if err != nil {
-		return nil, jerr.Get("error getting tx inputs for raw", err)
+		return nil, fmt.Errorf("error getting tx inputs for raw; %w", err)
 	}
 	txInputs, err := chain.GetTxInputsByHashes(ctx, txHashes)
 	if err != nil {
-		return nil, jerr.Get("error getting tx inputs for raw", err)
+		return nil, fmt.Errorf("error getting tx inputs for raw; %w", err)
 	}
 	sort.Slice(txInputs, func(i, j int) bool {
 		return txInputs[i].Index < txInputs[j].Index
 	})
 	txOutputs, err := chain.GetTxOutputsByHashes(ctx, txHashes)
 	if err != nil {
-		return nil, jerr.Get("error getting tx outputs for raw", err)
+		return nil, fmt.Errorf("error getting tx outputs for raw; %w", err)
 	}
 	sort.Slice(txOutputs, func(i, j int) bool {
 		return txOutputs[i].Index < txOutputs[j].Index
@@ -60,7 +60,7 @@ func Get(ctx context.Context, txHashes [][32]byte) ([]*TxRaw, error) {
 				continue
 			}
 			if txIn.Index != index {
-				return nil, jerr.Newf("tx input index missing: %s %d %d",
+				return nil, fmt.Errorf("tx input index missing: %s %d %d",
 					chainhash.Hash(txIn.TxHash), txIn.Index, index)
 			}
 			index++
@@ -74,7 +74,7 @@ func Get(ctx context.Context, txHashes [][32]byte) ([]*TxRaw, error) {
 			})
 		}
 		if len(msgTx.TxIn) == 0 {
-			return nil, jerr.Newf("tx inputs missing for tx: %s", chainhash.Hash(tx.TxHash))
+			return nil, fmt.Errorf("tx inputs missing for tx: %s", chainhash.Hash(tx.TxHash))
 		}
 		index = 0
 		for _, txOut := range txOutputs {
@@ -82,7 +82,7 @@ func Get(ctx context.Context, txHashes [][32]byte) ([]*TxRaw, error) {
 				continue
 			}
 			if txOut.Index != index {
-				return nil, jerr.Newf("tx output index missing: %s %d %d",
+				return nil, fmt.Errorf("tx output index missing: %s %d %d",
 					chainhash.Hash(txOut.TxHash), txOut.Index, index)
 			}
 			index++
@@ -92,10 +92,10 @@ func Get(ctx context.Context, txHashes [][32]byte) ([]*TxRaw, error) {
 			})
 		}
 		if len(msgTx.TxOut) == 0 {
-			return nil, jerr.Newf("tx outputs missing for tx: %s", chainhash.Hash(tx.TxHash))
+			return nil, fmt.Errorf("tx outputs missing for tx: %s", chainhash.Hash(tx.TxHash))
 		}
 		if msgTx.TxHash() != tx.TxHash {
-			return nil, jerr.Newf("tx hash mismatch for raw: %s %s",
+			return nil, fmt.Errorf("tx hash mismatch for raw: %s %s",
 				msgTx.TxHash(), chainhash.Hash(tx.TxHash))
 		}
 		txRaws = append(txRaws, &TxRaw{

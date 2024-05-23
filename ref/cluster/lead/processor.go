@@ -2,9 +2,8 @@ package lead
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jfmt"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
@@ -15,6 +14,7 @@ import (
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 	"google.golang.org/grpc"
+	"log"
 	"sync"
 	"time"
 )
@@ -34,7 +34,7 @@ func (p *Processor) Run() error {
 	for _, clusterShard := range clusterShards {
 		conn, err := grpc.Dial(clusterShard.GetHost(), grpc.WithInsecure())
 		if err != nil {
-			return jerr.Get("error did not connect cluster client", err)
+			return fmt.Errorf("error did not connect cluster client; %w", err)
 		}
 		p.Clients[clusterShard.Int()] = &Client{
 			Config: clusterShard,
@@ -45,27 +45,27 @@ func (p *Processor) Run() error {
 		var err error
 		syncStatusComplete, err = item.GetSyncStatus(item.SyncStatusComplete)
 		if err != nil && !client.IsEntryNotFoundError(err) {
-			return jerr.Get("error getting sync status complete", err)
+			return fmt.Errorf("error getting sync status complete; %w", err)
 		}
 		return nil
 	}); err != nil {
-		return jerr.Get("error getting sync status complete exec with retry", err)
+		return fmt.Errorf("error getting sync status complete exec with retry; %w", err)
 	}
 	if syncStatusComplete != nil {
 		p.Synced = true
 		go func() {
 			p.MemPoolNode = NewNode()
 			p.MemPoolNode.Start(true, p.Synced)
-			jlog.Logf("Started mempool node...\n")
+			log.Printf("Started mempool node...\n")
 			for p.ProcessBlock(<-p.MemPoolNode.NewBlock, "mempool") {
 			}
-			jlog.Log("Stopping mempool node")
+			log.Println("Stopping mempool node")
 		}()
 	}
 	p.BlockNode = NewNode()
 	p.BlockNode.Start(false, p.Synced)
 	go func() {
-		jlog.Logf("Started block node...\n")
+		log.Printf("Started block node...\n")
 		for {
 			select {
 			case block := <-p.BlockNode.NewBlock:
@@ -73,30 +73,30 @@ func (p *Processor) Run() error {
 					continue
 				}
 			case <-p.BlockNode.SyncDone:
-				jlog.Logf("Node sync done\n")
+				log.Printf("Node sync done\n")
 				p.Synced = true
 				recentBlock, err := chain.GetRecentHeightBlock()
 				if err != nil {
-					p.ErrorChan <- jerr.Get("error getting recent height block", err)
+					p.ErrorChan <- fmt.Errorf("error getting recent height block; %w", err)
 					break
 				}
 				if err := db.Save([]db.Object{&item.SyncStatus{
 					Name:   item.SyncStatusComplete,
 					Height: recentBlock.Height,
 				}}); err != nil {
-					p.ErrorChan <- jerr.Get("error setting sync status complete", err)
+					p.ErrorChan <- fmt.Errorf("error setting sync status complete; %w", err)
 					break
 				}
 				if err := p.Run(); err != nil {
-					p.ErrorChan <- jerr.Get("error starting lead processor after block sync complete", err)
+					p.ErrorChan <- fmt.Errorf("error starting lead processor after block sync complete; %w", err)
 					break
 				}
 			}
-			jlog.Log("Stopping block node")
+			log.Println("Stopping block node")
 			return
 		}
 	}()
-	return jerr.Get("error lead processing run", <-p.ErrorChan)
+	return fmt.Errorf("error lead processing run; %w", <-p.ErrorChan)
 }
 
 func (p *Processor) ProcessBlock(block *dbi.Block, loc string) bool {
@@ -127,7 +127,7 @@ func (p *Processor) ProcessBlock(block *dbi.Block, loc string) bool {
 	if dbi.BlockHeaderSet(block.Header) {
 		blockSaver := saver.NewBlock(p.Verbose)
 		if err := blockSaver.SaveBlock(blockInfo); err != nil {
-			jerr.Get("error saving block for lead node", err).Print()
+			log.Printf("error saving block for lead node; %v", err)
 			return false
 		}
 		if blockSaver.NewHeight == 0 {
@@ -140,7 +140,7 @@ func (p *Processor) ProcessBlock(block *dbi.Block, loc string) bool {
 		return false
 	}
 	if dbi.BlockHeaderSet(block.Header) {
-		jlog.Logf("Saved block (%s): %s %s, %7s txs, size: %14s\n", loc,
+		log.Printf("Saved block (%s): %s %s, %7s txs, size: %14s\n", loc,
 			blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
 			jfmt.AddCommasInt(int(blockInfo.Size)))
 	}
@@ -164,11 +164,11 @@ func (p *Processor) SaveBlockShards(height int64, seen time.Time, shardBlocks ma
 					Height:    height,
 					Seen:      seen.UnixNano(),
 				}); err != nil {
-					return jerr.Get("error saving block shard txs", err)
+					return fmt.Errorf("error saving block shard txs; %w", err)
 				}
 				return nil
 			}); err != nil {
-				p.ErrorChan <- jerr.Getf(err, "error client exec with retry save txs: %d", c.Config.Shard)
+				p.ErrorChan <- fmt.Errorf("error client exec with retry save txs: %d; %w", c.Config.Shard, err)
 			}
 		}(c)
 	}

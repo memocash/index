@@ -2,14 +2,14 @@ package wallet
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/jchavannes/btcd/btcec"
-	"github.com/jchavannes/jgo/jerr"
 )
 
 func GetPublicKey(pkBytes []byte) (PublicKey, error) {
 	pubKey, err := btcec.ParsePubKey(pkBytes, btcec.S256())
 	if err != nil {
-		return PublicKey{}, jerr.Get("error parsing pub key", err)
+		return PublicKey{}, fmt.Errorf("error parsing pub key; %w", err)
 	}
 	return PublicKey{
 		publicKey: pubKey,

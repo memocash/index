@@ -3,7 +3,7 @@ package memo
 import (
 	"context"
 	"crypto/sha256"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -65,7 +65,7 @@ func GetRoomPosts(ctx context.Context, room string) ([]*RoomPost, error) {
 		Max:      client.ExLargeLimit,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db memo room posts", err)
+		return nil, fmt.Errorf("error getting db memo room posts; %w", err)
 	}
 	var roomPosts = make([]*RoomPost, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -94,7 +94,7 @@ func ListenRoomPosts(ctx context.Context, rooms []string) (chan *RoomPost, error
 		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
 		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoRoomPost, prefixes)
 		if err != nil {
-			return nil, jerr.Get("error listening to db memo room post by prefix", err)
+			return nil, fmt.Errorf("error listening to db memo room post by prefix; %w", err)
 		}
 		go func() {
 			for msg := range chanMessage {

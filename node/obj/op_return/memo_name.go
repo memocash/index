@@ -3,7 +3,6 @@ package op_return
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
@@ -20,7 +19,7 @@ var memoNameHandler = &Handler{
 				TxHash: info.TxHash,
 				Error:  fmt.Sprintf("invalid set name, incorrect push data (%d)", len(info.PushData)),
 			}); err != nil {
-				return jerr.Get("error saving process error", err)
+				return fmt.Errorf("error saving process error; %w", err)
 			}
 			return nil
 		}
@@ -32,7 +31,7 @@ var memoNameHandler = &Handler{
 			Name:   name,
 		}
 		if err := db.Save([]db.Object{addrMemoName}); err != nil {
-			return jerr.Get("error saving db memo name object", err)
+			return fmt.Errorf("error saving db memo name object; %w", err)
 		}
 		return nil
 	},

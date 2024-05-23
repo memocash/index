@@ -1,7 +1,7 @@
 package item
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -50,7 +50,7 @@ func GetPeers(shard uint32, startId []byte) ([]*Peer, error) {
 		startIdBytes = startId
 	}
 	if err := dbClient.GetLarge(db.TopicPeer, startIdBytes, false, false); err != nil {
-		return nil, jerr.Get("error getting peers from queue client", err)
+		return nil, fmt.Errorf("error getting peers from queue client; %w", err)
 	}
 	var peers = make([]*Peer, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -64,11 +64,11 @@ func GetNextPeer(shard uint32, startId []byte) (*Peer, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetNext(db.TopicPeer, startId, false, false); err != nil {
-		return nil, jerr.Get("error getting peers from queue client", err)
+		return nil, fmt.Errorf("error getting peers from queue client; %w", err)
 	} else if len(dbClient.Messages) == 0 {
-		return nil, jerr.Get("error next peer not found", client.EntryNotFoundError)
+		return nil, fmt.Errorf("error next peer not found; %w", client.EntryNotFoundError)
 	} else if len(dbClient.Messages) != 1 {
-		return nil, jerr.Newf("error unexpected next peer message len (%d)", len(dbClient.Messages))
+		return nil, fmt.Errorf("error unexpected next peer message len (%d)", len(dbClient.Messages))
 	}
 	var peer = new(Peer)
 	db.Set(peer, dbClient.Messages[0])
@@ -81,7 +81,7 @@ func GetCountPeers() (uint64, error) {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		count, err := dbClient.GetTopicCount(db.TopicPeer, nil)
 		if err != nil {
-			return 0, jerr.Getf(err, "error getting peer topic count for shard: %d", shardConfig.Shard)
+			return 0, fmt.Errorf("error getting peer topic count for shard: %d; %w", shardConfig.Shard, err)
 		}
 		totalCount += count
 	}

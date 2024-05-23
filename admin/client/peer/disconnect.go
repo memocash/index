@@ -3,7 +3,7 @@ package peer
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/ref/config"
 	"io/ioutil"
@@ -19,16 +19,16 @@ func (i *Disconnect) Disconnect(nodeId string) error {
 		NodeId: nodeId,
 	})
 	if err != nil {
-		return jerr.Get("error marshalling data", err)
+		return fmt.Errorf("error marshalling data; %w", err)
 	}
 	url := "http://" + config.GetHost(config.GetAdminPort()) + admin.UrlNodeDisconnect
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return jerr.Get("error getting node disconnect", err)
+		return fmt.Errorf("error getting node disconnect; %w", err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return jerr.Get("error reading node disconnect body", err)
+		return fmt.Errorf("error reading node disconnect body; %w", err)
 	}
 	i.Message = string(body)
 	return nil

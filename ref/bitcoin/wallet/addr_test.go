@@ -2,9 +2,9 @@ package wallet_test
 
 import (
 	"encoding/hex"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 	"testing"
 )
 
@@ -39,22 +39,22 @@ func TestUnlockScriptAddr(t *testing.T) {
 	for _, test := range tests {
 		addrLock, err := wallet.GetAddrFromLockScript(test.LockScript)
 		if err != nil {
-			t.Error(jerr.Getf(err, "error getting address from lock script: %s", test.Address))
+			t.Error(fmt.Errorf("error getting address from lock script: %s; %w", test.Address, err))
 			continue
 		}
 		if addrLock.String() != test.Address {
-			t.Error(jerr.Newf("address lock mismatch: %s %s", addrLock.String(), test.Address))
+			t.Error(fmt.Errorf("address lock mismatch: %s %s", addrLock.String(), test.Address))
 			continue
 		}
 		addrUnlock, err := wallet.GetAddrFromUnlockScript(test.UnlockScript)
 		if err != nil {
-			t.Error(jerr.Getf(err, "error getting address from unlock script: %s", test.Address))
+			t.Error(fmt.Errorf("error getting address from unlock script: %s; %w", test.Address, err))
 			continue
 		}
 		if addrUnlock.String() != test.Address {
-			t.Error(jerr.Newf("address unlock mismatch: %s %s", addrUnlock.String(), test.Address))
+			t.Error(fmt.Errorf("address unlock mismatch: %s %s", addrUnlock.String(), test.Address))
 			continue
 		}
-		jlog.Logf("success address: %s\n", test.Address)
+		log.Printf("success address: %s\n", test.Address)
 	}
 }

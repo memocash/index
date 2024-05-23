@@ -2,7 +2,7 @@ package sub
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
 )
@@ -18,7 +18,7 @@ func (r *RoomFollow) Listen(ctx context.Context, addresses [][25]byte) (<-chan *
 	lockRoomFollowListener, err := memo.ListenAddrRoomFollows(ctx, addresses)
 	if err != nil {
 		r.Cancel()
-		return nil, jerr.Get("error getting memo lock room follow listener for room follow subscription", err)
+		return nil, fmt.Errorf("error getting memo lock room follow listener for room follow subscription; %w", err)
 	}
 	go func() {
 		defer func() {

@@ -3,12 +3,12 @@ package parse_test
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
+	"log"
 	"testing"
 )
 
@@ -28,38 +28,38 @@ func (tst SlpMintTest) Test(t *testing.T) {
 	}
 	scr, err := tokenMint.Get()
 	if err != nil {
-		t.Error(jerr.Get("error creating token mint script", err))
+		t.Error(fmt.Errorf("error creating token mint script; %w", err))
 	}
 	if hex.EncodeToString(scr) != tst.PkScript {
-		t.Error(jerr.Newf("error scr %x does not match expected %s", scr, tst.PkScript))
+		t.Error(fmt.Errorf("error scr %x does not match expected %s", scr, tst.PkScript))
 	} else if testing.Verbose() {
-		jlog.Logf("scr %x, expected %s\n", scr, tst.PkScript)
+		log.Printf("scr %x, expected %s\n", scr, tst.PkScript)
 	}
 	slpMint := parse.NewSlpMint()
 	if err := slpMint.Parse(scr); err != nil {
-		t.Error(jerr.Get("error parsing slp create pk script", err))
+		t.Error(fmt.Errorf("error parsing slp create pk script; %w", err))
 	}
 	if slpMint.TokenType != tst.SlpType {
-		t.Error(jerr.Newf("slpMint.SlpType %s does not match expected %s",
+		t.Error(fmt.Errorf("slpMint.SlpType %s does not match expected %s",
 			memo.SlpTypeString(slpMint.TokenType), memo.SlpTypeString(tst.SlpType)))
 	} else if testing.Verbose() {
-		jlog.Logf("slpMint.SlpType %s, expected %s\n",
+		log.Printf("slpMint.SlpType %s, expected %s\n",
 			memo.SlpTypeString(slpMint.TokenType), memo.SlpTypeString(tst.SlpType))
 	}
 	if !bytes.Equal(slpMint.TokenHash, tst.TokenHash) {
-		t.Error(jerr.Newf("slpMint.TokenHash %x does not match expected %x", slpMint.TokenHash, tst.TokenHash))
+		t.Error(fmt.Errorf("slpMint.TokenHash %x does not match expected %x", slpMint.TokenHash, tst.TokenHash))
 	} else if testing.Verbose() {
-		jlog.Logf("slpMint.TokenHash %x, expected %x\n", slpMint.TokenHash, tst.TokenHash)
+		log.Printf("slpMint.TokenHash %x, expected %x\n", slpMint.TokenHash, tst.TokenHash)
 	}
 	if slpMint.Quantity != tst.Quantity {
-		t.Error(jerr.Newf("slpMint.Quantity %d does not match expected %d", slpMint.Quantity, tst.Quantity))
+		t.Error(fmt.Errorf("slpMint.Quantity %d does not match expected %d", slpMint.Quantity, tst.Quantity))
 	} else if testing.Verbose() {
-		jlog.Logf("slpMint.Quantity %d, expected %d\n", slpMint.Quantity, tst.Quantity)
+		log.Printf("slpMint.Quantity %d, expected %d\n", slpMint.Quantity, tst.Quantity)
 	}
 	if slpMint.BatonIndex != tst.BatonIndex {
-		t.Error(jerr.Newf("slpMint.BatonIndex %d does not match expected %d", slpMint.BatonIndex, tst.BatonIndex))
+		t.Error(fmt.Errorf("slpMint.BatonIndex %d does not match expected %d", slpMint.BatonIndex, tst.BatonIndex))
 	} else if testing.Verbose() {
-		jlog.Logf("slpMint.BatonIndex %d, expected %d\n", slpMint.BatonIndex, tst.BatonIndex)
+		log.Printf("slpMint.BatonIndex %d, expected %d\n", slpMint.BatonIndex, tst.BatonIndex)
 	}
 }
 

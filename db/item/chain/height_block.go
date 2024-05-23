@@ -1,8 +1,8 @@
 package chain
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -52,7 +52,7 @@ func GetRecentHeightBlock() (*HeightBlock, error) {
 			Max:    1,
 			Newest: true,
 		}); err != nil {
-			return nil, jerr.Getf(err, "error getting recent height block for shard: %d", i)
+			return nil, fmt.Errorf("error getting recent height block for shard: %d; %w", i, err)
 		}
 		for i := range dbClient.Messages {
 			var heightBlock = new(HeightBlock)
@@ -80,7 +80,7 @@ func GetOldestHeightBlock() (*HeightBlock, error) {
 	for i, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetNext(db.TopicChainHeightBlock, nil, false, false); err != nil {
-			return nil, jerr.Getf(err, "error getting oldest height block for shard: %d", i)
+			return nil, fmt.Errorf("error getting oldest height block for shard: %d; %w", i, err)
 		}
 		for i := range dbClient.Messages {
 			var heightBlock = new(HeightBlock)
@@ -106,17 +106,17 @@ func GetOldestHeightBlock() (*HeightBlock, error) {
 func GetHeightBlockSingle(height int64) (*HeightBlock, error) {
 	heightBlocks, err := GetHeightBlock(height)
 	if err != nil {
-		return nil, jerr.Get("error getting height block", err)
+		return nil, fmt.Errorf("error getting height block; %w", err)
 	}
 	if len(heightBlocks) == 0 {
-		return nil, jerr.Get("error no height blocks found", client.EntryNotFoundError)
+		return nil, fmt.Errorf("error no height blocks found; %w", client.EntryNotFoundError)
 	} else if len(heightBlocks) > 1 {
 		var hashStrings = make([]string, len(heightBlocks))
 		for i := range heightBlocks {
 			hashStrings[i] = chainhash.Hash(heightBlocks[i].BlockHash).String()
 		}
-		return nil, jerr.Getf(client.MultipleEntryError, "error more than 1 height block found: %d (%s)",
-			len(heightBlocks), strings.Join(hashStrings, ", "))
+		return nil, fmt.Errorf("error more than 1 height block found: %d (%s); %w",
+			len(heightBlocks), strings.Join(hashStrings, ", "), client.MultipleEntryError)
 	}
 	return heightBlocks[0], nil
 }
@@ -125,7 +125,7 @@ func GetHeightBlock(height int64) ([]*HeightBlock, error) {
 	shardConfig := config.GetShardConfig(uint32(height), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetByPrefix(db.TopicChainHeightBlock, jutil.GetInt64DataBig(height)); err != nil {
-		return nil, jerr.Get("error getting height blocks for height from queue client", err)
+		return nil, fmt.Errorf("error getting height blocks for height from queue client; %w", err)
 	}
 	var heightBlocks = make([]*HeightBlock, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -143,7 +143,7 @@ func GetHeightBlocks(shard uint32, startHeight int64, newest bool) ([]*HeightBlo
 		startHeightBytes = jutil.GetInt64DataBig(startHeight)
 	}
 	if err := dbClient.GetLarge(db.TopicChainHeightBlock, startHeightBytes, false, newest); err != nil {
-		return nil, jerr.Get("error getting height blocks from queue client", err)
+		return nil, fmt.Errorf("error getting height blocks from queue client; %w", err)
 	}
 	var heightBlocks = make([]*HeightBlock, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -156,7 +156,7 @@ func GetHeightBlocks(shard uint32, startHeight int64, newest bool) ([]*HeightBlo
 func GetHeightBlocksAll(startHeight int64, waitSingle bool) ([]*HeightBlock, error) {
 	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, client.LargeLimit, false)
 	if err != nil {
-		return nil, jerr.Get("error getting height blocks all large limit", err)
+		return nil, fmt.Errorf("error getting height blocks all large limit; %w", err)
 	}
 	return heightBlocks, nil
 }
@@ -164,7 +164,7 @@ func GetHeightBlocksAll(startHeight int64, waitSingle bool) ([]*HeightBlock, err
 func GetHeightBlocksAllDefault(startHeight int64, waitSingle bool, newest bool) ([]*HeightBlock, error) {
 	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, client.DefaultLimit, newest)
 	if err != nil {
-		return nil, jerr.Get("error getting height blocks all default limit", err)
+		return nil, fmt.Errorf("error getting height blocks all default limit; %w", err)
 	}
 	return heightBlocks, nil
 }
@@ -194,7 +194,7 @@ func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32, n
 			Newest:  newest,
 			Timeout: timeout,
 		}); err != nil {
-			return nil, jerr.Get("error getting height blocks from queue client all", err)
+			return nil, fmt.Errorf("error getting height blocks from queue client all; %w", err)
 		}
 		for i := range dbClient.Messages {
 			var heightBlock = new(HeightBlock)

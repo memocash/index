@@ -2,11 +2,12 @@ package sub
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
+	"log"
 )
 
 type Post struct {
@@ -23,7 +24,7 @@ func (r *Post) Listen(ctx context.Context, txHashes [][32]byte) (<-chan *model.P
 		postListener, err := memo.ListenPosts(ctx)
 		if err != nil {
 			r.Cancel()
-			return nil, jerr.Get("error getting memo post child listener for post subscription", err)
+			return nil, fmt.Errorf("error getting memo post child listener for post subscription; %w", err)
 		}
 		go func() {
 			defer r.Cancel()
@@ -43,12 +44,12 @@ func (r *Post) Listen(ctx context.Context, txHashes [][32]byte) (<-chan *model.P
 		postChildListener, err := memo.ListenPostChildren(ctx, txHashes)
 		if err != nil {
 			r.Cancel()
-			return nil, jerr.Get("error getting memo post child listener for post subscription", err)
+			return nil, fmt.Errorf("error getting memo post child listener for post subscription; %w", err)
 		}
 		postLikesListener, err := memo.ListenPostLikes(ctx, txHashes)
 		if err != nil {
 			r.Cancel()
-			return nil, jerr.Get("error getting memo post likes listener for post subscription", err)
+			return nil, fmt.Errorf("error getting memo post likes listener for post subscription; %w", err)
 		}
 		go func() {
 			defer r.Cancel()
@@ -86,7 +87,7 @@ func (r *Post) Listen(ctx context.Context, txHashes [][32]byte) (<-chan *model.P
 				}
 				post, err := load.Post.Load(chainhash.Hash(txHash).String())
 				if err != nil {
-					jerr.Get("error getting post from dataloader for post subscription resolver", err).Print()
+					log.Printf("error getting post from dataloader for post subscription resolver; %v", err)
 					return
 				}
 				postChan <- post

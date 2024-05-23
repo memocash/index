@@ -2,14 +2,14 @@ package saver
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/dbi"
+	"log"
 )
 
 type Address struct {
@@ -21,14 +21,14 @@ type Address struct {
 
 func (a *Address) SaveTxs(ctx context.Context, b *dbi.Block) error {
 	if b.IsNil() {
-		return jerr.Newf("error nil block")
+		return fmt.Errorf("error nil block")
 	}
 	var objects []db.Object
 	for _, transaction := range b.Transactions {
 		var tx = transaction.MsgTx
 		txHash := chainhash.Hash(transaction.Hash)
 		if a.Verbose {
-			jlog.Logf("tx: %s\n", txHash.String())
+			log.Printf("tx: %s\n", txHash.String())
 		}
 		var addrs = make(map[wallet.Addr]struct{})
 		for j := range tx.TxIn {
@@ -37,7 +37,7 @@ func (a *Address) SaveTxs(ctx context.Context, b *dbi.Block) error {
 			}
 			address, err := wallet.GetAddrFromUnlockScript(tx.TxIn[j].SignatureScript)
 			if err != nil {
-				//jerr.Get("error getting address from unlock script", err).Print()
+				//log.Printf("error getting address from unlock script; %v", err)
 				continue
 			}
 			addrs[*address] = struct{}{}
@@ -53,7 +53,7 @@ func (a *Address) SaveTxs(ctx context.Context, b *dbi.Block) error {
 			if address.IsP2SH() {
 				a.P2shCount++
 				if a.Verbose {
-					jlog.Logf("p2sh output: %s (%s)\n", address.String(), txHash.String())
+					log.Printf("p2sh output: %s (%s)\n", address.String(), txHash.String())
 				}
 			} else if address.IsP2PKH() {
 				a.P2pkhCount++
@@ -69,7 +69,7 @@ func (a *Address) SaveTxs(ctx context.Context, b *dbi.Block) error {
 		}
 	}
 	if err := db.Save(objects); err != nil {
-		return jerr.Get("error saving db tx objects", err)
+		return fmt.Errorf("error saving db tx objects; %w", err)
 	}
 	return nil
 }

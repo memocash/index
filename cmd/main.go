@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/cmd/maint"
 	"github.com/memocash/index/cmd/peer"
 	"github.com/memocash/index/cmd/serve"
@@ -30,7 +30,7 @@ var indexCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		config.SetLogger()
 		if err := config.Init(cmd); err != nil {
-			jerr.Get("fatal error initializing config", err).Fatal()
+			log.Fatalf("fatal error initializing config; %v", err)
 		}
 		broadcast_client.SetConfig(config.GetBroadcastRpc())
 		profileExecution, _ := cmd.Flags().GetBool(config.FlagProfile)
@@ -63,7 +63,7 @@ func Execute() error {
 		maint.GetCommand(),
 	)
 	if err := indexCmd.Execute(); err != nil {
-		return jerr.Get("error executing server command", err)
+		return fmt.Errorf("error executing server command; %w", err)
 	}
 	return nil
 }

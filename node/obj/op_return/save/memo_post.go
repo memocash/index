@@ -2,8 +2,8 @@ package save
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/memo"
@@ -24,7 +24,7 @@ func MemoPost(ctx context.Context, info parse.OpReturn, post string) error {
 	var objects = []db.Object{lockMemoPost, memoSeenPost}
 	existingMemoPost, err := memo.GetPost(ctx, info.TxHash)
 	if err != nil {
-		return jerr.Get("error getting existing memo post for post op return handler", err)
+		return fmt.Errorf("error getting existing memo post for post op return handler; %w", err)
 	}
 	if existingMemoPost == nil {
 		var memoPost = &memo.Post{
@@ -35,7 +35,7 @@ func MemoPost(ctx context.Context, info parse.OpReturn, post string) error {
 		objects = append(objects, memoPost)
 		memoPostLikes, err := memo.GetPostLikes([][32]byte{info.TxHash})
 		if err != nil {
-			return jerr.Get("error getting memo likeds for post op return handler", err)
+			return fmt.Errorf("error getting memo likeds for post op return handler; %w", err)
 		}
 		var likeTxHashes [][32]byte
 		for _, memoPostLike := range memoPostLikes {
@@ -45,7 +45,7 @@ func MemoPost(ctx context.Context, info parse.OpReturn, post string) error {
 		}
 		likeTxOuts, err := chain.GetTxOutputsByHashes(ctx, likeTxHashes)
 		if err != nil {
-			return jerr.Get("error getting like tx outputs for post op return handler", err)
+			return fmt.Errorf("error getting like tx outputs for post op return handler; %w", err)
 		}
 		var memoLikeTips = make(map[chainhash.Hash]int64)
 		for _, likeTxOut := range likeTxOuts {
@@ -64,7 +64,7 @@ func MemoPost(ctx context.Context, info parse.OpReturn, post string) error {
 		}
 	}
 	if err := db.Save(objects); err != nil {
-		return jerr.Get("error saving db memo post object", err)
+		return fmt.Errorf("error saving db memo post object; %w", err)
 	}
 	return nil
 }

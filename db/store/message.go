@@ -2,7 +2,7 @@ package store
 
 import (
 	"bytes"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/metric"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -17,14 +17,14 @@ type Message struct {
 func SaveMessages(topic string, shard uint, messages []*Message) error {
 	db, err := getDb(topic, shard)
 	if err != nil {
-		return jerr.Get("error getting level db", err)
+		return fmt.Errorf("error getting level db; %w", err)
 	}
 	batch := new(leveldb.Batch)
 	for _, message := range messages {
 		batch.Put(message.Uid, message.Message)
 	}
 	if err = db.Write(batch, nil); err != nil {
-		return jerr.Get("error writing items to level db", err)
+		return fmt.Errorf("error writing items to level db; %w", err)
 	}
 	metric.AddTopicSave(metric.TopicSave{
 		Topic:    topic,
@@ -36,14 +36,14 @@ func SaveMessages(topic string, shard uint, messages []*Message) error {
 func GetMessage(topic string, shard uint, uid []byte) (*Message, error) {
 	db, err := getDb(topic, shard)
 	if err != nil {
-		return nil, jerr.Get("error getting db", err)
+		return nil, fmt.Errorf("error getting db; %w", err)
 	}
 	value, err := db.Get(uid, nil)
 	if err != nil {
 		if IsNotFoundError(err) {
 			return nil, nil
 		}
-		return nil, jerr.Get("error getting message", err)
+		return nil, fmt.Errorf("error getting message; %w", err)
 	}
 	metric.AddTopicRead(metric.TopicRead{
 		Topic:    topic,
@@ -58,7 +58,7 @@ func GetMessage(topic string, shard uint, uid []byte) (*Message, error) {
 func GetMessagesByUids(topic string, shard uint, uids [][]byte) ([]*Message, error) {
 	db, err := getDb(topic, shard)
 	if err != nil {
-		return nil, jerr.Get("error getting db", err)
+		return nil, fmt.Errorf("error getting db; %w", err)
 	}
 	var messages []*Message
 	for i := range uids {
@@ -67,7 +67,7 @@ func GetMessagesByUids(topic string, shard uint, uids [][]byte) ([]*Message, err
 			if IsNotFoundError(err) {
 				continue
 			}
-			return nil, jerr.Getf(err, "error getting message: %x", uids[i])
+			return nil, fmt.Errorf("error getting message: %x; %w", uids[i], err)
 		}
 		messages = append(messages, &Message{
 			Uid:     uids[i],
@@ -91,7 +91,7 @@ func GetMessagesByUids(topic string, shard uint, uids [][]byte) ([]*Message, err
 func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max int, newest bool) ([]*Message, error) {
 	db, err := getDb(topic, shard)
 	if err != nil {
-		return nil, jerr.Getf(err, "error getting db shard %d", shard)
+		return nil, fmt.Errorf("error getting db shard %d; %w", shard, err)
 	}
 	if max == 0 {
 		max = client.HugeLimit
@@ -134,7 +134,7 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 		messages = append(messages, prefixMessages...)
 		iter.Release()
 		if err = iter.Error(); err != nil {
-			return nil, jerr.Get("error with releasing iterator", err)
+			return nil, fmt.Errorf("error with releasing iterator; %w", err)
 		}
 	}
 	return messages, nil
@@ -143,7 +143,7 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 func DeleteMessages(topic string, shard uint, uids [][]byte) error {
 	db, err := getDb(topic, shard)
 	if err != nil {
-		return jerr.Get("error getting level db for topic", err)
+		return fmt.Errorf("error getting level db for topic; %w", err)
 	}
 	batch := new(leveldb.Batch)
 	for _, uid := range uids {
@@ -151,7 +151,7 @@ func DeleteMessages(topic string, shard uint, uids [][]byte) error {
 	}
 	err = db.Write(batch, nil)
 	if err != nil {
-		return jerr.Get("error batch deleting items in level db", err)
+		return fmt.Errorf("error batch deleting items in level db; %w", err)
 	}
 	return nil
 }
@@ -165,11 +165,11 @@ func GetPtrSlice(s []byte) []byte {
 func GetCount(topic string, prefix []byte, shard uint) (uint64, error) {
 	db, err := getDb(topic, shard)
 	if err != nil {
-		return 0, jerr.Get("error getting db", err)
+		return 0, fmt.Errorf("error getting db; %w", err)
 	}
 	snap, err := db.GetSnapshot()
 	if err != nil {
-		return 0, jerr.Get("error getting db snapshot", err)
+		return 0, fmt.Errorf("error getting db snapshot; %w", err)
 	}
 	defer snap.Release()
 	iterRange := util.BytesPrefix(prefix)
@@ -181,7 +181,7 @@ func GetCount(topic string, prefix []byte, shard uint) (uint64, error) {
 	iter.Release()
 	err = iter.Error()
 	if err != nil {
-		return 0, jerr.Get("error with releasing iterator", err)
+		return 0, fmt.Errorf("error with releasing iterator; %w", err)
 	}
 	return count, nil
 }

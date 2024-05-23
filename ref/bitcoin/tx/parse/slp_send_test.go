@@ -3,12 +3,12 @@ package parse_test
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
+	"log"
 	"testing"
 )
 
@@ -27,39 +27,39 @@ func (tst SlpSendTest) Test(t *testing.T) {
 	}
 	scr, err := tokenSend.Get()
 	if err != nil {
-		t.Error(jerr.Get("error creating token send script", err))
+		t.Error(fmt.Errorf("error creating token send script; %w", err))
 	}
 	if hex.EncodeToString(scr) != tst.PkScript {
-		t.Error(jerr.Newf("error scr %x does not match expected %s", scr, tst.PkScript))
+		t.Error(fmt.Errorf("error scr %x does not match expected %s", scr, tst.PkScript))
 	} else if testing.Verbose() {
-		jlog.Logf("scr %x, expected %s\n", scr, tst.PkScript)
+		log.Printf("scr %x, expected %s\n", scr, tst.PkScript)
 	}
 	slpSend := parse.NewSlpSend()
 	if err := slpSend.Parse(scr); err != nil {
-		t.Error(jerr.Get("error parsing slp create pk script", err))
+		t.Error(fmt.Errorf("error parsing slp create pk script; %w", err))
 	}
 	if slpSend.TokenType != tst.SlpType {
-		t.Error(jerr.Newf("slpSend.SlpType %s does not match expected %s",
+		t.Error(fmt.Errorf("slpSend.SlpType %s does not match expected %s",
 			memo.SlpTypeString(slpSend.TokenType), memo.SlpTypeString(tst.SlpType)))
 	} else if testing.Verbose() {
-		jlog.Logf("slpSend.SlpType %s, expected %s\n",
+		log.Printf("slpSend.SlpType %s, expected %s\n",
 			memo.SlpTypeString(slpSend.TokenType), memo.SlpTypeString(tst.SlpType))
 	}
 	if !bytes.Equal(slpSend.TokenHash, tst.TokenHash) {
-		t.Error(jerr.Newf("slpSend.TokenHash %x does not match expected %x", slpSend.TokenHash, tst.TokenHash))
+		t.Error(fmt.Errorf("slpSend.TokenHash %x does not match expected %x", slpSend.TokenHash, tst.TokenHash))
 	} else if testing.Verbose() {
-		jlog.Logf("slpSend.TokenHash %x, expected %x\n", slpSend.TokenHash, tst.TokenHash)
+		log.Printf("slpSend.TokenHash %x, expected %x\n", slpSend.TokenHash, tst.TokenHash)
 	}
 	if len(slpSend.Quantities) != len(tst.Quantities) {
-		t.Error(jerr.Newf("len(slpSend.Quantities) %d does not match expected %d",
+		t.Error(fmt.Errorf("len(slpSend.Quantities) %d does not match expected %d",
 			len(slpSend.Quantities), len(tst.Quantities)))
 	} else {
 		for i := range tst.Quantities {
 			if slpSend.Quantities[i] != tst.Quantities[i] {
-				t.Error(jerr.Newf("slpSend.Quantities[%d] %d does not match expected %d",
+				t.Error(fmt.Errorf("slpSend.Quantities[%d] %d does not match expected %d",
 					i, slpSend.Quantities[i], tst.Quantities[i]))
 			} else if testing.Verbose() {
-				jlog.Logf("slpSend.Quantities[%d] %d, expected %d\n", i, slpSend.Quantities[i], tst.Quantities[i])
+				log.Printf("slpSend.Quantities[%d] %d, expected %d\n", i, slpSend.Quantities[i], tst.Quantities[i])
 			}
 		}
 	}

@@ -1,8 +1,10 @@
 package run
 
 import (
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -39,8 +41,8 @@ func (c *Cmd) Start() {
 		c.cmd.Stdout = &c.wait
 		c.cmd.Stderr = os.Stderr
 		err := c.cmd.Run()
-		if err != nil && ! jerr.HasError(err, "signal: terminated") {
-			jerr.Getf(err, "error running process (%s %s)", c.Name, strings.Join(c.Args, " ")).Print()
+		if err != nil && !jerr.HasError(err, "signal: terminated") {
+			log.Printf("error running process (%s %s); %v", c.Name, strings.Join(c.Args, " "), err)
 		}
 		c.done = true
 		for _, wait := range c.Waits {
@@ -80,14 +82,14 @@ func (c *Cmd) Wait(timeout time.Duration) {
 }
 
 func (c *Cmd) IsRunning() bool {
-	return c.cmd != nil && ! c.done
+	return c.cmd != nil && !c.done
 }
 
 func (c *Cmd) Stop() error {
 	if c.cmd != nil && c.cmd.Process.Pid > 0 {
 		err := c.cmd.Process.Signal(syscall.SIGTERM)
-		if err != nil && ! jerr.HasError(err, "os: process already finished") {
-			return jerr.Get("error terminating process", err)
+		if err != nil && !jerr.HasError(err, "os: process already finished") {
+			return fmt.Errorf("error terminating process; %w", err)
 		}
 		c.Wait(0)
 	}

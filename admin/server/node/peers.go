@@ -2,9 +2,10 @@ package node
 
 import (
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/db/client/peer"
+	"log"
 	"net"
 )
 
@@ -13,12 +14,12 @@ var peersRoute = admin.Route{
 	Handler: func(r admin.Response) {
 		var request = new(admin.NodePeersRequest)
 		if err := json.NewDecoder(r.Request.Body).Decode(request); err != nil {
-			r.Error(jerr.Get("error unmarshalling peers request", err))
+			r.Error(fmt.Errorf("error unmarshalling peers request; %w", err))
 			return
 		}
 		peerList := peer.NewList()
 		if err := peerList.GetPeers(request.Filter); err != nil {
-			r.Error(jerr.Get("error getting list of peers with filter", err))
+			r.Error(fmt.Errorf("error getting list of peers with filter; %w", err))
 			return
 		}
 		var responsePeers = make([]*admin.Peer, len(peerList.Peers))
@@ -35,7 +36,7 @@ var peersRoute = admin.Route{
 			Peers: responsePeers,
 		}
 		if err := json.NewEncoder(r.Writer).Encode(peersResponse); err != nil {
-			jerr.Get("error writing json peers response data", err).Print()
+			log.Printf("error writing json peers response data; %v", err)
 			return
 		}
 	},

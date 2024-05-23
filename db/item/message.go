@@ -1,7 +1,7 @@
 package item
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -47,10 +47,10 @@ func GetMessage(id uint) (*Message, error) {
 	shardConfig := config.GetShardConfig(client.GenShardSource32(jutil.GetUintData(id)), config.GetQueueShards())
 	queueClient := client.NewClient(shardConfig.GetHost())
 	if err := queueClient.GetSingle(db.TopicMessage, jutil.GetUintData(id)); err != nil {
-		return nil, jerr.Get("error getting single client message", err)
+		return nil, fmt.Errorf("error getting single client message; %w", err)
 	}
 	if len(queueClient.Messages) != 1 {
-		return nil, jerr.Newf("error unexpected number of messages: %d", len(queueClient.Messages))
+		return nil, fmt.Errorf("error unexpected number of messages: %d", len(queueClient.Messages))
 	}
 	var message = new(Message)
 	db.Set(message, queueClient.Messages[0])

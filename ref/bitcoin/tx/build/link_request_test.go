@@ -9,7 +9,7 @@ import (
 
 type LinkRequestTest struct {
 	Request  build.LinkRequestRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

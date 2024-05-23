@@ -2,10 +2,11 @@ package sub
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
+	"log"
 )
 
 type Profile struct {
@@ -20,22 +21,22 @@ type Profile struct {
 func (p *Profile) Listen(ctx context.Context, addresses [][25]byte, fields load.Fields) (<-chan *model.Profile, error) {
 	ctx, p.Cancel = context.WithCancel(ctx)
 	if err := p.SetupAddresses(addresses); err != nil {
-		return nil, jerr.Get("error setting up lock hashes for profile", err)
+		return nil, fmt.Errorf("error setting up lock hashes for profile; %w", err)
 	}
 	if fields.HasField("following") {
 		if err := p.ListenFollowing(ctx, p.Addresses); err != nil {
-			return nil, jerr.Get("error listening following", err)
+			return nil, fmt.Errorf("error listening following; %w", err)
 		}
 		if err := p.SetupFollowingLockHashes(ctx, fields); err != nil {
-			return nil, jerr.Get("error setting up following lock hashes for profile subscription", err)
+			return nil, fmt.Errorf("error setting up following lock hashes for profile subscription; %w", err)
 		}
 	}
 	if fields.HasField("followers") {
 		if err := p.ListenFollowers(ctx, p.Addresses); err != nil {
-			return nil, jerr.Get("error listening followers", err)
+			return nil, fmt.Errorf("error listening followers; %w", err)
 		}
 		if err := p.SetupFollowersLockHashes(ctx, fields); err != nil {
-			return nil, jerr.Get("error setting up followers lock hashes for profile subscription", err)
+			return nil, fmt.Errorf("error setting up followers lock hashes for profile subscription; %w", err)
 		}
 	}
 	if fields.HasField("name") {
@@ -43,7 +44,7 @@ func (p *Profile) Listen(ctx context.Context, addresses [][25]byte, fields load.
 	}
 	if len(p.NameAddresses) > 0 {
 		if err := p.ListenNames(ctx, p.NameAddresses); err != nil {
-			return nil, jerr.Get("error listening names", err)
+			return nil, fmt.Errorf("error listening names; %w", err)
 		}
 	}
 	if fields.HasField("profile") {
@@ -51,7 +52,7 @@ func (p *Profile) Listen(ctx context.Context, addresses [][25]byte, fields load.
 	}
 	if len(p.ProfileAddresses) > 0 {
 		if err := p.ListenProfiles(ctx, p.ProfileAddresses); err != nil {
-			return nil, jerr.Get("error listening profiles", err)
+			return nil, fmt.Errorf("error listening profiles; %w", err)
 		}
 	}
 	if fields.HasField("pic") {
@@ -59,7 +60,7 @@ func (p *Profile) Listen(ctx context.Context, addresses [][25]byte, fields load.
 	}
 	if len(p.PicAddresses) > 0 {
 		if err := p.ListenPics(ctx, p.PicAddresses); err != nil {
-			return nil, jerr.Get("error listening pics", err)
+			return nil, fmt.Errorf("error listening pics; %w", err)
 		}
 	}
 	return p.GetProfileChan(ctx), nil
@@ -81,7 +82,7 @@ func (p *Profile) SetupFollowingLockHashes(ctx context.Context, fields load.Fiel
 	}
 	lockMemoFollows, err := memo.GetAddrFollows(ctx, p.Addresses)
 	if err != nil {
-		return jerr.Get("error getting lock memo follows for profile lock hashes", err)
+		return fmt.Errorf("error getting lock memo follows for profile lock hashes; %w", err)
 	}
 	var lastMemoFollow *memo.AddrFollow
 	for _, lockMemoFollow := range lockMemoFollows {
@@ -114,7 +115,7 @@ func (p *Profile) SetupFollowersLockHashes(ctx context.Context, fields load.Fiel
 	}
 	lockMemoFolloweds, err := memo.GetAddrFolloweds(ctx, p.Addresses)
 	if err != nil {
-		return jerr.Get("error getting lock memo followeds for profile lock hashes", err)
+		return fmt.Errorf("error getting lock memo followeds for profile lock hashes; %w", err)
 	}
 	var lastLockMemoFollowed *memo.AddrFollowed
 	for _, lockMemoFollowed := range lockMemoFolloweds {
@@ -141,7 +142,7 @@ func (p *Profile) ListenFollowing(ctx context.Context, addrs [][25]byte) error {
 	addrMemoFollowingListener, err := memo.ListenAddrFollows(ctx, addrs)
 	if err != nil {
 		p.Cancel()
-		return jerr.Get("error getting lock memo following listener for profile subscription", err)
+		return fmt.Errorf("error getting lock memo following listener for profile subscription; %w", err)
 	}
 	go func() {
 		defer p.Cancel()
@@ -164,7 +165,7 @@ func (p *Profile) ListenFollowers(ctx context.Context, addrs [][25]byte) error {
 	lockMemoFollowerListener, err := memo.ListenAddrFolloweds(ctx, addrs)
 	if err != nil {
 		p.Cancel()
-		return jerr.Get("error getting memo followers listener for profile subscription", err)
+		return fmt.Errorf("error getting memo followers listener for profile subscription; %w", err)
 	}
 	go func() {
 		defer p.Cancel()
@@ -187,7 +188,7 @@ func (p *Profile) ListenNames(ctx context.Context, addrs [][25]byte) error {
 	lockMemoNameListener, err := memo.ListenAddrNames(ctx, addrs)
 	if err != nil {
 		p.Cancel()
-		return jerr.Get("error getting addr memo name listener for profile subscription", err)
+		return fmt.Errorf("error getting addr memo name listener for profile subscription; %w", err)
 	}
 	go func() {
 		defer p.Cancel()
@@ -210,7 +211,7 @@ func (p *Profile) ListenProfiles(ctx context.Context, addrs [][25]byte) error {
 	lockMemoProfileListener, err := memo.ListenAddrProfiles(ctx, addrs)
 	if err != nil {
 		p.Cancel()
-		return jerr.Get("error getting addr memo profile listener for profile subscription", err)
+		return fmt.Errorf("error getting addr memo profile listener for profile subscription; %w", err)
 	}
 	go func() {
 		defer p.Cancel()
@@ -233,7 +234,7 @@ func (p *Profile) ListenPics(ctx context.Context, addrs [][25]byte) error {
 	lockMemoProfilePicListener, err := memo.ListenAddrProfilePics(ctx, addrs)
 	if err != nil {
 		p.Cancel()
-		return jerr.Get("error getting addr memo profile pic listener for profile subscription", err)
+		return fmt.Errorf("error getting addr memo profile pic listener for profile subscription; %w", err)
 	}
 	go func() {
 		defer p.Cancel()
@@ -270,7 +271,7 @@ func (p *Profile) GetProfileChan(ctx context.Context) <-chan *model.Profile {
 				}
 				profile, err := load.GetProfile(ctx, addr)
 				if err != nil {
-					jerr.Get("error getting profile from dataloader for profile subscription resolver", err).Print()
+					log.Printf("error getting profile from dataloader for profile subscription resolver; %v", err)
 					return
 				}
 				profileChan <- profile

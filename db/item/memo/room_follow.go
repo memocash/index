@@ -2,7 +2,7 @@ package memo
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -73,7 +73,7 @@ func GetRoomFollows(ctx context.Context, room string) ([]*RoomFollow, error) {
 		Max:      client.ExLargeLimit,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db memo room follows", err)
+		return nil, fmt.Errorf("error getting db memo room follows; %w", err)
 	}
 	var roomFollows = make([]*RoomFollow, len(dbClient.Messages))
 	for i := range dbClient.Messages {

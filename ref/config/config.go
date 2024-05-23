@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"strings"
@@ -100,14 +99,6 @@ var DefaultConfig = Config{
 	}},
 }
 
-const (
-	NotFoundErrorMessage = "Config file not found"
-)
-
-func IsConfigNotFoundError(err error) bool {
-	return jerr.HasError(err, NotFoundErrorMessage)
-}
-
 func Init(cmd *cobra.Command) error {
 	config, _ := cmd.Flags().GetString(FlagConfig)
 	if config != "" && !strings.HasPrefix(config, "config-") {
@@ -125,10 +116,10 @@ func Init(cmd *cobra.Command) error {
 		return nil
 	}
 	if err := viper.Unmarshal(&_config); err != nil {
-		return jerr.Get("error unmarshalling config", err)
+		return fmt.Errorf("error unmarshalling config; %w", err)
 	}
 	if len(_config.ClusterShards) != len(_config.QueueShards) {
-		return jerr.Newf("error config cluster shards and queue shards must be the same length")
+		return fmt.Errorf("error config cluster shards and queue shards must be the same length")
 	}
 	return nil
 }

@@ -2,10 +2,11 @@ package wallet
 
 import (
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg"
 	"github.com/jchavannes/btcutil/hdkeychain"
 	"github.com/jchavannes/go-mnemonic/bip39"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/util"
 	"github.com/tyler-smith/go-bip32"
 	"strconv"
@@ -27,7 +28,7 @@ func (m *Mnemonic) GetPathExtended(path string) (*hdkeychain.ExtendedKey, error)
 	seed := bip39.NewSeed(sentence, "")
 	masterKey, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
 	if err != nil {
-		return nil, jerr.Get("error getting master key from mnemonic", err)
+		return nil, fmt.Errorf("error getting master key from mnemonic; %w", err)
 	}
 	newKey := masterKey
 	parts := strings.Split(path, "/")
@@ -42,7 +43,7 @@ func (m *Mnemonic) GetPathExtended(path string) (*hdkeychain.ExtendedKey, error)
 		}
 		index, err := strconv.Atoi(part)
 		if err != nil {
-			return nil, jerr.Getf(err, "error parsing index from part: %s", part)
+			return nil, fmt.Errorf("error parsing index from part: %s; %w", part, err)
 		}
 		uIndex := uint32(index)
 		if hardened {
@@ -50,7 +51,7 @@ func (m *Mnemonic) GetPathExtended(path string) (*hdkeychain.ExtendedKey, error)
 		}
 		newKey, err = newKey.Derive(uIndex)
 		if err != nil {
-			return nil, jerr.Getf(err, "error getting child key for index: %d", uIndex)
+			return nil, fmt.Errorf("error getting child key for index: %d; %w", uIndex, err)
 		}
 	}
 	return newKey, nil
@@ -59,11 +60,11 @@ func (m *Mnemonic) GetPathExtended(path string) (*hdkeychain.ExtendedKey, error)
 func (m *Mnemonic) GetPath(path string) (*PrivateKey, error) {
 	newKey, err := m.GetPathExtended(path)
 	if err != nil {
-		return nil, jerr.Get("error getting path extended", err)
+		return nil, fmt.Errorf("error getting path extended; %w", err)
 	}
 	childPrivateKey, err := newKey.ECPrivKey()
 	if err != nil {
-		return nil, jerr.Get("error getting child private key", err)
+		return nil, fmt.Errorf("error getting child private key; %w", err)
 	}
 	return &PrivateKey{Secret: childPrivateKey.Serialize()}, nil
 }
@@ -82,7 +83,7 @@ func GenerateMnemonic() (*Mnemonic, error) {
 	rand.Read(b)
 	code, err := bip39.NewMnemonicFromEntropy(b, "")
 	if err != nil {
-		return nil, jerr.Get("error getting new mnemonic", err)
+		return nil, fmt.Errorf("error getting new mnemonic; %w", err)
 	}
 	return GetNewMnemonic(*code), nil
 }
@@ -90,21 +91,21 @@ func GenerateMnemonic() (*Mnemonic, error) {
 func GetMnemonic(entropy []byte) (*Mnemonic, error) {
 	mnemonic, err := bip39.NewMnemonicFromEntropy(entropy, "")
 	if err != nil {
-		return nil, jerr.Get("error getting mnemonic from entropy", err)
+		return nil, fmt.Errorf("error getting mnemonic from entropy; %w", err)
 	}
 	return GetNewMnemonic(*mnemonic), nil
 }
 
-const parsingMnemonicErrorMessage = "error getting mnemonic from entropy"
+var parsingMnemonicError = fmt.Errorf("error getting mnemonic from entropy")
 
 func IsParsingMnemonicError(err error) bool {
-	return jerr.HasError(err, parsingMnemonicErrorMessage)
+	return errors.Is(err, parsingMnemonicError)
 }
 
 func GetMnemonicFromString(sentence string) (*Mnemonic, error) {
 	mnemonic, err := bip39.NewMnemonicFromSentence(sentence, "")
 	if err != nil {
-		return nil, jerr.Get(parsingMnemonicErrorMessage, err)
+		return nil, fmt.Errorf("%s; %w", err, parsingMnemonicError)
 	}
 	return GetNewMnemonic(*mnemonic), nil
 }

@@ -2,14 +2,14 @@ package serve
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/memocash/index/node/peer"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/broadcast/broadcast_server"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/network/network_server"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 var networkCmd = &cobra.Command{
@@ -19,9 +19,9 @@ var networkCmd = &cobra.Command{
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
 		port := config.GetServerPort()
 		server := network_server.NewServer(verbose, port)
-		jlog.Logf("Starting network server on port: %d\n", port)
+		log.Printf("Starting network server on port: %d\n", port)
 		if err := server.Run(); err != nil {
-			jerr.Get("fatal error with network server", err).Fatal()
+			log.Fatalf("fatal error with network server; %v", err)
 		}
 	},
 }
@@ -34,22 +34,22 @@ var broadcasterCmd = &cobra.Command{
 		broadcastServer := broadcast_server.NewServer(config.GetBroadcastRpc().Port, func(ctx context.Context, raw []byte) error {
 			txMsg, err := memo.GetMsgFromRaw(raw)
 			if err != nil {
-				return jerr.Get("error parsing raw tx", err)
+				return fmt.Errorf("error parsing raw tx; %w", err)
 			}
-			jlog.Logf("Broadcasting transaction: %s\n", txMsg.TxHash())
+			log.Printf("Broadcasting transaction: %s\n", txMsg.TxHash())
 			if err := connection.BroadcastTx(ctx, txMsg); err != nil {
-				return jerr.Get("error broadcasting tx to connection peer", err)
+				return fmt.Errorf("error broadcasting tx to connection peer; %w", err)
 			}
 			return nil
 		})
 		go func() {
-			jlog.Logf("Running broadcast server on port: %d\n", broadcastServer.Port)
+			log.Printf("Running broadcast server on port: %d\n", broadcastServer.Port)
 			err := broadcastServer.Run()
-			jerr.Get("fatal error running broadcast server", err).Fatal()
+			log.Fatalf("fatal error running broadcast server; %v", err)
 		}()
 		if err := connection.Connect(); err != nil {
-			jerr.Get("fatal error connecting to peer", err).Fatal()
+			log.Fatalf("fatal error connecting to peer; %v", err)
 		}
-		jlog.Log("connection ended")
+		log.Println("connection ended")
 	},
 }

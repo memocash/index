@@ -2,7 +2,6 @@ package wallet_test
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"testing"
 )
@@ -24,20 +23,20 @@ const (
 func TestMnemonicNoPassphrase(t *testing.T) {
 	noPassphraseMnemonic, err := wallet.GetWallet(MnemonicWords, "")
 	if err != nil {
-		t.Error(jerr.Get("error getting wallet", err))
+		t.Error(fmt.Errorf("error getting wallet; %w", err))
 		t.FailNow()
 	}
 	if noPassphraseMnemonic.GetEntropy() != MnemonicEntropy {
-		t.Error(jerr.New("entropy does not match"))
+		t.Error(fmt.Errorf("entropy does not match"))
 		t.FailNow()
 	}
 	seed, err := noPassphraseMnemonic.GetSeed()
 	if err != nil {
-		t.Error(jerr.Get("error getting seed", err))
+		t.Error(fmt.Errorf("error getting seed; %w", err))
 		t.FailNow()
 	}
 	if seed != MnemonicSeedNoPassphrase {
-		t.Error(jerr.New(fmt.Sprintf("seed (%s) does not match expected (%s)", seed, MnemonicSeedNoPassphrase)))
+		t.Error(fmt.Errorf(fmt.Sprintf("seed (%s) does not match expected (%s)", seed, MnemonicSeedNoPassphrase)))
 		t.FailNow()
 	}
 	fmt.Printf("- Seed without passphrase matches.\n  Seed:     %s\n  Expected: %s\n", seed, MnemonicSeedNoPassphrase)
@@ -46,20 +45,20 @@ func TestMnemonicNoPassphrase(t *testing.T) {
 func TestMnemonicWithPassphrase(t *testing.T) {
 	withPassphraseMnemonic, err := wallet.GetWallet(MnemonicWords, MnemonicPassphrase)
 	if err != nil {
-		t.Error(jerr.Get("error getting wallet", err))
+		t.Error(fmt.Errorf("error getting wallet; %w", err))
 		t.FailNow()
 	}
 	if withPassphraseMnemonic.GetEntropy() != MnemonicEntropy {
-		t.Error(jerr.New("entropy does not match"))
+		t.Error(fmt.Errorf("entropy does not match"))
 		t.FailNow()
 	}
 	seed, err := withPassphraseMnemonic.GetSeed()
 	if err != nil {
-		t.Error(jerr.Get("error getting seed", err))
+		t.Error(fmt.Errorf("error getting seed; %w", err))
 		t.FailNow()
 	}
 	if seed != MnemonicSeedWithPassphrase {
-		t.Error(jerr.New(fmt.Sprintf("seed (%s) does not match expected (%s)", seed, MnemonicSeedWithPassphrase)))
+		t.Error(fmt.Errorf(fmt.Sprintf("seed (%s) does not match expected (%s)", seed, MnemonicSeedWithPassphrase)))
 		t.FailNow()
 	}
 	fmt.Printf("- Seed with passphrase matches.\n  Seed:     %s\n  Expected: %s\n", seed, MnemonicSeedWithPassphrase)
@@ -68,20 +67,20 @@ func TestMnemonicWithPassphrase(t *testing.T) {
 func TestMnemonic256(t *testing.T) {
 	mnemonic256, err := wallet.GetWallet(Mnemonic256Words, "")
 	if err != nil {
-		t.Error(jerr.Get("error getting wallet", err))
+		t.Error(fmt.Errorf("error getting wallet; %w", err))
 		t.FailNow()
 	}
 	if mnemonic256.GetEntropy() != Mnemonic256Entropy {
-		t.Error(jerr.New("entropy does not match"))
+		t.Error(fmt.Errorf("entropy does not match"))
 		t.FailNow()
 	}
 	seed, err := mnemonic256.GetSeed()
 	if err != nil {
-		t.Error(jerr.Get("error getting seed", err))
+		t.Error(fmt.Errorf("error getting seed; %w", err))
 		t.FailNow()
 	}
 	if seed != Mnemonic256Seed {
-		t.Error(jerr.New(fmt.Sprintf("seed (%s) does not match expected (%s)", seed, Mnemonic256Seed)))
+		t.Error(fmt.Errorf(fmt.Sprintf("seed (%s) does not match expected (%s)", seed, Mnemonic256Seed)))
 		t.FailNow()
 	}
 	fmt.Printf("- Seed 256 matches.\n  Seed:     %s\n  Expected: %s\n", seed, Mnemonic256Seed)

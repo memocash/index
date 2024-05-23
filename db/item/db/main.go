@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -118,7 +119,7 @@ func Save(objects []Object) error {
 			uid = make([]byte, 32)
 			_, err := rand.Read(uid)
 			if err != nil {
-				return jerr.Get("error getting uid", err)
+				return fmt.Errorf("error getting uid; %w", err)
 			}
 			object.SetUid(uid)
 		}
@@ -143,13 +144,13 @@ func Save(objects []Object) error {
 			queueClient := client.NewClient(shardConfig.GetHost())
 			err := queueClient.Save(messages, time.Now())
 			if err != nil {
-				errs = append(errs, jerr.Get("error saving client message", err))
+				errs = append(errs, fmt.Errorf("error saving client message; %w", err))
 			}
 		}(shardT, messagesT)
 	}
 	wg.Wait()
 	if len(errs) > 0 {
-		return jerr.Get("error saving messages", jerr.Combine(errs...))
+		return fmt.Errorf("error saving messages; %w", jerr.Combine(errs...))
 	}
 	return nil
 }
@@ -169,7 +170,7 @@ func Remove(objects []Object) error {
 		db := client.NewClient(shardConfig.GetHost())
 		for topic, uids := range topicObjects {
 			if err := db.DeleteMessages(topic, uids); err != nil {
-				return jerr.Getf(err, "error deleting shard topic items: %d %s", shard, topic)
+				return fmt.Errorf("error deleting shard topic items: %d %s; %w", shard, topic, err)
 			}
 		}
 	}

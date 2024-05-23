@@ -2,13 +2,12 @@ package client_test
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/client"
 	"testing"
 )
 
 func TestIsMessageNotSetError(t *testing.T) {
-	err := jerr.Get("test error", client.MessageNotSetError)
+	err := fmt.Errorf("test error; %w", client.MessageNotSetError)
 	if !client.IsMessageNotSetError(err) {
 		t.Error("jerr should be message not set error")
 	}

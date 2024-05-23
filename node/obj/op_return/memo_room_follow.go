@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
@@ -21,7 +20,7 @@ var memoRoomFollowHandler = &Handler{
 				TxHash: info.TxHash,
 				Error:  fmt.Sprintf("invalid chat room follow, incorrect push data (%d)", len(info.PushData)),
 			}); err != nil {
-				return jerr.Get("error saving process error for memo chat room follow incorrect push data", err)
+				return fmt.Errorf("error saving process error for memo chat room follow incorrect push data; %w", err)
 			}
 			return nil
 		}
@@ -43,7 +42,7 @@ var memoRoomFollowHandler = &Handler{
 			Unfollow: unfollow,
 		}
 		if err := db.Save([]db.Object{lockRoomFollow, roomFollow}); err != nil {
-			return jerr.Get("error saving db memo room height follow objects", err)
+			return fmt.Errorf("error saving db memo room height follow objects; %w", err)
 		}
 		return nil
 	},

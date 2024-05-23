@@ -7,7 +7,6 @@ import (
 	"github.com/jchavannes/btcd/btcec"
 	"github.com/jchavannes/btcutil"
 	"github.com/jchavannes/btcutil/base58"
-	"github.com/jchavannes/jgo/jerr"
 )
 
 func GetPrivateKey(secretHex string) PrivateKey {
@@ -28,7 +27,7 @@ func GeneratePrivateKey() PrivateKey {
 func ImportPrivateKey(wifString string) (PrivateKey, error) {
 	wif, err := btcutil.DecodeWIF(wifString)
 	if err != nil {
-		return PrivateKey{}, jerr.Get("error creating wif", err)
+		return PrivateKey{}, fmt.Errorf("error creating wif; %w", err)
 	}
 	return PrivateKey{
 		Secret: wif.PrivKey.Serialize(),

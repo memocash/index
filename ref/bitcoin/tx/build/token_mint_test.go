@@ -11,7 +11,7 @@ import (
 
 type TokenMintTest struct {
 	Request  build.TokenMintRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

@@ -11,7 +11,7 @@ import (
 
 type TokenPinTest struct {
 	Request  build.TokenPinRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

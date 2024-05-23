@@ -2,7 +2,7 @@ package gen
 
 import (
 	"bytes"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -76,7 +76,7 @@ utxoLoop:
 	}
 	utxos, err := w.Old.GetUTXOsOld(request)
 	if err != nil {
-		return nil, jerr.Get("error getting UTXOs using wrapper", err)
+		return nil, fmt.Errorf("error getting UTXOs using wrapper; %w", err)
 	}
 	for i := 0; i < len(utxos); i++ {
 		for _, used := range w.Used {

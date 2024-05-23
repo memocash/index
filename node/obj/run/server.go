@@ -2,8 +2,7 @@ package run
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	admin "github.com/memocash/index/admin/server"
 	"github.com/memocash/index/node"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -12,6 +11,7 @@ import (
 	"github.com/memocash/index/ref/cluster/shard"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/network/network_server"
+	"log"
 )
 
 type Server struct {
@@ -24,52 +24,52 @@ func (s *Server) Run() error {
 	// Admin server
 	adminServer := admin.NewServer(node.NewGroup())
 	if err := adminServer.Start(); err != nil {
-		return jerr.Get("fatal error starting admin server", err)
+		return fmt.Errorf("fatal error starting admin server; %w", err)
 	}
-	jlog.Logf("Admin server (including graphql) started on port: %d...\n", adminServer.Port)
+	log.Printf("Admin server (including graphql) started on port: %d...\n", adminServer.Port)
 	go func() {
-		errorHandler <- jerr.Get("error running admin server", adminServer.Serve())
+		errorHandler <- fmt.Errorf("error running admin server; %w", adminServer.Serve())
 	}()
 	// Cluster shard servers
 	for _, shardConfig := range config.GetClusterShards() {
 		clusterShard := shard.NewShard(int(shardConfig.Shard), s.Verbose)
 		if err := clusterShard.Start(); err != nil {
-			return jerr.Getf(err, "fatal error starting cluster shard %d", shardConfig.Shard)
+			return fmt.Errorf("error starting cluster shard %d; %w", shardConfig.Shard, err)
 		}
-		jlog.Logf("Cluster shard started on port: %d...\n", shardConfig.Port)
+		log.Printf("Cluster shard started on port: %d...\n", shardConfig.Port)
 		go func(s *shard.Shard) {
-			errorHandler <- jerr.Getf(clusterShard.Serve(), "error running cluster shard %d", s.Id)
+			errorHandler <- fmt.Errorf("error running cluster shard %d; %w", s.Id, clusterShard.Serve())
 		}(clusterShard)
 	}
 	// Network server
 	networkServer := network_server.NewServer(false, config.GetServerPort())
 	if err := networkServer.Start(); err != nil {
-		return jerr.Get("fatal error starting network server", err)
+		return fmt.Errorf("fatal error starting network server; %w", err)
 	}
-	jlog.Logf("Starting network server on port: %d\n", networkServer.Port)
+	log.Printf("Starting network server on port: %d\n", networkServer.Port)
 	go func() {
-		errorHandler <- jerr.Get("error running network server", networkServer.Serve())
+		errorHandler <- fmt.Errorf("error running network server; %w", networkServer.Serve())
 	}()
 	if !s.Dev {
 		processor := lead.NewProcessor(s.Verbose)
-		jlog.Logf("Cluster lead processor starting...\n")
+		log.Printf("Cluster lead processor starting...\n")
 		go func() {
-			errorHandler <- jerr.Get("error running cluster lead processor", processor.Run())
+			errorHandler <- fmt.Errorf("error running cluster lead processor; %w", processor.Run())
 		}()
 		broadcastServer := broadcast_server.NewServer(config.GetBroadcastRpc().Port, func(ctx context.Context, raw []byte) error {
 			txMsg, err := memo.GetMsgFromRaw(raw)
 			if err != nil {
-				return jerr.Get("error parsing raw tx", err)
+				return fmt.Errorf("error parsing raw tx; %w", err)
 			}
-			jlog.Logf("Broadcasting transaction: %s\n", txMsg.TxHash())
+			log.Printf("Broadcasting transaction: %s\n", txMsg.TxHash())
 			if err := processor.BlockNode.Peer.BroadcastTx(ctx, txMsg); err != nil {
-				return jerr.Get("error broadcasting tx to connection peer", err)
+				return fmt.Errorf("error broadcasting tx to connection peer; %w", err)
 			}
 			return nil
 		})
 		go func() {
-			jlog.Logf("Running broadcast server on port: %d\n", broadcastServer.Port)
-			errorHandler <- jerr.Get("fatal error running broadcast server", broadcastServer.Run())
+			log.Printf("Running broadcast server on port: %d\n", broadcastServer.Port)
+			errorHandler <- fmt.Errorf("fatal error running broadcast server; %w", broadcastServer.Run())
 		}()
 	}
 	return <-errorHandler

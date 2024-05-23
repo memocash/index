@@ -2,8 +2,8 @@ package script
 
 import (
 	"encoding/binary"
+	"fmt"
 	"github.com/jchavannes/btcd/txscript"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
@@ -24,7 +24,7 @@ func (t TokenSend) GetTotalQuantity() uint64 {
 
 func (t TokenSend) Get() ([]byte, error) {
 	if t.SlpType == 0 {
-		return nil, jerr.New("type not set")
+		return nil, fmt.Errorf("type not set")
 	}
 	script := memo.GetBaseOpReturn().
 		AddData(memo.PrefixSlp).
@@ -46,7 +46,7 @@ func (t TokenSend) Get() ([]byte, error) {
 	}
 	pkScript, err := script.Script()
 	if err != nil {
-		return nil, jerr.Get("error building script", err)
+		return nil, fmt.Errorf("error building script; %w", err)
 	}
 	return pkScript, nil
 }

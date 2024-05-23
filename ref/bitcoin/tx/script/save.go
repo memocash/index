@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -13,10 +13,10 @@ type Save struct {
 
 func (s Save) Get() ([]byte, error) {
 	if len(s.Contents) > memo.MaxFileSize {
-		return nil, jerr.New("file size too large")
+		return nil, fmt.Errorf("file size too large")
 	}
 	if len(s.Contents) == 0 {
-		return nil, jerr.New("empty file")
+		return nil, fmt.Errorf("empty file")
 	}
 	pkScript, err := memo.GetBaseOpReturn().
 		AddData(memo.PrefixBitcom).
@@ -26,7 +26,7 @@ func (s Save) Get() ([]byte, error) {
 		AddData([]byte(s.Filename)).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error building script", err)
+		return nil, fmt.Errorf("error building script; %w", err)
 	}
 	return pkScript, nil
 }

@@ -11,7 +11,7 @@ import (
 
 type ReplyTest struct {
 	Request  build.ReplyRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 
@@ -49,6 +49,6 @@ func TestReplyDustLimit(t *testing.T) {
 			TxHash:  test_tx.HashEmptyTx,
 			Message: "ive been sending 5k 6k or 8k honks in here but it will only add me 200sats but honk tokens are missing",
 		},
-		Error: gen.NotEnoughValueErrorText,
+		Error: gen.NotEnoughValueError,
 	}.Test(t)
 }

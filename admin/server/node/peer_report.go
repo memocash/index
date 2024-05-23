@@ -3,7 +3,7 @@ package node
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/db/client"
@@ -17,12 +17,12 @@ var peerReportRoute = admin.Route{
 		var response = new(admin.NodePeerReportResponse)
 		countPeers, err := item.GetCountPeers()
 		if err != nil {
-			r.Error(jerr.Get("error getting count peers", err))
+			r.Error(fmt.Errorf("error getting count peers; %w", err))
 			return
 		}
 		countPeerConnections, err := item.GetCountPeerConnections()
 		if err != nil {
-			r.Error(jerr.Get("error getting count peer connections", err))
+			r.Error(fmt.Errorf("error getting count peer connections; %w", err))
 			return
 		}
 		type PeerInfo struct {
@@ -51,7 +51,7 @@ var peerReportRoute = admin.Route{
 					Max:     client.LargeLimit,
 				})
 				if err != nil {
-					r.Error(jerr.Get("fatal error getting peer connections", err))
+					r.Error(fmt.Errorf("fatal error getting peer connections; %w", err))
 					return
 				}
 				for i, peerConnection := range peerConnections {
@@ -81,7 +81,7 @@ var peerReportRoute = admin.Route{
 		response.TotalPeers = countPeers
 		response.TotalAttempts = countPeerConnections
 		if err := json.NewEncoder(r.Writer).Encode(response); err != nil {
-			r.Error(jerr.Get("error marshalling and writing peer report response data", err))
+			r.Error(fmt.Errorf("error marshalling and writing peer report response data; %w", err))
 			return
 		}
 	},

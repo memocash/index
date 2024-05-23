@@ -1,13 +1,13 @@
 package parse_test
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
+	"log"
 	"testing"
 )
 
@@ -19,14 +19,14 @@ type MetaTest struct {
 func (tst MetaTest) Test(t *testing.T) {
 	meta := parse.GetMeta(tst.Tx)
 	if meta.Multi {
-		t.Error(jerr.New("error meta found multi"))
+		t.Error(fmt.Errorf("error meta found multi"))
 	}
-	jlog.Logf("meta: %t\n", meta.OpReturn != nil)
+	log.Printf("meta: %t\n", meta.OpReturn != nil)
 	if meta.OutputType != tst.Type {
-		t.Error(jerr.Newf("meta.OutputType %s does not match expected %s", meta.OutputType, tst.Type))
+		t.Error(fmt.Errorf("meta.OutputType %s does not match expected %s", meta.OutputType, tst.Type))
 	}
 	if testing.Verbose() {
-		jlog.Logf("meta.OutputType %s, expected %s\n", meta.OutputType, tst.Type)
+		log.Printf("meta.OutputType %s, expected %s\n", meta.OutputType, tst.Type)
 	}
 }
 

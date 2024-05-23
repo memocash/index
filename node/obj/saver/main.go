@@ -2,7 +2,7 @@ package saver
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/dbi"
 	"reflect"
 	"time"
@@ -17,7 +17,7 @@ func (c *CombinedTx) SaveTxs(ctx context.Context, block *dbi.Block) error {
 	for _, saver := range c.Savers {
 		start := time.Now()
 		if err := saver.SaveTxs(ctx, block); err != nil {
-			return jerr.Getf(err, "error saving transaction for saver - %s", reflect.TypeOf(saver))
+			return fmt.Errorf("error saving transaction for saver - %s; %w", reflect.TypeOf(saver), err)
 		}
 		c.SaveTimes[reflect.TypeOf(saver).String()] = time.Since(start)
 	}

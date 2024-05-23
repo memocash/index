@@ -2,7 +2,7 @@ package peer
 
 import (
 	"bytes"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/config"
@@ -33,7 +33,7 @@ func (l *List) GetPeers(filter string) error {
 	for {
 		peers, err := item.GetPeers(shard, startId)
 		if err != nil {
-			return jerr.Get("error getting next set of peers", err)
+			return fmt.Errorf("error getting next set of peers; %w", err)
 		}
 		var ipPorts = make([]item.IpPort, len(peers))
 		for i := range peers {
@@ -44,7 +44,7 @@ func (l *List) GetPeers(filter string) error {
 		}
 		peerConnectionLasts, err := item.GetPeerConnectionLasts(ipPorts)
 		if err != nil && !client.IsEntryNotFoundError(err) {
-			return jerr.Get("error getting peer connection lasts for found peers", err)
+			return fmt.Errorf("error getting peer connection lasts for found peers; %w", err)
 		}
 		for _, peer := range peers {
 			var newPeer = &Peer{

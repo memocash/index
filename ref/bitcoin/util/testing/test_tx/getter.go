@@ -1,7 +1,7 @@
 package test_tx
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
@@ -31,10 +31,10 @@ func (g *TestFaucetGetter) SetPkHashesToUse([][]byte) {}
 func (g *TestFaucetGetter) GetUTXOsOld(request *memo.UTXORequest) ([]memo.UTXO, error) {
 	utxos, err := g.TestGetter.GetUTXOsOld(request)
 	if err != nil {
-		return nil, jerr.Get("error getting utxos", err)
+		return nil, fmt.Errorf("error getting utxos; %w", err)
 	}
 	if len(utxos) > 1 {
-		return nil, jerr.Newf("error invalid utxo count for faucet (%d)", len(utxos))
+		return nil, fmt.Errorf("error invalid utxo count for faucet (%d)", len(utxos))
 	}
 	return utxos, nil
 }

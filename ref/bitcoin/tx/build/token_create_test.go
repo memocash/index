@@ -11,7 +11,7 @@ import (
 
 type TokenCreateTest struct {
 	Request  build.TokenCreateRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

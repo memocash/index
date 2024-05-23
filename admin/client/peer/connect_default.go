@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/ref/config"
 	"io/ioutil"
@@ -15,11 +15,11 @@ type ConnectDefault struct {
 func (i *ConnectDefault) Get() error {
 	resp, err := http.Get("http://" + config.GetHost(config.GetAdminPort()) + admin.UrlNodeConnectDefault)
 	if err != nil {
-		return jerr.Get("error getting node connect default", err)
+		return fmt.Errorf("error getting node connect default; %w", err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return jerr.Get("error reading node connect default body", err)
+		return fmt.Errorf("error reading node connect default body; %w", err)
 	}
 	i.Message = string(body)
 	return nil

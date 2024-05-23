@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
 	dbMemo "github.com/memocash/index/db/item/memo"
@@ -21,7 +20,7 @@ var memoFollowHandler = &Handler{
 				TxHash: info.TxHash,
 				Error:  fmt.Sprintf("invalid set follow, incorrect push data (%d)", len(info.PushData)),
 			}); err != nil {
-				return jerr.Get("error saving process error memo follow incorrect push data", err)
+				return fmt.Errorf("error saving process error memo follow incorrect push data; %w", err)
 			}
 			return nil
 		}
@@ -32,7 +31,7 @@ var memoFollowHandler = &Handler{
 				TxHash: info.TxHash,
 				Error:  fmt.Sprintf("error getting address from follow pk hash; %s", err),
 			}); err != nil {
-				return jerr.Get("error saving process error memo follow address", err)
+				return fmt.Errorf("error saving process error memo follow address; %w", err)
 			}
 			return nil
 		}
@@ -52,7 +51,7 @@ var memoFollowHandler = &Handler{
 			Unfollow:   unfollow,
 		}
 		if err := db.Save([]db.Object{addrMemoFollow, addrMemoFollowed}); err != nil {
-			return jerr.Get("error saving db lock memo follow object", err)
+			return fmt.Errorf("error saving db lock memo follow object; %w", err)
 		}
 		return nil
 	},

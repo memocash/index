@@ -1,7 +1,7 @@
 package memo
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -57,7 +57,7 @@ func GetLikeTips(likeTxHashes [][32]byte) ([]*LikeTip, error) {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetByPrefixes(db.TopicMemoLikeTip, prefixes); err != nil {
-			return nil, jerr.Get("error getting client message memo like tips", err)
+			return nil, fmt.Errorf("error getting client message memo like tips; %w", err)
 		}
 		for _, msg := range dbClient.Messages {
 			var likeTip = new(LikeTip)

@@ -1,7 +1,7 @@
 package item
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
@@ -45,7 +45,7 @@ func (s *ProcessStatus) Deserialize(data []byte) {
 
 func (s *ProcessStatus) Save() error {
 	if err := db.Save([]db.Object{s}); err != nil {
-		return jerr.Get("error saving process status", err)
+		return fmt.Errorf("error saving process status; %w", err)
 	}
 	return nil
 }
@@ -61,10 +61,10 @@ func GetProcessStatus(shard uint, name string) (*ProcessStatus, error) {
 	shardConfig := config.GetShardConfig(uint32(shard), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetSingle(db.TopicProcessStatus, []byte(name)); err != nil {
-		return nil, jerr.Get("error getting db message process status", err)
+		return nil, fmt.Errorf("error getting db message process status; %w", err)
 	}
 	if len(dbClient.Messages) == 0 || len(dbClient.Messages[0].Uid) == 0 {
-		return nil, jerr.Get("error status not found", client.MessageNotSetError)
+		return nil, fmt.Errorf("error status not found; %w", client.MessageNotSetError)
 	}
 	var processStatus = new(ProcessStatus)
 	db.Set(processStatus, dbClient.Messages[0])

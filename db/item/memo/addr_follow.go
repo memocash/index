@@ -3,7 +3,6 @@ package memo
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -81,7 +80,7 @@ func GetAddrFollows(ctx context.Context, addrs [][25]byte) ([]*AddrFollow, error
 			Max:      client.ExLargeLimit,
 			Context:  ctx,
 		}); err != nil {
-			return nil, jerr.Get("error getting db addr memo follow by prefix", err)
+			return nil, fmt.Errorf("error getting db addr memo follow by prefix; %w", err)
 		}
 		for _, msg := range dbClient.Messages {
 			var addrFollow = new(AddrFollow)
@@ -108,7 +107,7 @@ func GetAddrFollowsSingle(ctx context.Context, addr [25]byte, start time.Time) (
 		Max:      client.ExLargeLimit,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db addr memo follow by prefix", err)
+		return nil, fmt.Errorf("error getting db addr memo follow by prefix; %w", err)
 	}
 	var addrFollows = make([]*AddrFollow, len(dbClient.Messages))
 	for i := range dbClient.Messages {

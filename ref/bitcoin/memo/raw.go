@@ -2,8 +2,8 @@ package memo
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"math"
 	"time"
@@ -32,7 +32,7 @@ func GetMsgFromRaw(raw []byte) (*wire.MsgTx, error) {
 	reader := bytes.NewReader(raw)
 	err := msgTx.Deserialize(reader)
 	if err != nil {
-		return nil, jerr.Get("error deserializing tx", err)
+		return nil, fmt.Errorf("error deserializing tx; %w", err)
 	}
 	return msgTx, nil
 }
@@ -48,7 +48,7 @@ func GetBlockHeaderFromRaw(raw []byte) (*wire.BlockHeader, error) {
 	reader := bytes.NewReader(raw)
 	err := blockHeader.Deserialize(reader)
 	if err != nil {
-		return nil, jerr.Get("error deserializing block header", err)
+		return nil, fmt.Errorf("error deserializing block header; %w", err)
 	}
 	return blockHeader, nil
 }
@@ -64,7 +64,7 @@ func GetBlockFromRaw(raw []byte) (*wire.MsgBlock, error) {
 	reader := bytes.NewReader(raw)
 	err := block.Deserialize(reader)
 	if err != nil {
-		return nil, jerr.Get("error deserializing block", err)
+		return nil, fmt.Errorf("error deserializing block; %w", err)
 	}
 	return block, nil
 }

@@ -2,7 +2,7 @@ package memo
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -80,7 +80,7 @@ func GetAddrRoomFollows(ctx context.Context, addrs [][25]byte) ([]*AddrRoomFollo
 			Max:      client.ExLargeLimit,
 			Context:  ctx,
 		}); err != nil {
-			return nil, jerr.Get("error getting db memo addr room follow by prefix", err)
+			return nil, fmt.Errorf("error getting db memo addr room follow by prefix; %w", err)
 		}
 		for _, msg := range dbClient.Messages {
 			var addrFollow = new(AddrRoomFollow)
@@ -109,7 +109,7 @@ func ListenAddrRoomFollows(ctx context.Context, addrs [][25]byte) (chan *AddrRoo
 		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
 		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoAddrRoomFollow, prefixes)
 		if err != nil {
-			return nil, jerr.Get("error listening to db memo addr room follow by prefix", err)
+			return nil, fmt.Errorf("error listening to db memo addr room follow by prefix; %w", err)
 		}
 		go func() {
 			for msg := range chanMessage {

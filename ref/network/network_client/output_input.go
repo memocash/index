@@ -1,7 +1,7 @@
 package network_client
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 )
 
@@ -27,7 +27,7 @@ type GetOutputInput struct {
 func (g *GetOutputInput) Get(outs []Out) error {
 	conn, err := NewConnection()
 	if err != nil {
-		return jerr.Get("error connecting to network", err)
+		return fmt.Errorf("error connecting to network; %w", err)
 	}
 	defer conn.Close()
 	var networkOutputs = make([]*network_pb.TxHashIndex, len(outs))
@@ -41,7 +41,7 @@ func (g *GetOutputInput) Get(outs []Out) error {
 		Outputs: networkOutputs,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network output inputs", err)
+		return fmt.Errorf("error getting rpc network output inputs; %w", err)
 	}
 	g.Inputs = make([]In, len(response.Inputs))
 	for i := range response.Inputs {

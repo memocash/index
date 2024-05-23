@@ -2,7 +2,7 @@ package chain
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -56,7 +56,7 @@ func GetOutputInput(out memo.Out) ([]*OutputInput, error) {
 	dbClient := client.NewClient(shardConfig.GetHost())
 	prefix := jutil.CombineBytes(jutil.ByteReverse(out.TxHash), jutil.GetUint32Data(out.Index))
 	if err := dbClient.GetByPrefix(db.TopicChainOutputInput, prefix); err != nil {
-		return nil, jerr.Get("error getting by prefix for chain output input", err)
+		return nil, fmt.Errorf("error getting by prefix for chain output input; %w", err)
 	}
 	var outputInputs = make([]*OutputInput, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -77,7 +77,7 @@ func GetOutputInputs(ctx context.Context, outs []memo.Out) ([]*OutputInput, erro
 	}
 	messages, err := db.GetByPrefixes(ctx, db.TopicChainOutputInput, shardPrefixes)
 	if err != nil {
-		return nil, jerr.Get("error getting by prefixes for chain output inputs", err)
+		return nil, fmt.Errorf("error getting by prefixes for chain output inputs; %w", err)
 	}
 	var outputInputs []*OutputInput
 	for i := range messages {
@@ -103,7 +103,7 @@ func GetOutputInputsForTxHashes(txHashes [][]byte) ([]*OutputInput, error) {
 			prefixes[i] = jutil.ByteReverse(outGroup[i])
 		}
 		if err := dbClient.GetByPrefixes(db.TopicChainOutputInput, prefixes); err != nil {
-			return nil, jerr.Get("error getting by prefixes for chain output inputs by tx hashes", err)
+			return nil, fmt.Errorf("error getting by prefixes for chain output inputs by tx hashes; %w", err)
 		}
 		for i := range dbClient.Messages {
 			var outputInput = new(OutputInput)

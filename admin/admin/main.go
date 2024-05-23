@@ -1,8 +1,8 @@
 package admin
 
 import (
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/node"
+	"log"
 	"net/http"
 )
 
@@ -27,7 +27,7 @@ type Response struct {
 }
 
 func (r Response) Error(err error) {
-	jerr.Getf(err, "error with request: %s", r.Route.Pattern).Print()
+	log.Printf("error with request: %s; %v", r.Route.Pattern, err)
 }
 
 const (

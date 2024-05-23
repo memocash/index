@@ -9,7 +9,7 @@ import (
 
 type PollCreateTest struct {
 	Request  build.PollCreateRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

@@ -3,7 +3,6 @@ package addr
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -58,7 +57,7 @@ func GetSeenTxs(ctx context.Context, addr [25]byte, start []byte) ([]*SeenTx, er
 		Prefixes: [][]byte{addr[:]},
 		Max:      client.ExLargeLimit,
 	}); err != nil {
-		return nil, jerr.Get("error getting db addr seen txs by prefix", err)
+		return nil, fmt.Errorf("error getting db addr seen txs by prefix; %w", err)
 	}
 	var seenTxs = make([]*SeenTx, len(dbClient.Messages))
 	for i := range dbClient.Messages {

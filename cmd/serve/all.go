@@ -1,9 +1,9 @@
 package serve
 
 import (
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/node/obj/run"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 var allCmd = &cobra.Command{
@@ -11,7 +11,7 @@ var allCmd = &cobra.Command{
 	Run: func(c *cobra.Command, args []string) {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
 		server := run.NewServer(true, verbose)
-		jerr.Get("fatal memo server error encountered (dev)", server.Run()).Fatal()
+		log.Fatalf("fatal memo server error encountered (dev); %v", server.Run())
 	},
 }
 
@@ -20,6 +20,6 @@ var liveCmd = &cobra.Command{
 	Run: func(c *cobra.Command, args []string) {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
 		server := run.NewServer(false, verbose)
-		jerr.Get("fatal memo server error encountered (live)", server.Run()).Fatal()
+		log.Fatalf("fatal memo server error encountered (live); %v", server.Run())
 	},
 }

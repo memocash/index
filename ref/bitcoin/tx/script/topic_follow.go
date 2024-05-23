@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -13,10 +13,10 @@ type TopicFollow struct {
 func (f TopicFollow) Get() ([]byte, error) {
 	topicName := []byte(f.TopicName)
 	if len(topicName) > memo.MaxTagMessageSize {
-		return nil, jerr.New("topic name too large")
+		return nil, fmt.Errorf("topic name too large")
 	}
 	if len(topicName) == 0 {
-		return nil, jerr.New("empty topic name")
+		return nil, fmt.Errorf("empty topic name")
 	}
 	var prefix []byte
 	if f.Unfollow {
@@ -29,7 +29,7 @@ func (f TopicFollow) Get() ([]byte, error) {
 		AddData(topicName).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error building topic follow script", err)
+		return nil, fmt.Errorf("error building topic follow script; %w", err)
 	}
 	return pkScript, nil
 }

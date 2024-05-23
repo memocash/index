@@ -2,8 +2,8 @@ package script
 
 import (
 	"encoding/binary"
+	"fmt"
 	"github.com/jchavannes/btcd/txscript"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
@@ -16,7 +16,7 @@ type TokenMint struct {
 
 func (t TokenMint) Get() ([]byte, error) {
 	if t.TokenType == 0 {
-		return nil, jerr.New("token type not set")
+		return nil, fmt.Errorf("token type not set")
 	}
 	var quantityBytes = make([]byte, 8)
 	binary.BigEndian.PutUint64(quantityBytes, t.Quantity)
@@ -30,7 +30,7 @@ func (t TokenMint) Get() ([]byte, error) {
 		AddData(quantityBytes)
 	pkScript, err := script.Script()
 	if err != nil {
-		return nil, jerr.Get("error building script", err)
+		return nil, fmt.Errorf("error building script; %w", err)
 	}
 	return pkScript, nil
 }

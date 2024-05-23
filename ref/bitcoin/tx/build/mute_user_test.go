@@ -8,7 +8,7 @@ import (
 
 type MuteTest struct {
 	Request  build.MuteUserRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

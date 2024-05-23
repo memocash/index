@@ -2,13 +2,14 @@ package gen_test
 
 import (
 	"bytes"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"errors"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 	"testing"
 )
 
@@ -16,7 +17,7 @@ type Test struct {
 	Req  gen.TxRequest
 	Sign bool
 	Hash string
-	Err  string
+	Err  error
 }
 
 func (tst Test) Test(t *testing.T) {
@@ -28,18 +29,18 @@ func (tst Test) Test(t *testing.T) {
 		memoTx, err = gen.TxUnsigned(tst.Req)
 	}
 	if err != nil {
-		if tst.Err != "" && jerr.HasError(err, tst.Err) {
+		if errors.Is(err, tst.Err) {
 			if testing.Verbose() {
-				jlog.Logf("Tx has expected error - '%s'\n", tst.Err)
-				jerr.Create(err).Print()
+				log.Printf("Tx has expected error; %v\n", tst.Err)
+				log.Printf("%v", err)
 			}
 		} else {
-			t.Error(jerr.Getf(err, "error generating tx (%s)", tst.Err))
+			t.Error(fmt.Errorf("error generating tx (%s); %w", tst.Err, err))
 		}
 	} else {
 		var isError bool
-		if ! bytes.Equal(memoTx.GetHash(), test_tx.GetHashBytes(tst.Hash)) {
-			t.Error(jerr.Newf("tx hash (%s) does not match expected (%s)",
+		if !bytes.Equal(memoTx.GetHash(), test_tx.GetHashBytes(tst.Hash)) {
+			t.Error(fmt.Errorf("tx hash (%s) does not match expected (%s)",
 				memoTx.MsgTx.TxHash().String(), tst.Hash))
 			isError = true
 		}
@@ -53,7 +54,7 @@ func (tst Test) Test(t *testing.T) {
 func TestEmpty(t *testing.T) {
 	Test{
 		Req: gen.TxRequest{},
-		Err: gen.NotEnoughValueErrorText,
+		Err: gen.NotEnoughValueError,
 	}.Test(t)
 }
 

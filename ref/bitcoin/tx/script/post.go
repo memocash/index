@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -12,17 +12,17 @@ type Post struct {
 func (p Post) Get() ([]byte, error) {
 	message := []byte(p.Message)
 	if len(message) > memo.MaxPostSize {
-		return nil, jerr.New("message size too large")
+		return nil, fmt.Errorf("message size too large")
 	}
 	if len(message) == 0 {
-		return nil, jerr.New("empty message")
+		return nil, fmt.Errorf("empty message")
 	}
 	pkScript, err := memo.GetBaseOpReturn().
 		AddData(memo.PrefixPost).
 		AddData(message).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error building script", err)
+		return nil, fmt.Errorf("error building script; %w", err)
 	}
 	return pkScript, nil
 }

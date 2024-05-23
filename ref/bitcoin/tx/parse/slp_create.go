@@ -1,8 +1,8 @@
 package parse
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/txscript"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 )
 
@@ -20,11 +20,11 @@ type SlpCreate struct {
 func (c *SlpCreate) Parse(pkScript []byte) error {
 	pushData, err := txscript.PushedData(pkScript)
 	if err != nil {
-		return jerr.Get("error parsing pk script push data", err)
+		return fmt.Errorf("error parsing pk script push data; %w", err)
 	}
 	const ExpectedPushDataCount = 10
 	if len(pushData) < ExpectedPushDataCount {
-		return jerr.Newf("invalid genesis, incorrect push data (%d), expected %d", len(pushData), ExpectedPushDataCount)
+		return fmt.Errorf("invalid genesis, incorrect push data (%d), expected %d", len(pushData), ExpectedPushDataCount)
 	}
 	c.TokenType = byte(jutil.GetUint64(pushData[1]))
 	c.Ticker = jutil.GetUtf8String(pushData[3])

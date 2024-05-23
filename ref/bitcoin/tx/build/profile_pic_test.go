@@ -8,7 +8,7 @@ import (
 
 type ProfilePicTest struct {
 	Request  build.ProfilePicRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

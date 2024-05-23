@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -28,7 +28,7 @@ func TokenSend(request TokenSendRequest) (*memo.Tx, error) {
 	}
 	tx, err := SimpleSingle(request.Wallet, outputs)
 	if err != nil {
-		return nil, jerr.Get("error building token send tx", err)
+		return nil, fmt.Errorf("error building token send tx; %w", err)
 	}
 	return tx, nil
 }

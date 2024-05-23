@@ -2,7 +2,7 @@ package chain
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -66,7 +66,7 @@ func GetAllTxInputs(shard uint32, startUid []byte) ([]*TxInput, error) {
 		Start: startUid,
 		Max:   client.HugeLimit,
 	}); err != nil {
-		return nil, jerr.Get("error getting db message chain tx inputs for all", err)
+		return nil, fmt.Errorf("error getting db message chain tx inputs for all; %w", err)
 	}
 	var txInputs = make([]*TxInput, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -88,7 +88,7 @@ func GetTxInputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxInput, 
 	}
 	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxInput, shardPrefixes)
 	if err != nil {
-		return nil, jerr.Get("error getting client message chain tx input", err)
+		return nil, fmt.Errorf("error getting client message chain tx input; %w", err)
 	}
 	var txInputs []*TxInput
 	for _, msg := range messages {
@@ -107,7 +107,7 @@ func GetTxInputs(ctx context.Context, outs []memo.Out) ([]*TxInput, error) {
 	}
 	messages, err := db.GetSpecific(ctx, db.TopicChainTxInput, shardUids)
 	if err != nil {
-		return nil, jerr.Get("error getting client message chain tx input", err)
+		return nil, fmt.Errorf("error getting client message chain tx input; %w", err)
 	}
 	var txInputs []*TxInput
 	for i := range messages {

@@ -2,11 +2,12 @@ package sub
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
+	"log"
 )
 
 type Room struct {
@@ -22,7 +23,7 @@ func (r *Room) Listen(ctx context.Context, names []string) (<-chan *model.Post, 
 	roomHeightPostsListener, err := memo.ListenRoomPosts(ctx, names)
 	if err != nil {
 		r.Cancel()
-		return nil, jerr.Get("error getting memo room height post listener for room subscription", err)
+		return nil, fmt.Errorf("error getting memo room height post listener for room subscription; %w", err)
 	}
 	go func() {
 		defer r.Cancel()
@@ -54,7 +55,7 @@ func (r *Room) Listen(ctx context.Context, names []string) (<-chan *model.Post, 
 				}
 				post, err := load.Post.Load(chainhash.Hash(txHash).String())
 				if err != nil {
-					jerr.Get("error getting post from dataloader for room subscription resolver", err).Print()
+					log.Printf("error getting post from dataloader for room subscription resolver; %v", err)
 					return
 				}
 				postChan <- post

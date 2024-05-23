@@ -2,7 +2,7 @@ package chain
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -54,10 +54,10 @@ func WaitForTxProcessed(ctx context.Context, txHash []byte) (*TxProcessed, error
 		Prefixes: [][]byte{jutil.ByteReverse(txHash)},
 		Wait:     true,
 	}); err != nil {
-		return nil, jerr.Get("error getting tx processed with wait db message", err)
+		return nil, fmt.Errorf("error getting tx processed with wait db message; %w", err)
 	}
 	if len(dbClient.Messages) == 0 {
-		return nil, jerr.Get("error with tx processed wait, empty message", client.EntryNotFoundError)
+		return nil, fmt.Errorf("error with tx processed wait, empty message; %w", client.EntryNotFoundError)
 	}
 	var txProcessed = new(TxProcessed)
 	db.Set(txProcessed, dbClient.Messages[0])

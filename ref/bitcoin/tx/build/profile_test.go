@@ -8,7 +8,7 @@ import (
 
 type ProfileTest struct {
 	Request  build.ProfileRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

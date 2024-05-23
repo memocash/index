@@ -2,8 +2,8 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/jchavannes/jgo/jerr"
 	"io"
 	"time"
 )
@@ -22,10 +22,10 @@ func UnmarshalDate(v interface{}) (Date, error) {
 	case string:
 		t, err := time.Parse(time.RFC3339Nano, v)
 		if err != nil {
-			return Date{}, jerr.Get("error parsing date with rfc 3339 nano", err)
+			return Date{}, fmt.Errorf("error parsing date with rfc 3339 nano; %w", err)
 		}
 		return Date(t), nil
 	default:
-		return Date{}, jerr.Newf("error unexpected date type not string: %T", v)
+		return Date{}, fmt.Errorf("error unexpected date type not string: %T", v)
 	}
 }

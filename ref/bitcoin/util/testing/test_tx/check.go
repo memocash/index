@@ -2,10 +2,11 @@ package test_tx
 
 import (
 	"encoding/hex"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"errors"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
+	"log"
 	"testing"
 )
 
@@ -17,29 +18,29 @@ type TxHash struct {
 type Checker struct {
 	Name     string
 	Txs      []*memo.Tx
-	Error    string
+	Error    error
 	TxHashes []TxHash
 }
 
 func (c Checker) Check(err error, t *testing.T) {
 	if err != nil {
-		if c.Error != "" && jerr.HasError(err, c.Error) {
+		if errors.Is(err, c.Error) {
 			if testing.Verbose() {
-				jlog.Logf("Tx has expected error - '%s'\n", c.Error)
-				jerr.Create(err).Print()
+				log.Printf("Tx has expected error - %v\n", c.Error)
+				log.Printf("%v\n", err)
 			}
 		} else {
 			if c.Name != "" {
-				t.Error(jerr.Getf(err, "error generating test tx(s) - Name: %s", c.Name))
+				t.Error(fmt.Errorf("error generating test tx(s) - Name: %s; %w", c.Name, err))
 			} else {
-				t.Error(jerr.Get("error generating test tx(s)", err))
+				t.Error(fmt.Errorf("error generating test tx(s); %w", err))
 			}
 		}
 		return
 	}
 	var isError bool
 	if len(c.TxHashes) != len(c.Txs) {
-		t.Error(jerr.Newf("%s: len(c.TxHashes) [%d] != len(c.Txs) [%d]",
+		t.Error(fmt.Errorf("%s: len(c.TxHashes) [%d] != len(c.Txs) [%d]",
 			c.Name, len(c.TxHashes), len(c.Txs)))
 		isError = true
 		goto done
@@ -47,18 +48,18 @@ func (c Checker) Check(err error, t *testing.T) {
 	for _, txHash := range c.TxHashes {
 		raw, err := hex.DecodeString(txHash.TxRaw)
 		if err != nil {
-			t.Error(jerr.Get("error parsing raw tx", err))
+			t.Error(fmt.Errorf("error parsing raw tx; %w", err))
 			isError = true
 			goto done
 		}
 		msg, err := memo.GetMsgFromRaw(raw)
 		if err != nil {
-			t.Error(jerr.Get("error getting message from raw", err))
+			t.Error(fmt.Errorf("error getting message from raw; %w", err))
 			isError = true
 			goto done
 		}
 		if txHash.TxHash != msg.TxHash().String() {
-			t.Error(jerr.Newf("error tx hash (%s) does not match msg tx hash (%s)",
+			t.Error(fmt.Errorf("error tx hash (%s) does not match msg tx hash (%s)",
 				txHash.TxHash, msg.TxHash().String()))
 			isError = true
 			goto done
@@ -66,7 +67,7 @@ func (c Checker) Check(err error, t *testing.T) {
 	}
 	for i, tx := range c.Txs {
 		if tx.MsgTx.TxHash().String() != c.TxHashes[i].TxHash {
-			t.Error(jerr.Newf("%s: tx hash (%s) does not match expected (%s)",
+			t.Error(fmt.Errorf("%s: tx hash (%s) does not match expected (%s)",
 				c.Name, tx.MsgTx.TxHash().String(), c.TxHashes[i].TxHash))
 			isError = true
 			goto done

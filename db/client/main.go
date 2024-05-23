@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jchavannes/jgo/db_util"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"time"
 )
@@ -37,10 +36,10 @@ const (
 )
 
 var (
-	MultipleEntryError       = jerr.New(MultipleEntryErrorMessage)
-	EntryNotFoundError       = jerr.New(EntryNotFoundErrorMessage)
+	MultipleEntryError       = fmt.Errorf(MultipleEntryErrorMessage)
+	EntryNotFoundError       = fmt.Errorf(EntryNotFoundErrorMessage)
 	MessageNotSetError       = fmt.Errorf(MessageNotSetErrorMessage)
-	ResourceUnavailableError = jerr.New(ResourceUnavailableMessage)
+	ResourceUnavailableError = fmt.Errorf(ResourceUnavailableMessage)
 )
 
 type Topic struct {
@@ -85,17 +84,17 @@ func IncrementBytes(b []byte) []byte {
 }
 
 func IsMultipleEntryError(e error) bool {
-	return jerr.HasErrorPart(e, MultipleEntryErrorMessage)
+	return errors.Is(e, MultipleEntryError)
 }
 
 func IsEntryNotFoundError(e error) bool {
-	return jerr.HasError(e, EntryNotFoundErrorMessage)
+	return errors.Is(e, EntryNotFoundError)
 }
 
 func IsMessageNotSetError(err error) bool {
-	return errors.Is(err, MessageNotSetError) || jerr.HasError(err, MessageNotSetErrorMessage)
+	return errors.Is(err, MessageNotSetError)
 }
 
 func IsResourceUnavailableError(err error) bool {
-	return jerr.HasErrorPart(err, ResourceUnavailableMessage)
+	return errors.Is(err, ResourceUnavailableError)
 }

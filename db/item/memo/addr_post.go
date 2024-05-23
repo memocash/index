@@ -2,7 +2,7 @@ package memo
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -64,7 +64,7 @@ func GetSingleAddrPosts(ctx context.Context, addr [25]byte, newest bool, start t
 		Newest:   newest,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db addr memo post by prefix", err)
+		return nil, fmt.Errorf("error getting db addr memo post by prefix; %w", err)
 	}
 	var addrPosts []*AddrPost
 	for _, msg := range dbClient.Messages {
@@ -92,7 +92,7 @@ func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool) ([]*AddrPo
 			Newest:   newest,
 			Context:  ctx,
 		}); err != nil {
-			return nil, jerr.Get("error getting db addr memo post by prefix", err)
+			return nil, fmt.Errorf("error getting db addr memo post by prefix; %w", err)
 		}
 		for _, msg := range dbClient.Messages {
 			var addrPost = new(AddrPost)

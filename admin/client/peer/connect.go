@@ -3,7 +3,7 @@ package peer
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/ref/config"
 	"io/ioutil"
@@ -20,16 +20,16 @@ func (i *Connect) Connect(ip []byte, port uint16) error {
 		Port: port,
 	})
 	if err != nil {
-		return jerr.Get("error marshalling connect request data", err)
+		return fmt.Errorf("error marshalling connect request data; %w", err)
 	}
 	url := "http://" + config.GetHost(config.GetAdminPort()) + admin.UrlNodeConnect
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return jerr.Get("error getting node connect", err)
+		return fmt.Errorf("error getting node connect; %w", err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return jerr.Get("error reading node connect default body", err)
+		return fmt.Errorf("error reading node connect default body; %w", err)
 	}
 	i.Message = string(body)
 	return nil

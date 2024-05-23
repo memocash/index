@@ -3,7 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/db/metric"
 	"sync"
 	"time"
@@ -31,7 +31,7 @@ type PubSub struct {
 
 func (s *PubSub) Subscribe(shard uint, topic string, start []byte, prefixes [][]byte) *Subscribe {
 	//prefixStrings := jutil.ByteSliceStrings(prefixes)
-	//jlog.Logf("New subscribe item shard: %d, topic: %s, start: %x, prefixes: %s\n",
+	//log.Printf("New subscribe item shard: %d, topic: %s, start: %x, prefixes: %s\n",
 	//	shard, topic, start, strings.Join(prefixStrings, " "))
 	var sub = &Subscribe{
 		Shard:    shard,
@@ -57,7 +57,7 @@ func (s *PubSub) Close(id int64) {
 }
 
 func (s *PubSub) Publish(shard uint, topic string, uid []byte) {
-	//jlog.Logf("New published item shard: %d, topic: %s, uid: %x\n", shard, topic, uid)
+	//log.Printf("New published item shard: %d, topic: %s, uid: %x\n", shard, topic, uid)
 	s.Mutex.Lock()
 	for id := range s.Subs {
 		var sub = s.Subs[id]
@@ -115,7 +115,7 @@ func ListenSingle(ctx context.Context, shard uint, topic string, start []byte, p
 		defer sub.Close()
 		select {
 		case <-ctx.Done():
-			done <- jerr.Newf("error timeout listen single context")
+			done <- fmt.Errorf("error timeout listen single context")
 		case <-sub.UidChan:
 			done <- nil
 		}

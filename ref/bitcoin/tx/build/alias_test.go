@@ -9,7 +9,7 @@ import (
 
 type AliasTest struct {
 	Request  build.AliasRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

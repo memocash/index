@@ -8,7 +8,7 @@ import (
 
 type TopicMessageTest struct {
 	Request  build.TopicMessageRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

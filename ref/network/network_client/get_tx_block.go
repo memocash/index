@@ -1,7 +1,7 @@
 package network_client
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 )
 
@@ -12,14 +12,14 @@ type GetTxBlock struct {
 func (t *GetTxBlock) Get(txHashes [][]byte) error {
 	conn, err := NewConnection()
 	if err != nil {
-		return jerr.Get("error connecting to network", err)
+		return fmt.Errorf("error connecting to network; %w", err)
 	}
 	defer conn.Close()
 	response, err := conn.Client.GetTxBlock(conn.GetDefaultContext(), &network_pb.TxBlockRequest{
 		Txs: txHashes,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network block infos", err)
+		return fmt.Errorf("error getting rpc network block infos; %w", err)
 	}
 	t.Txs = make([]BlockTx, len(response.Txs))
 	for i := range response.Txs {

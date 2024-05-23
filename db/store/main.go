@@ -39,7 +39,7 @@ func getDb(topic string, shard uint) (*leveldb.DB, error) {
 		}
 		filename := GetDbFile(topic, shard)
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
-			return nil, jerr.Get("error creating file directory", err)
+			return nil, fmt.Errorf("error creating file directory; %w", err)
 		}
 		openFilesCacheCapacity := config.GetOpenFilesCacheCapacity()
 		if openFilesCacheCapacity == 0 {
@@ -52,7 +52,7 @@ func getDb(topic string, shard uint) (*leveldb.DB, error) {
 			WriteBuffer:            compactionDataSize * 2 * opt.MiB,
 		})
 		if err != nil {
-			return nil, jerr.Getf(err, "error opening level db: %s", filename)
+			return nil, fmt.Errorf("error opening level db: %s; %w", filename, err)
 		}
 		conns[connId] = db
 	}
@@ -86,17 +86,17 @@ func GetDbFile(topic string, shard uint) string {
 func GetMessageCount(topic string, shard uint) (int64, error) {
 	db, err := getDb(topic, shard)
 	if err != nil {
-		return 0, jerr.Get("error getting db", err)
+		return 0, fmt.Errorf("error getting db; %w", err)
 	}
 	sizes, err := db.SizeOf([]util.Range{{
 		Start: []byte{0x00},
 		Limit: []byte{0xff},
 	}})
 	if err != nil {
-		return 0, jerr.Get("error getting size of range", err)
+		return 0, fmt.Errorf("error getting size of range; %w", err)
 	}
 	if len(sizes) != 1 {
-		return 0, jerr.Newf("error unexpected range slice len: %d", len(sizes))
+		return 0, fmt.Errorf("error unexpected range slice len: %d", len(sizes))
 	}
 	return sizes[0], nil
 }
@@ -104,11 +104,11 @@ func GetMessageCount(topic string, shard uint) (int64, error) {
 func GetMessageCountReal(topic string, shard uint, prefix []byte) (uint64, error) {
 	db, err := getDb(topic, shard)
 	if err != nil {
-		return 0, jerr.Get("error getting db", err)
+		return 0, fmt.Errorf("error getting db; %w", err)
 	}
 	snap, err := db.GetSnapshot()
 	if err != nil {
-		return 0, jerr.Get("error getting db snapshot", err)
+		return 0, fmt.Errorf("error getting db snapshot; %w", err)
 	}
 	defer snap.Release()
 	iterRange := util.BytesPrefix(prefix)
@@ -120,7 +120,7 @@ func GetMessageCountReal(topic string, shard uint, prefix []byte) (uint64, error
 	iter.Release()
 	err = iter.Error()
 	if err != nil {
-		return 0, jerr.Get("error with releasing iterator", err)
+		return 0, fmt.Errorf("error with releasing iterator; %w", err)
 	}
 	return count, nil
 }

@@ -1,13 +1,12 @@
 package test
 
 import (
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/cmd/test/fund"
 	"github.com/memocash/index/cmd/test/graph"
 	"github.com/memocash/index/test/suite"
 	"github.com/memocash/index/test/tasks"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 var testCmd = &cobra.Command{
@@ -27,9 +26,9 @@ func GetCommand() *cobra.Command {
 				RunE: func(c *cobra.Command, args []string) error {
 					err := suite.Run(&t, args)
 					if err != nil {
-						jerr.Get("fatal error running test", err).Fatal()
+						log.Fatalf("fatal error running test; %v", err)
 					}
-					jlog.Logf("Suite (single) %s success!\n", t.Name)
+					log.Printf("Suite (single) %s success!\n", t.Name)
 					return nil
 				},
 			}

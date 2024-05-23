@@ -2,8 +2,8 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"io"
 )
@@ -26,11 +26,11 @@ func UnmarshalAddress(v interface{}) (Address, error) {
 	case string:
 		addr, err := wallet.GetAddrFromString(v)
 		if err != nil {
-			return Address{}, jerr.Get("error unmarshal parsing string as address", err)
+			return Address{}, fmt.Errorf("error unmarshal parsing string as address; %w", err)
 		}
 		return Address(*addr), nil
 	default:
-		return Address{}, jerr.Newf("error unmarshal unexpected address type not string: %T", v)
+		return Address{}, fmt.Errorf("error unmarshal unexpected address type not string: %T", v)
 	}
 }
 

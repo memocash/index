@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -12,7 +12,7 @@ type MuteUser struct {
 
 func (m MuteUser) Get() ([]byte, error) {
 	if len(m.MutePkHash) != memo.PkHashLength {
-		return nil, jerr.New("invalid address length")
+		return nil, fmt.Errorf("invalid address length")
 	}
 	var prefix []byte
 	if m.Unmute {
@@ -25,7 +25,7 @@ func (m MuteUser) Get() ([]byte, error) {
 		AddData(m.MutePkHash).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error building mute user script", err)
+		return nil, fmt.Errorf("error building mute user script; %w", err)
 	}
 	return pkScript, nil
 }

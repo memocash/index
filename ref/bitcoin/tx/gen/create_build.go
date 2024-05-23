@@ -1,8 +1,8 @@
 package gen
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
@@ -13,53 +13,53 @@ func (c *Create) Build() (*wire.MsgTx, error) {
 	}
 	err := c.CheckOutputs()
 	if err != nil {
-		return nil, jerr.Get("error with outputs", err)
+		return nil, fmt.Errorf("error with outputs; %w", err)
 	}
 	for {
 		err := c.setSlpInputs()
 		if err != nil {
-			return nil, jerr.Get("error setting slp inputs", err)
+			return nil, fmt.Errorf("error setting slp inputs; %w", err)
 		}
 		err = c.setSlpChange()
 		if err != nil {
-			return nil, jerr.Get("error setting slp change", err)
+			return nil, fmt.Errorf("error setting slp change; %w", err)
 		}
 		err = c.setInputs()
 		if err != nil {
-			return nil, jerr.Get("error setting inputs", err)
+			return nil, fmt.Errorf("error setting inputs; %w", err)
 		}
 		err = c.setChange()
 		if err != nil {
-			return nil, jerr.Get("error setting change", err)
+			return nil, fmt.Errorf("error setting change; %w", err)
 		}
 		if c.isComplete() {
 			break
 		}
 		if c.Request.Getter == nil {
-			return nil, jerr.Get("request getter not set", c.getNotEnoughValueError())
+			return nil, fmt.Errorf("request getter not set; %w", c.getNotEnoughValueError())
 		}
 		moreUTXOs, err := c.getMoreUTXOs()
 		if err != nil {
-			return nil, jerr.Get("error getting more utxos", err)
+			return nil, fmt.Errorf("error getting more utxos; %w", err)
 		}
 		if len(moreUTXOs) == 0 {
 			if !c.isEnoughSlpValue() {
-				return nil, jerr.Get("error no more utxos and not enough slp value", c.getNotEnoughTokenValueError())
+				return nil, fmt.Errorf("error no more utxos and not enough slp value; %w", c.getNotEnoughTokenValueError())
 			}
 			enoughValue, err := c.isEnoughInputValue()
 			if err != nil {
-				return nil, jerr.Get("error determining if enough value", err)
+				return nil, fmt.Errorf("error determining if enough value; %w", err)
 			}
 			if !enoughValue {
-				return nil, jerr.Get("error no more utxos and not enough value", c.getNotEnoughValueError())
+				return nil, fmt.Errorf("error no more utxos and not enough value; %w", c.getNotEnoughValueError())
 			}
-			return nil, jerr.New("error no more utxos, tx incomplete, unknown error")
+			return nil, fmt.Errorf("error no more utxos, tx incomplete, unknown error")
 		}
 		c.PotentialInputs = append(c.PotentialInputs, moreUTXOs...)
 	}
 	wireTx, err := c.getWireTx()
 	if err != nil {
-		return nil, jerr.Get("error getting wire tx", err)
+		return nil, fmt.Errorf("error getting wire tx; %w", err)
 	}
 	return wireTx, nil
 }
@@ -72,8 +72,8 @@ func (c Create) CheckOutputs() error {
 			continue
 		}
 		if output.Amount < memo.DustMinimumOutput {
-			return jerr.Getf(BelowDustLimitError, "error output below dust limit (type: %s, amount: %d)",
-				output.GetType(), output.Amount)
+			return fmt.Errorf("error output below dust limit (type: %s, amount: %d); %w",
+				output.GetType(), output.Amount, BelowDustLimitError)
 		}
 	}
 	return nil

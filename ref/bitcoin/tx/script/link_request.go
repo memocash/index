@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -12,11 +12,11 @@ type LinkRequest struct {
 
 func (l LinkRequest) Get() ([]byte, error) {
 	if len(l.ParentPkHash) != memo.PkHashLength {
-		return nil, jerr.New("incorrect parent hash size")
+		return nil, fmt.Errorf("incorrect parent hash size")
 	}
 	var msgByte = []byte(l.Message)
 	if len(msgByte) > memo.OldMaxSendSize {
-		return nil, jerr.Newf("error message too big %d, max %d", len(msgByte), memo.OldMaxSendSize)
+		return nil, fmt.Errorf("error message too big %d, max %d", len(msgByte), memo.OldMaxSendSize)
 	}
 	script := memo.GetBaseOpReturn().
 		AddData(memo.PrefixLinkRequest).
@@ -26,7 +26,7 @@ func (l LinkRequest) Get() ([]byte, error) {
 	}
 	pkScript, err := script.Script()
 	if err != nil {
-		return nil, jerr.Get("error creating link request script", err)
+		return nil, fmt.Errorf("error creating link request script; %w", err)
 	}
 	return pkScript, nil
 }

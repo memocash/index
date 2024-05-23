@@ -8,6 +8,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/proto/queue_pb"
 	"google.golang.org/grpc"
+	"log"
 	"time"
 )
 
@@ -39,7 +40,7 @@ func (s *Client) SetConn() error {
 	}
 	newConn, err := grpc.Dial(s.host, grpc.WithInsecure())
 	if err != nil {
-		return jerr.Get("error broadcast rpc did not connect", err)
+		return fmt.Errorf("error broadcast rpc did not connect; %w", err)
 	}
 	connHandler.Add(s.host, newConn)
 	s.conn = newConn
@@ -48,14 +49,14 @@ func (s *Client) SetConn() error {
 
 func (s *Client) SaveSingle(message *Message, timestamp time.Time) error {
 	if err := s.Save([]*Message{message}, timestamp); err != nil {
-		return jerr.Get("error saving single client message", err)
+		return fmt.Errorf("error saving single client message; %w", err)
 	}
 	return nil
 }
 
 func (s *Client) Save(messages []*Message, timestamp time.Time) error {
 	if err := s.SetConn(); err != nil {
-		return jerr.Get("error setting connection", err)
+		return fmt.Errorf("error setting connection; %w", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultSetTimeout)
@@ -83,10 +84,10 @@ func (s *Client) Save(messages []*Message, timestamp time.Time) error {
 			Messages: queueMessagesToUse,
 		}, grpc.MaxCallRecvMsgSize(MaxMessageSize), grpc.MaxCallSendMsgSize(MaxMessageSize))
 		if err != nil {
-			return jerr.Getf(err, "error saving messages and getting reply rpc: %d", len(queueMessagesToUse))
+			return fmt.Errorf("error saving messages and getting reply rpc: %d; %w", len(queueMessagesToUse), err)
 		}
 		if reply.Error != "" {
-			return jerr.Get("error queueing message", jerr.New(reply.Error))
+			return fmt.Errorf("error queueing message; %w", fmt.Errorf("%s", reply.Error))
 		}
 	}
 	return nil
@@ -98,7 +99,7 @@ func (s *Client) Get(topic string, start []byte, wait bool) error {
 		Start: start,
 		Wait:  wait,
 	}); err != nil {
-		return jerr.Get("error getting with opts", err)
+		return fmt.Errorf("error getting with opts; %w", err)
 	}
 	return nil
 }
@@ -108,7 +109,7 @@ func (s *Client) GetSpecific(topic string, uids [][]byte) error {
 		Topic: topic,
 		Uids:  uids,
 	}); err != nil {
-		return jerr.Get("error getting with opts specific", err)
+		return fmt.Errorf("error getting with opts specific; %w", err)
 	}
 	return nil
 }
@@ -118,7 +119,7 @@ func (s *Client) GetByPrefixes(topic string, prefixes [][]byte) error {
 		Topic:    topic,
 		Prefixes: prefixes,
 	}); err != nil {
-		return jerr.Get("error getting with opts prefixes", err)
+		return fmt.Errorf("error getting with opts prefixes; %w", err)
 	}
 	return nil
 }
@@ -128,21 +129,21 @@ func (s *Client) GetByPrefix(topic string, prefix []byte) error {
 		Topic:    topic,
 		Prefixes: [][]byte{prefix},
 	}); err != nil {
-		return jerr.Get("error getting with opts prefix", err)
+		return fmt.Errorf("error getting with opts prefix; %w", err)
 	}
 	return nil
 }
 
 func (s *Client) GetSingle(topic string, uid []byte) error {
 	if err := s.GetSingleContext(context.Background(), topic, uid); err != nil {
-		return jerr.Getf(err, "error getting single for topic / uid: %s, %x", topic, uid)
+		return fmt.Errorf("error getting single for topic / uid: %s, %x; %w", topic, uid, err)
 	}
 	return nil
 }
 
 func (s *Client) GetSingleContext(ctx context.Context, topic string, uid []byte) error {
 	if err := s.SetConn(); err != nil {
-		return jerr.Get("error setting connection", err)
+		return fmt.Errorf("error setting connection; %w", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
 	ctx, cancel := context.WithTimeout(ctx, DefaultGetTimeout)
@@ -174,7 +175,7 @@ func (s *Client) GetLarge(topic string, start []byte, wait bool, newest bool) er
 		Max:    LargeLimit,
 		Newest: newest,
 	}); err != nil {
-		return jerr.Get("error getting with opts", err)
+		return fmt.Errorf("error getting with opts; %w", err)
 	}
 	return nil
 }
@@ -188,7 +189,7 @@ func (s *Client) GetNext(topic string, start []byte, wait bool, newest bool) err
 		Max:    1,
 		Newest: newest,
 	}); err != nil {
-		return jerr.Get("error getting next with opts", err)
+		return fmt.Errorf("error getting next with opts; %w", err)
 	}
 	return nil
 }
@@ -243,7 +244,7 @@ func (s *Client) GetWOpts(opts Opts) error {
 		optGroups = []Opts{opts}
 	}
 	if err := s.SetConn(); err != nil {
-		return jerr.Get("error setting connection", err)
+		return fmt.Errorf("error setting connection; %w", err)
 	}
 	var timeout time.Duration
 	if opts.Timeout > 0 {
@@ -272,7 +273,7 @@ func (s *Client) GetWOpts(opts Opts) error {
 			Newest:   optGroup.Newest,
 		}, grpc.MaxCallRecvMsgSize(MaxMessageSize))
 		if err != nil {
-			return jerr.Get("error getting messages rpc", err)
+			return fmt.Errorf("error getting messages rpc; %w", err)
 		}
 		var messages = make([]Message, len(message.Messages))
 		for i := range message.Messages {
@@ -289,14 +290,14 @@ func (s *Client) GetWOpts(opts Opts) error {
 
 func (s *Client) GetTopicList() error {
 	if err := s.SetConn(); err != nil {
-		return jerr.Get("error setting connection", err)
+		return fmt.Errorf("error setting connection; %w", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultSetTimeout)
 	defer cancel()
 	topicList, err := c.GetTopicList(ctx, new(queue_pb.EmptyRequest))
 	if err != nil {
-		return jerr.Get("error getting topic list", err)
+		return fmt.Errorf("error getting topic list; %w", err)
 	}
 	var topics = make([]Topic, len(topicList.Topics))
 	for i := range topicList.Topics {
@@ -316,14 +317,14 @@ func (s *Client) Listen(ctx context.Context, topic string, prefixes [][]byte) (c
 		Prefixes: prefixes,
 	})
 	if err != nil {
-		return nil, jerr.Get("error getting message chan with opts", err)
+		return nil, fmt.Errorf("error getting message chan with opts; %w", err)
 	}
 	return messageChan, nil
 }
 
 func (s *Client) ListenOpts(opts Opts) (chan *Message, error) {
 	if err := s.SetConn(); err != nil {
-		return nil, jerr.Get("error setting connection", err)
+		return nil, fmt.Errorf("error setting connection; %w", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
 	ctx, cancel := context.WithTimeout(opts.Context, DefaultStreamTimeout)
@@ -334,7 +335,7 @@ func (s *Client) ListenOpts(opts Opts) (chan *Message, error) {
 	stream, err := c.GetStreamMessages(ctx, request)
 	if err != nil {
 		cancel()
-		return nil, jerr.Get("error getting stream messages", err)
+		return nil, fmt.Errorf("error getting stream messages; %w", err)
 	}
 	var messageChan = make(chan *Message)
 	go func() {
@@ -342,7 +343,7 @@ func (s *Client) ListenOpts(opts Opts) (chan *Message, error) {
 			msg, err := stream.Recv()
 			if err != nil {
 				if !jerr.HasErrorPart(err, context.Canceled.Error()) {
-					jerr.Get("error receiving stream message", err).Print()
+					log.Printf("error receiving stream message; %v", err)
 				}
 				close(messageChan)
 				cancel()
@@ -360,7 +361,7 @@ func (s *Client) ListenOpts(opts Opts) (chan *Message, error) {
 
 func (s *Client) GetTopicCount(topic string, prefix []byte) (uint64, error) {
 	if err := s.SetConn(); err != nil {
-		return 0, jerr.Get("error setting connection", err)
+		return 0, fmt.Errorf("error setting connection; %w", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultSetTimeout)
@@ -370,14 +371,14 @@ func (s *Client) GetTopicCount(topic string, prefix []byte) (uint64, error) {
 		Prefix: prefix,
 	})
 	if err != nil {
-		return 0, jerr.Get("error getting topic count", err)
+		return 0, fmt.Errorf("error getting topic count; %w", err)
 	}
 	return topicCount.GetCount(), nil
 }
 
 func (s *Client) DeleteMessages(topic string, uids [][]byte) error {
 	if err := s.SetConn(); err != nil {
-		return jerr.Get("error setting connection", err)
+		return fmt.Errorf("error setting connection; %w", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultSetTimeout)
@@ -386,7 +387,7 @@ func (s *Client) DeleteMessages(topic string, uids [][]byte) error {
 		Topic: topic,
 		Uids:  uids,
 	}); err != nil {
-		return jerr.Get("error deleting items for topics", err)
+		return fmt.Errorf("error deleting items for topics; %w", err)
 	}
 	return nil
 }

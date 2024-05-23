@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/ref/config"
 	"io/ioutil"
@@ -15,11 +15,11 @@ type ListConnections struct {
 func (c *ListConnections) List() error {
 	resp, err := http.Get("http://" + config.GetHost(config.GetAdminPort()) + admin.UrlNodeListConnections)
 	if err != nil {
-		return jerr.Get("error getting peer list connections", err)
+		return fmt.Errorf("error getting peer list connections; %w", err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return jerr.Get("error reading peer list connections body", err)
+		return fmt.Errorf("error reading peer list connections body; %w", err)
 	}
 	c.Connections = string(body)
 	return nil

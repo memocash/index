@@ -3,7 +3,6 @@ package op_return
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
 	dbMemo "github.com/memocash/index/db/item/memo"
@@ -20,7 +19,7 @@ var memoLikeHandler = &Handler{
 				TxHash: info.TxHash,
 				Error:  fmt.Sprintf("invalid set like, incorrect push data (%d)", len(info.PushData)),
 			}); err != nil {
-				return jerr.Get("error saving process error memo like incorrect push data", err)
+				return fmt.Errorf("error saving process error memo like incorrect push data; %w", err)
 			}
 			return nil
 		}
@@ -29,7 +28,7 @@ var memoLikeHandler = &Handler{
 				TxHash: info.TxHash,
 				Error:  fmt.Sprintf("error like tx hash not correct size: %d", len(info.PushData[1])),
 			}); err != nil {
-				return jerr.Get("error saving process error memo like post tx hash", err)
+				return fmt.Errorf("error saving process error memo like post tx hash; %w", err)
 			}
 			return nil
 		}
@@ -49,7 +48,7 @@ var memoLikeHandler = &Handler{
 		}
 		memoPost, err := dbMemo.GetPost(ctx, postTxHash)
 		if err != nil {
-			return jerr.Get("error getting memo post for like op return handler", err)
+			return fmt.Errorf("error getting memo post for like op return handler; %w", err)
 		}
 		var objects = []db.Object{memoLike, memoLiked}
 		if memoPost != nil && memoLike.Addr != memoPost.Addr {
@@ -68,7 +67,7 @@ var memoLikeHandler = &Handler{
 			}
 		}
 		if err := db.Save(objects); err != nil {
-			return jerr.Get("error saving db memo like object", err)
+			return fmt.Errorf("error saving db memo like object; %w", err)
 		}
 		return nil
 	},

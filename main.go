@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/cmd"
+	"log"
 )
 
 func main() {
 	if err := cmd.Execute(); err != nil {
-		jerr.Get("fatal error executing command", err).Fatal()
+		log.Fatalf("fatal error executing command; %v", err)
 	}
 }

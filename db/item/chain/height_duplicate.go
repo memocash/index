@@ -1,7 +1,7 @@
 package chain
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -45,7 +45,7 @@ func GetHeightDuplicatesAll(startHeight int64) ([]*HeightDuplicate, error) {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		err := dbClient.GetLarge(db.TopicChainHeightDuplicate, jutil.GetInt64DataBig(startHeight), false, false)
 		if err != nil {
-			return nil, jerr.Get("error getting height duplicates from queue client", err)
+			return nil, fmt.Errorf("error getting height duplicates from queue client; %w", err)
 		}
 		for i := range dbClient.Messages {
 			var heightDuplicate = new(HeightDuplicate)

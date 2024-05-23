@@ -1,10 +1,10 @@
 package memo_test
 
 import (
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
+	"log"
 	"testing"
 )
 
@@ -16,10 +16,10 @@ type MaxSendTest struct {
 func (tst MaxSendTest) Test(t *testing.T) {
 	maxSend := memo.GetMaxSendForUTXOs(tst.UTXOs)
 	if maxSend != tst.MaxSend {
-		t.Error(jerr.Newf("MaxSend %d does not match expected %d", maxSend, tst.MaxSend))
+		t.Error(fmt.Errorf("MaxSend %d does not match expected %d", maxSend, tst.MaxSend))
 	}
 	if testing.Verbose() {
-		jlog.Logf("MaxSend %d, expected %d\n", maxSend, tst.MaxSend)
+		log.Printf("MaxSend %d, expected %d\n", maxSend, tst.MaxSend)
 	}
 }
 

@@ -2,7 +2,6 @@ package gen_test
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
@@ -27,13 +26,13 @@ func (c ChainTxTest) Test(t *testing.T) {
 	request.KeyRing = wallet.GetSingleKeyRing(c.Key)
 	tx, err := gen.Tx(request)
 	if err != nil {
-		t.Error(jerr.Get("error generating tx1", err))
+		t.Error(fmt.Errorf("error generating tx1; %w", err))
 		return
 	}
 	var hashString = hs.GetTxString(tx.GetHash())
 	var isError bool
 	if hashString != c.Tx1Hash {
-		t.Error(jerr.Newf("tx1 hash %s does not match expected %s", hashString, c.Tx1Hash))
+		t.Error(fmt.Errorf("tx1 hash %s does not match expected %s", hashString, c.Tx1Hash))
 		isError = true
 	}
 	if testing.Verbose() || isError {
@@ -48,12 +47,12 @@ func (c ChainTxTest) Test(t *testing.T) {
 	request2.KeyRing = wallet.GetSingleKeyRing(c.Key)
 	tx2, err := gen.Tx(request2)
 	if err != nil {
-		t.Error(jerr.Get("error generating tx2", err))
+		t.Error(fmt.Errorf("error generating tx2; %w", err))
 		return
 	}
 	var hashString2 = hs.GetTxString(tx2.GetHash())
 	if hashString2 != c.Tx2Hash {
-		t.Error(jerr.Newf("tx2 hash %s does not match expected %s", hashString2, c.Tx2Hash))
+		t.Error(fmt.Errorf("tx2 hash %s does not match expected %s", hashString2, c.Tx2Hash))
 		isError = true
 	}
 	if testing.Verbose() || isError {

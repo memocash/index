@@ -2,13 +2,13 @@ package gen_test
 
 import (
 	"encoding/hex"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 	"reflect"
 	"testing"
 )
@@ -42,17 +42,17 @@ var tests = []OutputTest{
 func TestGetOutput(t *testing.T) {
 	for _, tst := range tests {
 		output := gen.GetAddressOutput(tst.Address, tst.Amount)
-		jlog.Logf("%s - output.Script.Type(): %T\n", tst.Address.GetEncoded(), output.Script)
+		log.Printf("%s - output.Script.Type(): %T\n", tst.Address.GetEncoded(), output.Script)
 		pkScript, err := output.GetPkScript()
 		if err != nil {
-			t.Error(jerr.Get("error getting pk script", err))
+			t.Error(fmt.Errorf("error getting pk script; %w", err))
 			continue
 		}
 		if tst.Script != hex.EncodeToString(pkScript) {
-			t.Error(jerr.Newf("pkScript (%x) does not match expected (%x)", pkScript, tst.Script))
+			t.Error(fmt.Errorf("pkScript (%x) does not match expected (%x)", pkScript, tst.Script))
 		}
 		if reflect.TypeOf(output.Script) != reflect.TypeOf(tst.Type) {
-			t.Error(jerr.Newf("output type (%T) does not match expected (%T)", output, tst.Type))
+			t.Error(fmt.Errorf("output type (%T) does not match expected (%T)", output, tst.Type))
 		}
 	}
 }

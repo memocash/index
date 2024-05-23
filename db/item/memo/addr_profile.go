@@ -3,7 +3,6 @@ package memo
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -62,10 +61,10 @@ func GetAddrProfile(ctx context.Context, addr [25]byte) (*AddrProfile, error) {
 		Newest:   true,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db addr memo profile by prefix", err)
+		return nil, fmt.Errorf("error getting db addr memo profile by prefix; %w", err)
 	}
 	if len(dbClient.Messages) == 0 {
-		return nil, jerr.Get("error no addr memo profiles found", client.EntryNotFoundError)
+		return nil, fmt.Errorf("error no addr memo profiles found; %w", client.EntryNotFoundError)
 	}
 	var addrProfile = new(AddrProfile)
 	db.Set(addrProfile, dbClient.Messages[0])

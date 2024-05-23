@@ -3,8 +3,8 @@ package model
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/jchavannes/jgo/jerr"
 	"io"
 )
 
@@ -22,10 +22,10 @@ func UnmarshalBytes(v interface{}) (Bytes, error) {
 	case string:
 		bytes, err := hex.DecodeString(v)
 		if err != nil {
-			return Bytes{}, jerr.Get("error unmarshal parsing bytes as byte slice", err)
+			return Bytes{}, fmt.Errorf("error unmarshal parsing bytes as byte slice; %w", err)
 		}
 		return bytes, nil
 	default:
-		return Bytes{}, jerr.Newf("error unmarshal unexpected bytes type not string: %T", v)
+		return Bytes{}, fmt.Errorf("error unmarshal unexpected bytes type not string: %T", v)
 	}
 }

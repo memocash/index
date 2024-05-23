@@ -1,7 +1,7 @@
 package network_client
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 )
 
@@ -17,14 +17,14 @@ type BlockHeightGetter struct {
 func (h *BlockHeightGetter) Get(startHeight int64) error {
 	connection, err := NewConnection()
 	if err != nil {
-		return jerr.Get("error connecting to network", err)
+		return fmt.Errorf("error connecting to network; %w", err)
 	}
 	defer connection.Close()
 	if reply, err := connection.Client.GetHeightBlocks(connection.GetDefaultContext(), &network_pb.BlockHeightRequest{
 		Start: startHeight,
 		Wait:  false,
 	}); err != nil {
-		return jerr.Get("could not greet network", err)
+		return fmt.Errorf("could not greet network; %w", err)
 	} else {
 		h.BlockHeights = make([]*BlockHeight, len(reply.Blocks))
 		for i := range reply.Blocks {

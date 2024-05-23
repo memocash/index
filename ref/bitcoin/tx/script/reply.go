@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -12,10 +12,10 @@ type Reply struct {
 
 func (r Reply) Get() ([]byte, error) {
 	if len(r.Message) > memo.MaxReplySize {
-		return nil, jerr.New("reply message too large")
+		return nil, fmt.Errorf("reply message too large")
 	}
 	if len(r.Message) == 0 {
-		return nil, jerr.New("empty message")
+		return nil, fmt.Errorf("empty message")
 	}
 	pkScript, err := memo.GetBaseOpReturn().
 		AddData(memo.PrefixReply).
@@ -23,7 +23,7 @@ func (r Reply) Get() ([]byte, error) {
 		AddData([]byte(r.Message)).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error creating memo reply output", err)
+		return nil, fmt.Errorf("error creating memo reply output; %w", err)
 	}
 	return pkScript, nil
 }

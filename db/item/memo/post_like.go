@@ -2,7 +2,7 @@ package memo
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -65,7 +65,7 @@ func GetPostLikes(postTxHashes [][32]byte) ([]*PostLike, error) {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetByPrefixes(db.TopicMemoPostLike, prefixes); err != nil {
-			return nil, jerr.Get("error getting client message memo likeds", err)
+			return nil, fmt.Errorf("error getting client message memo likeds; %w", err)
 		}
 		for _, msg := range dbClient.Messages {
 			var liked = new(PostLike)
@@ -94,7 +94,7 @@ func ListenPostLikes(ctx context.Context, postTxHashes [][32]byte) (chan *PostLi
 		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
 		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoPostLike, prefixes)
 		if err != nil {
-			return nil, jerr.Get("error listening to db memo post liked by prefix", err)
+			return nil, fmt.Errorf("error listening to db memo post liked by prefix; %w", err)
 		}
 		go func() {
 			for msg := range chanMessage {

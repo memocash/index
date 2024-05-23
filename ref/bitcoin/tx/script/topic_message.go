@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -14,10 +14,10 @@ func (p TopicMessage) Get() ([]byte, error) {
 	topicName := []byte(p.TopicName)
 	message := []byte(p.Message)
 	if len(topicName)+len(message) > memo.MaxTagMessageSize {
-		return nil, jerr.New("data too large")
+		return nil, fmt.Errorf("data too large")
 	}
 	if len(topicName) == 0 || len(message) == 0 {
-		return nil, jerr.New("empty data")
+		return nil, fmt.Errorf("empty data")
 	}
 
 	pkScript, err := memo.GetBaseOpReturn().
@@ -26,7 +26,7 @@ func (p TopicMessage) Get() ([]byte, error) {
 		AddData(message).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error building topic message script", err)
+		return nil, fmt.Errorf("error building topic message script; %w", err)
 	}
 	return pkScript, nil
 }

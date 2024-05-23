@@ -2,19 +2,19 @@ package build_test
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/build"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 	"testing"
 )
 
 type SendTest struct {
 	Request  build.SendRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 
@@ -22,7 +22,7 @@ func TestSend(t *testing.T) {
 	for j, sendTest := range sendTests {
 		tx, err := build.Send(sendTest.Request)
 		if testing.Verbose() {
-			jlog.Logf("SendTest %d:\n", j)
+			log.Printf("SendTest %d:\n", j)
 		}
 		test_tx.Checker{
 			Name:     fmt.Sprintf("TestSend %d", j),

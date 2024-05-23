@@ -3,10 +3,11 @@ package topic
 import (
 	"encoding/hex"
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
+	"log"
 )
 
 var viewRoute = admin.Route{
@@ -14,14 +15,14 @@ var viewRoute = admin.Route{
 	Handler: func(r admin.Response) {
 		var topicViewRequest = new(admin.TopicViewRequest)
 		if err := json.NewDecoder(r.Request.Body).Decode(topicViewRequest); err != nil {
-			jerr.Get("error unmarshalling topic view request", err).Print()
+			log.Printf("error unmarshalling topic view request; %v", err)
 			return
 		}
 		var start []byte
 		if topicViewRequest.Start != "" {
 			var err error
 			if start, err = hex.DecodeString(topicViewRequest.Start); err != nil {
-				jerr.Get("error parsing start from topic view request", err)
+				fmt.Errorf("error parsing start from topic view request; %w", err)
 				return
 			}
 		}
@@ -32,7 +33,7 @@ var viewRoute = admin.Route{
 			}
 			db := client.NewClient(shardConfig.GetHost())
 			if err := db.Get(topicViewRequest.Topic, start, false); err != nil {
-				jerr.Get("error getting topic items for admin view", err).Print()
+				log.Printf("error getting topic items for admin view; %v", err)
 				return
 			}
 			for _, msg := range db.Messages {
@@ -45,7 +46,7 @@ var viewRoute = admin.Route{
 			}
 		}
 		if err := json.NewEncoder(r.Writer).Encode(topicViewResponse); err != nil {
-			jerr.Get("error writing json topic view response data", err).Print()
+			log.Printf("error writing json topic view response data; %v", err)
 			return
 		}
 	},

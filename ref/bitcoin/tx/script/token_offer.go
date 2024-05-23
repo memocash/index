@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -21,7 +21,7 @@ func (t TokenOffer) Get() ([]byte, error) {
 	}
 	pkScript, err := script.Script()
 	if err != nil {
-		return nil, jerr.Get("error building token offer script", err)
+		return nil, fmt.Errorf("error building token offer script; %w", err)
 	}
 
 	return pkScript, nil

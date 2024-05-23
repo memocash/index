@@ -1,10 +1,9 @@
 package peer
 
 import (
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/admin/client/peer"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 var loopingEnableCmd = &cobra.Command{
@@ -12,9 +11,9 @@ var loopingEnableCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		loopingToggle := peer.NewLoopingToggle()
 		if err := loopingToggle.Enable(); err != nil {
-			jerr.Get("fatal error enabling looping", err).Fatal()
+			log.Fatalf("fatal error enabling looping; %v", err)
 		}
-		jlog.Logf("loopingToggle.Message: %s\n", loopingToggle.Message)
+		log.Printf("loopingToggle.Message: %s\n", loopingToggle.Message)
 	},
 }
 
@@ -23,8 +22,8 @@ var loopingDisableCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		loopingToggle := peer.NewLoopingToggle()
 		if err := loopingToggle.Disable(); err != nil {
-			jerr.Get("fatal error disabling looping", err).Fatal()
+			log.Fatalf("fatal error disabling looping; %v", err)
 		}
-		jlog.Logf("loopingToggle.Message: %s\n", loopingToggle.Message)
+		log.Printf("loopingToggle.Message: %s\n", loopingToggle.Message)
 	},
 }

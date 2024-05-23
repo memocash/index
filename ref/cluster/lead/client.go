@@ -1,10 +1,11 @@
 package lead
 
 import (
+	"fmt"
 	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
 	"github.com/memocash/index/ref/config"
+	"log"
 	"time"
 )
 
@@ -18,12 +19,12 @@ func ExecWithRetry(f func() error) error {
 	for i := 0; ; i++ {
 		if err := f(); jerr.HasErrorPart(err, "connection refused") {
 			if i == 0 { // Only first time
-				jlog.Logf("Waiting for shard to start...\n")
+				log.Println("Waiting for shard to start...")
 			}
 			time.Sleep(250 * time.Millisecond)
 			continue
 		} else if err != nil {
-			return jerr.Getf(err, "error shard exec with retry")
+			return fmt.Errorf("error shard exec with retry; %w", err)
 		}
 		return nil
 	}

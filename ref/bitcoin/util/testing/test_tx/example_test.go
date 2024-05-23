@@ -2,12 +2,12 @@ package test_tx_test
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 )
 
 func printTx(value int64) {
@@ -17,7 +17,7 @@ func printTx(value int64) {
 		Change: wallet.GetChange(test_tx.Address1),
 	})
 	if err != nil {
-		jerr.Get("fatal error getting unsigned", err).Fatal()
+		log.Fatalf("fatal error getting unsigned; %v", err)
 	}
 	fmt.Println(hs.GetTxString(memoTx.GetHash()))
 	//fmt.Printf("value: %d, tx_hash: %s\n", value, hs.GetTxString(memoTx.GetHash()))

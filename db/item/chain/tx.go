@@ -2,7 +2,7 @@ package chain
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -61,7 +61,7 @@ func GetTxsByHashes(ctx context.Context, txHashes [][32]byte) ([]*Tx, error) {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		err := dbClient.GetWOpts(client.Opts{Context: ctx, Topic: db.TopicChainTx, Prefixes: prefixes})
 		if err != nil {
-			return nil, jerr.Get("error getting db message chain txs by hashes", err)
+			return nil, fmt.Errorf("error getting db message chain txs by hashes; %w", err)
 		}
 		for _, msg := range dbClient.Messages {
 			var tx = new(Tx)

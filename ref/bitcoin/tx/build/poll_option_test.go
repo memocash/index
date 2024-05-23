@@ -9,7 +9,7 @@ import (
 
 type PollOptionTest struct {
 	Request  build.PollOptionRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -12,7 +12,7 @@ type FollowUser struct {
 
 func (t FollowUser) Get() ([]byte, error) {
 	if len(t.UserPkHash) != memo.PkHashLength {
-		return nil, jerr.New("incorrect pk hash length")
+		return nil, fmt.Errorf("incorrect pk hash length")
 	}
 	var prefix = memo.PrefixFollow
 	if t.Unfollow {
@@ -23,7 +23,7 @@ func (t FollowUser) Get() ([]byte, error) {
 		AddData(t.UserPkHash).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error building user follow script", err)
+		return nil, fmt.Errorf("error building user follow script; %w", err)
 	}
 	return pkScript, nil
 }

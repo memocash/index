@@ -6,9 +6,9 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
+	"log"
 
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/broadcast/broadcast_client"
@@ -18,17 +18,17 @@ import (
 func (r *mutationResolver) Broadcast(ctx context.Context, raw string) (bool, error) {
 	rawBytes, err := hex.DecodeString(raw)
 	if err != nil {
-		return false, jerr.Get("error decoding raw tx for graphql broadcast", err)
+		return false, fmt.Errorf("error decoding raw tx for graphql broadcast; %w", err)
 	}
 	client := broadcast_client.NewBroadcast()
 	msgTx, err := memo.GetMsgFromRaw(rawBytes)
 	if err != nil {
-		return false, jerr.Get("error getting msg tx from raw for broadcast mutation", err)
+		return false, fmt.Errorf("error getting msg tx from raw for broadcast mutation; %w", err)
 	}
-	jlog.Logf("Broadcasting tx: %s\n", msgTx.TxHash())
+	log.Printf("Broadcasting tx: %s\n", msgTx.TxHash())
 	if err := client.Broadcast(ctx, rawBytes); err != nil {
-		jlog.Logf("Broadcast tx failed: %s\n", msgTx.TxHash())
-		return false, jerr.Get("error broadcasting tx for graphql", err)
+		log.Printf("Broadcast tx failed: %s\n", msgTx.TxHash())
+		return false, fmt.Errorf("error broadcasting tx for graphql; %w", err)
 	}
 	return true, nil
 }

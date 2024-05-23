@@ -2,7 +2,7 @@ package chain
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -53,10 +53,10 @@ func GetBlockInfo(blockHash [32]byte) (*BlockInfo, error) {
 	shardConfig := config.GetShardConfig(client.GenShardSource32(blockHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetSingle(db.TopicChainBlockInfo, jutil.ByteReverse(blockHash[:])); err != nil {
-		return nil, jerr.Get("error getting client message block info", err)
+		return nil, fmt.Errorf("error getting client message block info; %w", err)
 	}
 	if len(dbClient.Messages) != 1 {
-		return nil, jerr.Newf("error unexpected number of messages for block info: %d", len(dbClient.Messages))
+		return nil, fmt.Errorf("error unexpected number of messages for block info: %d", len(dbClient.Messages))
 	}
 	var blockInfo = new(BlockInfo)
 	db.Set(blockInfo, dbClient.Messages[0])
@@ -71,7 +71,7 @@ func GetBlockInfos(ctx context.Context, blockHashes [][32]byte) ([]*BlockInfo, e
 	}
 	messages, err := db.GetSpecific(ctx, db.TopicChainBlockInfo, shardUids)
 	if err != nil {
-		return nil, jerr.Get("error getting client message chain block infos", err)
+		return nil, fmt.Errorf("error getting client message chain block infos; %w", err)
 	}
 	var blockInfos []*BlockInfo
 	for _, msg := range messages {

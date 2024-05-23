@@ -2,12 +2,12 @@ package lead
 
 import (
 	"context"
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/node/peer"
 	"github.com/memocash/index/ref/dbi"
+	"log"
 	"time"
 )
 
@@ -40,7 +40,7 @@ func (n *Node) GetBlock(heightBack int64) (*chainhash.Hash, error) {
 	}
 	hash, err := saver.NewBlock(n.Verbose).GetBlock(heightBack + 1)
 	if err != nil {
-		return nil, jerr.Get("error getting block for lead node", err)
+		return nil, fmt.Errorf("error getting block for lead node; %w", err)
 	}
 	return hash, nil
 }
@@ -53,16 +53,16 @@ func (n *Node) Start(memPool, syncDone bool) {
 			n.Peer.Mempool = memPool
 			n.Off = false
 			if err := n.Peer.Connect(); err != nil {
-				jerr.Get("fatal error connecting to peer", err).Fatal()
+				log.Fatalf("fatal error connecting to peer; %v", err)
 			}
-			jlog.Logf("node peer disconnected\n")
+			log.Printf("node peer disconnected\n")
 			n.Off = true
 			if n.Peer.SyncDone {
 				n.SyncDone <- struct{}{}
 				break
 			}
 			const sleepSeconds = 5
-			jlog.Logf("reconnecting node peer after %d seconds\n", sleepSeconds)
+			log.Printf("reconnecting node peer after %d seconds\n", sleepSeconds)
 			time.Sleep(time.Second * sleepSeconds)
 		}
 	}()

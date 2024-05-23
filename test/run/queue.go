@@ -1,9 +1,9 @@
 package run
 
 import (
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/memocash/index/db/server"
+	"log"
 )
 
 type Queue struct {
@@ -15,10 +15,10 @@ type Queue struct {
 
 func (q *Queue) Start() error {
 	q.Server = server.NewServer(q.Port, q.Shard)
-	jlog.Logf("Starting test queue server shard %d on port: %d\n", q.Shard, q.Port)
+	log.Printf("Starting test queue server shard %d on port: %d\n", q.Shard, q.Port)
 	go func() {
 		if err := q.Server.Run(); !q.Server.Stopped {
-			q.Error = jerr.Get("error queue server ended", err)
+			q.Error = fmt.Errorf("error queue server ended; %w", err)
 		}
 	}()
 	return nil

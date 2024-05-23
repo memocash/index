@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 )
 
 type TxInfo struct {
@@ -29,7 +29,7 @@ type TxInfo struct {
 func (t TxInfo) PrintJson() {
 	jsonData, err := json.Marshal(t)
 	if err != nil {
-		jerr.Get("error marshalling tx info", err).Print()
+		log.Printf("error marshalling tx info; %v", err)
 		return
 	}
 	fmt.Printf("%s\n", jsonData)
@@ -37,7 +37,7 @@ func (t TxInfo) PrintJson() {
 
 func (t TxInfo) GetString() string {
 	if t.Error != nil {
-		jerr.Get("error with tx info", t.Error).Print()
+		log.Printf("error with tx info; %v", t.Error)
 		return ""
 	}
 	var txnInfo = fmt.Sprintf("Txn: %s\nVersion: %d, LockTime: %d\n", t.Hash, t.Version, t.LockTime)
@@ -67,7 +67,7 @@ func (t TxInfo) Print() {
 
 func (t TxInfo) PrintVerbose() {
 	if t.Error != nil {
-		jerr.Get("error with tx info", t.Error).Print()
+		log.Printf("error with tx info; %v", t.Error)
 		return
 	}
 	var txnInfo = fmt.Sprintf("Txn: %s\nRaw: %x\n", t.Hash, t.Raw)
@@ -134,7 +134,7 @@ func GetTxInfo(tx *memo.Tx) TxInfo {
 	for _, in := range msg.TxIn {
 		unlockScript, err := txscript.DisasmString(in.SignatureScript)
 		if err != nil {
-			return TxInfo{Error: jerr.Get("error disassembling unlockScript", err)}
+			return TxInfo{Error: fmt.Errorf("error disassembling unlockScript; %w", err)}
 		}
 		txInfo.Inputs = append(txInfo.Inputs, &TxInfoInput{
 			Signature:    in.SignatureScript,
@@ -146,7 +146,7 @@ func GetTxInfo(tx *memo.Tx) TxInfo {
 	for _, out := range msg.TxOut {
 		lockScript, err := txscript.DisasmString(out.PkScript)
 		if err != nil {
-			return TxInfo{Error: jerr.Get("error disassembling lockScript", err)}
+			return TxInfo{Error: fmt.Errorf("error disassembling lockScript; %w", err)}
 		}
 		scriptClass, addresses, sigCount, err := txscript.ExtractPkScriptAddrs(out.PkScript, wallet.GetMainNetParams())
 		var txInfoAddress TxInfoAddress

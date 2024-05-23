@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
@@ -18,7 +18,7 @@ func Profile(request ProfileRequest) ([]*memo.Tx, error) {
 		},
 	}})
 	if err != nil {
-		return nil, jerr.Get("error building set profile tx", err)
+		return nil, fmt.Errorf("error building set profile tx; %w", err)
 	}
 	return txs, nil
 }

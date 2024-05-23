@@ -2,9 +2,9 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
 	"io"
 )
 
@@ -26,11 +26,11 @@ func UnmarshalHash(v interface{}) (Hash, error) {
 	case string:
 		hash, err := chainhash.NewHashFromStr(v)
 		if err != nil {
-			return Hash{}, jerr.Get("error unmarshal parsing hash as chainhash", err)
+			return Hash{}, fmt.Errorf("error unmarshal parsing hash as chainhash; %w", err)
 		}
 		return Hash(*hash), nil
 	default:
-		return Hash{}, jerr.Newf("error unmarshal unexpected hash type not string: %T", v)
+		return Hash{}, fmt.Errorf("error unmarshal unexpected hash type not string: %T", v)
 	}
 }
 

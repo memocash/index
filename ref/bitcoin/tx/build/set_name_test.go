@@ -8,7 +8,7 @@ import (
 
 type SetNameTest struct {
 	Request  build.SetNameRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

@@ -2,7 +2,7 @@ package network_client
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
@@ -28,11 +28,11 @@ type Connection struct {
 func (c *Connection) connect() error {
 	cfg := GetConfig()
 	if !cfg.IsSet() {
-		return jerr.Get("error network client config not set", config.GetConfigNotSetError())
+		return fmt.Errorf("error network client config not set; %w", config.NotSetError)
 	}
 	conn, err := grpc.Dial(cfg.String(), grpc.WithInsecure())
 	if err != nil {
-		return jerr.Get("error did not connect network", err)
+		return fmt.Errorf("error did not connect network; %w", err)
 	}
 	c.conn = conn
 	c.Client = network_pb.NewNetworkClient(c.conn)
@@ -59,7 +59,7 @@ func (c *Connection) GetDefaultContext() context.Context {
 func NewConnection() (*Connection, error) {
 	var conn = new(Connection)
 	if err := conn.connect(); err != nil {
-		return nil, jerr.Get("error connecting", err)
+		return nil, fmt.Errorf("error connecting; %w", err)
 	}
 	return conn, nil
 }

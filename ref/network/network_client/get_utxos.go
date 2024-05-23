@@ -1,7 +1,7 @@
 package network_client
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 )
 
@@ -19,14 +19,14 @@ type GetUtxos struct {
 func (u *GetUtxos) Get(pkHashes [][]byte) error {
 	conn, err := NewConnection()
 	if err != nil {
-		return jerr.Get("error connecting to network", err)
+		return fmt.Errorf("error connecting to network; %w", err)
 	}
 	defer conn.Close()
 	response, err := conn.Client.GetUtxos(conn.GetDefaultContext(), &network_pb.UtxosRequest{
 		PkHashes: pkHashes,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network get utxos", err)
+		return fmt.Errorf("error getting rpc network get utxos; %w", err)
 	}
 	u.Utxos = make([]Utxo, len(response.Outputs))
 	for i := range response.Outputs {

@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -23,7 +23,7 @@ type TokenCreateRequest struct {
 
 func TokenCreate(request TokenCreateRequest) (*memo.Tx, error) {
 	if request.SlpType == 0 {
-		return nil, jerr.New("error empty token type")
+		return nil, fmt.Errorf("error empty token type")
 	}
 	if ! request.BatonAddress.IsSet() {
 		request.BatonAddress = request.Wallet.GetSlpAddress()
@@ -45,7 +45,7 @@ func TokenCreate(request TokenCreateRequest) (*memo.Tx, error) {
 	var inputsToUse []memo.UTXO
 	if request.SlpType == memo.SlpNftChildTokenType {
 		if request.NftUtxo == nil {
-			return nil, jerr.New("nft child token set but nft group utxo not set")
+			return nil, fmt.Errorf("nft child token set but nft group utxo not set")
 		}
 		inputsToUse = append(inputsToUse, *request.NftUtxo)
 	} else {
@@ -59,7 +59,7 @@ func TokenCreate(request TokenCreateRequest) (*memo.Tx, error) {
 		KeyRing:     request.Wallet.KeyRing,
 	})
 	if err != nil {
-		return nil, jerr.Get("error building token create tx", err)
+		return nil, fmt.Errorf("error building token create tx; %w", err)
 	}
 	return tx, nil
 }

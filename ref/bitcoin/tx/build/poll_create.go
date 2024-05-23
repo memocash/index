@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
@@ -22,7 +22,7 @@ func PollCreate(request PollCreateRequest) (*memo.Tx, error) {
 		},
 	}})
 	if err != nil {
-		return nil, jerr.Get("error building poll create tx", err)
+		return nil, fmt.Errorf("error building poll create tx; %w", err)
 	}
 	return tx, nil
 }

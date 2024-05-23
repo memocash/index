@@ -3,8 +3,8 @@ package node
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/admin"
+	"log"
 )
 
 var connectRoute = admin.Route{
@@ -12,7 +12,7 @@ var connectRoute = admin.Route{
 	Handler: func(r admin.Response) {
 		var connectRequest = new(admin.NodeConnectRequest)
 		if err := json.NewDecoder(r.Request.Body).Decode(connectRequest); err != nil {
-			jerr.Get("error unmarshalling node connect request", err).Print()
+			log.Printf("error unmarshalling node connect request; %v", err)
 			return
 		}
 		r.NodeGroup.AddNode(connectRequest.Ip, connectRequest.Port)
@@ -38,7 +38,7 @@ var disconnectRoute = admin.Route{
 	Handler: func(r admin.Response) {
 		var disconnectRequest = new(admin.NodeDisconnectRequest)
 		if err := json.NewDecoder(r.Request.Body).Decode(disconnectRequest); err != nil {
-			jerr.Get("error unmarshalling node disconnect request", err).Print()
+			log.Printf("error unmarshalling node disconnect request; %v", err)
 			return
 		}
 		for id, serverNode := range r.NodeGroup.Nodes {

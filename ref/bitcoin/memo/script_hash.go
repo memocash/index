@@ -3,12 +3,12 @@ package memo
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
+	"log"
 )
 
 type SigHash struct {
@@ -37,17 +37,17 @@ func (h SigHash) GetCombined() []byte {
 }
 
 func (h SigHash) OutputEach() {
-	jlog.Logf("h.BVersion: %x\n", h.BVersion)
-	jlog.Logf("h.HashPrevOuts: %x\n", h.HashPrevOuts)
-	jlog.Logf("h.HashSequence: %x\n", h.HashSequence)
-	jlog.Logf("h.OutPointHash: %x\n", h.OutPointHash)
-	jlog.Logf("h.OutPointIndex: %x\n", h.OutPointIndex)
-	jlog.Logf("h.InputSubScript: %x\n", h.InputSubScript)
-	jlog.Logf("h.BAmount: %x\n", h.BAmount)
-	jlog.Logf("h.BSequence: %x\n", h.BSequence)
-	jlog.Logf("h.HashOutputs: %x\n", h.HashOutputs)
-	jlog.Logf("h.BLockTime: %x\n", h.BLockTime)
-	jlog.Logf("h.BHashType: %x\n", h.BHashType)
+	log.Printf("h.BVersion: %x\n", h.BVersion)
+	log.Printf("h.HashPrevOuts: %x\n", h.HashPrevOuts)
+	log.Printf("h.HashSequence: %x\n", h.HashSequence)
+	log.Printf("h.OutPointHash: %x\n", h.OutPointHash)
+	log.Printf("h.OutPointIndex: %x\n", h.OutPointIndex)
+	log.Printf("h.InputSubScript: %x\n", h.InputSubScript)
+	log.Printf("h.BAmount: %x\n", h.BAmount)
+	log.Printf("h.BSequence: %x\n", h.BSequence)
+	log.Printf("h.HashOutputs: %x\n", h.HashOutputs)
+	log.Printf("h.BLockTime: %x\n", h.BLockTime)
+	log.Printf("h.BHashType: %x\n", h.BHashType)
 }
 
 func (h SigHash) GetPrefix() []byte {
@@ -79,7 +79,7 @@ type ScriptHasher struct {
 
 func (h *ScriptHasher) Add(pkScript []byte, hashType txscript.SigHashType, idx int, amt int64) error {
 	if idx >= len(h.Tx.TxIn) {
-		return jerr.Newf("idx %d but %d TxIn", idx, len(h.Tx.TxIn))
+		return fmt.Errorf("idx %d but %d TxIn", idx, len(h.Tx.TxIn))
 	}
 	var sigHash = &SigHash{}
 	var zeroHash chainhash.Hash
@@ -106,7 +106,7 @@ func (h *ScriptHasher) Add(pkScript []byte, hashType txscript.SigHashType, idx i
 	flags := txscript.StandardVerifyFlags
 	vm, err := txscript.NewEngine(pkScript, &h.Tx, idx, flags, nil, amt)
 	if err != nil {
-		return jerr.Get("error new pk script engine", err)
+		return fmt.Errorf("error new pk script engine; %w", err)
 	}
 	subScript := vm.SubScript()
 	var w bytes.Buffer

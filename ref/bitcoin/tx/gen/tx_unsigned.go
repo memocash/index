@@ -1,7 +1,7 @@
 package gen
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -13,7 +13,7 @@ func TxUnsigned(request TxRequest) (*memo.Tx, error) {
 	}
 	msgTx, err := create.Build()
 	if err != nil {
-		return nil, jerr.Get("error building tx", err)
+		return nil, fmt.Errorf("error building tx; %w", err)
 	}
 	memoTx := GetMemoTx(msgTx, create.InputsToUse, create.Outputs)
 	return memoTx, nil

@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -25,20 +25,20 @@ func PollVote(request PollVoteRequest) ([]*memo.Tx, error) {
 	}}
 	if request.Tip != 0 {
 		if request.Tip < memo.DustMinimumOutput {
-			return nil, jerr.New("error tip not above dust limit")
+			return nil, fmt.Errorf("error tip not above dust limit")
 		}
 		if request.Tip > 1e8 {
-			return nil, jerr.New("error trying to tip too much")
+			return nil, fmt.Errorf("error trying to tip too much")
 		}
 		output := gen.GetAddressOutput(request.TipAddress, request.Tip)
 		if output == nil {
-			return nil, jerr.New(wallet.UnknownAddressTypeErrorMessage)
+			return nil, fmt.Errorf(wallet.UnknownAddressTypeErrorMessage)
 		}
 		outputs = append(outputs, output)
 	}
 	txs, err := Simple(request.Wallet, outputs)
 	if err != nil {
-		return nil, jerr.Get("error building poll vote tx", err)
+		return nil, fmt.Errorf("error building poll vote tx; %w", err)
 	}
 	return txs, nil
 }

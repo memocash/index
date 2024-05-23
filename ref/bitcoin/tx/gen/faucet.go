@@ -2,7 +2,7 @@ package gen
 
 import (
 	"bytes"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -12,14 +12,14 @@ import (
 func FaucetTx(pkHash []byte, faucetGetter InputGetter, faucetKey wallet.PrivateKey) (*memo.Tx, memo.UTXO, error) {
 	address, err := wallet.GetAddressFromPkHashNew(pkHash)
 	if err != nil {
-		return nil, memo.UTXO{}, jerr.Get("error getting address from pk hash", err)
+		return nil, memo.UTXO{}, fmt.Errorf("error getting address from pk hash; %w", err)
 	}
 	utxos, err := faucetGetter.GetUTXOs(nil)
 	if err != nil {
-		return nil, memo.UTXO{}, jerr.Get("error getting faucet utxos", err)
+		return nil, memo.UTXO{}, fmt.Errorf("error getting faucet utxos; %w", err)
 	}
 	if len(utxos) == 0 {
-		return nil, memo.UTXO{}, jerr.Get("insufficient funds in faucet", NotEnoughValueError)
+		return nil, memo.UTXO{}, fmt.Errorf("insufficient funds in faucet; %w", NotEnoughValueError)
 	}
 	var amount int64
 	for _, utxo := range utxos {
@@ -40,7 +40,7 @@ func FaucetTx(pkHash []byte, faucetGetter InputGetter, faucetKey wallet.PrivateK
 		KeyRing: wallet.GetSingleKeyRing(faucetKey),
 	})
 	if err != nil {
-		return nil, memo.UTXO{}, jerr.Get("error generating faucet tx", err)
+		return nil, memo.UTXO{}, fmt.Errorf("error generating faucet tx; %w", err)
 	}
 	var utxo memo.UTXO
 	for _, output := range script.GetOutputs(faucetTx) {

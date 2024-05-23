@@ -1,7 +1,7 @@
 package item
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -98,7 +98,7 @@ func GetPeerConnections(request PeerConnectionsRequest) ([]*PeerConnection, erro
 		Prefixes: prefixes,
 		Max:      request.Max,
 	}); err != nil {
-		return nil, jerr.Get("error getting peer connections from queue client", err)
+		return nil, fmt.Errorf("error getting peer connections from queue client; %w", err)
 	}
 	var peerConnections = make([]*PeerConnection, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -113,10 +113,10 @@ func GetPeerConnectionLast(ip []byte, port uint16) (*PeerConnection, error) {
 		Port: port,
 	}})
 	if err != nil {
-		return nil, jerr.Get("error getting peer connection lasts for single", err)
+		return nil, fmt.Errorf("error getting peer connection lasts for single; %w", err)
 	}
 	if len(peerConnections) != 1 {
-		return nil, jerr.Newf("error did not return expected number of results: %d", len(peerConnections))
+		return nil, fmt.Errorf("error did not return expected number of results: %d", len(peerConnections))
 	}
 	return peerConnections[0], nil
 }
@@ -148,10 +148,10 @@ func GetPeerConnectionLasts(ipPorts []IpPort) ([]*PeerConnection, error) {
 			Max:      1,
 			Prefixes: prefixes,
 		}); err != nil {
-			return nil, jerr.Getf(err, "error getting peer connection lasts: %d %d", shard, len(ipPorts))
+			return nil, fmt.Errorf("error getting peer connection lasts: %d %d; %w", shard, len(ipPorts), err)
 		}
 		if len(dbClient.Messages) == 0 {
-			return nil, jerr.Get("error no peer connection last found", client.EntryNotFoundError)
+			return nil, fmt.Errorf("error no peer connection last found; %w", client.EntryNotFoundError)
 		}
 		for _, message := range dbClient.Messages {
 			var peerConnection = new(PeerConnection)
@@ -168,7 +168,7 @@ func GetCountPeerConnections() (uint64, error) {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		count, err := dbClient.GetTopicCount(db.TopicPeerConnection, nil)
 		if err != nil {
-			return 0, jerr.Getf(err, "error getting peer connections topic count for shard: %d", shardConfig.Shard)
+			return 0, fmt.Errorf("error getting peer connections topic count for shard: %d; %w", shardConfig.Shard, err)
 		}
 		totalCount += count
 	}

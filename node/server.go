@@ -8,10 +8,9 @@ import (
 	"github.com/jchavannes/btcd/chaincfg"
 	"github.com/jchavannes/btcd/peer"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
+	log2 "log"
 	"net"
 	"time"
 )
@@ -33,7 +32,7 @@ type Server struct {
 
 func (s *Server) GetAddr() error {
 	if s.Peer == nil {
-		return jerr.New("error peer not set")
+		return fmt.Errorf("error peer not set")
 	}
 	s.Peer.QueueMessage(wire.NewMsgGetAddr(), nil)
 	return nil
@@ -54,7 +53,7 @@ func (s *Server) SaveConnectionResult(success bool) error {
 		peerConnection,
 	}
 	if err := db.Save(objects); err != nil {
-		return jerr.Get("error saving connection result object", err)
+		return fmt.Errorf("error saving connection result object; %w", err)
 	}
 	return nil
 }
@@ -65,7 +64,7 @@ func (s *Server) Run() error {
 	var err error
 	connectionAddress := fmt.Sprintf("[%s]:%d", net.IP(s.Ip), s.Port)
 	log := func(msg string, params ...interface{}) {
-		jlog.Logf(connectionAddress+": "+msg, params...)
+		log2.Printf(connectionAddress+": "+msg, params...)
 	}
 	s.Peer, err = peer.NewOutboundPeer(&peer.Config{
 		UserAgentName:    "memo-node",
@@ -95,13 +94,13 @@ func (s *Server) Run() error {
 					}
 				}
 				if err := db.Save(objects); err != nil {
-					jerr.Get("error saving peers", err).Print()
+					log2.Printf("error saving peers; %v", err)
 				}
 			},
 			OnVerAck: func(p *peer.Peer, msg *wire.MsgVerAck) {
 				log("ver ack from peer\n")
 				if err := s.GetAddr(); err != nil {
-					jerr.Get("error peer get addr", err).Print()
+					log2.Printf("error peer get addr; %v", err)
 				}
 			},
 			OnHeaders: func(p *peer.Peer, msg *wire.MsgHeaders) {
@@ -111,9 +110,9 @@ func (s *Server) Run() error {
 				}
 			},
 			/*OnInv: func(p *peer.Peer, msg *wire.MsgInv) {
-				jlog.Log("on inv from peer", msg.InvList)
+				log.Println("on inv from peer", msg.InvList)
 				for _, inv := range msg.InvList {
-					jlog.Logf("inv type: %s, hash: %s\n", inv.Type, inv.Hash)
+					log.Printf("inv type: %s, hash: %s\n", inv.Type, inv.Hash)
 				}
 			},*/
 			OnBlock: func(p *peer.Peer, msg *wire.MsgBlock, buf []byte) {
@@ -144,7 +143,7 @@ func (s *Server) Run() error {
 		},
 	}, connectionAddress)
 	if err != nil {
-		return jerr.Get("error getting new outbound peer", err)
+		return fmt.Errorf("error getting new outbound peer; %w", err)
 	}
 	log("Starting node\n")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -153,12 +152,12 @@ func (s *Server) Run() error {
 	conn, err := d.DialContext(ctx, "tcp", connectionAddress)
 	if err != nil {
 		if err2 := s.SaveConnectionResult(false); err2 != nil {
-			return jerr.Get("error saving connection result on fail", err2)
+			return fmt.Errorf("error saving connection result on fail; %w", err2)
 		}
-		return jerr.Get("error getting network connection", err)
+		return fmt.Errorf("error getting network connection; %w", err)
 	}
 	if err := s.SaveConnectionResult(true); err != nil {
-		return jerr.Get("error saving connection result on success", err)
+		return fmt.Errorf("error saving connection result on success; %w", err)
 	}
 	log("Associating connection\n")
 	s.Peer.AssociateConnection(conn)
@@ -173,7 +172,7 @@ func (s *Server) Run() error {
 		s.Disconnect()
 		return nil
 	case <-disconnected:
-		return jerr.Newf("error node disconnected")
+		return fmt.Errorf("error node disconnected")
 	}
 }
 

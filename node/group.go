@@ -2,10 +2,9 @@ package node
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"log"
 	"net"
 	"time"
 )
@@ -35,36 +34,36 @@ func (g *Group) AddNextNode() error {
 	for attempt := 1; ; attempt++ {
 		newPeer, err := item.GetNextPeer(0, g.LastPeerId)
 		if err != nil && !client.IsEntryNotFoundError(err) {
-			return jerr.Get("error getting next peer", err)
+			return fmt.Errorf("error getting next peer; %w", err)
 		}
 		if newPeer == nil {
-			return jerr.Newf("error unable to find usable new peer, %d attempts", attempt)
+			return fmt.Errorf("error unable to find usable new peer, %d attempts", attempt)
 		}
-		jlog.Logf("newPeer: %x\n", newPeer.GetUid())
-		jlog.Logf("newPeer: %s:%d\n", net.IP(newPeer.Ip), newPeer.Port)
+		log.Printf("newPeer: %x\n", newPeer.GetUid())
+		log.Printf("newPeer: %s:%d\n", net.IP(newPeer.Ip), newPeer.Port)
 		g.LastPeerId = newPeer.GetUid()
 		peerConnection, err := item.GetPeerConnectionLast(newPeer.Ip, newPeer.Port)
 		if err != nil && !client.IsEntryNotFoundError(err) {
-			return jerr.Get("error getting last peer connection for new peer", err)
+			return fmt.Errorf("error getting last peer connection for new peer; %w", err)
 		}
 		if peerConnection != nil {
-			jlog.Logf("peerConnection: %s:%d - %s %s\n", net.IP(peerConnection.Ip), peerConnection.Port,
+			log.Printf("peerConnection: %s:%d - %s %s\n", net.IP(peerConnection.Ip), peerConnection.Port,
 				peerConnection.Time.Format("2006-01-02 15:04:05"), peerConnection.Status)
 		} else {
-			jlog.Log("no peer connection found")
+			log.Println("no peer connection found")
 		}
 		if peerConnection == nil || peerConnection.Time.Before(g.StartTime) {
 			peerToUse = newPeer
-			jlog.Logf("Found new peer after %d attempts\n", attempt)
+			log.Printf("Found new peer after %d attempts\n", attempt)
 			break
 		}
 	}
-	jlog.Logf("peerToUse: %s:%d\n", net.IP(peerToUse.Ip), peerToUse.Port)
+	log.Printf("peerToUse: %s:%d\n", net.IP(peerToUse.Ip), peerToUse.Port)
 	/*if len(g.Nodes) > 1000 {
-		jerr.Newf("fatal exiting").Fatal()
+		log.Fatalf("fatal exiting")
 	}*/
 	if peerToUse == nil {
-		return jerr.New("error no peer found")
+		return fmt.Errorf("error no peer found")
 	}
 	g.AddNode(peerToUse.Ip, peerToUse.Port)
 	return nil
@@ -80,11 +79,11 @@ func (g *Group) AddNode(ip []byte, port uint16) {
 	g.Nodes[nodeId] = NewServer(ip, port)
 	go func() {
 		if err := g.Nodes[nodeId].Run(); err != nil {
-			jerr.Get("error node failed", err).Print()
+			log.Printf("error node failed; %v", err)
 		}
 		if g.Looping && !g.HasActive() {
 			if err := g.AddNextNode(); err != nil {
-				jerr.Get("error adding next node in looper", err).Print()
+				log.Printf("error adding next node in looper; %v", err)
 			}
 		}
 	}()

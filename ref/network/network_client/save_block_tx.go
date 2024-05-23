@@ -2,7 +2,7 @@ package network_client
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
 	"time"
@@ -20,7 +20,7 @@ func SaveBlockTxs(blockTxs BlockTxs) error {
 	}
 	conn, err := grpc.Dial(config.String(), grpc.WithInsecure())
 	if err != nil {
-		return jerr.Get("did not connect network", err)
+		return fmt.Errorf("did not connect network; %w", err)
 	}
 	defer conn.Close()
 	c := network_pb.NewNetworkClient(conn)
@@ -39,10 +39,10 @@ func SaveBlockTxs(blockTxs BlockTxs) error {
 		Txs: txs,
 	})
 	if err != nil {
-		return jerr.Get("error connection save tx block", err)
+		return fmt.Errorf("error connection save tx block; %w", err)
 	}
 	if errorReply.Error != "" {
-		return jerr.Newf("error save tx block reply: %s", errorReply.Error)
+		return fmt.Errorf("error save tx block reply: %s", errorReply.Error)
 	}
 	return nil
 }

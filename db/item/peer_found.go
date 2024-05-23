@@ -1,7 +1,7 @@
 package item
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -60,7 +60,7 @@ func GetPeerFounds(shard uint32, startId []byte) ([]*PeerFound, error) {
 		startIdBytes = startId
 	}
 	if err := dbClient.GetLarge(db.TopicPeerFound, startIdBytes, false, false); err != nil {
-		return nil, jerr.Get("error getting peer founds from queue client", err)
+		return nil, fmt.Errorf("error getting peer founds from queue client; %w", err)
 	}
 	var peerFounds = make([]*PeerFound, len(dbClient.Messages))
 	for i := range dbClient.Messages {

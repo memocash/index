@@ -2,7 +2,7 @@ package network_client
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
 	"time"
@@ -15,11 +15,11 @@ type GetBlock struct {
 func (b *GetBlock) GetByHeight(height int64) error {
 	rpcConfig := GetConfig()
 	if ! rpcConfig.IsSet() {
-		return jerr.New("error config not set")
+		return fmt.Errorf("error config not set")
 	}
 	conn, err := grpc.Dial(rpcConfig.String(), grpc.WithInsecure())
 	if err != nil {
-		return jerr.Get("error dial grpc did not connect network", err)
+		return fmt.Errorf("error dial grpc did not connect network; %w", err)
 	}
 	defer conn.Close()
 	c := network_pb.NewNetworkClient(conn)
@@ -29,7 +29,7 @@ func (b *GetBlock) GetByHeight(height int64) error {
 		Height: height,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network block infos by height", err)
+		return fmt.Errorf("error getting rpc network block infos by height; %w", err)
 	}
 	b.Block = &BlockInfo{
 		Hash:   blockInfo.Hash,
@@ -43,11 +43,11 @@ func (b *GetBlock) GetByHeight(height int64) error {
 func (b *GetBlock) GetByHash(hash []byte) error {
 	rpcConfig := GetConfig()
 	if ! rpcConfig.IsSet() {
-		return jerr.New("error config not set")
+		return fmt.Errorf("error config not set")
 	}
 	conn, err := grpc.Dial(rpcConfig.String(), grpc.WithInsecure())
 	if err != nil {
-		return jerr.Get("error dial grpc did not connect network", err)
+		return fmt.Errorf("error dial grpc did not connect network; %w", err)
 	}
 	defer conn.Close()
 	c := network_pb.NewNetworkClient(conn)
@@ -57,7 +57,7 @@ func (b *GetBlock) GetByHash(hash []byte) error {
 		Hash: hash,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network block infos by hash", err)
+		return fmt.Errorf("error getting rpc network block infos by hash; %w", err)
 	}
 	b.Block = &BlockInfo{
 		Hash:   blockInfo.Hash,

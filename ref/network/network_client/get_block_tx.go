@@ -2,7 +2,7 @@ package network_client
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
 	"time"
@@ -22,11 +22,11 @@ type GetBlockTxs struct {
 func (t *GetBlockTxs) GetByHeight(height int64) error {
 	rpcConfig := GetConfig()
 	if !rpcConfig.IsSet() {
-		return jerr.New("error config not set")
+		return fmt.Errorf("error config not set")
 	}
 	conn, err := grpc.Dial(rpcConfig.String(), grpc.WithInsecure())
 	if err != nil {
-		return jerr.Get("error dial grpc did not connect network", err)
+		return fmt.Errorf("error dial grpc did not connect network; %w", err)
 	}
 	defer conn.Close()
 	c := network_pb.NewNetworkClient(conn)
@@ -36,10 +36,10 @@ func (t *GetBlockTxs) GetByHeight(height int64) error {
 		Height: height,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network block infos by height", err)
+		return fmt.Errorf("error getting rpc network block infos by height; %w", err)
 	}
 	if err := t.Get(blockInfo.Hash, nil); err != nil {
-		return jerr.Get("error getting block by hash for block txs", err)
+		return fmt.Errorf("error getting block by hash for block txs; %w", err)
 	}
 	return nil
 }
@@ -47,7 +47,7 @@ func (t *GetBlockTxs) GetByHeight(height int64) error {
 func (t *GetBlockTxs) Get(blockHash []byte, startTx []byte) error {
 	conn, err := NewConnection()
 	if err != nil {
-		return jerr.Get("error connecting to network", err)
+		return fmt.Errorf("error connecting to network; %w", err)
 	}
 	defer conn.Close()
 	response, err := conn.Client.GetBlockTxs(conn.GetDefaultContext(), &network_pb.BlockTxRequest{
@@ -55,7 +55,7 @@ func (t *GetBlockTxs) Get(blockHash []byte, startTx []byte) error {
 		Start: startTx,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network block infos", err)
+		return fmt.Errorf("error getting rpc network block infos; %w", err)
 	}
 	t.BlockHash = blockHash
 	t.Txs = make([]BlockTx, len(response.Txs))

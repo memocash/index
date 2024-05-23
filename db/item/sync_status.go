@@ -1,7 +1,7 @@
 package item
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -46,7 +46,7 @@ func (s *SyncStatus) Deserialize(data []byte) {
 func GetSyncStatus(name string) (*SyncStatus, error) {
 	var syncStatus = &SyncStatus{Name: name}
 	if err := db.GetItem(syncStatus); err != nil {
-		return nil, jerr.Get("error getting item sync status", err)
+		return nil, fmt.Errorf("error getting item sync status; %w", err)
 	}
 	return syncStatus, nil
 }

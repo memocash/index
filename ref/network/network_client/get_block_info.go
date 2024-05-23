@@ -3,7 +3,7 @@ package network_client
 import (
 	"context"
 	"encoding/hex"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
@@ -52,11 +52,11 @@ func (t GetBlockInfos) GetMinHeight() int64 {
 func (t *GetBlockInfos) Get(startHeight int64, newestFirst bool) error {
 	rpcConfig := GetConfig()
 	if ! rpcConfig.IsSet() {
-		return jerr.New("error config not set")
+		return fmt.Errorf("error config not set")
 	}
 	conn, err := grpc.Dial(rpcConfig.String(), grpc.WithInsecure())
 	if err != nil {
-		return jerr.Get("error dial grpc did not connect network", err)
+		return fmt.Errorf("error dial grpc did not connect network; %w", err)
 	}
 	defer conn.Close()
 	c := network_pb.NewNetworkClient(conn)
@@ -67,7 +67,7 @@ func (t *GetBlockInfos) Get(startHeight int64, newestFirst bool) error {
 		Newest: newestFirst,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network block infos", err)
+		return fmt.Errorf("error getting rpc network block infos; %w", err)
 	}
 	t.Blocks = make([]BlockInfo, len(reply.Blocks))
 	for i := range reply.Blocks {

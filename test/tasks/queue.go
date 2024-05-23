@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"bytes"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/test/run/queue"
@@ -45,11 +45,11 @@ var (
 
 func checkExpectedItems(items, expectedItems []queue.Item) error {
 	if len(items) != len(expectedItems) {
-		return jerr.Newf("error expected %d items, got %d", len(expectedItems), len(items))
+		return fmt.Errorf("error expected %d items, got %d", len(expectedItems), len(items))
 	}
 	for i, item := range items {
 		if !bytes.Equal(item.Uid, expectedItems[i].Uid) {
-			return jerr.Newf("error item %d uid (%x) doesn't match expected (%x)",
+			return fmt.Errorf("error item %d uid (%x) doesn't match expected (%x)",
 				i, item.Uid, expectedItems[i].Uid)
 		}
 	}
@@ -74,14 +74,14 @@ var queueTest = suite.Test{
 		}
 		add := queue.NewAdd(shard)
 		if err := add.Add(itemList); err != nil {
-			return jerr.Get("error adding items to queue", err)
+			return fmt.Errorf("error adding items to queue; %w", err)
 		}
 		get := queue.NewGet(shard)
 		if err := get.GetByPrefixes(topic, [][]byte{[]byte("a"), []byte("c")}); err != nil {
-			return jerr.Get("error getting by prefix", err)
+			return fmt.Errorf("error getting by prefix; %w", err)
 		}
 		if err := checkExpectedItems(get.Items, expectedItems); err != nil {
-			return jerr.Get("error checking expected items", err)
+			return fmt.Errorf("error checking expected items; %w", err)
 		}
 		return nil
 	},
@@ -96,20 +96,20 @@ var waitTest = suite.Test{
 			itemAB,
 		}
 		if err := add.Add(itemList1); err != nil {
-			return jerr.Get("error adding items 1 to queue", err)
+			return fmt.Errorf("error adding items 1 to queue; %w", err)
 		}
 		get := queue.NewGet(shard)
 		if err := get.GetAndWait(topic, nil); err != nil {
-			return jerr.Get("error getting and waiting 1", err)
+			return fmt.Errorf("error getting and waiting 1; %w", err)
 		}
 		if err := checkExpectedItems(get.Items, itemList1); err != nil {
-			return jerr.Get("error checking expected items 1", err)
+			return fmt.Errorf("error checking expected items 1; %w", err)
 		}
 		var response = make(chan error)
 		go func() {
 			err := get.GetAndWait(topic, client.IncrementBytes(bytesAB))
 			if err != nil {
-				response <- jerr.Get("error getting and waiting 2", err)
+				response <- fmt.Errorf("error getting and waiting 2; %w", err)
 			} else {
 				response <- nil
 			}
@@ -120,13 +120,13 @@ var waitTest = suite.Test{
 			itemCB,
 		}
 		if err := add.Add(itemList2); err != nil {
-			return jerr.Get("error adding items 2 to queue", err)
+			return fmt.Errorf("error adding items 2 to queue; %w", err)
 		}
 		if err := <-response; err != nil {
-			return jerr.Get("error with wait response", err)
+			return fmt.Errorf("error with wait response; %w", err)
 		}
 		if err := checkExpectedItems(get.Items, itemList2); err != nil {
-			return jerr.Get("error checking expected items 2", err)
+			return fmt.Errorf("error checking expected items 2; %w", err)
 		}
 		return nil
 	},

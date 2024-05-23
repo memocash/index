@@ -261,6 +261,7 @@ var UtxosSingle25k = []memo.UTXO{{
 
 var Address1InputUtxo100k = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 0,
@@ -270,6 +271,7 @@ var Address1InputUtxo100k = memo.UTXO{
 
 var Address1InputUtxo8k = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 0,
@@ -279,6 +281,7 @@ var Address1InputUtxo8k = memo.UTXO{
 
 var Address1InputUtxo1k = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 0,
@@ -288,6 +291,7 @@ var Address1InputUtxo1k = memo.UTXO{
 
 var Address1InputUtxo700 = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 0,
@@ -297,6 +301,7 @@ var Address1InputUtxo700 = memo.UTXO{
 
 var Address1InputUtxo1255 = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 0,
@@ -306,6 +311,7 @@ var Address1InputUtxo1255 = memo.UTXO{
 
 var Address1InputUtxo10070 = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 0,
@@ -315,6 +321,7 @@ var Address1InputUtxo10070 = memo.UTXO{
 
 var Address1InputUtxo861 = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 0,
@@ -324,6 +331,7 @@ var Address1InputUtxo861 = memo.UTXO{
 
 var Address1InputToken = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 1,
@@ -336,6 +344,7 @@ var Address1InputToken = memo.UTXO{
 
 var Address1InputTokenBaton = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 1,
@@ -365,6 +374,7 @@ var SetNameOutput = memo.Output{
 
 var UtxosAddress1twoRegular = []memo.UTXO{{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 0,
@@ -372,6 +382,7 @@ var UtxosAddress1twoRegular = []memo.UTXO{{
 	},
 }, {
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 1,
@@ -381,6 +392,7 @@ var UtxosAddress1twoRegular = []memo.UTXO{{
 
 var UtxosAddress1twoRegularWithToken = []memo.UTXO{{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 0,
@@ -399,6 +411,7 @@ var Address2InputUtxo100k = memo.UTXO{
 
 var Address2Input5Tokens1 = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 1,
@@ -411,6 +424,7 @@ var Address2Input5Tokens1 = memo.UTXO{
 
 var Address2Input5Tokens2 = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 2,
@@ -423,6 +437,7 @@ var Address2Input5Tokens2 = memo.UTXO{
 
 var Address2Input5Tokens3 = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     UnsignedTxTestAddress1PkScript,
 		PkHash:       Address1pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 3,

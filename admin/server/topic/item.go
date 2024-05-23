@@ -3,7 +3,6 @@ package topic
 import (
 	"encoding/hex"
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/db/client"
@@ -11,6 +10,7 @@ import (
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -26,22 +26,22 @@ var itemRoute = admin.Route{
 	Handler: func(r admin.Response) {
 		var topicItemRequest = new(admin.TopicItemRequest)
 		if err := json.NewDecoder(r.Request.Body).Decode(topicItemRequest); err != nil {
-			jerr.Get("error unmarshalling topic item request", err).Print()
+			log.Printf("error unmarshalling topic item request; %v", err)
 			return
 		}
 		uid, err := hex.DecodeString(topicItemRequest.Uid)
 		if err != nil {
-			jerr.Get("error parsing uid for topic item", err).Print()
+			log.Printf("error parsing uid for topic item; %v", err)
 		}
 		var topicItemResponse = new(admin.TopicItemResponse)
 		shardConfig := config.GetShardConfig(uint32(topicItemRequest.Shard), config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
 		if err := dbClient.GetSingle(topicItemRequest.Topic, uid); err != nil {
-			jerr.Get("error getting topic item for admin view", err).Print()
+			log.Printf("error getting topic item for admin view; %v", err)
 			return
 		}
 		if len(dbClient.Messages) != 1 {
-			jerr.Newf("error unexpected message count: %d", len(dbClient.Messages)).Print()
+			log.Printf("error unexpected message count: %d", len(dbClient.Messages))
 			return
 		}
 		var props = make(map[string]interface{})
@@ -103,7 +103,7 @@ var itemRoute = admin.Route{
 			Props:   props,
 		}
 		if err := json.NewEncoder(r.Writer).Encode(topicItemResponse); err != nil {
-			jerr.Get("error writing json topic item response data", err).Print()
+			log.Printf("error writing json topic item response data; %v", err)
 			return
 		}
 	},

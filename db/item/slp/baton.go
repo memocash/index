@@ -2,7 +2,7 @@ package slp
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -60,7 +60,7 @@ func GetBatons(ctx context.Context, outs []memo.Out) ([]*Baton, error) {
 	}
 	messages, err := db.GetSpecific(ctx, db.TopicSlpBaton, shardUids)
 	if err != nil {
-		return nil, jerr.Get("error getting slp batons", err)
+		return nil, fmt.Errorf("error getting slp batons; %w", err)
 	}
 	var batons []*Baton
 	for i := range messages {

@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/ref/config"
 	"io/ioutil"
@@ -15,11 +15,11 @@ type ConnectNext struct {
 func (i *ConnectNext) Get() error {
 	resp, err := http.Get("http://" + config.GetHost(config.GetAdminPort()) + admin.UrlNodeConnectNext)
 	if err != nil {
-		return jerr.Get("error getting node connect next", err)
+		return fmt.Errorf("error getting node connect next; %w", err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return jerr.Get("error reading node connect next body", err)
+		return fmt.Errorf("error reading node connect next body; %w", err)
 	}
 	i.Message = string(body)
 	return nil

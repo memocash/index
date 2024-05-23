@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -19,7 +19,7 @@ func Send(request SendRequest) (*memo.Tx, error) {
 	var outputs []*memo.Output
 	output := gen.GetAddressOutput(request.Address, request.Amount)
 	if output == nil {
-		return nil, jerr.New(wallet.UnknownAddressTypeErrorMessage)
+		return nil, fmt.Errorf(wallet.UnknownAddressTypeErrorMessage)
 	}
 	outputs = append(outputs, output)
 	if request.Message != "" {
@@ -37,7 +37,7 @@ func Send(request SendRequest) (*memo.Tx, error) {
 		KeyRing: request.Wallet.KeyRing,
 	})
 	if err != nil {
-		return nil, jerr.Get("error building send tx", err)
+		return nil, fmt.Errorf("error building send tx; %w", err)
 	}
 	return tx, nil
 }

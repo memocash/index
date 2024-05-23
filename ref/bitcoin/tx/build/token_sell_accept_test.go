@@ -11,7 +11,7 @@ import (
 
 type TokenSellAcceptTest struct {
 	Request  build.TokenSellAcceptRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

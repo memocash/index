@@ -1,7 +1,7 @@
 package network_client
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"time"
 )
@@ -11,7 +11,7 @@ type SendTx struct {
 
 func (t *SendTx) Send(txs [][]byte) error {
 	if err := t.SendWithBlock(txs, nil); err != nil {
-		return jerr.Get("error sending without block", err)
+		return fmt.Errorf("error sending without block; %w", err)
 	}
 	return nil
 }
@@ -26,13 +26,13 @@ func (t *SendTx) SendWithBlock(txs [][]byte, block []byte) error {
 	}
 	connection, err := NewConnection()
 	if err != nil {
-		return jerr.Get("error connecting to network", err)
+		return fmt.Errorf("error connecting to network; %w", err)
 	}
 	defer connection.Close()
 	if reply, err := connection.Client.SaveTxs(connection.GetTimeoutContext(5*time.Second), networkTxs); err != nil {
-		return jerr.Get("error network client save txs request", err)
+		return fmt.Errorf("error network client save txs request; %w", err)
 	} else if reply.Error != "" {
-		return jerr.Newf("send new tx rpc error received: %s", reply.Error)
+		return fmt.Errorf("send new tx rpc error received: %s", reply.Error)
 	}
 	return nil
 }
@@ -43,7 +43,7 @@ func NewSendTx() *SendTx {
 
 func SendNewTx(raw []byte) error {
 	if err := NewSendTx().Send([][]byte{raw}); err != nil {
-		return jerr.Get("error sending single transaction", err)
+		return fmt.Errorf("error sending single transaction; %w", err)
 	}
 	return nil
 }

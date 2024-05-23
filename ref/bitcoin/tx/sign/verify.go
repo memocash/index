@@ -1,9 +1,9 @@
 package sign
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcd/wire"
-	"github.com/jchavannes/jgo/jerr"
 )
 
 type Output struct {
@@ -19,7 +19,7 @@ func Verify(tx *wire.MsgTx, inputTxs []*wire.MsgTx) error {
 			if txIn.PreviousOutPoint.Hash.IsEqual(&inputTxHash) {
 				index := int(txIn.PreviousOutPoint.Index)
 				if len(inputTx.TxOut) <= index {
-					return jerr.Newf("error tx found but output index too high (%d %d)", len(inputTx.TxOut),
+					return fmt.Errorf("error tx found but output index too high (%d %d)", len(inputTx.TxOut),
 						index)
 				}
 				outputs[i] = &Output{
@@ -30,24 +30,24 @@ func Verify(tx *wire.MsgTx, inputTxs []*wire.MsgTx) error {
 		}
 	}
 	if err := VerifyWithOutputs(tx, outputs); err != nil {
-		return jerr.Get("error verifying with outputs", err)
+		return fmt.Errorf("error verifying with outputs; %w", err)
 	}
 	return nil
 }
 
 func VerifyWithOutputs(tx *wire.MsgTx, outputs []*Output) error {
 	if len(tx.TxIn) != len(outputs) {
-		return jerr.Newf("error tx input length does not match outputs length (%d %d)", len(tx.TxIn), len(outputs))
+		return fmt.Errorf("error tx input length does not match outputs length (%d %d)", len(tx.TxIn), len(outputs))
 	}
 	flags := txscript.StandardVerifyFlags
 	for index := range tx.TxIn {
 		out := outputs[index]
 		vm, err := txscript.NewEngine(out.PkScript, tx, index, flags, nil, out.Value)
 		if err != nil {
-			return jerr.Getf(err, "error getting new tx script engine for input: %s:%d", tx.TxHash(), index)
+			return fmt.Errorf("error getting new tx script engine for input: %s:%d; %w", tx.TxHash(), index, err)
 		}
 		if err = vm.Execute(); err != nil {
-			return jerr.Getf(err, "error executing vm engine for input: %s:%d", tx.TxHash(), index)
+			return fmt.Errorf("error executing vm engine for input: %s:%d; %w", tx.TxHash(), index, err)
 		}
 	}
 	return nil
@@ -57,10 +57,10 @@ func VerifySignature(pkScript []byte, spendTx *wire.MsgTx, index int, amount int
 	flags := txscript.StandardVerifyFlags
 	vm, err := txscript.NewEngine(pkScript, spendTx, index, flags, nil, amount)
 	if err != nil {
-		return jerr.Get("error getting new tx script engine", err)
+		return fmt.Errorf("error getting new tx script engine; %w", err)
 	}
 	if err = vm.Execute(); err != nil {
-		return jerr.Get("error executing vm engine", err)
+		return fmt.Errorf("error executing vm engine; %w", err)
 	}
 	return nil
 }

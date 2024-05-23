@@ -1,9 +1,9 @@
 package serve
 
 import (
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/cluster/lead"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 var leadCmd = &cobra.Command{
@@ -12,6 +12,6 @@ var leadCmd = &cobra.Command{
 	Run: func(c *cobra.Command, args []string) {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
 		p := lead.NewProcessor(verbose)
-		jerr.Get("fatal error running lead processor", p.Run()).Fatal()
+		log.Fatalf("fatal error running lead processor; %v", p.Run())
 	},
 }

@@ -2,7 +2,7 @@ package chain
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -49,10 +49,10 @@ func GetSingleTxBlock(txHash, blockHash [32]byte) (*TxBlock, error) {
 	shardConfig := config.GetShardConfig(client.GenShardSource32(txHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetSingle(db.TopicChainTxBlock, GetTxBlockUid(txHash, blockHash)); err != nil {
-		return nil, jerr.Get("error getting client message single tx block", err)
+		return nil, fmt.Errorf("error getting client message single tx block; %w", err)
 	}
 	if len(dbClient.Messages) != 1 {
-		return nil, jerr.Newf("error unexpected number of single tx block client messages: %d", len(dbClient.Messages))
+		return nil, fmt.Errorf("error unexpected number of single tx block client messages: %d", len(dbClient.Messages))
 	}
 	var txBlock = new(TxBlock)
 	db.Set(txBlock, dbClient.Messages[0])
@@ -63,7 +63,7 @@ func GetSingleTxBlocks(txHash [32]byte) ([]*TxBlock, error) {
 	shardConfig := config.GetShardConfig(client.GenShardSource32(txHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetByPrefix(db.TopicChainTxBlock, jutil.ByteReverse(txHash[:])); err != nil {
-		return nil, jerr.Get("error getting client message chain tx block by prefix", err)
+		return nil, fmt.Errorf("error getting client message chain tx block by prefix; %w", err)
 	}
 	var txBlocks []*TxBlock
 	for _, msg := range dbClient.Messages {
@@ -82,7 +82,7 @@ func GetTxBlocks(ctx context.Context, txHashes [][32]byte) ([]*TxBlock, error) {
 	}
 	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxBlock, shardPrefixes)
 	if err != nil {
-		return nil, jerr.Get("error getting client message chain tx blocks", err)
+		return nil, fmt.Errorf("error getting client message chain tx blocks; %w", err)
 	}
 	var txBlocks []*TxBlock
 	for _, msg := range messages {

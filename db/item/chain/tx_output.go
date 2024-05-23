@@ -2,7 +2,7 @@ package chain
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -60,7 +60,7 @@ func GetAllTxOutputs(shard uint32, startUid []byte) ([]*TxOutput, error) {
 		Start: startUid,
 		Max:   client.HugeLimit,
 	}); err != nil {
-		return nil, jerr.Get("error getting db message chain tx outputs for all", err)
+		return nil, fmt.Errorf("error getting db message chain tx outputs for all; %w", err)
 	}
 	var txOutputs = make([]*TxOutput, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -78,7 +78,7 @@ func GetTxOutputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxOutput
 	}
 	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxOutput, shardPrefixes)
 	if err != nil {
-		return nil, jerr.Get("error getting client message chain tx output", err)
+		return nil, fmt.Errorf("error getting client message chain tx output; %w", err)
 	}
 	var txOutputs []*TxOutput
 	for _, msg := range messages {
@@ -92,7 +92,7 @@ func GetTxOutputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxOutput
 func GetTxOutput(ctx context.Context, out memo.Out) (*TxOutput, error) {
 	txOutputs, err := GetTxOutputs(ctx, []memo.Out{out})
 	if err != nil {
-		return nil, jerr.Get("error getting tx outputs for single", err)
+		return nil, fmt.Errorf("error getting tx outputs for single; %w", err)
 	}
 	if len(txOutputs) == 0 {
 		return nil, nil
@@ -108,7 +108,7 @@ func GetTxOutputs(ctx context.Context, outs []memo.Out) ([]*TxOutput, error) {
 	}
 	messages, err := db.GetSpecific(ctx, db.TopicChainTxOutput, shardUids)
 	if err != nil {
-		return nil, jerr.Get("error getting client message chain tx output", err)
+		return nil, fmt.Errorf("error getting client message chain tx output; %w", err)
 	}
 	var txOutputs []*TxOutput
 	for i := range messages {

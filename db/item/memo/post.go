@@ -2,7 +2,7 @@ package memo
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -53,7 +53,7 @@ func (p *Post) Deserialize(data []byte) {
 func GetPost(ctx context.Context, txHash [32]byte) (*Post, error) {
 	posts, err := GetPosts(ctx, [][32]byte{txHash})
 	if err != nil {
-		return nil, jerr.Get("error getting memo posts for single", err)
+		return nil, fmt.Errorf("error getting memo posts for single; %w", err)
 	}
 	if len(posts) == 0 {
 		return nil, nil
@@ -76,7 +76,7 @@ func GetPosts(ctx context.Context, txHashes [][32]byte) ([]*Post, error) {
 			Topic:    db.TopicMemoPost,
 			Prefixes: prefixes,
 		}); err != nil {
-			return nil, jerr.Get("error getting client message memo posts", err)
+			return nil, fmt.Errorf("error getting client message memo posts; %w", err)
 		}
 		for _, msg := range dbClient.Messages {
 			var post = new(Post)
@@ -96,7 +96,7 @@ func ListenPosts(ctx context.Context) (chan *Post, error) {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoPost, nil)
 		if err != nil {
-			return nil, jerr.Get("error listening to db memo posts (all)", err)
+			return nil, fmt.Errorf("error listening to db memo posts (all); %w", err)
 		}
 		go func() {
 			for msg := range chanMessage {

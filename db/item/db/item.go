@@ -14,10 +14,10 @@ func GetItem(obj Object) error {
 	shardConfig := config.GetShardConfig(uint32(obj.GetShardSource()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetSingle(obj.GetTopic(), obj.GetUid()); err != nil && !client.IsMessageNotSetError(err) {
-		return jerr.Get("error getting db item single", err)
+		return fmt.Errorf("error getting db item single; %w", err)
 	}
 	if len(dbClient.Messages) != 1 {
-		return jerr.Get("error item not found", client.EntryNotFoundError)
+		return fmt.Errorf("error item not found; %w", client.EntryNotFoundError)
 	}
 	obj.Deserialize(dbClient.Messages[0].Message)
 	return nil
@@ -44,7 +44,7 @@ func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byt
 					Topic:   topic,
 					Uids:    uidsToUse,
 				}); err != nil {
-					wait.AddError(jerr.Get("error getting client message get specific", err))
+					wait.AddError(fmt.Errorf("error getting client message get specific; %w", err))
 					return
 				}
 				wait.Lock.Lock()
@@ -55,7 +55,7 @@ func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byt
 	}
 	wait.Group.Wait()
 	if len(wait.Errs) > 0 {
-		return nil, jerr.Get("error getting specific messages", jerr.Combine(wait.Errs...))
+		return nil, fmt.Errorf("error getting specific messages; %w", jerr.Combine(wait.Errs...))
 	}
 	return messages, nil
 }
@@ -81,7 +81,7 @@ func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][
 					Topic:    topic,
 					Prefixes: prefixesToUse,
 				}); err != nil {
-					wait.AddError(jerr.Get("error getting client message get by prefixes", err))
+					wait.AddError(fmt.Errorf("error getting client message get by prefixes; %w", err))
 					return
 				}
 				wait.Lock.Lock()
@@ -92,7 +92,7 @@ func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][
 	}
 	wait.Group.Wait()
 	if len(wait.Errs) > 0 {
-		return nil, jerr.Get("error getting prefix messages", jerr.Combine(wait.Errs...))
+		return nil, fmt.Errorf("error getting prefix messages; %w", jerr.Combine(wait.Errs...))
 	}
 	return messages, nil
 }

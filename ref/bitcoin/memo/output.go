@@ -1,7 +1,7 @@
 package memo
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 )
 
 type Output struct {
@@ -20,20 +20,20 @@ func (o Output) GetValuePlusFee() (int64, error) {
 	if o.Script != nil {
 		outputSize, err := GetOutputSize(o.Script)
 		if err != nil {
-			return 0, jerr.Get("error getting script", err)
+			return 0, fmt.Errorf("error getting script; %w", err)
 		}
 		return outputSize + o.Amount, nil
 	}
-	return -1, jerr.New("error getting memo output fee, script not set")
+	return -1, fmt.Errorf("error getting memo output fee, script not set")
 }
 
 func (o Output) GetPkScript() ([]byte, error) {
 	if o.Script == nil {
-		return nil, jerr.New("error script not set")
+		return nil, fmt.Errorf("error script not set")
 	}
 	outputScript, err := o.Script.Get()
 	if err != nil {
-		return nil, jerr.Get("error creating output", err)
+		return nil, fmt.Errorf("error creating output; %w", err)
 	}
 	return outputScript, nil
 }
@@ -41,7 +41,7 @@ func (o Output) GetPkScript() ([]byte, error) {
 func GetOutputSize(script Script) (int64, error) {
 	pkScript, err := script.Get()
 	if err != nil {
-		return 0, jerr.Get("error getting script", err)
+		return 0, fmt.Errorf("error getting script; %w", err)
 	}
 	var scriptLen = int64(len(pkScript))
 	var scriptLenBytes int64

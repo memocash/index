@@ -1,7 +1,8 @@
 package gen
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"errors"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -28,15 +29,15 @@ func Multi(request MultiRequest) ([]*memo.Tx, error) {
 	})
 	if err == nil {
 		return []*memo.Tx{memoTx}, nil
-	} else if ! IsNotEnoughValueError(err) || jutil.IsNil(request.FaucetSaver) ||
-		! request.FaucetSaver.IsFreeTx(request.Outputs) || script.IsBigMemo(request.Outputs) ||
+	} else if !errors.Is(err, NotEnoughValueError) || jutil.IsNil(request.FaucetSaver) ||
+		!request.FaucetSaver.IsFreeTx(request.Outputs) || script.IsBigMemo(request.Outputs) ||
 		jutil.IsNil(request.FaucetGetter) {
-		return nil, jerr.Get("error generating tx", err)
+		return nil, fmt.Errorf("error generating tx; %w", err)
 	}
 	faucetKey := request.FaucetSaver.GetKey()
 	faucetTx, utxo, err := FaucetTx(request.Change.Main.GetPkHash(), request.FaucetGetter, faucetKey)
 	if err != nil {
-		return nil, jerr.Get("error getting faucet tx", err)
+		return nil, fmt.Errorf("error getting faucet tx; %w", err)
 	}
 	faucetAddress := faucetKey.GetPublicKey().GetAddress()
 	amount := utxo.Input.Value - memo.FreeTxFee(request.Outputs)
@@ -47,7 +48,7 @@ func Multi(request MultiRequest) ([]*memo.Tx, error) {
 		KeyRing:     request.KeyRing,
 	})
 	if err != nil {
-		return nil, jerr.Get("error generating tx", err)
+		return nil, fmt.Errorf("error generating tx; %w", err)
 	}
 	if request.FaucetSaver != nil {
 		err = request.FaucetSaver.Save(
@@ -57,7 +58,7 @@ func Multi(request MultiRequest) ([]*memo.Tx, error) {
 			memoTx.GetHash(),
 		)
 		if err != nil {
-			return nil, jerr.Get("error saving faucet transaction", err)
+			return nil, fmt.Errorf("error saving faucet transaction; %w", err)
 		}
 	}
 	return []*memo.Tx{

@@ -8,7 +8,7 @@ import (
 
 type PollVoteTest struct {
 	Request  build.PollVoteRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

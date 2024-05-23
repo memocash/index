@@ -2,10 +2,10 @@ package wallet_test
 
 import (
 	"encoding/hex"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 	"testing"
 )
 
@@ -55,22 +55,22 @@ func TestSlpAddress(t *testing.T) {
 		addr, err := wallet.GetAddressFromStringErr(testSlp.InputAddress)
 		if testSlp.Error {
 			if err == nil {
-				t.Error(jerr.Newf("slp address expected error, but none (%s)", testSlp.SlpAddress))
+				t.Error(fmt.Errorf("slp address expected error, but none (%s)", testSlp.SlpAddress))
 			}
 			continue
 		}
 		if err != nil {
-			t.Error(jerr.Getf(err, "slp address unexpected error (%s)", testSlp.SlpAddress))
+			t.Error(fmt.Errorf("slp address unexpected error (%s); %w", testSlp.SlpAddress, err))
 			continue
 		}
 		slpAddress := addr.GetSlpAddrString()
 		if slpAddress != testSlp.SlpAddress {
-			t.Error(jerr.Newf("slp address (%s) doesn't match expected (%s)", slpAddress, testSlp.SlpAddress))
+			t.Error(fmt.Errorf("slp address (%s) doesn't match expected (%s)", slpAddress, testSlp.SlpAddress))
 			continue
 		}
 		legacyAddress := addr.GetEncoded()
 		if legacyAddress != testSlp.LegacyAddress {
-			t.Error(jerr.Newf("legacy address (%s) doesn't match expected (%s)", legacyAddress, testSlp.LegacyAddress))
+			t.Error(fmt.Errorf("legacy address (%s) doesn't match expected (%s)", legacyAddress, testSlp.LegacyAddress))
 			continue
 		}
 	}
@@ -87,19 +87,19 @@ func TestPkScriptAddress(t *testing.T) {
 	} {
 		rawTx, err := hex.DecodeString(rawTxString)
 		if err != nil {
-			t.Error(jerr.Get("error parsing raw tx", err))
+			t.Error(fmt.Errorf("error parsing raw tx; %w", err))
 			return
 		}
 		msgTx, err := memo.GetMsgFromRaw(rawTx)
 		if err != nil {
-			t.Error(jerr.Get("error getting message from raw", err))
+			t.Error(fmt.Errorf("error getting message from raw; %w", err))
 			return
 		}
 		txString := msgTx.TxHash().String()
 		for outIndex, txOut := range msgTx.TxOut {
 			address, err := wallet.GetAddressFromPkScript(txOut.PkScript)
 			if err != nil && !wallet.IsTooManyAddressesError(err) {
-				t.Error(jerr.Get("error getting address from pk script", err))
+				t.Error(fmt.Errorf("error getting address from pk script; %w", err))
 				return
 			}
 			var addressString string
@@ -108,7 +108,7 @@ func TestPkScriptAddress(t *testing.T) {
 			} else {
 				addressString = address.GetEncoded()
 			}
-			jlog.Logf("out: %s:%d, address: %s\n", txString, outIndex, addressString)
+			log.Printf("out: %s:%d, address: %s\n", txString, outIndex, addressString)
 		}
 	}
 }

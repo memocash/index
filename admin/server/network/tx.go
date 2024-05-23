@@ -9,12 +9,12 @@ var txRoute = admin.Route{
 	Handler: func(r admin.Response) {
 		/*var request = new(admin.NetworkTxRequest)
 		if err := request.Parse(r.Request.Body); err != nil {
-			r.Error(jerr.Get("error unmarshalling network tx request", err))
+			r.Error(fmt.Errorf("error unmarshalling network tx request; %w", err))
 			return
 		}
 		txBlocks, err := item.GetSingleTxBlocks(request.HashByte)
 		if err != nil {
-			r.Error(jerr.Get("error getting tx blocks for hash", err))
+			r.Error(fmt.Errorf("error getting tx blocks for hash; %w", err))
 			return
 		}*/
 	},

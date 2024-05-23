@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"io"
@@ -31,7 +30,7 @@ type AddrTxs struct {
 func GetHistory(url string, addressUpdates []AddressUpdate) (History, error) {
 	jsonValue, err := GetHistoryQuery(addressUpdates)
 	if err != nil {
-		return nil, jerr.Get("error getting history query", err)
+		return nil, fmt.Errorf("error getting history query; %w", err)
 	}
 	request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
@@ -66,7 +65,7 @@ func GetHistory(url string, addressUpdates []AddressUpdate) (History, error) {
 	for _, v := range dataStruct.Data {
 		address, err := wallet.GetAddrFromString(v.Address)
 		if err != nil {
-			return nil, jerr.Get("error getting address from string for history", err)
+			return nil, fmt.Errorf("error getting address from string for history; %w", err)
 		}
 		history = append(history, AddrTxs{
 			Address: *address,

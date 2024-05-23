@@ -1,15 +1,15 @@
 package saver
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
+	"log"
 )
 
 type Block struct {
@@ -23,7 +23,7 @@ type Block struct {
 func (b *Block) SaveBlock(info dbi.BlockInfo) error {
 	b.BlockHash = info.Header.BlockHash()
 	if err := b.saveBlockObjects(info); err != nil {
-		return jerr.Get("error saving block objects", err)
+		return fmt.Errorf("error saving block objects; %w", err)
 	}
 	return nil
 }
@@ -31,7 +31,7 @@ func (b *Block) SaveBlock(info dbi.BlockInfo) error {
 func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 	var objects = make([]db.Object, 1)
 	if b.Verbose {
-		jlog.Logf("saving block: %s (parent: %s)\n", info.Header.BlockHash(), info.Header.PrevBlock.String())
+		log.Printf("saving block: %s (parent: %s)\n", info.Header.BlockHash(), info.Header.PrevBlock.String())
 	}
 	headerRaw := memo.GetRawBlockHeader(info.Header)
 	objects[0] = &chain.Block{
@@ -46,7 +46,7 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 	} else {
 		parentBlockHeight, err := chain.GetBlockHeight(info.Header.PrevBlock)
 		if err != nil && !client.IsEntryNotFoundError(err) {
-			return jerr.Get("error getting parent block height for potential orphan", err)
+			return fmt.Errorf("error getting parent block height for potential orphan; %w", err)
 		}
 		if parentBlockHeight != nil {
 			parentHeight = parentBlockHeight.Height
@@ -64,7 +64,7 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 	} else {
 		initBlockParent, err := chainhash.NewHashFromStr(config.GetInitBlockParent())
 		if err != nil {
-			return jerr.Get("error parsing init block hash", err)
+			return fmt.Errorf("error parsing init block hash; %w", err)
 		}
 		if *initBlockParent == info.Header.PrevBlock {
 			b.NewHeight = int64(config.GetInitBlockHeight())
@@ -95,12 +95,12 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 		})
 	}
 	if err := db.Save(objects); err != nil {
-		return jerr.Get("error saving new db block objects", err)
+		return fmt.Errorf("error saving new db block objects; %w", err)
 	}
 	if heightBlock != nil {
 		// Save height block afterward to avoid race conditions with listeners not being able to find block info
 		if err := db.Save([]db.Object{heightBlock}); err != nil {
-			return jerr.Get("error saving height block", err)
+			return fmt.Errorf("error saving height block; %w", err)
 		}
 	}
 	return nil
@@ -109,7 +109,7 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 func (b *Block) GetBlock(heightBack int64) (*chainhash.Hash, error) {
 	heightBlock, err := chain.GetRecentHeightBlock()
 	if err != nil {
-		return nil, jerr.Get("error getting recent height block from queue", err)
+		return nil, fmt.Errorf("error getting recent height block from queue; %w", err)
 	}
 	if heightBlock == nil {
 		return nil, nil
@@ -118,8 +118,8 @@ func (b *Block) GetBlock(heightBack int64) (*chainhash.Hash, error) {
 		height := heightBlock.Height - heightBack
 		heightBlock, err = chain.GetHeightBlockSingle(height)
 		if err != nil {
-			return nil, jerr.Getf(err, "error getting height back height block (height: %d, back: %d)",
-				height, heightBack)
+			return nil, fmt.Errorf("error getting height back height block (height: %d, back: %d); %w",
+				height, heightBack, err)
 		}
 	}
 	b.PrevBlockHash = heightBlock.BlockHash

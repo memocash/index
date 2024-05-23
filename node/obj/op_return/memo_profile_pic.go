@@ -3,7 +3,6 @@ package op_return
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
@@ -20,7 +19,7 @@ var memoProfilePicHandler = &Handler{
 				TxHash: info.TxHash,
 				Error:  fmt.Sprintf("invalid set profile pic, incorrect push data (%d)", len(info.PushData)),
 			}); err != nil {
-				return jerr.Get("error saving process error", err)
+				return fmt.Errorf("error saving process error; %w", err)
 			}
 			return nil
 		}
@@ -32,7 +31,7 @@ var memoProfilePicHandler = &Handler{
 			Pic:    pic,
 		}
 		if err := db.Save([]db.Object{addrMemoProfilePic}); err != nil {
-			return jerr.Get("error saving db addr memo profile pic object", err)
+			return fmt.Errorf("error saving db addr memo profile pic object; %w", err)
 		}
 		return nil
 	},

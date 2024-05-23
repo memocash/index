@@ -3,7 +3,7 @@ package network_client
 import (
 	"context"
 	"encoding/hex"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"google.golang.org/grpc"
@@ -54,14 +54,14 @@ func (i *MetricInfo) SetChildren(tree bool) error {
 	metricGetter := NewMetrics()
 	err := metricGetter.GetByParentId(i.Id)
 	if err != nil {
-		return jerr.Get("error getting by parent id", err)
+		return fmt.Errorf("error getting by parent id; %w", err)
 	}
 	i.Children = metricGetter.Infos
 	if tree {
 		for _, child := range i.Children {
 			err := child.SetChildren(tree)
 			if err != nil {
-				return jerr.Getf(err, "error setting children of children: %x", child.Id)
+				return fmt.Errorf("error setting children of children: %x; %w", child.Id, err)
 			}
 		}
 	}
@@ -75,7 +75,7 @@ type Metrics struct {
 func (m *Metrics) GetById(id []byte) error {
 	err := m.Get(id, nil)
 	if err != nil {
-		return jerr.Get("error getting metric by id", err)
+		return fmt.Errorf("error getting metric by id; %w", err)
 	}
 	return nil
 }
@@ -83,7 +83,7 @@ func (m *Metrics) GetById(id []byte) error {
 func (m *Metrics) GetByParentId(parentId []byte) error {
 	err := m.Get(nil, [][]byte{parentId})
 	if err != nil {
-		return jerr.Get("error getting metrics by parent id", err)
+		return fmt.Errorf("error getting metrics by parent id; %w", err)
 	}
 	return nil
 }
@@ -91,14 +91,14 @@ func (m *Metrics) GetByParentId(parentId []byte) error {
 func (m *Metrics) GetTree(parentId []byte) error {
 	err := m.GetById(parentId)
 	if err != nil {
-		return jerr.Get("error getting parent", err)
+		return fmt.Errorf("error getting parent; %w", err)
 	}
 	if len(m.Infos) != 1 {
-		return jerr.Newf("error unexpected number of infos: %d", len(m.Infos))
+		return fmt.Errorf("error unexpected number of infos: %d", len(m.Infos))
 	}
 	err = m.Infos[0].SetChildren(true)
 	if err != nil {
-		return jerr.Get("error setting info children", err)
+		return fmt.Errorf("error setting info children; %w", err)
 	}
 	return nil
 }
@@ -106,11 +106,11 @@ func (m *Metrics) GetTree(parentId []byte) error {
 func (m *Metrics) Get(id []byte, parentIds [][]byte) error {
 	rpcConfig := GetConfig()
 	if !rpcConfig.IsSet() {
-		return jerr.New("error config not set")
+		return fmt.Errorf("error config not set")
 	}
 	conn, err := grpc.Dial(rpcConfig.String(), grpc.WithInsecure())
 	if err != nil {
-		return jerr.Get("error dial grpc did not connect network", err)
+		return fmt.Errorf("error dial grpc did not connect network; %w", err)
 	}
 	defer conn.Close()
 	c := network_pb.NewNetworkClient(conn)
@@ -121,7 +121,7 @@ func (m *Metrics) Get(id []byte, parentIds [][]byte) error {
 		Parents: parentIds,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network balance by address", err)
+		return fmt.Errorf("error getting rpc network balance by address; %w", err)
 	}
 	for _, info := range metricList.Infos {
 		m.Infos = append(m.Infos, &MetricInfo{

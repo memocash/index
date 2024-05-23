@@ -2,11 +2,11 @@ package node
 
 import (
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/config"
+	"log"
 )
 
 var foundPeersRoute = admin.Route{
@@ -14,7 +14,7 @@ var foundPeersRoute = admin.Route{
 	Handler: func(r admin.Response) {
 		var request = new(admin.NodeFoundPeersRequest)
 		if err := json.NewDecoder(r.Request.Body).Decode(request); err != nil {
-			jerr.Get("error unmarshalling found peers request", err).Print()
+			log.Printf("error unmarshalling found peers request; %v", err)
 			return
 		}
 		var foundFoundPeers []*item.FoundPeer
@@ -24,7 +24,7 @@ var foundPeersRoute = admin.Route{
 		for {
 			foundPeers, err := item.GetFoundPeers(shard, startId, request.Ip, request.Port)
 			if err != nil {
-				jerr.Get("fatal error getting found peers", err).Fatal()
+				log.Fatalf("fatal error getting found peers; %v", err)
 			}
 			for _, foundPeer := range foundPeers {
 				foundFoundPeers = append(foundFoundPeers, foundPeer)
@@ -43,7 +43,7 @@ var foundPeersRoute = admin.Route{
 			FoundPeers: foundFoundPeers,
 		}
 		if err := json.NewEncoder(r.Writer).Encode(foundPeersResponse); err != nil {
-			jerr.Get("error marshalling and writing found peers response data", err).Print()
+			log.Printf("error marshalling and writing found peers response data; %v", err)
 			return
 		}
 	},

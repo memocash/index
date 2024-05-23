@@ -1,8 +1,7 @@
 package server
 
 import (
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/admin/server/graphql"
 	"github.com/memocash/index/admin/server/network"
@@ -10,6 +9,7 @@ import (
 	"github.com/memocash/index/admin/server/topic"
 	"github.com/memocash/index/node"
 	"github.com/memocash/index/ref/config"
+	"log"
 	"net"
 	"net/http"
 )
@@ -32,10 +32,10 @@ var routes = admin.Routes([]admin.Route{
 
 func (s *Server) Run() error {
 	if err := s.Start(); err != nil {
-		return jerr.Get("error starting admin server", err)
+		return fmt.Errorf("error starting admin server; %w", err)
 	}
 	// Serve always returns an error
-	return jerr.Get("error serving admin server", s.Serve())
+	return fmt.Errorf("error serving admin server; %w", s.Serve())
 }
 
 func (s *Server) Start() error {
@@ -53,21 +53,21 @@ func (s *Server) Start() error {
 	}
 	graphqlHandler, err := graphql.GetHandler()
 	if err != nil {
-		return jerr.Get("error getting graphql handler", err)
+		return fmt.Errorf("error getting graphql handler; %w", err)
 	}
 	mux.HandleFunc(admin.UrlGraphql, getHandler(graphqlHandler.ServeHTTP, true))
 	s.server = http.Server{Handler: mux}
 	if s.listener, err = net.Listen("tcp", config.GetHost(s.Port)); err != nil {
-		return jerr.Get("failed to listen admin server", err)
+		return fmt.Errorf("failed to listen admin server; %w", err)
 	}
 	return nil
 }
 
 func (s *Server) Serve() error {
 	if err := s.server.Serve(s.listener); err != nil {
-		return jerr.Get("error listening and serving admin server", err)
+		return fmt.Errorf("error listening and serving admin server; %w", err)
 	}
-	return jerr.New("error admin server disconnected")
+	return fmt.Errorf("error admin server disconnected")
 }
 
 func NewServer(group *node.Group) *Server {
@@ -85,6 +85,6 @@ func getHandler(handler func(http.ResponseWriter, *http.Request), corsAllOrigins
 			h.Set("Access-Control-Allow-Headers", "Content-Type, Server")
 		}
 		handler(w, r)
-		jlog.Logf("Processed admin request: %s\n", r.URL)
+		log.Printf("Processed admin request: %s\n", r.URL)
 	}
 }

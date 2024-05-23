@@ -11,7 +11,7 @@ import (
 
 type TokenSendTest struct {
 	Request  build.TokenSendRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 
@@ -83,7 +83,7 @@ func TestTokenSendNotEnoughTokenValue(t *testing.T) {
 			TokenType: memo.SlpDefaultTokenType,
 			Quantity:  10,
 		},
-		Error: gen.NotEnoughTokenValueErrorText,
+		Error: gen.NotEnoughTokenValueError,
 	}.Test(t)
 }
 
@@ -102,6 +102,6 @@ func TestTokenSendNotEnoughValue(t *testing.T) {
 			TokenType: memo.SlpDefaultTokenType,
 			Quantity:  5,
 		},
-		Error: gen.NotEnoughValueErrorText,
+		Error: gen.NotEnoughValueError,
 	}.Test(t)
 }

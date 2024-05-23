@@ -1,8 +1,8 @@
 package script
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/txscript"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -12,7 +12,7 @@ type P2pkh struct {
 
 func (p P2pkh) Get() ([]byte, error) {
 	if len(p.PkHash) != memo.PkHashLength {
-		return nil, jerr.Newf("invalid pk hash length: %d (expected %d)", len(p.PkHash), memo.PkHashLength)
+		return nil, fmt.Errorf("invalid pk hash length: %d (expected %d)", len(p.PkHash), memo.PkHashLength)
 	}
 	pkScript, err := txscript.NewScriptBuilder().
 		AddOp(txscript.OP_DUP).
@@ -22,7 +22,7 @@ func (p P2pkh) Get() ([]byte, error) {
 		AddOp(txscript.OP_CHECKSIG).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error building p2pkh script", err)
+		return nil, fmt.Errorf("error building p2pkh script; %w", err)
 	}
 	return pkScript, nil
 }

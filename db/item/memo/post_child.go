@@ -2,7 +2,7 @@ package memo
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -52,7 +52,7 @@ func GetPostChildren(ctx context.Context, postTxHash [32]byte) ([]*PostChild, er
 		Topic:    db.TopicMemoPostChild,
 		Prefixes: [][]byte{jutil.ByteReverse(postTxHash[:])},
 	}); err != nil {
-		return nil, jerr.Get("error getting client message memo post children", err)
+		return nil, fmt.Errorf("error getting client message memo post children; %w", err)
 	}
 	var postChildren = make([]*PostChild, len(dbClient.Messages))
 	for i := range dbClient.Messages {
@@ -80,7 +80,7 @@ func ListenPostChildren(ctx context.Context, postTxHashes [][32]byte) (chan *Pos
 		dbClient := client.NewClient(config.GetShardConfig(shard, shardConfigs).GetHost())
 		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicMemoPostChild, prefixes)
 		if err != nil {
-			return nil, jerr.Get("error listening to db memo post child by prefix", err)
+			return nil, fmt.Errorf("error listening to db memo post child by prefix; %w", err)
 		}
 		go func() {
 			for msg := range chanMessage {

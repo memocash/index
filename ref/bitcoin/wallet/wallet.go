@@ -2,22 +2,22 @@ package wallet
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/jchavannes/go-mnemonic/bip39"
-	"github.com/jchavannes/jgo/jerr"
 )
 
 func GetWallet(mnemonicPhrase string, passphrase string) (Wallet, error) {
 	mnemonic, err := bip39.NewMnemonicFromSentence(mnemonicPhrase, passphrase)
 	if err != nil {
-		return Wallet{}, jerr.Get("error getting mnemonic from sentence", err)
+		return Wallet{}, fmt.Errorf("error getting mnemonic from sentence; %w", err)
 	}
 	entropyHex, err := mnemonic.GetEntropyStrHex()
 	if err != nil {
-		return Wallet{}, jerr.Get("error getting entropy from mnemonic", err)
+		return Wallet{}, fmt.Errorf("error getting entropy from mnemonic; %w", err)
 	}
 	entropy, err := hex.DecodeString(entropyHex)
 	if err != nil {
-		return Wallet{}, jerr.Get("error decoding entropy hex", err)
+		return Wallet{}, fmt.Errorf("error decoding entropy hex; %w", err)
 	}
 	return Wallet{
 		Entropy:    entropy,
@@ -37,11 +37,11 @@ func (w *Wallet) GetEntropy() string {
 func (w *Wallet) GetSeed() (string, error) {
 	mnemonic, err := bip39.NewMnemonicFromEntropy(w.Entropy, w.Passphrase)
 	if err != nil {
-		return "", jerr.Get("error getting mnemonic from entropy", err)
+		return "", fmt.Errorf("error getting mnemonic from entropy; %w", err)
 	}
 	seed, err := mnemonic.GetSeed()
 	if err != nil {
-		return "", jerr.Get("error getting seed from mnemonic", err)
+		return "", fmt.Errorf("error getting seed from mnemonic; %w", err)
 	}
 	return seed, nil
 }

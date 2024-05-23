@@ -2,7 +2,7 @@ package slp
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -65,7 +65,7 @@ func GetOutputs(ctx context.Context, outs []memo.Out) ([]*Output, error) {
 	}
 	messages, err := db.GetSpecific(ctx, db.TopicSlpOutput, shardUids)
 	if err != nil {
-		return nil, jerr.Get("error getting slp outputs", err)
+		return nil, fmt.Errorf("error getting slp outputs; %w", err)
 	}
 	var outputs []*Output
 	for i := range messages {

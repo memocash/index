@@ -1,7 +1,7 @@
 package gen
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
@@ -14,16 +14,16 @@ func Tx(request TxRequest) (*memo.Tx, error) {
 	}
 	msgTx, err := create.Build()
 	if err != nil {
-		return nil, jerr.Get("error building tx in generator", err)
+		return nil, fmt.Errorf("error building tx in generator; %w", err)
 	}
 	err = create.Sign(msgTx, request.KeyRing)
 	if err != nil {
-		return nil, jerr.Get("error signing tx in generator", err)
+		return nil, fmt.Errorf("error signing tx in generator; %w", err)
 	}
 	memoTx := GetMemoTx(msgTx, create.InputsToUse, create.Outputs)
 	err = create.markSpentAndChangeForGetter(memoTx)
 	if err != nil {
-		return nil, jerr.Get("error marking spent and change for getter in generator", err)
+		return nil, fmt.Errorf("error marking spent and change for getter in generator; %w", err)
 	}
 	return memoTx, nil
 }
@@ -36,7 +36,7 @@ func (c *Create) markSpentAndChangeForGetter(memoTx *memo.Tx) error {
 	getter.MarkUTXOsUsed(c.InputsToUse)
 	utxos := script.GetOutputUTXOs(memoTx)
 	if len(utxos) != len(memoTx.Outputs) {
-		return jerr.Newf("error marking change: utxo count (%d) != output count (%d)",
+		return fmt.Errorf("error marking change: utxo count (%d) != output count (%d)",
 			len(utxos), len(memoTx.Outputs))
 	}
 	for i, output := range memoTx.Outputs {

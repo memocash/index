@@ -2,11 +2,10 @@ package peer
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/admin/client/peer"
 	"github.com/spf13/cobra"
+	"log"
 	"net"
 )
 
@@ -15,9 +14,9 @@ var connectDefaultCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		peerConnectDefault := peer.NewConnectDefault()
 		if err := peerConnectDefault.Get(); err != nil {
-			jerr.Get("fatal error getting peer connect", err).Fatal()
+			log.Fatalf("fatal error getting peer connect; %v", err)
 		}
-		jlog.Logf("peerConnect.Message: %s\n", peerConnectDefault.Message)
+		log.Printf("peerConnect.Message: %s\n", peerConnectDefault.Message)
 	},
 }
 
@@ -26,9 +25,9 @@ var connectNextCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		peerConnectNext := peer.NewConnectNext()
 		if err := peerConnectNext.Get(); err != nil {
-			jerr.Get("fatal error getting peer connect next", err).Fatal()
+			log.Fatalf("fatal error getting peer connect next; %v", err)
 		}
-		jlog.Logf("peerConnectNext.Message: %s\n", peerConnectNext.Message)
+		log.Printf("peerConnectNext.Message: %s\n", peerConnectNext.Message)
 	},
 }
 
@@ -36,18 +35,18 @@ var connectCmd = &cobra.Command{
 	Use: "connect",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 2 {
-			jerr.Newf("error must give node ip and port").Fatal()
+			log.Fatalf("error must give node ip and port")
 		}
 		ip := net.ParseIP(args[0])
 		if ip == nil {
-			jerr.Newf("fatal error unable to parse ip").Fatal()
+			log.Fatalf("fatal error unable to parse ip")
 		}
 		port := jutil.GetUInt16FromString(args[1])
 		peerConnect := peer.NewConnect()
 		if err := peerConnect.Connect(ip, port); err != nil {
-			jerr.Get("fatal error getting peer connect", err).Fatal()
+			log.Fatalf("fatal error getting peer connect; %v", err)
 		}
-		jlog.Logf("peerConnect.Message: %s\n", peerConnect.Message)
+		log.Printf("peerConnect.Message: %s\n", peerConnect.Message)
 	},
 }
 
@@ -56,9 +55,9 @@ var listConnectionsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		listConnections := peer.NewListConnections()
 		if err := listConnections.List(); err != nil {
-			jerr.Get("fatal error getting peer connection list", err).Fatal()
+			log.Fatalf("fatal error getting peer connection list; %v", err)
 		}
-		jlog.Logf("listConnections.Connections:\n%s\n", listConnections.Connections)
+		log.Printf("listConnections.Connections:\n%s\n", listConnections.Connections)
 	},
 }
 
@@ -67,9 +66,9 @@ var historyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		history := peer.NewHistory()
 		if err := history.Get(); err != nil {
-			jerr.Get("fatal error getting peer history", err).Fatal()
+			log.Fatalf("fatal error getting peer history; %v", err)
 		}
-		jlog.Logf("history.Connections (%d):\n", len(history.Connections))
+		log.Printf("history.Connections (%d):\n", len(history.Connections))
 		for i := 0; i < len(history.Connections) && i < 10; i++ {
 			conn := history.Connections[i]
 			fmt.Printf("Peer connection: %s:%d - %s - %d\n", conn.Ip, conn.Port,

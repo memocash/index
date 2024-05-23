@@ -2,11 +2,11 @@ package node
 
 import (
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/ref/config"
+	"log"
 	"net"
 )
 
@@ -15,7 +15,7 @@ var historyRoute = admin.Route{
 	Handler: func(r admin.Response) {
 		var historyRequest = new(admin.NodeHistoryRequest)
 		if err := json.NewDecoder(r.Request.Body).Decode(historyRequest); err != nil {
-			jerr.Get("error unmarshalling node history request", err).Print()
+			log.Printf("error unmarshalling node history request; %v", err)
 			return
 		}
 		var foundPeerConnections []*item.PeerConnection
@@ -30,7 +30,7 @@ var historyRoute = admin.Route{
 				Port:    historyRequest.Port,
 			})
 			if err != nil {
-				jerr.Get("fatal error getting peer connections", err).Fatal()
+				log.Fatalf("fatal error getting peer connections; %v", err)
 			}
 			for _, peerConnection := range peerConnections {
 				if !historyRequest.SuccessOnly || peerConnection.Status == item.PeerConnectionStatusSuccess {
@@ -60,7 +60,7 @@ var historyRoute = admin.Route{
 			Connections: connections,
 		}
 		if err := json.NewEncoder(r.Writer).Encode(historyResponse); err != nil {
-			jerr.Get("error marshalling and writing history response data", err).Print()
+			log.Printf("error marshalling and writing history response data; %v", err)
 			return
 		}
 	},

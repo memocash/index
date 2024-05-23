@@ -9,7 +9,7 @@ import (
 
 type LinkRevokeTest struct {
 	Request  build.LinkRevokeRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

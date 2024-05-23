@@ -7,11 +7,11 @@ package admin
 
 func (r *NetworkTxRequest) Parse(reader io.Reader) error {
 	if err := json.NewDecoder(reader).Decode(r); err != nil {
-		return jerr.Get("error unmarshalling network tx request", err)
+		return fmt.Errorf("error unmarshalling network tx request; %w", err)
 	}
 	hash, err := chainhash.NewHashFromStr(r.Hash)
 	if err != nil {
-		return jerr.Get("error parsing tx hash for network request", err)
+		return fmt.Errorf("error parsing tx hash for network request; %w", err)
 	}
 	r.HashByte = hash.CloneBytes()
 	return nil

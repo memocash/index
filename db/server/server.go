@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/metric"
 	"github.com/memocash/index/db/proto/queue_pb"
@@ -36,7 +36,7 @@ func (s *Server) SaveMessages(_ context.Context, messages *queue_pb.Messages) (*
 	err := s.queueSaveMessage(msgs)
 	var errMsg string
 	if err != nil {
-		errMsg = jerr.Get("error queueing message", err).Error()
+		errMsg = fmt.Errorf("error queueing message; %w", err).Error()
 	}
 	return &queue_pb.ErrorReply{
 		Error: errMsg,
@@ -45,7 +45,7 @@ func (s *Server) SaveMessages(_ context.Context, messages *queue_pb.Messages) (*
 
 func (s *Server) DeleteMessages(ctx context.Context, request *queue_pb.MessageUids) (*queue_pb.ErrorReply, error) {
 	if err := store.DeleteMessages(request.GetTopic(), s.Shard, request.GetUids()); err != nil {
-		return nil, jerr.Get("error deleting messages for topic", err)
+		return nil, fmt.Errorf("error deleting messages for topic; %w", err)
 	}
 	return &queue_pb.ErrorReply{}, nil
 }
@@ -61,7 +61,7 @@ func (s *Server) StartMessageChan() {
 func (s *Server) execSaveMessage(msgDone *MsgDone) error {
 	err := s.SaveMsgs(msgDone.Msgs)
 	if err != nil {
-		return jerr.Get("error setting message", err)
+		return fmt.Errorf("error setting message; %w", err)
 	}
 	return nil
 }
@@ -77,7 +77,7 @@ func (s *Server) SaveMsgs(msgs []*Msg) error {
 	for topic, messagesToSave := range topicMessagesToSave {
 		err := store.SaveMessages(topic, s.Shard, messagesToSave)
 		if err != nil {
-			return jerr.Getf(err, "error saving messages for topic: %s", topic)
+			return fmt.Errorf("error saving messages for topic: %s; %w", topic, err)
 		}
 		for _, message := range messagesToSave {
 			ReceiveNew(s.Shard, topic, message.Uid)
@@ -96,18 +96,18 @@ func (s *Server) queueSaveMessage(msgs []*Msg) error {
 	case s.MsgDoneChan <- msgDone:
 		err := <-msgDone.Done
 		if err != nil {
-			return jerr.Get("error queueing message", err)
+			return fmt.Errorf("error queueing message; %w", err)
 		}
 		return nil
 	case <-time.NewTimer(timeout).C:
-		return jerr.Newf("error queue message timeout (%s)", timeout)
+		return fmt.Errorf("error queue message timeout (%s)", timeout)
 	}
 }
 
 func (s *Server) GetMessage(_ context.Context, request *queue_pb.RequestSingle) (*queue_pb.Message, error) {
 	message, err := store.GetMessage(request.Topic, s.Shard, request.Uid)
 	if err != nil && !store.IsNotFoundError(err) {
-		return nil, jerr.Getf(err, "error getting message for topic: %s, uid: %x", request.Topic, request.Uid)
+		return nil, fmt.Errorf("error getting message for topic: %s, uid: %x; %w", request.Topic, request.Uid, err)
 	}
 	if message == nil {
 		return &queue_pb.Message{}, nil
@@ -125,19 +125,19 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 	if len(request.Uids) > 0 {
 		messages, err = store.GetMessagesByUids(request.Topic, s.Shard, request.Uids)
 		if err != nil {
-			return nil, jerr.Get("error getting messages by uids", err)
+			return nil, fmt.Errorf("error getting messages by uids; %w", err)
 		}
 	} else {
 		for i := 0; i < 2; i++ {
 			messages, err = store.GetMessages(request.Topic, s.Shard, request.Prefixes, request.Start, int(request.Max),
 				request.Newest)
 			if err != nil {
-				return nil, jerr.Getf(err, "error getting messages for topic: %s (shard %d)", request.Topic, s.Shard)
+				return nil, fmt.Errorf("error getting messages for topic: %s (shard %d); %w", request.Topic, s.Shard, err)
 			}
 			if len(messages) == 0 && request.Wait && i == 0 {
 				metric.AddTopicListen(metric.TopicListen{Topic: request.Topic})
 				if err := ListenSingle(ctx, s.Shard, request.Topic, request.Start, request.Prefixes); err != nil {
-					return nil, jerr.Get("error listening for new topic item", err)
+					return nil, fmt.Errorf("error listening for new topic item; %w", err)
 				}
 			} else {
 				break
@@ -171,10 +171,10 @@ func (s *Server) GetStreamMessages(request *queue_pb.RequestStream, server queue
 			}
 			message, err := store.GetMessage(request.Topic, s.Shard, uid)
 			if err != nil {
-				return jerr.Getf(err, "error getting stream message for topic: %s", request.Topic)
+				return fmt.Errorf("error getting stream message for topic: %s; %w", request.Topic, err)
 			}
 			if message == nil {
-				return jerr.Newf("error nil message from store for stream, shard: %d, topic: %s, uid: %x",
+				return fmt.Errorf("error nil message from store for stream, shard: %d, topic: %s, uid: %x",
 					s.Shard, request.Topic, uid)
 			}
 			server.Send(&queue_pb.Message{
@@ -189,7 +189,7 @@ func (s *Server) GetStreamMessages(request *queue_pb.RequestStream, server queue
 func (s *Server) GetMessageCount(ctx context.Context, request *queue_pb.CountRequest) (*queue_pb.TopicCount, error) {
 	count, err := store.GetCount(request.Topic, request.Prefix, s.Shard)
 	if err != nil {
-		return nil, jerr.Get("error getting db count for topic", err)
+		return nil, fmt.Errorf("error getting db count for topic; %w", err)
 	}
 	return &queue_pb.TopicCount{
 		Count: count,
@@ -198,17 +198,17 @@ func (s *Server) GetMessageCount(ctx context.Context, request *queue_pb.CountReq
 
 func (s *Server) Run() error {
 	if err := s.Start(); err != nil {
-		return jerr.Get("error starting db server", err)
+		return fmt.Errorf("error starting db server; %w", err)
 	}
 	// Serve always returns an error
-	return jerr.Get("error serving db server", s.Serve())
+	return fmt.Errorf("error serving db server; %w", s.Serve())
 }
 
 func (s *Server) Start() error {
 	s.Stopped = false
 	var err error
 	if s.listener, err = net.Listen("tcp", GetListenHost(s.Port)); err != nil {
-		return jerr.Get("failed to listen", err)
+		return fmt.Errorf("failed to listen; %w", err)
 	}
 	go s.StartMessageChan()
 	s.Grpc = grpc.NewServer(grpc.MaxRecvMsgSize(client.MaxMessageSize), grpc.MaxSendMsgSize(client.MaxMessageSize))
@@ -219,9 +219,9 @@ func (s *Server) Start() error {
 
 func (s *Server) Serve() error {
 	if err := s.Grpc.Serve(s.listener); err != nil {
-		return jerr.Get("failed to serve", err)
+		return fmt.Errorf("failed to serve; %w", err)
 	}
-	return jerr.New("queue server disconnected")
+	return fmt.Errorf("queue server disconnected")
 }
 
 func (s *Server) Stop() {

@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 )
 
@@ -14,13 +14,13 @@ type PollCreate struct {
 func (c PollCreate) Get() ([]byte, error) {
 	question := []byte(c.Question)
 	if len(question) > memo.MaxPollQuestionSize {
-		return nil, jerr.Newf("error poll question too big (%d)", len(question))
+		return nil, fmt.Errorf("error poll question too big (%d)", len(question))
 	}
 	if len(question) == 0 {
-		return nil, jerr.New("empty question")
+		return nil, fmt.Errorf("empty question")
 	}
 	if c.OptionCount == 0 {
-		return nil, jerr.New("empty option count")
+		return nil, fmt.Errorf("empty option count")
 	}
 	var pollType byte
 	switch c.PollType {
@@ -29,7 +29,7 @@ func (c PollCreate) Get() ([]byte, error) {
 	case memo.PollTypeAny:
 		pollType = memo.CodePollTypeMulti
 	default:
-		return nil, jerr.Newf("invalid poll type (%s)", c.PollType)
+		return nil, fmt.Errorf("invalid poll type (%s)", c.PollType)
 	}
 	pkScript, err := memo.GetBaseOpReturn().
 		AddData(memo.PrefixPollCreate).
@@ -38,7 +38,7 @@ func (c PollCreate) Get() ([]byte, error) {
 		AddData(question).
 		Script()
 	if err != nil {
-		return nil, jerr.Get("error building poll create script", err)
+		return nil, fmt.Errorf("error building poll create script; %w", err)
 	}
 	return pkScript, nil
 }

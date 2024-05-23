@@ -8,7 +8,7 @@ import (
 
 type PostTest struct {
 	Request  build.PostRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

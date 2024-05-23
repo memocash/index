@@ -2,9 +2,9 @@ package topic
 
 import (
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/admin"
 	"github.com/memocash/index/db/item"
+	"log"
 )
 
 var listRoute = admin.Route{
@@ -19,7 +19,7 @@ var listRoute = admin.Route{
 			}
 		}
 		if err := json.NewEncoder(r.Writer).Encode(topicListResponse); err != nil {
-			jerr.Get("error writing json topic list response data", err).Print()
+			log.Printf("error writing json topic list response data; %v", err)
 			return
 		}
 	},

@@ -2,7 +2,6 @@ package queue
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
 	"time"
@@ -24,7 +23,7 @@ func (a *Add) Add(items []Item) error {
 		}
 	}
 	if err := db.Save(messages, time.Now()); err != nil {
-		return jerr.Get("error saving queue client messages", err)
+		return fmt.Errorf("error saving queue client messages; %w", err)
 	}
 	return nil
 }

@@ -12,7 +12,7 @@ import (
 
 type TokenSellSignatureTest struct {
 	Request  build.TokenSellSignatureRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

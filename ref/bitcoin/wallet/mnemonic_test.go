@@ -1,11 +1,11 @@
 package wallet_test
 
 import (
+	"fmt"
 	"github.com/jchavannes/go-mnemonic/bip39"
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_wallet"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 	"testing"
 )
 
@@ -43,21 +43,21 @@ var pathTests = []PathTest{{
 func TestMnemonic(t *testing.T) {
 	bip39mnemonic, err := bip39.NewMnemonicFromSentence(Mnemonic, "")
 	if err != nil {
-		t.Error(jerr.Get("error getting mnemonic", err))
+		t.Error(fmt.Errorf("error getting mnemonic; %w", err))
 		return
 	}
 	var mnemonic = wallet.Mnemonic{Mnemonic: *bip39mnemonic}
 	for _, pathTest := range pathTests {
 		child, err := mnemonic.GetPath(pathTest.Path)
 		if err != nil {
-			t.Error(jerr.Get("error getting child key from mnemonic", err))
+			t.Error(fmt.Errorf("error getting child key from mnemonic; %w", err))
 			return
 		}
 		childAddress := child.GetPublicKey().GetAddress().GetEncoded()
 		if childAddress != pathTest.Address {
-			t.Error(jerr.Newf("child address %s does not match expected %s", childAddress, pathTest.Address))
+			t.Error(fmt.Errorf("child address %s does not match expected %s", childAddress, pathTest.Address))
 		} else if testing.Verbose() {
-			jlog.Logf("childAddress: %s, expected: %s\n", childAddress, pathTest.Address)
+			log.Printf("childAddress: %s, expected: %s\n", childAddress, pathTest.Address)
 		}
 	}
 }

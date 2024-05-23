@@ -3,7 +3,6 @@ package memo
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -62,10 +61,10 @@ func GetAddrName(ctx context.Context, addr [25]byte) (*AddrName, error) {
 		Newest:   true,
 		Context:  ctx,
 	}); err != nil {
-		return nil, jerr.Get("error getting db addr memo name by prefix", err)
+		return nil, fmt.Errorf("error getting db addr memo name by prefix; %w", err)
 	}
 	if len(dbClient.Messages) == 0 {
-		return nil, jerr.Get("error no addr memo names found", client.EntryNotFoundError)
+		return nil, fmt.Errorf("error no addr memo names found; %w", client.EntryNotFoundError)
 	}
 	var addrName = new(AddrName)
 	db.Set(addrName, dbClient.Messages[0])

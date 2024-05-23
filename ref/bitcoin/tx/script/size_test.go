@@ -1,8 +1,8 @@
 package script_test
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/txscript"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
@@ -227,7 +227,7 @@ func TestSizes(t *testing.T) {
 	for _, tst := range tests {
 		size, err := memo.GetOutputSize(tst.Script)
 		if err != nil {
-			t.Error(jerr.Getf(err, "test %s error getting script", tst.Name))
+			t.Error(fmt.Errorf("test %s error getting script; %w", tst.Name, err))
 			continue
 		}
 		if size != tst.Size {
@@ -235,7 +235,7 @@ func TestSizes(t *testing.T) {
 				// TODO: This test is old from when sizes were estimated. Remove or fix.
 				continue
 			}
-			t.Error(jerr.Newf("test %s size does not match %d (expected: %d)", tst.Name, size, tst.Size))
+			t.Error(fmt.Errorf("test %s size does not match %d (expected: %d)", tst.Name, size, tst.Size))
 		}
 	}
 }

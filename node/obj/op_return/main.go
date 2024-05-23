@@ -3,7 +3,7 @@ package op_return
 import (
 	"bytes"
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 )
@@ -21,10 +21,10 @@ func (h *Handler) CanHandle(pkScript []byte) bool {
 
 func (h *Handler) Handle(ctx context.Context, info parse.OpReturn) error {
 	if h.handle == nil {
-		return jerr.Newf("error handler not set (prefix: %x)", h.prefix)
+		return fmt.Errorf("error handler not set (prefix: %x)", h.prefix)
 	}
 	if err := h.handle(ctx, info); err != nil {
-		return jerr.Getf(err, "error processing op return handler (prefix: %x)", h.prefix)
+		return fmt.Errorf("error processing op return handler (prefix: %x); %w", h.prefix, err)
 	}
 	return nil
 }
@@ -47,7 +47,7 @@ func GetHandlers() ([]*Handler, error) {
 	for _, opReturn := range handlers {
 		prefixScript, err := memo.GetBaseOpReturn().AddData(opReturn.prefix).Script()
 		if err != nil {
-			return nil, jerr.Get("error getting script for memo code", err)
+			return nil, fmt.Errorf("error getting script for memo code; %w", err)
 		}
 		opReturn.prefixScript = prefixScript
 	}

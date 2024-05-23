@@ -2,8 +2,8 @@ package server
 
 import (
 	"encoding/json"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/admin/admin"
+	"log"
 )
 
 var indexRoute = admin.Route{
@@ -16,7 +16,7 @@ var indexRoute = admin.Route{
 			Name:    "Memo Admin",
 			Version: "0.1",
 		}); err != nil {
-			jerr.Get("error marshalling and writing memo admin version", err).Print()
+			log.Printf("error marshalling and writing memo admin version; %v", err)
 			return
 		}
 	},

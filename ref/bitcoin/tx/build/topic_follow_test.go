@@ -8,7 +8,7 @@ import (
 
 type TopicFollowTest struct {
 	Request  build.TopicFollowRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

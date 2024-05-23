@@ -11,7 +11,7 @@ import (
 
 type LikeTest struct {
 	Request  build.LikeRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

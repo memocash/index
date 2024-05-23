@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 )
@@ -20,7 +20,7 @@ func FollowUser(request FollowUserRequest) ([]*memo.Tx, error) {
 		},
 	}})
 	if err != nil {
-		return nil, jerr.Get("error building user follow tx", err)
+		return nil, fmt.Errorf("error building user follow tx; %w", err)
 	}
 	return txs, nil
 }

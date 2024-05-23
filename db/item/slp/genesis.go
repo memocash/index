@@ -2,7 +2,7 @@ package slp
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -76,7 +76,7 @@ func GetGeneses(ctx context.Context, txHashes [][32]byte) ([]*Genesis, error) {
 	}
 	messages, err := db.GetSpecific(ctx, db.TopicSlpGenesis, shardUids)
 	if err != nil {
-		return nil, jerr.Get("error getting slp geneses", err)
+		return nil, fmt.Errorf("error getting slp geneses; %w", err)
 	}
 	var geneses []*Genesis
 	for i := range messages {

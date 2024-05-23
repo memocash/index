@@ -3,12 +3,12 @@ package wallet
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/jchavannes/bchutil"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcutil"
-	"github.com/jchavannes/jgo/jerr"
 	"strings"
 )
 
@@ -26,7 +26,7 @@ func GetAddress(pubKey []byte) Address {
 	}
 	addr, err := btcutil.NewAddressPubKey(pubKey, GetMainNetParams())
 	if err != nil {
-		//fmt.Println(jerr.Get("error getting address", err))
+		//fmt.Println(fmt.Errorf("error getting address; %w", err))
 		return Address{}
 	}
 	address, err := btcutil.DecodeAddress(addr.EncodeAddress(), GetMainNetParams())
@@ -45,7 +45,6 @@ func GetAddressFromString(addressString string) Address {
 	}
 	address, err := GetAddressFromStringErr(addressString)
 	if err != nil {
-		jerr.Get("error getting address from string", err).PrintWithStack()
 		return Address{}
 	}
 	return *address
@@ -61,18 +60,18 @@ func GetAddressFromStringErr(addressString string) (*Address, error) {
 			}
 		}
 		if err != nil {
-			return nil, jerr.Getf(err, "error decoding address: %s", addressString)
+			return nil, fmt.Errorf("error decoding address: %s; %w", addressString, err)
 		}
 		if strings.HasPrefix(addressString, "p") || strings.HasPrefix(addressString, "simpleledger:p") ||
 			strings.HasPrefix(addressString, "bitcoincash:p") || strings.HasPrefix(addressString, "bitcoin:p") {
 			address, err = btcutil.NewAddressScriptHashFromHash(address.ScriptAddress(), GetMainNetParams())
 			if err != nil {
-				return nil, jerr.Getf(err, "error getting p2sh address: %s", addressString)
+				return nil, fmt.Errorf("error getting p2sh address: %s; %w", addressString, err)
 			}
 		} else {
 			address, err = btcutil.NewAddressPubKeyHash(address.ScriptAddress(), GetMainNetParams())
 			if err != nil {
-				return nil, jerr.Getf(err, "error getting btc address from bch address: %s", addressString)
+				return nil, fmt.Errorf("error getting btc address from bch address: %s; %w", addressString, err)
 			}
 		}
 	}
@@ -84,7 +83,7 @@ func GetAddressFromStringErr(addressString string) (*Address, error) {
 func GetAddressFromPkHash(pkHash []byte) Address {
 	addr, err := btcutil.NewAddressPubKeyHash(pkHash, GetMainNetParams())
 	if err != nil {
-		//fmt.Println(jerr.Get("error getting address", err))
+		//fmt.Println(fmt.Errorf("error getting address; %w", err))
 		return Address{}
 	}
 	address, err := btcutil.DecodeAddress(addr.EncodeAddress(), GetMainNetParams())
@@ -119,7 +118,7 @@ func GetAddressesForPkHashes(pkHashes [][]byte) ([]Address, error) {
 		}
 		address, err := GetAddressFromPkHashNew(pkHash)
 		if err != nil {
-			return nil, jerr.Getf(err, "error getting address from pkHash (%x)", pkHash)
+			return nil, fmt.Errorf("error getting address from pkHash (%x); %w", pkHash, err)
 		}
 		addresses = append(addresses, address)
 	}
@@ -131,15 +130,15 @@ const (
 	NoAddressesErrorMsg      = "error unable to find any addresses"
 )
 
-var tooManyAddressesError = jerr.New(TooManyAddressesErrorMsg)
-var noAddressesError = jerr.New(NoAddressesErrorMsg)
+var tooManyAddressesError = fmt.Errorf(TooManyAddressesErrorMsg)
+var noAddressesError = fmt.Errorf(NoAddressesErrorMsg)
 
 func IsTooManyAddressesError(err error) bool {
-	return jerr.HasError(err, TooManyAddressesErrorMsg)
+	return errors.Is(err, tooManyAddressesError)
 }
 
 func IsNoAddressesError(err error) bool {
-	return jerr.HasError(err, NoAddressesErrorMsg)
+	return errors.Is(err, noAddressesError)
 }
 
 func IsAddressQuantityError(err error) bool {
@@ -149,12 +148,12 @@ func IsAddressQuantityError(err error) bool {
 func GetAddressFromPkScript(pkScript []byte) (*Address, error) {
 	_, addresses, _, err := txscript.ExtractPkScriptAddrs(pkScript, GetMainNetParams())
 	if err != nil {
-		return nil, jerr.Get("error extracting addresses from pk script", err)
+		return nil, fmt.Errorf("error extracting addresses from pk script; %w", err)
 	}
 	if len(addresses) > 1 {
-		return nil, jerr.Getf(tooManyAddressesError, "unexpected number of addresses (%d)", len(addresses))
+		return nil, fmt.Errorf("unexpected number of addresses (%d); %w", len(addresses), tooManyAddressesError)
 	} else if len(addresses) == 0 {
-		return nil, jerr.Getf(noAddressesError, "error no addresses found")
+		return nil, fmt.Errorf("error no addresses found; %w", noAddressesError)
 	}
 	return &Address{
 		address: addresses[0],
@@ -177,7 +176,7 @@ func GetAddressStringFromPkScript(pkScript []byte) string {
 func GetAddressFromRedeemScript(redeemScript []byte) (*Address, error) {
 	address, err := btcutil.NewAddressScriptHash(redeemScript, GetMainNetParams())
 	if err != nil {
-		return nil, jerr.Get("error getting address script hash from redeem script", err)
+		return nil, fmt.Errorf("error getting address script hash from redeem script; %w", err)
 	}
 	return &Address{
 		address: address,
@@ -195,7 +194,7 @@ func GetAddressFromScriptHash(scriptHash []byte) Address {
 func GetAddressFromScriptHashNew(scriptHash []byte) (*Address, error) {
 	address, err := btcutil.NewAddressScriptHashFromHash(scriptHash, GetMainNetParams())
 	if err != nil {
-		return nil, jerr.Get("error getting address script hash from hash", err)
+		return nil, fmt.Errorf("error getting address script hash from hash; %w", err)
 	}
 	return &Address{
 		address: address,
@@ -205,28 +204,28 @@ func GetAddressFromScriptHashNew(scriptHash []byte) (*Address, error) {
 func GetAddressFromSignatureScript(unlockScript []byte) (*Address, error) {
 	unlockString, err := txscript.DisasmString(unlockScript)
 	if err != nil {
-		return nil, jerr.Get("error disasm unlock script", err)
+		return nil, fmt.Errorf("error disasm unlock script; %w", err)
 	}
 	split := strings.Split(unlockString, " ")
 	if len(split) == 2 {
 		pubKey, err := hex.DecodeString(split[1])
 		if err != nil {
-			return nil, jerr.Get("error decoding pub key", err)
+			return nil, fmt.Errorf("error decoding pub key; %w", err)
 		}
 		address := GetAddress(pubKey)
 		return &address, nil
 	} else if len(split) > 0 {
 		redeemScript, err := hex.DecodeString(split[len(split)-1])
 		if err != nil {
-			return nil, jerr.Get("error decoding script hash", err)
+			return nil, fmt.Errorf("error decoding script hash; %w", err)
 		}
 		address, err := GetAddressFromRedeemScript(redeemScript)
 		if err != nil {
-			return nil, jerr.Get("error getting address from redeem script", err)
+			return nil, fmt.Errorf("error getting address from redeem script; %w", err)
 		}
 		return address, nil
 	}
-	return nil, jerr.Newf("error unexpected number of items in unlock script (%d)", len(split))
+	return nil, fmt.Errorf("error unexpected number of items in unlock script (%d)", len(split))
 }
 
 func GetAddressListPkHashes(addresses []Address) [][]byte {

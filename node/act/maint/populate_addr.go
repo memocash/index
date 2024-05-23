@@ -1,8 +1,7 @@
 package maint
 
 import (
-	"github.com/jchavannes/jgo/jerr"
-	"github.com/jchavannes/jgo/jlog"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
@@ -11,6 +10,7 @@ import (
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
+	"log"
 	"sync"
 	"time"
 )
@@ -74,7 +74,7 @@ func (p *PopulateAddr) Populate(newRun bool) error {
 		for _, shardConfig := range shardConfigs {
 			syncStatus, err := item.GetProcessStatus(uint(shardConfig.Shard), p.GetStatusName())
 			if err != nil && !client.IsMessageNotSetError(err) {
-				return jerr.Get("error getting sync status", err)
+				return fmt.Errorf("error getting sync status; %w", err)
 			} else if syncStatus != nil {
 				p.SetShardStatus(shardConfig.Shard, syncStatus.Status)
 			}
@@ -87,10 +87,10 @@ func (p *PopulateAddr) Populate(newRun bool) error {
 		go func(config config.Shard) {
 			for {
 				if done, err := p.populateShardSingle(config.Shard); done {
-					jlog.Logf("Completed populating addr for shard: %d\n", config.Shard)
+					log.Printf("Completed populating addr for shard: %d\n", config.Shard)
 					wg.Done()
 				} else if err != nil {
-					errChan <- jerr.Getf(err, "error populating addr for shard: %d", config.Shard)
+					errChan <- fmt.Errorf("error populating addr for shard: %d; %w", config.Shard, err)
 				} else {
 					continue
 				}
@@ -107,14 +107,14 @@ func (p *PopulateAddr) Populate(newRun bool) error {
 		select {
 		case err := <-errChan:
 			p.SetHasError(true)
-			return jerr.Get("error populating addr direct", err)
+			return fmt.Errorf("error populating addr direct; %w", err)
 		case <-success:
 			return nil
 		case <-time.NewTimer(time.Second * 10).C:
 			p.mu.Lock()
-			jlog.Logf("Populating addr direct: %d checked, %d saved\n", p.Checked, p.Saved)
+			log.Printf("Populating addr direct: %d checked, %d saved\n", p.Checked, p.Saved)
 			for shard, status := range p.status {
-				jlog.Logf("Shard %d status: %x\n", shard, status.Status)
+				log.Printf("Shard %d status: %x\n", shard, status.Status)
 			}
 			p.mu.Unlock()
 		}
@@ -132,7 +132,7 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 	if p.Inputs {
 		txInputs, err := chain.GetAllTxInputs(shard, shardStatus.Status)
 		if err != nil {
-			return false, jerr.Getf(err, "error getting tx outputs for populate addr shard: %d", shard)
+			return false, fmt.Errorf("error getting tx outputs for populate addr shard: %d; %w", shard, err)
 		}
 		for _, txInput := range txInputs {
 			uid := txInput.GetUid()
@@ -153,7 +153,7 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 	} else {
 		txOutputs, err := chain.GetAllTxOutputs(shard, shardStatus.Status)
 		if err != nil {
-			return false, jerr.Getf(err, "error getting tx outputs for populate addr shard: %d", shard)
+			return false, fmt.Errorf("error getting tx outputs for populate addr shard: %d; %w", shard, err)
 		}
 		for _, txOutput := range txOutputs {
 			uid := txOutput.GetUid()
@@ -177,14 +177,14 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 		objectsToSave = append(objectsToSave, obj)
 	}
 	if err := db.Save(objectsToSave); err != nil {
-		return false, jerr.Get("error saving objects for addr populate single", err)
+		return false, fmt.Errorf("error saving objects for addr populate single; %w", err)
 	}
 	p.mu.Lock()
 	p.Saved += int64(len(objectsToSave))
 	p.Checked += int64(checked)
 	p.mu.Unlock()
 	if err := shardStatus.Save(); err != nil {
-		return false, jerr.Get("error saving process status", err)
+		return false, fmt.Errorf("error saving process status; %w", err)
 	}
 	p.SetShardStatus(shard, shardStatus.Status)
 	return checked < client.HugeLimit, nil

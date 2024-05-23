@@ -2,17 +2,17 @@ package gen_test
 
 import (
 	"fmt"
-	"github.com/jchavannes/jgo/jlog"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 	"testing"
 )
 
 type MultiTest struct {
 	Request  gen.MultiRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 
@@ -20,7 +20,7 @@ func TestMulti(t *testing.T) {
 	for j, multiTest := range multiTests {
 		txs, err := gen.Multi(multiTest.Request)
 		if testing.Verbose() {
-			jlog.Logf("MultiTest %d:\n", j)
+			log.Printf("MultiTest %d:\n", j)
 		}
 		test_tx.Checker{
 			Name:     fmt.Sprintf("TestMulti %d", j),
@@ -34,7 +34,7 @@ func TestMulti(t *testing.T) {
 // No inputs, no signatures - so still works
 var multiTest0empty = MultiTest{
 	Request: gen.MultiRequest{},
-	Error:   gen.NotEnoughValueErrorText,
+	Error:   gen.NotEnoughValueError,
 }
 
 var multiTest1like = MultiTest{
@@ -73,7 +73,7 @@ var multiTest3faucetEmpty = MultiTest{
 		Change:  wallet.GetChange(test_tx.Address2),
 		KeyRing: wallet.GetSingleKeyRing(test_tx.GetPrivateKey(test_tx.Key2String)),
 	},
-	Error: gen.NotEnoughValueErrorText,
+	Error: gen.NotEnoughValueError,
 }
 
 var multiTest4noFaucetChange = MultiTest{
@@ -105,7 +105,7 @@ var multiTest5faucetNotEnoughValue = MultiTest{
 		Change:      wallet.GetChange(test_tx.Address2),
 		KeyRing:     wallet.GetSingleKeyRing(test_tx.GetPrivateKey(test_tx.Key2String)),
 	},
-	Error: gen.BelowDustLimitErrorText,
+	Error: gen.BelowDustLimitError,
 }
 
 var multiTest6maxSend = MultiTest{
@@ -147,7 +147,7 @@ var multiTest7sendTooMuchWithToken = MultiTest{
 		Change:  wallet.GetChange(test_tx.Address1),
 		KeyRing: wallet.GetSingleKeyRing(test_tx.GetPrivateKey(test_tx.Key1String)),
 	},
-	Error: gen.NotEnoughValueErrorText,
+	Error: gen.NotEnoughValueError,
 }
 
 var multiTest8faucetAndTokensLike = MultiTest{

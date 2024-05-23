@@ -1,7 +1,7 @@
 package tasks
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/test/suite"
@@ -19,14 +19,14 @@ var SaveMessage = suite.Test{
 			Created: time.Now(),
 		}}
 		if err := db.Save(messages); err != nil {
-			return jerr.Get("error saving message to client", err)
+			return fmt.Errorf("error saving message to client; %w", err)
 		}
 		message, err := item.GetMessage(0)
 		if err != nil {
-			return jerr.Get("error getting message from client", err)
+			return fmt.Errorf("error getting message from client; %w", err)
 		}
 		if message.Message != TestMessage {
-			return jerr.Newf("error message unexpected: %s", message.Message)
+			return fmt.Errorf("error message unexpected: %s", message.Message)
 		}
 		return nil
 	},

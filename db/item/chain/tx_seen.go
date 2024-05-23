@@ -2,7 +2,7 @@ package chain
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -51,7 +51,7 @@ func GetTxSeens(ctx context.Context, txHashes [][32]byte) ([]*TxSeen, error) {
 	}
 	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxSeen, shardPrefixes)
 	if err != nil {
-		return nil, jerr.Get("error getting client message chain tx seen", err)
+		return nil, fmt.Errorf("error getting client message chain tx seen; %w", err)
 	}
 	var txSeens []*TxSeen
 	for _, msg := range messages {

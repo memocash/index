@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -21,7 +21,7 @@ func Alias(request AliasRequest) (*memo.Tx, error) {
 		},
 	}})
 	if err != nil {
-		return nil, jerr.Get("error building alias tx", err)
+		return nil, fmt.Errorf("error building alias tx; %w", err)
 	}
 	return tx, nil
 }

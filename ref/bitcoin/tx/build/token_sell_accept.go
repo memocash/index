@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
 	"github.com/memocash/index/ref/bitcoin/tx/script"
@@ -46,21 +46,21 @@ func TokenSellAccept(request TokenSellAcceptRequest) (*memo.Tx, error) {
 		KeyRing:     request.Wallet.KeyRing,
 	})
 	if err != nil {
-		return nil, jerr.Get("error building unsigned sell accept tx", err)
+		return nil, fmt.Errorf("error building unsigned sell accept tx; %w", err)
 	}
 	if len(sellAcceptTx.Inputs) < 2 {
-		return nil, jerr.Newf("error sell accept inputs less than 2 (%d)", len(sellAcceptTx.Inputs))
+		return nil, fmt.Errorf("error sell accept inputs less than 2 (%d)", len(sellAcceptTx.Inputs))
 	} else {
 		sellAcceptTx.Inputs[0], sellAcceptTx.Inputs[1] = sellAcceptTx.Inputs[1], sellAcceptTx.Inputs[0]
 		sellAcceptTx.MsgTx.TxIn[0], sellAcceptTx.MsgTx.TxIn[1] = sellAcceptTx.MsgTx.TxIn[1], sellAcceptTx.MsgTx.TxIn[0]
 	}
 	err = gen.AttachSignatureToInput(sellAcceptTx.MsgTx.TxIn[1], request.Signature, request.PkData)
 	if err != nil {
-		return nil, jerr.Get("error attaching sell signature to transaction input", err)
+		return nil, fmt.Errorf("error attaching sell signature to transaction input; %w", err)
 	}
 	err = gen.Sign(sellAcceptTx.MsgTx, gen.GetNonPointerTxInputs(sellAcceptTx.Inputs), request.Wallet.KeyRing)
 	if err != nil {
-		return nil, jerr.Get("error signing rest of token sell accept tx", err)
+		return nil, fmt.Errorf("error signing rest of token sell accept tx; %w", err)
 	}
 	return sellAcceptTx, nil
 }

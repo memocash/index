@@ -1,8 +1,8 @@
 package parse
 
 import (
+	"fmt"
 	"github.com/jchavannes/btcd/txscript"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 )
 
@@ -15,11 +15,11 @@ type SlpSend struct {
 func (c *SlpSend) Parse(pkScript []byte) error {
 	pushData, err := txscript.PushedData(pkScript)
 	if err != nil {
-		return jerr.Get("error parsing pk script push data", err)
+		return fmt.Errorf("error parsing pk script push data; %w", err)
 	}
 	const ExpectedPushDataCount = 5
 	if len(pushData) < ExpectedPushDataCount {
-		return jerr.Newf("error invalid send, incorrect push data (%d), expected %d",
+		return fmt.Errorf("error invalid send, incorrect push data (%d), expected %d",
 			len(pushData), ExpectedPushDataCount)
 	}
 	c.TokenType = uint16(jutil.GetUint64(pushData[1]))

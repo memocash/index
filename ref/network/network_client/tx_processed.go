@@ -1,7 +1,7 @@
 package network_client
 
 import (
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/memocash/index/ref/network/gen/network_pb"
 	"time"
 )
@@ -14,14 +14,14 @@ type TxProcessed struct {
 func (t *TxProcessed) Get(txHash []byte) error {
 	conn, err := NewConnection()
 	if err != nil {
-		return jerr.Get("error connecting to network", err)
+		return fmt.Errorf("error connecting to network; %w", err)
 	}
 	defer conn.Close()
 	response, err := conn.Client.ListenTx(conn.GetDefaultContext(), &network_pb.TxRequest{
 		Hash: txHash,
 	})
 	if err != nil {
-		return jerr.Get("error getting rpc network listen tx", err)
+		return fmt.Errorf("error getting rpc network listen tx; %w", err)
 	}
 	t.Timestamp = time.Unix(response.Timestamp, 0)
 	return nil

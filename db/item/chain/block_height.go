@@ -2,7 +2,7 @@ package chain
 
 import (
 	"context"
-	"github.com/jchavannes/jgo/jerr"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -45,16 +45,16 @@ func GetBlockHeight(blockHash [32]byte) (*BlockHeight, error) {
 	shardConfig := config.GetShardConfig(client.GenShardSource32(blockHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetByPrefix(db.TopicChainBlockHeight, jutil.ByteReverse(blockHash[:])); err != nil {
-		return nil, jerr.Get("error getting client message for block height", err)
+		return nil, fmt.Errorf("error getting client message for block height; %w", err)
 	}
 	if len(dbClient.Messages) == 0 {
-		return nil, jerr.Get("error no clients messages return for block height", client.EntryNotFoundError)
+		return nil, fmt.Errorf("error no clients messages return for block height; %w", client.EntryNotFoundError)
 	} else if len(dbClient.Messages) > 1 {
 		var hashStrings = make([]string, len(dbClient.Messages))
 		for i := range dbClient.Messages {
 			hashStrings[i] = dbClient.Messages[i].UidHex()
 		}
-		return nil, jerr.Newf("error more than 1 block height returned: %d (%s)",
+		return nil, fmt.Errorf("error more than 1 block height returned: %d (%s)",
 			len(dbClient.Messages), strings.Join(hashStrings, ", "))
 	}
 	var blockHeight = new(BlockHeight)
@@ -70,7 +70,7 @@ func GetBlockHeights(ctx context.Context, blockHashes [][32]byte) ([]*BlockHeigh
 	}
 	messages, err := db.GetByPrefixes(ctx, db.TopicChainBlockHeight, shardPrefixes)
 	if err != nil {
-		return nil, jerr.Get("error getting client message chain block heights", err)
+		return nil, fmt.Errorf("error getting client message chain block heights; %w", err)
 	}
 	var blockHeights []*BlockHeight
 	for _, msg := range messages {
@@ -90,7 +90,7 @@ func ListenBlockHeights(ctx context.Context) (chan *BlockHeight, error) {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		chanMessage, err := dbClient.Listen(cancelCtx.Context, db.TopicChainBlockHeight, nil)
 		if err != nil {
-			return nil, jerr.Get("error getting block height listen message chan", err)
+			return nil, fmt.Errorf("error getting block height listen message chan; %w", err)
 		}
 		go func() {
 			defer cancelCtx.Cancel()

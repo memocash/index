@@ -9,7 +9,7 @@ import (
 
 type BitcomTest struct {
 	Request  build.BitcomRequest
-	Error    string
+	Error    error
 	TxHashes []test_tx.TxHash
 }
 

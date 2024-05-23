@@ -2,7 +2,6 @@ package graph
 
 import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/memocash/index/client/lib/graph"
 	"github.com/spf13/cobra"
 	"log"
@@ -13,7 +12,7 @@ var txCmd = &cobra.Command{
 	Use: "tx",
 	Run: func(c *cobra.Command, args []string) {
 		if len(args) < 1 {
-			jerr.New("not enough arguments, must specify tx hash").Fatal()
+			log.Fatalf("not enough arguments, must specify tx hash")
 		}
 		txHash, err := chainhash.NewHashFromStr(args[0])
 		if err != nil {
