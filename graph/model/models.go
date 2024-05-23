@@ -71,6 +71,9 @@ type Follow struct {
 	Address       Address `json:"address"`
 	FollowAddress Address `json:"follow_address"`
 	Unfollow      bool    `json:"unfollow"`
+	Lock          *Lock   `json:"lock"`
+	FollowLock    *Lock   `json:"follow_lock"`
+	Tx            *Tx     `json:"tx"`
 }
 
 type SetName struct {

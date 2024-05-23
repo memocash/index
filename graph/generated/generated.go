@@ -37,7 +37,6 @@ type Config struct {
 }
 
 type ResolverRoot interface {
-	Follow() FollowResolver
 	Like() LikeResolver
 	Mutation() MutationResolver
 	Post() PostResolver
@@ -256,13 +255,6 @@ type ComplexityRoot struct {
 	}
 }
 
-type FollowResolver interface {
-	Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error)
-
-	Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error)
-
-	FollowLock(ctx context.Context, obj *model.Follow) (*model.Lock, error)
-}
 type LikeResolver interface {
 	Tx(ctx context.Context, obj *model.Like) (*model.Tx, error)
 
@@ -2567,7 +2559,7 @@ func (ec *executionContext) _Follow_tx(ctx context.Context, field graphql.Collec
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Follow().Tx(rctx, obj)
+		return obj.Tx, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2588,8 +2580,8 @@ func (ec *executionContext) fieldContext_Follow_tx(ctx context.Context, field gr
 	fc = &graphql.FieldContext{
 		Object:     "Follow",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "hash":
@@ -2673,7 +2665,7 @@ func (ec *executionContext) _Follow_lock(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Follow().Lock(rctx, obj)
+		return obj.Lock, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2694,8 +2686,8 @@ func (ec *executionContext) fieldContext_Follow_lock(ctx context.Context, field 
 	fc = &graphql.FieldContext{
 		Object:     "Follow",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "address":
@@ -2771,7 +2763,7 @@ func (ec *executionContext) _Follow_follow_lock(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Follow().FollowLock(rctx, obj)
+		return obj.FollowLock, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2792,8 +2784,8 @@ func (ec *executionContext) fieldContext_Follow_follow_lock(ctx context.Context,
 	fc = &graphql.FieldContext{
 		Object:     "Follow",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "address":
@@ -11682,92 +11674,53 @@ func (ec *executionContext) _Follow(ctx context.Context, sel ast.SelectionSet, o
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Follow")
 		case "tx":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Follow_tx(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Follow_tx(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "tx_hash":
 
 			out.Values[i] = ec._Follow_tx_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "lock":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Follow_lock(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Follow_lock(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "address":
 
 			out.Values[i] = ec._Follow_address(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "follow_lock":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Follow_follow_lock(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Follow_follow_lock(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "follow_address":
 
 			out.Values[i] = ec._Follow_follow_address(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "unfollow":
 
 			out.Values[i] = ec._Follow_unfollow(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

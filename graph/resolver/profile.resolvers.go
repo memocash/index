@@ -16,33 +16,6 @@ import (
 )
 
 // Tx is the resolver for the tx field.
-func (r *followResolver) Tx(ctx context.Context, obj *model.Follow) (*model.Tx, error) {
-	tx, err := load.GetTx(ctx, obj.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("error getting tx from loader for follow resolver: %s; %w", obj.TxHash, err)
-	}
-	return tx, nil
-}
-
-// Lock is the resolver for the lock field.
-func (r *followResolver) Lock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
-	lock, err := load.GetLock(ctx, obj.Address)
-	if err != nil {
-		return nil, fmt.Errorf("error getting lock from loader for follow resolver: %s; %w", obj.TxHash, err)
-	}
-	return lock, nil
-}
-
-// FollowLock is the resolver for the follow_lock field.
-func (r *followResolver) FollowLock(ctx context.Context, obj *model.Follow) (*model.Lock, error) {
-	lock, err := load.GetLock(ctx, obj.FollowAddress)
-	if err != nil {
-		return nil, fmt.Errorf("error getting follow lock from loader for follow resolver: %s; %w", obj.TxHash, err)
-	}
-	return lock, nil
-}
-
-// Tx is the resolver for the tx field.
 func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, error) {
 	tx, err := load.GetTx(ctx, obj.TxHash)
 	if err != nil {
@@ -203,6 +176,9 @@ func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, sta
 			Unfollow:      addrMemoFollow.Unfollow,
 		})
 	}
+	if err := load.AttachToMemoFollows(ctx, load.GetFields(ctx), follows); err != nil {
+		return nil, fmt.Errorf("error attaching to memo following for profile resolver: %s; %w", obj.Address, err)
+	}
 	return follows, nil
 }
 
@@ -224,6 +200,9 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 			FollowAddress: addrMemoFollowed.FollowAddr,
 			Unfollow:      addrMemoFollowed.Unfollow,
 		})
+	}
+	if err := load.AttachToMemoFollows(ctx, load.GetFields(ctx), follows); err != nil {
+		return nil, fmt.Errorf("error attaching to memo followers for profile resolver: %s; %w", obj.Address, err)
 	}
 	return follows, nil
 }
@@ -329,9 +308,6 @@ func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*
 	return lock, nil
 }
 
-// Follow returns generated.FollowResolver implementation.
-func (r *Resolver) Follow() generated.FollowResolver { return &followResolver{r} }
-
 // Like returns generated.LikeResolver implementation.
 func (r *Resolver) Like() generated.LikeResolver { return &likeResolver{r} }
 
@@ -350,7 +326,6 @@ func (r *Resolver) SetPic() generated.SetPicResolver { return &setPicResolver{r}
 // SetProfile returns generated.SetProfileResolver implementation.
 func (r *Resolver) SetProfile() generated.SetProfileResolver { return &setProfileResolver{r} }
 
-type followResolver struct{ *Resolver }
 type likeResolver struct{ *Resolver }
 type postResolver struct{ *Resolver }
 type profileResolver struct{ *Resolver }
