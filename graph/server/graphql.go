@@ -10,6 +10,7 @@ import (
 	"github.com/memocash/index/graph/resolver"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"log"
+	"net"
 	"net/http"
 )
 
@@ -33,6 +34,20 @@ func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 		h.Set("Access-Control-Allow-Origin", "*")
 		h.Set("Access-Control-Allow-Headers", "Content-Type, Server")
 		srv.ServeHTTP(w, r)
-		log.Printf("Processed graph request: /graphql\n")
+		ip := getIpAddress(r)
+		log.Printf("%s /graphql\n", ip)
 	}
+}
+
+func getIpAddress(r *http.Request) string {
+	cfIp := r.Header.Get("CF-Connecting-IP")
+	if cfIp != "" {
+		return cfIp
+	}
+	forwarded := r.Header.Get("X-Forwarded-For")
+	if forwarded != "" {
+		return forwarded
+	}
+	remoteHost, _, _ := net.SplitHostPort(r.RemoteAddr)
+	return remoteHost
 }
