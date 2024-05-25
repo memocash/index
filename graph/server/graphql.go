@@ -12,6 +12,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 )
 
 func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
@@ -30,12 +31,14 @@ func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 		return graphql.DefaultErrorPresenter(ctx, e)
 	})
 	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 		h := w.Header()
 		h.Set("Access-Control-Allow-Origin", "*")
 		h.Set("Access-Control-Allow-Headers", "Content-Type, Server")
 		srv.ServeHTTP(w, r)
 		ip := getIpAddress(r)
-		log.Printf("%s /graphql\n", ip)
+		duration := time.Since(start)
+		log.Printf("%s /graphql %dms\n", ip, duration.Milliseconds())
 	}
 }
 
