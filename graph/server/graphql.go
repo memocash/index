@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	_ "github.com/99designs/gqlgen/graphql/introspection"
@@ -12,13 +13,16 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"time"
 )
 
 func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{}}))
 	srv.SetErrorPresenter(func(ctx context.Context, e error) *gqlerror.Error {
-		log.Printf("error processing request (%s); %v", graphql.GetPath(ctx), e)
+		pathStr := graphql.GetPath(ctx).String()
+		if pathStr != "" {
+			pathStr = " (" + pathStr + ")"
+		}
+		log.Printf("error processing request%s; %v", pathStr, e)
 		var internalError resolver.InternalError
 		if errors.As(e, &internalError) {
 			return &gqlerror.Error{
@@ -31,14 +35,21 @@ func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 		return graphql.DefaultErrorPresenter(ctx, e)
 	})
 	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+		reqLog := NewRequestLog(getIpAddress(r))
+		var wsClose string
+		if r.Header.Get("Upgrade") != "" {
+			wsClose = " [close]"
+			reqLog.Log("/graphql [open]")
+		}
 		h := w.Header()
 		h.Set("Access-Control-Allow-Origin", "*")
 		h.Set("Access-Control-Allow-Headers", "Content-Type, Server")
 		srv.ServeHTTP(w, r)
-		ip := getIpAddress(r)
-		duration := time.Since(start)
-		log.Printf("%s /graphql %dms\n", ip, duration.Milliseconds())
+		var code int
+		if r.Response != nil {
+			code = r.Response.StatusCode
+		}
+		reqLog.Log(fmt.Sprintf("/graphql%s %dms %d\n", wsClose, reqLog.GetDuration().Milliseconds(), code))
 	}
 }
 

@@ -3,8 +3,10 @@ package server
 import (
 	"fmt"
 	"github.com/memocash/index/ref/config"
+	"log"
 	"net"
 	"net/http"
+	"time"
 )
 
 type Server struct {
@@ -44,4 +46,24 @@ func NewServer() *Server {
 	return &Server{
 		Port: config.GetGraphQLPort(),
 	}
+}
+
+type RequestLog struct {
+	Start time.Time
+	Ip    string
+}
+
+func NewRequestLog(ip string) *RequestLog {
+	return &RequestLog{
+		Start: time.Now(),
+		Ip:    ip,
+	}
+}
+
+func (r *RequestLog) Log(urlPlus string) {
+	log.Printf("%s %s\n", r.Ip, urlPlus)
+}
+
+func (r *RequestLog) GetDuration() time.Duration {
+	return time.Since(r.Start)
 }
