@@ -22,7 +22,7 @@ func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 		if pathStr != "" {
 			pathStr = " (" + pathStr + ")"
 		}
-		log.Printf("error processing request%s; %v", pathStr, e)
+		log.Printf("error processing request%s; %v\n", pathStr, e)
 		var internalError resolver.InternalError
 		if errors.As(e, &internalError) {
 			return &gqlerror.Error{
@@ -49,7 +49,7 @@ func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 		if r.Response != nil {
 			code = r.Response.StatusCode
 		}
-		reqLog.Log(fmt.Sprintf("/graphql%s %dms %d\n", wsClose, reqLog.GetDuration().Milliseconds(), code))
+		reqLog.Log(fmt.Sprintf("/graphql%s %dms %d", wsClose, reqLog.GetDuration().Milliseconds(), code))
 	}
 }
 
