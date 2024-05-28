@@ -86,7 +86,7 @@ type ComplexityRoot struct {
 		Address func(childComplexity int) int
 		Balance func(childComplexity int) int
 		Profile func(childComplexity int) int
-		Txs     func(childComplexity int, start *model.Date, tx *string) int
+		Txs     func(childComplexity int, start *model.Date, tx *model.Hash) int
 	}
 
 	Mutation struct {
@@ -519,7 +519,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Lock.Txs(childComplexity, args["start"].(*model.Date), args["tx"].(*string)), true
+		return e.complexity.Lock.Txs(childComplexity, args["start"].(*model.Date), args["tx"].(*model.Hash)), true
 
 	case "Mutation.broadcast":
 		if e.complexity.Mutation.Broadcast == nil {
@@ -1532,7 +1532,7 @@ var sources = []*ast.Source{
     address: Address
     profile: Profile
     balance: Int64!
-    txs(start: Date, tx: String): [Tx!]
+    txs(start: Date, tx: Hash): [Tx!]
 }
 `, BuiltIn: false},
 	{Name: "../schema/mutation.graphqls", Input: `type Mutation {
@@ -1780,10 +1780,10 @@ func (ec *executionContext) field_Lock_txs_args(ctx context.Context, rawArgs map
 		}
 	}
 	args["start"] = arg0
-	var arg1 *string
+	var arg1 *model.Hash
 	if tmp, ok := rawArgs["tx"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tx"))
-		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		arg1, err = ec.unmarshalOHash2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
