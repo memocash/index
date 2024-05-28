@@ -258,9 +258,6 @@ type MutationResolver interface {
 	Broadcast(ctx context.Context, raw string) (bool, error)
 }
 type PostResolver interface {
-	Likes(ctx context.Context, obj *model.Post) ([]*model.Like, error)
-
-	Replies(ctx context.Context, obj *model.Post) ([]*model.Post, error)
 	Room(ctx context.Context, obj *model.Post) (*model.Room, error)
 }
 type ProfileResolver interface {
@@ -1573,6 +1570,7 @@ type Follow {
     unfollow: Boolean!
 }
 
+# TODO: likes/replies need to be paginated
 type Post {
     tx: Tx!
     tx_hash: Hash!
@@ -3762,7 +3760,7 @@ func (ec *executionContext) _Post_likes(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Post().Likes(rctx, obj)
+		return obj.Likes, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3780,8 +3778,8 @@ func (ec *executionContext) fieldContext_Post_likes(ctx context.Context, field g
 	fc = &graphql.FieldContext{
 		Object:     "Post",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -3880,7 +3878,7 @@ func (ec *executionContext) _Post_replies(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Post().Replies(rctx, obj)
+		return obj.Replies, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3898,8 +3896,8 @@ func (ec *executionContext) fieldContext_Post_replies(ctx context.Context, field
 	fc = &graphql.FieldContext{
 		Object:     "Post",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -11910,43 +11908,17 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "likes":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Post_likes(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Post_likes(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "parent":
 
 			out.Values[i] = ec._Post_parent(ctx, field, obj)
 
 		case "replies":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Post_replies(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Post_replies(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "room":
 			field := field
 

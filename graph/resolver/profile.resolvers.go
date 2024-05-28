@@ -8,51 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
 )
-
-// Likes is the resolver for the likes field.
-func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Like, error) {
-	memoPostLikes, err := memo.GetPostLikes(ctx, [][32]byte{obj.TxHash})
-	if err != nil {
-		return nil, fmt.Errorf("error getting memo post likeds for post resolver; %w", err)
-	}
-	var likes = make([]*model.Like, len(memoPostLikes))
-	for i := range memoPostLikes {
-		likes[i] = &model.Like{
-			TxHash:     memoPostLikes[i].LikeTxHash,
-			PostTxHash: memoPostLikes[i].PostTxHash,
-			Address:    memoPostLikes[i].Addr,
-		}
-	}
-	if err := load.AttachToMemoLikes(ctx, load.GetFields(ctx), likes); err != nil {
-		return nil, fmt.Errorf("error attaching to memo likes for post resolver: %s; %w", obj.TxHash, err)
-	}
-	return likes, nil
-}
-
-// Replies is the resolver for the replies field.
-func (r *postResolver) Replies(ctx context.Context, obj *model.Post) ([]*model.Post, error) {
-	postChildren, err := memo.GetPostChildren(ctx, obj.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("error getting memo post children for post resolver; %w", err)
-	}
-	var childrenTxHashes = make([]string, len(postChildren))
-	for i := range postChildren {
-		childrenTxHashes[i] = chainhash.Hash(postChildren[i].ChildTxHash).String()
-	}
-	replies, errs := load.Post.LoadAll(childrenTxHashes)
-	for _, err := range errs {
-		if err != nil {
-			return nil, fmt.Errorf("error getting from post dataloader for post reply resolver: %s; %w", obj.TxHash, err)
-		}
-	}
-	return replies, nil
-}
 
 // Room is the resolver for the room field.
 func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, error) {

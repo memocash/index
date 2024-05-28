@@ -44,20 +44,28 @@ func (c *PostChild) Serialize() []byte {
 
 func (c *PostChild) Deserialize([]byte) {}
 
-func GetPostChildren(ctx context.Context, postTxHash [32]byte) ([]*PostChild, error) {
-	shardConfig := config.GetShardConfig(db.GetShardIdFromByte32(postTxHash[:]), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Context:  ctx,
-		Topic:    db.TopicMemoPostChild,
-		Prefixes: [][]byte{jutil.ByteReverse(postTxHash[:])},
-	}); err != nil {
-		return nil, fmt.Errorf("error getting client message memo post children; %w", err)
+func GetPostsChildren(ctx context.Context, postTxHashes [][32]byte) ([]*PostChild, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
+	for i := range postTxHashes {
+		shard := db.GetShardIdFromByte32(postTxHashes[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHashes[i][:]))
 	}
-	var postChildren = make([]*PostChild, len(dbClient.Messages))
-	for i := range dbClient.Messages {
-		postChildren[i] = new(PostChild)
-		db.Set(postChildren[i], dbClient.Messages[i])
+	var postChildren []*PostChild
+	for shard, prefixes := range shardPrefixes {
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetWOpts(client.Opts{
+			Context:  ctx,
+			Topic:    db.TopicMemoPostChild,
+			Prefixes: prefixes,
+		}); err != nil {
+			return nil, fmt.Errorf("error getting client message memo post children; %w", err)
+		}
+		for _, msg := range dbClient.Messages {
+			var postChild = new(PostChild)
+			db.Set(postChild, msg)
+			postChildren = append(postChildren, postChild)
+		}
 	}
 	return postChildren, nil
 }
