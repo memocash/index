@@ -191,16 +191,12 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []model.Address)
 // Posts is the resolver for the posts field.
 func (r *queryResolver) Posts(ctx context.Context, txHashes []model.Hash) ([]*model.Post, error) {
 	metric.AddGraphQuery(metric.EndPointPosts)
-	var txHashStrings = make([]string, len(txHashes))
-	for i := range txHashes {
-		txHashStrings[i] = txHashes[i].String()
+	var posts []*model.Post
+	for _, txHash := range txHashes {
+		posts = append(posts, &model.Post{TxHash: txHash})
 	}
-	posts, errs := load.Post.LoadAll(txHashStrings)
-	for i, err := range errs {
-		if err != nil {
-			return nil, InternalError{fmt.Errorf(
-				"error getting post from post dataloader for query resolver: %s; %w", txHashes[i], err)}
-		}
+	if err := load.AttachToMemoPosts(ctx, load.GetFields(ctx), posts); err != nil {
+		return nil, InternalError{fmt.Errorf("error attaching to posts for query resolver posts; %w", err)}
 	}
 	return posts, nil
 }
@@ -233,27 +229,14 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 	if err != nil {
 		return nil, InternalError{fmt.Errorf("error getting seen posts for newest graphql query; %w", err)}
 	}
-	var txHashes = make([]string, len(seenPosts))
-	for i := range seenPosts {
-		txHashes[i] = chainhash.Hash(seenPosts[i].PostTxHash).String()
+	var posts []*model.Post
+	for _, seenPost := range seenPosts {
+		posts = append(posts, &model.Post{TxHash: seenPost.PostTxHash})
 	}
-	posts, errs := load.Post.LoadAll(txHashes)
-	for i, err := range errs {
-		if err != nil {
-			return nil, InternalError{fmt.Errorf(
-				"error getting post from post dataloader for query resolver: %s; %w", txHashes[i], err)}
-		}
+	if err := load.AttachToMemoPosts(ctx, load.GetFields(ctx), posts); err != nil {
+		return nil, InternalError{fmt.Errorf("error attaching to posts for query resolver posts newest; %w", err)}
 	}
-	var returnPosts []*model.Post
-	for i := range txHashes {
-		for _, post := range posts {
-			if post.TxHash.String() == txHashes[i] {
-				returnPosts = append(returnPosts, post)
-				break
-			}
-		}
-	}
-	return returnPosts, nil
+	return posts, nil
 }
 
 // Room is the resolver for the room field.

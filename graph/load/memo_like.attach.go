@@ -3,8 +3,6 @@ package load
 import (
 	"context"
 	"fmt"
-	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
 )
 
@@ -18,7 +16,7 @@ func AttachToMemoLikes(ctx context.Context, fields []Field, likes []*model.Like)
 		return nil
 	}
 	o := MemoLikeAttach{
-		baseA:   baseA{Ctx: ctx, Fields: fields},
+		baseA: baseA{Ctx: ctx, Fields: fields},
 		Likes: likes,
 	}
 	o.Wait.Add(3)
@@ -35,7 +33,7 @@ func AttachToMemoLikes(ctx context.Context, fields []Field, likes []*model.Like)
 func (a *MemoLikeAttach) AttachLocks() {
 	defer a.Wait.Done()
 	var allLocks []*model.Lock
-	if a.HasField([]string{"lock"}) {
+	if !a.HasField([]string{"lock"}) {
 		return
 	}
 	a.Mutex.Lock()
@@ -73,34 +71,15 @@ func (a *MemoLikeAttach) AttachPosts() {
 	if !a.HasField([]string{"post"}) {
 		return
 	}
-	var txHashes [][32]byte
 	a.Mutex.Lock()
+	var allPosts []*model.Post
 	for _, like := range a.Likes {
-		txHashes = append(txHashes, like.TxHash)
+		like.Post = &model.Post{TxHash: like.PostTxHash}
+		allPosts = append(allPosts, like.Post)
 	}
 	a.Mutex.Unlock()
-	memoPosts, err := memo.GetPosts(a.Ctx, txHashes)
-	if err != nil && !client.IsEntryNotFoundError(err) {
-		a.AddError(fmt.Errorf("error getting memo posts for like attach; %w", err))
-		return
-	}
-	a.Mutex.Lock()
-	//var allPosts []*model.Post
-	for _, memoPost := range memoPosts {
-		for i := range a.Likes {
-			if a.Likes[i].TxHash == memoPost.TxHash {
-				a.Likes[i].Post = &model.Post{
-					TxHash:  memoPost.TxHash,
-					Address: memoPost.Addr,
-					Text:    memoPost.Post,
-				}
-				//allPosts = append(allPosts, a.Likes[i].Post)
-			}
-		}
-	}
-	a.Mutex.Unlock()
-	/*if err := AttachToPosts(a.Ctx, GetPrefixFields(a.Fields, "post."), allPosts); err != nil {
+	if err := AttachToMemoPosts(a.Ctx, GetPrefixFields(a.Fields, "post."), allPosts); err != nil {
 		a.AddError(fmt.Errorf("error attaching to posts for memo likes; %w", err))
 		return
-	}*/
+	}
 }

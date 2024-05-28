@@ -15,24 +15,6 @@ import (
 	"github.com/memocash/index/graph/model"
 )
 
-// Tx is the resolver for the tx field.
-func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
-	tx, err := load.GetTx(ctx, obj.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("error getting tx from loader for post resolver: %s; %w", obj.TxHash, err)
-	}
-	return tx, nil
-}
-
-// Lock is the resolver for the lock field.
-func (r *postResolver) Lock(ctx context.Context, obj *model.Post) (*model.Lock, error) {
-	lock, err := load.GetLock(ctx, obj.Address)
-	if err != nil {
-		return nil, fmt.Errorf("error getting lock from loader for post resolver: %s %x; %w", obj.TxHash, obj.Address, err)
-	}
-	return lock, nil
-}
-
 // Likes is the resolver for the likes field.
 func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Like, error) {
 	memoPostLikes, err := memo.GetPostLikes([][32]byte{obj.TxHash})
@@ -68,25 +50,6 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 		return nil, fmt.Errorf("error attaching to memo likes for post resolver: %s; %w", obj.TxHash, err)
 	}
 	return likes, nil
-}
-
-// Parent is the resolver for the parent field.
-func (r *postResolver) Parent(ctx context.Context, obj *model.Post) (*model.Post, error) {
-	postParent, err := memo.GetPostParent(ctx, obj.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("error getting memo post parent for post resolver; %w", err)
-	}
-	if postParent == nil {
-		return nil, nil
-	}
-	post, err := load.Post.Load(chainhash.Hash(postParent.ParentTxHash).String())
-	if err != nil {
-		if load.IsPostNotFoundError(err) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("error getting from post dataloader for post parent resolver: %s; %w", obj.Address, err)
-	}
-	return post, nil
 }
 
 // Replies is the resolver for the replies field.
@@ -193,21 +156,12 @@ func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *
 	if err != nil {
 		return nil, fmt.Errorf("error getting addr memo posts for profile resolver: %s; %w", obj.Address, err)
 	}
-	var postTxHashes = make([][32]byte, len(addrMemoPosts))
-	for i := range addrMemoPosts {
-		postTxHashes[i] = addrMemoPosts[i].TxHash
+	var posts []*model.Post
+	for _, addrMemoPost := range addrMemoPosts {
+		posts = append(posts, &model.Post{TxHash: addrMemoPost.TxHash})
 	}
-	memoPosts, err := memo.GetPosts(ctx, postTxHashes)
-	if err != nil {
-		return nil, fmt.Errorf("error getting memo posts for profile resolver; %w", err)
-	}
-	var posts = make([]*model.Post, len(memoPosts))
-	for i, memoPost := range memoPosts {
-		posts[i] = &model.Post{
-			TxHash:  memoPost.TxHash,
-			Address: memoPost.Addr,
-			Text:    memoPost.Post,
-		}
+	if err := load.AttachToMemoPosts(ctx, load.GetFields(ctx), posts); err != nil {
+		return nil, InternalError{fmt.Errorf("error attaching to posts for query resolver posts; %w", err)}
 	}
 	return posts, nil
 }

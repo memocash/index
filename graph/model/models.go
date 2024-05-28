@@ -98,6 +98,9 @@ type Post struct {
 	TxHash  Hash    `json:"tx_hash"`
 	Address Address `json:"address"`
 	Text    string  `json:"text"`
+	Lock    *Lock   `json:"lock"`
+	Tx      *Tx     `json:"tx"`
+	Parent  *Post   `json:"parent"`
 }
 
 type Like struct {

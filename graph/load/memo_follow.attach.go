@@ -32,10 +32,10 @@ func AttachToMemoFollows(ctx context.Context, fields []Field, follows []*model.F
 
 func (a *MemoFollowAttach) AttachLocks() {
 	defer a.Wait.Done()
-	var allLocks []*model.Lock
-	if a.HasField([]string{"lock"}) {
+	if !a.HasField([]string{"lock"}) {
 		return
 	}
+	var allLocks []*model.Lock
 	a.Mutex.Lock()
 	for _, follow := range a.Follows {
 		follow.Lock = &model.Lock{Address: follow.Address}
@@ -50,10 +50,10 @@ func (a *MemoFollowAttach) AttachLocks() {
 
 func (a *MemoFollowAttach) AttachFollowLocks() {
 	defer a.Wait.Done()
-	var allLocks []*model.Lock
-	if a.HasField([]string{"follow_lock"}) {
+	if !a.HasField([]string{"follow_lock"}) {
 		return
 	}
+	var allLocks []*model.Lock
 	a.Mutex.Lock()
 	for _, follow := range a.Follows {
 		follow.FollowLock = &model.Lock{Address: follow.FollowAddress}

@@ -3,7 +3,6 @@ package sub
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
@@ -85,9 +84,9 @@ func (r *Post) Listen(ctx context.Context, txHashes [][32]byte) (<-chan *model.P
 				if !ok {
 					return
 				}
-				post, err := load.Post.Load(chainhash.Hash(txHash).String())
-				if err != nil {
-					log.Printf("error getting post from dataloader for post subscription resolver; %v", err)
+				var post = &model.Post{TxHash: txHash}
+				if err := load.AttachToMemoPosts(ctx, load.GetFields(ctx), []*model.Post{post}); err != nil {
+					log.Printf("error attaching to posts for query resolver posts; %v", err)
 					return
 				}
 				postChan <- post

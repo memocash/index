@@ -62,3 +62,29 @@ func GetPostParent(ctx context.Context, postTxHash [32]byte) (*PostParent, error
 	db.Set(postParent, dbClient.Messages[0])
 	return postParent, nil
 }
+
+func GetPostParents(ctx context.Context, postTxHashes [][32]byte) ([]*PostParent, error) {
+	var shardUids = make(map[uint32][][]byte)
+	for i := range postTxHashes {
+		shard := db.GetShardIdFromByte32(postTxHashes[i][:])
+		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(postTxHashes[i][:]))
+	}
+	var postParents []*PostParent
+	for shard, uids := range shardUids {
+		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetWOpts(client.Opts{
+			Context:  ctx,
+			Topic:    db.TopicMemoPostParent,
+			Uids: uids,
+		}); err != nil {
+			return nil, fmt.Errorf("error getting client message memo post parents; %w", err)
+		}
+		for _, msg := range dbClient.Messages {
+			var postParent = new(PostParent)
+			db.Set(postParent, msg)
+			postParents = append(postParents, postParent)
+		}
+	}
+	return postParents, nil
+}
