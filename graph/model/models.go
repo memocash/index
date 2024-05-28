@@ -101,6 +101,7 @@ type Post struct {
 	Lock    *Lock   `json:"lock"`
 	Tx      *Tx     `json:"tx"`
 	Parent  *Post   `json:"parent"`
+	Likes   []*Like `json:"likes"`
 }
 
 type Like struct {

@@ -26,9 +26,10 @@ func AttachToMemoPosts(ctx context.Context, fields []Field, posts []*model.Post)
 	}
 	o.DetailsWait.Add(1)
 	go o.AttachInfo()
-	o.Wait.Add(3)
+	o.Wait.Add(4)
 	go o.AttachTxs()
 	go o.AttachParents()
+	go o.AttachLikes()
 	o.DetailsWait.Wait()
 	go o.AttachLocks()
 	o.Wait.Wait()
@@ -135,6 +136,38 @@ func (a *MemoPostAttach) AttachParents() {
 	a.Mutex.Unlock()
 	if err := AttachToMemoPosts(a.Ctx, GetPrefixFields(a.Fields, "parent."), allPosts); err != nil {
 		a.AddError(fmt.Errorf("error attaching to parents for memo posts; %w", err))
+		return
+	}
+}
+
+func (a *MemoPostAttach) AttachLikes() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"likes"}) {
+		return
+	}
+	memoPostLikes, err := memo.GetPostLikes(a.Ctx, a.getTxHashes(false))
+	if err != nil && !client.IsEntryNotFoundError(err) {
+		a.AddError(fmt.Errorf("error getting memo post likes for post attach; %w", err))
+		return
+	}
+	var allLikes []*model.Like
+	a.Mutex.Lock()
+	for _, memoPostLike := range memoPostLikes {
+		for _, post := range a.Posts {
+			if post.TxHash == memoPostLike.PostTxHash {
+				like := &model.Like{
+					TxHash:     memoPostLike.LikeTxHash,
+					PostTxHash: memoPostLike.PostTxHash,
+					Address:    memoPostLike.Addr,
+				}
+				post.Likes = append(post.Likes, like)
+				allLikes = append(allLikes, like)
+			}
+		}
+	}
+	a.Mutex.Unlock()
+	if err := AttachToMemoLikes(a.Ctx, GetPrefixFields(a.Fields, "likes."), allLikes); err != nil {
+		a.AddError(fmt.Errorf("error attaching to likes for memo posts; %w", err))
 		return
 	}
 }

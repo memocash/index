@@ -33,7 +33,7 @@ func MemoPost(ctx context.Context, info parse.OpReturn, post string) error {
 			Post:   post,
 		}
 		objects = append(objects, memoPost)
-		memoPostLikes, err := memo.GetPostLikes([][32]byte{info.TxHash})
+		memoPostLikes, err := memo.GetPostLikes(ctx, [][32]byte{info.TxHash})
 		if err != nil {
 			return fmt.Errorf("error getting memo likeds for post op return handler; %w", err)
 		}

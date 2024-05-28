@@ -44,6 +44,7 @@ type Follow {
     unfollow: Boolean!
 }
 
+# TODO: likes/replies need to be paginated
 type Post {
     tx: Tx!
     tx_hash: Hash!

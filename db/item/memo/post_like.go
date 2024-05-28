@@ -54,26 +54,30 @@ func (l *PostLike) Deserialize(data []byte) {
 	copy(l.Addr[:], data)
 }
 
-func GetPostLikes(postTxHashes [][32]byte) ([]*PostLike, error) {
+func GetPostLikes(ctx context.Context, postTxHashes [][32]byte) ([]*PostLike, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range postTxHashes {
 		shard := db.GetShardIdFromByte32(postTxHashes[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(postTxHashes[i][:]))
 	}
-	var likeds []*PostLike
+	var postLikes []*PostLike
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetByPrefixes(db.TopicMemoPostLike, prefixes); err != nil {
-			return nil, fmt.Errorf("error getting client message memo likeds; %w", err)
+		if err := dbClient.GetWOpts(client.Opts{
+			Context:  ctx,
+			Topic:    db.TopicMemoPostLike,
+			Prefixes: prefixes,
+		}); err != nil {
+			return nil, fmt.Errorf("error getting client message memo post likes; %w", err)
 		}
 		for _, msg := range dbClient.Messages {
-			var liked = new(PostLike)
-			db.Set(liked, msg)
-			likeds = append(likeds, liked)
+			var postLike = new(PostLike)
+			db.Set(postLike, msg)
+			postLikes = append(postLikes, postLike)
 		}
 	}
-	return likeds, nil
+	return postLikes, nil
 }
 
 func ListenPostLikes(ctx context.Context, postTxHashes [][32]byte) (chan *PostLike, error) {

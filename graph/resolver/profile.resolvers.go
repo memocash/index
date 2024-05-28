@@ -17,7 +17,7 @@ import (
 
 // Likes is the resolver for the likes field.
 func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Like, error) {
-	memoPostLikes, err := memo.GetPostLikes([][32]byte{obj.TxHash})
+	memoPostLikes, err := memo.GetPostLikes(ctx, [][32]byte{obj.TxHash})
 	if err != nil {
 		return nil, fmt.Errorf("error getting memo post likeds for post resolver; %w", err)
 	}

@@ -60,21 +60,11 @@ func (a *MemoLikeAttach) AttachInfo() {
 	if !a.HasField([]string{"address", "lock", "post_tx_hash", "post"}) {
 		return
 	}
-	memoPostLikes, err := memo.GetPostLikes(a.getTxHashes(true, false))
-	if err != nil {
-		a.AddError(fmt.Errorf("error getting memo post likeds for post resolver; %w", err))
+	needsInfoTxHashes := a.getTxHashes(true, false)
+	if len(needsInfoTxHashes) > 0 {
+		a.AddError(fmt.Errorf("info needed for memo likes and this is not implemented"))
 		return
 	}
-	a.Mutex.Lock()
-	for _, memoPostLike := range memoPostLikes {
-		for _, like := range a.Likes {
-			if like.TxHash == memoPostLike.LikeTxHash {
-				like.PostTxHash = memoPostLike.PostTxHash
-				like.Address = memoPostLike.Addr
-			}
-		}
-	}
-	a.Mutex.Unlock()
 }
 
 func (a *MemoLikeAttach) AttachTips() {
