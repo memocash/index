@@ -26,11 +26,12 @@ func AttachToMemoPosts(ctx context.Context, fields []Field, posts []*model.Post)
 	}
 	o.DetailsWait.Add(1)
 	go o.AttachInfo()
-	o.Wait.Add(5)
+	o.Wait.Add(6)
 	go o.AttachTxs()
 	go o.AttachParents()
 	go o.AttachLikes()
 	go o.AttachReplies()
+	go o.AttachRooms()
 	o.DetailsWait.Wait()
 	go o.AttachLocks()
 	o.Wait.Wait()
@@ -189,8 +190,8 @@ func (a *MemoPostAttach) AttachReplies() {
 		for _, post := range a.Posts {
 			if post.TxHash == memoPostChild.PostTxHash {
 				reply := &model.Post{
-					TxHash:  memoPostChild.ChildTxHash,
-					Parent:  post,
+					TxHash: memoPostChild.ChildTxHash,
+					Parent: post,
 				}
 				post.Replies = append(post.Replies, reply)
 				allReplies = append(allReplies, reply)
@@ -200,6 +201,33 @@ func (a *MemoPostAttach) AttachReplies() {
 	a.Mutex.Unlock()
 	if err := AttachToMemoPosts(a.Ctx, GetPrefixFields(a.Fields, "replies."), allReplies); err != nil {
 		a.AddError(fmt.Errorf("error attaching to replies for memo posts; %w", err))
+		return
+	}
+}
+
+func (a *MemoPostAttach) AttachRooms() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"room"}) {
+		return
+	}
+	postRooms, err := memo.GetPostRooms(a.Ctx, a.getTxHashes(false))
+	if err != nil && !client.IsEntryNotFoundError(err) {
+		a.AddError(fmt.Errorf("error getting memo post rooms for post attach; %w", err))
+		return
+	}
+	var allRooms []*model.Room
+	a.Mutex.Lock()
+	for _, postRoom := range postRooms {
+		for i := range a.Posts {
+			if a.Posts[i].TxHash == postRoom.TxHash {
+				a.Posts[i].Room = &model.Room{Name: postRoom.Room}
+				allRooms = append(allRooms, a.Posts[i].Room)
+			}
+		}
+	}
+	a.Mutex.Unlock()
+	if err := AttachToMemoRooms(a.Ctx, GetPrefixFields(a.Fields, "room."), allRooms); err != nil {
+		a.AddError(fmt.Errorf("error attaching to rooms for memo posts; %w", err))
 		return
 	}
 }

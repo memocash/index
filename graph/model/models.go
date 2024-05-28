@@ -103,6 +103,7 @@ type Post struct {
 	Parent  *Post   `json:"parent"`
 	Likes   []*Like `json:"likes"`
 	Replies []*Post `json:"replies"`
+	Room    *Room   `json:"room"`
 }
 
 type Like struct {

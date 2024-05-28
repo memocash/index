@@ -14,22 +14,6 @@ import (
 	"github.com/memocash/index/graph/model"
 )
 
-// Room is the resolver for the room field.
-func (r *postResolver) Room(ctx context.Context, obj *model.Post) (*model.Room, error) {
-	postRoom, err := memo.GetPostRoom(ctx, obj.TxHash[:])
-	if err != nil {
-		return nil, fmt.Errorf("error getting memo post room for post resolver; %w", err)
-	}
-	if postRoom == nil {
-		return nil, nil
-	}
-	var room = &model.Room{Name: postRoom.Room}
-	if err := load.AttachToMemoRooms(ctx, load.GetFields(ctx), []*model.Room{room}); err != nil {
-		return nil, fmt.Errorf("error attaching to memo rooms for post resolver: %s; %w", obj.TxHash, err)
-	}
-	return room, nil
-}
-
 // Lock is the resolver for the lock field.
 func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
 	lock, err := load.GetLock(ctx, obj.Address)
@@ -181,9 +165,6 @@ func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*
 	return lock, nil
 }
 
-// Post returns generated.PostResolver implementation.
-func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }
-
 // Profile returns generated.ProfileResolver implementation.
 func (r *Resolver) Profile() generated.ProfileResolver { return &profileResolver{r} }
 
@@ -196,7 +177,6 @@ func (r *Resolver) SetPic() generated.SetPicResolver { return &setPicResolver{r}
 // SetProfile returns generated.SetProfileResolver implementation.
 func (r *Resolver) SetProfile() generated.SetProfileResolver { return &setProfileResolver{r} }
 
-type postResolver struct{ *Resolver }
 type profileResolver struct{ *Resolver }
 type setNameResolver struct{ *Resolver }
 type setPicResolver struct{ *Resolver }

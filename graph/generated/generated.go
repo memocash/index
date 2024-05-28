@@ -38,7 +38,6 @@ type Config struct {
 
 type ResolverRoot interface {
 	Mutation() MutationResolver
-	Post() PostResolver
 	Profile() ProfileResolver
 	Query() QueryResolver
 	SetName() SetNameResolver
@@ -256,9 +255,6 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	Broadcast(ctx context.Context, raw string) (bool, error)
-}
-type PostResolver interface {
-	Room(ctx context.Context, obj *model.Post) (*model.Room, error)
 }
 type ProfileResolver interface {
 	Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error)
@@ -3939,7 +3935,7 @@ func (ec *executionContext) _Post_room(ctx context.Context, field graphql.Collec
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Post().Room(rctx, obj)
+		return obj.Room, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3957,8 +3953,8 @@ func (ec *executionContext) fieldContext_Post_room(ctx context.Context, field gr
 	fc = &graphql.FieldContext{
 		Object:     "Post",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "name":
@@ -11877,35 +11873,35 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Post_tx(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "tx_hash":
 
 			out.Values[i] = ec._Post_tx_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "lock":
 
 			out.Values[i] = ec._Post_lock(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "address":
 
 			out.Values[i] = ec._Post_address(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "text":
 
 			out.Values[i] = ec._Post_text(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "likes":
 
@@ -11920,22 +11916,9 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Post_replies(ctx, field, obj)
 
 		case "room":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Post_room(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Post_room(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
