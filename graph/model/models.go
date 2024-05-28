@@ -64,6 +64,8 @@ type Profile struct {
 	Name    *SetName    `json:"name"`
 	Profile *SetProfile `json:"profile"`
 	Pic     *SetPic     `json:"pic"`
+	Lock    *Lock       `json:"lock"`
+	Posts   []*Post     `json:"posts"`
 }
 
 type Follow struct {

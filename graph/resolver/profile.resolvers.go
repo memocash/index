@@ -14,15 +14,6 @@ import (
 	"github.com/memocash/index/graph/model"
 )
 
-// Lock is the resolver for the lock field.
-func (r *profileResolver) Lock(ctx context.Context, obj *model.Profile) (*model.Lock, error) {
-	lock, err := load.GetLock(ctx, obj.Address)
-	if err != nil {
-		return nil, fmt.Errorf("error getting addr from loader for profile resolver: %s; %w", obj.Address, err)
-	}
-	return lock, nil
-}
-
 // Following is the resolver for the following field.
 func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error) {
 	var startTime time.Time
@@ -71,26 +62,6 @@ func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, sta
 		return nil, fmt.Errorf("error attaching to memo followers for profile resolver: %s; %w", obj.Address, err)
 	}
 	return follows, nil
-}
-
-// Posts is the resolver for the posts field.
-func (r *profileResolver) Posts(ctx context.Context, obj *model.Profile, start *model.Date, newest *bool) ([]*model.Post, error) {
-	var startTime time.Time
-	if start != nil {
-		startTime = time.Time(*start)
-	}
-	addrMemoPosts, err := memo.GetSingleAddrPosts(ctx, obj.Address, newest != nil && *newest, startTime)
-	if err != nil {
-		return nil, fmt.Errorf("error getting addr memo posts for profile resolver: %s; %w", obj.Address, err)
-	}
-	var posts []*model.Post
-	for _, addrMemoPost := range addrMemoPosts {
-		posts = append(posts, &model.Post{TxHash: addrMemoPost.TxHash})
-	}
-	if err := load.AttachToMemoPosts(ctx, load.GetFields(ctx), posts); err != nil {
-		return nil, InternalError{fmt.Errorf("error attaching to posts for query resolver posts; %w", err)}
-	}
-	return posts, nil
 }
 
 // Rooms is the resolver for the rooms field.

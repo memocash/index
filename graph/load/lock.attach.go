@@ -56,13 +56,17 @@ func (l *Lock) AttachProfiles() {
 		profiles = append(profiles, profile)
 	}
 	l.Mutex.Lock()
-	defer l.Mutex.Unlock()
 	for _, lock := range l.Locks {
 		for _, profile := range profiles {
 			if profile.Address == lock.Address {
 				lock.Profile = profile
 			}
 		}
+	}
+	l.Mutex.Unlock()
+	if err := AttachToMemoProfiles(l.Ctx, GetPrefixFields(l.Fields, "profile"), profiles); err != nil {
+		l.AddError(fmt.Errorf("error attaching to lock profiles; %w", err))
+		return
 	}
 }
 

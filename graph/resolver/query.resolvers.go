@@ -185,6 +185,9 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []model.Address)
 		}
 		profiles = append(profiles, profile)
 	}
+	if err := load.AttachToMemoProfiles(ctx, load.GetFields(ctx), profiles); err != nil {
+		return nil, InternalError{fmt.Errorf("error attaching to profiles for query resolver; %w", err)}
+	}
 	return profiles, nil
 }
 
