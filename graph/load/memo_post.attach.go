@@ -43,7 +43,9 @@ func (a *MemoPostAttach) getTxHashes(checkTextAddress bool) [][32]byte {
 	defer a.Mutex.Unlock()
 	var txHashes [][32]byte
 	for i := range a.Posts {
-		if checkTextAddress && a.Posts[i].Text != "" && !jutil.AllZeros(a.Posts[i].Address[:]) {
+		if checkTextAddress &&
+			a.Posts[i].Text != "" &&
+			!jutil.AllZeros(a.Posts[i].Address[:]) {
 			continue
 		}
 		txHashes = append(txHashes, a.Posts[i].TxHash)

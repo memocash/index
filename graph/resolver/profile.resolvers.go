@@ -21,29 +21,12 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 	if err != nil {
 		return nil, fmt.Errorf("error getting memo post likeds for post resolver; %w", err)
 	}
-	var likeTxHashes = make([][32]byte, len(memoPostLikes))
-	for i := range memoPostLikes {
-		likeTxHashes[i] = memoPostLikes[i].LikeTxHash
-	}
-	memoLikeTips, err := memo.GetLikeTips(likeTxHashes)
-	if err != nil {
-		return nil, fmt.Errorf("error getting memo like tips for post resolver; %w", err)
-	}
 	var likes = make([]*model.Like, len(memoPostLikes))
 	for i := range memoPostLikes {
-		var tip int64
-		for j := range memoLikeTips {
-			if memoLikeTips[j].LikeTxHash == memoPostLikes[i].LikeTxHash {
-				tip = memoLikeTips[j].Tip
-				memoLikeTips = append(memoLikeTips[:j], memoLikeTips[j+1:]...)
-				break
-			}
-		}
 		likes[i] = &model.Like{
 			TxHash:     memoPostLikes[i].LikeTxHash,
 			PostTxHash: memoPostLikes[i].PostTxHash,
 			Address:    memoPostLikes[i].Addr,
-			Tip:        tip,
 		}
 	}
 	if err := load.AttachToMemoLikes(ctx, load.GetFields(ctx), likes); err != nil {

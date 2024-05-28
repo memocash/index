@@ -3,12 +3,16 @@ package load
 import (
 	"context"
 	"fmt"
+	"github.com/jchavannes/jgo/jutil"
+	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
+	"sync"
 )
 
 type MemoLikeAttach struct {
 	baseA
-	Likes []*model.Like
+	Likes       []*model.Like
+	DetailsWait sync.WaitGroup
 }
 
 func AttachToMemoLikes(ctx context.Context, fields []Field, likes []*model.Like) error {
@@ -19,15 +23,79 @@ func AttachToMemoLikes(ctx context.Context, fields []Field, likes []*model.Like)
 		baseA: baseA{Ctx: ctx, Fields: fields},
 		Likes: likes,
 	}
-	o.Wait.Add(3)
-	go o.AttachLocks()
+	o.DetailsWait.Add(1)
+	go o.AttachInfo()
+	o.Wait.Add(4)
+	go o.AttachTips()
 	go o.AttachTxs()
+	go o.DetailsWait.Wait()
+	go o.AttachLocks()
 	go o.AttachPosts()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to memo likes; %w", o.Errors[0])
 	}
 	return nil
+}
+
+func (a *MemoLikeAttach) getTxHashes(checkAddressPostTxHash, checkTips bool) [][32]byte {
+	a.Mutex.Lock()
+	defer a.Mutex.Unlock()
+	var txHashes [][32]byte
+	for i := range a.Likes {
+		if checkAddressPostTxHash &&
+			!jutil.AllZeros(a.Likes[i].PostTxHash[:]) &&
+			!jutil.AllZeros(a.Likes[i].Address[:]) {
+			continue
+		} else if checkTips && a.Likes[i].Tip > 0 {
+			continue
+		}
+		txHashes = append(txHashes, a.Likes[i].TxHash)
+	}
+	return txHashes
+}
+
+func (a *MemoLikeAttach) AttachInfo() {
+	defer a.DetailsWait.Done()
+	if !a.HasField([]string{"address", "lock", "post_tx_hash", "post"}) {
+		return
+	}
+	memoPostLikes, err := memo.GetPostLikes(a.getTxHashes(true, false))
+	if err != nil {
+		a.AddError(fmt.Errorf("error getting memo post likeds for post resolver; %w", err))
+		return
+	}
+	a.Mutex.Lock()
+	for _, memoPostLike := range memoPostLikes {
+		for _, like := range a.Likes {
+			if like.TxHash == memoPostLike.LikeTxHash {
+				like.PostTxHash = memoPostLike.PostTxHash
+				like.Address = memoPostLike.Addr
+			}
+		}
+	}
+	a.Mutex.Unlock()
+}
+
+func (a *MemoLikeAttach) AttachTips() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"tip"}) {
+		return
+	}
+	memoLikeTips, err := memo.GetLikeTips(a.getTxHashes(false, true))
+	if err != nil {
+		a.AddError(fmt.Errorf("error getting memo like tips for post resolver; %w", err))
+		return
+	}
+	a.Mutex.Lock()
+	for _, memoLikeTip := range memoLikeTips {
+		for _, like := range a.Likes {
+			if memoLikeTip.LikeTxHash == like.PostTxHash {
+				like.Tip = memoLikeTip.Tip
+			}
+		}
+	}
+	a.Mutex.Unlock()
 }
 
 func (a *MemoLikeAttach) AttachLocks() {
