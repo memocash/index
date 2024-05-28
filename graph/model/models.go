@@ -105,6 +105,9 @@ type Like struct {
 	Address    Address `json:"address"`
 	PostTxHash Hash    `json:"post_tx_hash"`
 	Tip        int64   `json:"tip"`
+	Lock       *Lock   `json:"lock"`
+	Tx         *Tx     `json:"tx"`
+	Post       *Post   `json:"post"`
 }
 
 type Room struct {

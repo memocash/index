@@ -37,7 +37,6 @@ type Config struct {
 }
 
 type ResolverRoot interface {
-	Like() LikeResolver
 	Mutation() MutationResolver
 	Post() PostResolver
 	Profile() ProfileResolver
@@ -255,13 +254,6 @@ type ComplexityRoot struct {
 	}
 }
 
-type LikeResolver interface {
-	Tx(ctx context.Context, obj *model.Like) (*model.Tx, error)
-
-	Lock(ctx context.Context, obj *model.Like) (*model.Lock, error)
-
-	Post(ctx context.Context, obj *model.Like) (*model.Post, error)
-}
 type MutationResolver interface {
 	Broadcast(ctx context.Context, raw string) (bool, error)
 }
@@ -2905,7 +2897,7 @@ func (ec *executionContext) _Like_tx(ctx context.Context, field graphql.Collecte
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Like().Tx(rctx, obj)
+		return obj.Tx, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2926,8 +2918,8 @@ func (ec *executionContext) fieldContext_Like_tx(ctx context.Context, field grap
 	fc = &graphql.FieldContext{
 		Object:     "Like",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "hash":
@@ -3011,7 +3003,7 @@ func (ec *executionContext) _Like_lock(ctx context.Context, field graphql.Collec
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Like().Lock(rctx, obj)
+		return obj.Lock, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3032,8 +3024,8 @@ func (ec *executionContext) fieldContext_Like_lock(ctx context.Context, field gr
 	fc = &graphql.FieldContext{
 		Object:     "Like",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "address":
@@ -3153,7 +3145,7 @@ func (ec *executionContext) _Like_post(ctx context.Context, field graphql.Collec
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Like().Post(rctx, obj)
+		return obj.Post, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3171,8 +3163,8 @@ func (ec *executionContext) fieldContext_Like_post(ctx context.Context, field gr
 	fc = &graphql.FieldContext{
 		Object:     "Like",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -11744,83 +11736,44 @@ func (ec *executionContext) _Like(ctx context.Context, sel ast.SelectionSet, obj
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Like")
 		case "tx":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Like_tx(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Like_tx(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "tx_hash":
 
 			out.Values[i] = ec._Like_tx_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "lock":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Like_lock(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Like_lock(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "address":
 
 			out.Values[i] = ec._Like_address(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "post_tx_hash":
 
 			out.Values[i] = ec._Like_post_tx_hash(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "post":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Like_post(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Like_post(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "tip":
 
 			out.Values[i] = ec._Like_tip(ctx, field, obj)

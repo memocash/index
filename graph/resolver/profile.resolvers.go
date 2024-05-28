@@ -16,33 +16,6 @@ import (
 )
 
 // Tx is the resolver for the tx field.
-func (r *likeResolver) Tx(ctx context.Context, obj *model.Like) (*model.Tx, error) {
-	tx, err := load.GetTx(ctx, obj.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("error getting tx from loader for like resolver: %s; %w", obj.TxHash, err)
-	}
-	return tx, nil
-}
-
-// Lock is the resolver for the lock field.
-func (r *likeResolver) Lock(ctx context.Context, obj *model.Like) (*model.Lock, error) {
-	lock, err := load.GetLock(ctx, obj.Address)
-	if err != nil {
-		return nil, fmt.Errorf("error getting lock from loader for like resolver: %s %x; %w", obj.TxHash, obj.Address, err)
-	}
-	return lock, nil
-}
-
-// Post is the resolver for the post field.
-func (r *likeResolver) Post(ctx context.Context, obj *model.Like) (*model.Post, error) {
-	post, err := load.Post.Load(chainhash.Hash(obj.TxHash).String())
-	if err != nil {
-		return nil, fmt.Errorf("error getting post from post dataloader for like resolver: %s; %w", obj.Address, err)
-	}
-	return post, nil
-}
-
-// Tx is the resolver for the tx field.
 func (r *postResolver) Tx(ctx context.Context, obj *model.Post) (*model.Tx, error) {
 	tx, err := load.GetTx(ctx, obj.TxHash)
 	if err != nil {
@@ -90,6 +63,9 @@ func (r *postResolver) Likes(ctx context.Context, obj *model.Post) ([]*model.Lik
 			Address:    memoPostLikes[i].Addr,
 			Tip:        tip,
 		}
+	}
+	if err := load.AttachToMemoLikes(ctx, load.GetFields(ctx), likes); err != nil {
+		return nil, fmt.Errorf("error attaching to memo likes for post resolver: %s; %w", obj.TxHash, err)
 	}
 	return likes, nil
 }
@@ -308,9 +284,6 @@ func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*
 	return lock, nil
 }
 
-// Like returns generated.LikeResolver implementation.
-func (r *Resolver) Like() generated.LikeResolver { return &likeResolver{r} }
-
 // Post returns generated.PostResolver implementation.
 func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }
 
@@ -326,7 +299,6 @@ func (r *Resolver) SetPic() generated.SetPicResolver { return &setPicResolver{r}
 // SetProfile returns generated.SetProfileResolver implementation.
 func (r *Resolver) SetProfile() generated.SetProfileResolver { return &setProfileResolver{r} }
 
-type likeResolver struct{ *Resolver }
 type postResolver struct{ *Resolver }
 type profileResolver struct{ *Resolver }
 type setNameResolver struct{ *Resolver }
