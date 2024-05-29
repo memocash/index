@@ -23,10 +23,11 @@ func AttachToMemoProfiles(ctx context.Context, fields []Field, profiles []*model
 		baseA:    baseA{Ctx: ctx, Fields: fields},
 		Profiles: profiles,
 	}
-	o.Wait.Add(3)
+	o.Wait.Add(4)
 	go o.AttachLocks()
 	go o.AttachPosts()
 	go o.AttachFollowing()
+	go o.AttachFollowers()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to memo profiles; %w", o.Errors[0])
@@ -102,8 +103,8 @@ func (a *MemoProfileAttach) AttachFollowing() {
 	if !a.HasField([]string{"following"}) {
 		return
 	}
-	postsField := a.Fields.GetField("following")
-	startDate, _ := model.UnmarshalDate(postsField.Arguments["start"])
+	followingField := a.Fields.GetField("following")
+	startDate, _ := model.UnmarshalDate(followingField.Arguments["start"])
 	var allFollows []*model.Follow
 	for _, addr := range a.getAddresses() {
 		addrMemoFollows, err := memo.GetAddrFollowsSingle(a.Ctx, addr, time.Time(startDate))
@@ -128,8 +129,45 @@ func (a *MemoProfileAttach) AttachFollowing() {
 		}
 		a.Mutex.Unlock()
 	}
-	if err := AttachToMemoFollows(a.Ctx, postsField.Fields, allFollows); err != nil {
+	if err := AttachToMemoFollows(a.Ctx, followingField.Fields, allFollows); err != nil {
 		a.AddError(fmt.Errorf("error attaching to following for memo profiles; %w", err))
+		return
+	}
+}
+
+func (a *MemoProfileAttach) AttachFollowers() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"followers"}) {
+		return
+	}
+	followersField := a.Fields.GetField("followers")
+	startDate, _ := model.UnmarshalDate(followersField.Arguments["start"])
+	var allFollows []*model.Follow
+	for _, addr := range a.getAddresses() {
+		addrMemoFollows, err := memo.GetAddrFollowedsSingle(a.Ctx, addr, time.Time(startDate))
+		if err != nil {
+			a.AddError(fmt.Errorf("error getting address memo followeds for address; %w", err))
+			return
+		}
+		a.Mutex.Lock()
+		for _, profile := range a.Profiles {
+			if profile.Address == addr {
+				for _, addrMemoFollow := range addrMemoFollows {
+					follow := &model.Follow{
+						Address:       addrMemoFollow.Addr,
+						TxHash:        addrMemoFollow.TxHash,
+						Unfollow:      addrMemoFollow.Unfollow,
+						FollowAddress: addrMemoFollow.FollowAddr,
+					}
+					profile.Followers = append(profile.Followers, follow)
+					allFollows = append(allFollows, follow)
+				}
+			}
+		}
+		a.Mutex.Unlock()
+	}
+	if err := AttachToMemoFollows(a.Ctx, followersField.Fields, allFollows); err != nil {
+		a.AddError(fmt.Errorf("error attaching to followers for memo profiles; %w", err))
 		return
 	}
 }

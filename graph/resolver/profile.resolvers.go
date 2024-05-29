@@ -6,38 +6,11 @@ package resolver
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
 )
-
-// Followers is the resolver for the followers field.
-func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error) {
-	var startTime time.Time
-	if start != nil {
-		startTime = time.Time(*start)
-	}
-	addrMemoFolloweds, err := memo.GetAddrFollowedsSingle(ctx, obj.Address, startTime)
-	if err != nil {
-		return nil, fmt.Errorf("error getting addr memo follows for address: %s; %w", obj.Address, err)
-	}
-	var follows []*model.Follow
-	for _, addrMemoFollowed := range addrMemoFolloweds {
-		follows = append(follows, &model.Follow{
-			TxHash:        addrMemoFollowed.TxHash,
-			Address:       addrMemoFollowed.Addr,
-			FollowAddress: addrMemoFollowed.FollowAddr,
-			Unfollow:      addrMemoFollowed.Unfollow,
-		})
-	}
-	if err := load.AttachToMemoFollows(ctx, load.GetFields(ctx), follows); err != nil {
-		return nil, fmt.Errorf("error attaching to memo followers for profile resolver: %s; %w", obj.Address, err)
-	}
-	return follows, nil
-}
 
 // Rooms is the resolver for the rooms field.
 func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.RoomFollow, error) {

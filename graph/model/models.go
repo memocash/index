@@ -67,6 +67,7 @@ type Profile struct {
 	Lock      *Lock       `json:"lock"`
 	Posts     []*Post     `json:"posts"`
 	Following []*Follow   `json:"following"`
+	Followers []*Follow   `json:"followers"`
 }
 
 type Follow struct {

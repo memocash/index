@@ -257,8 +257,6 @@ type MutationResolver interface {
 	Broadcast(ctx context.Context, raw string) (bool, error)
 }
 type ProfileResolver interface {
-	Followers(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error)
-
 	Rooms(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.RoomFollow, error)
 }
 type QueryResolver interface {
@@ -4306,7 +4304,7 @@ func (ec *executionContext) _Profile_followers(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Profile().Followers(rctx, obj, fc.Args["start"].(*model.Date))
+		return obj.Followers, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4324,8 +4322,8 @@ func (ec *executionContext) fieldContext_Profile_followers(ctx context.Context, 
 	fc = &graphql.FieldContext{
 		Object:     "Profile",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "tx":
@@ -11968,22 +11966,9 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = ec._Profile_following(ctx, field, obj)
 
 		case "followers":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Profile_followers(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Profile_followers(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "posts":
 
 			out.Values[i] = ec._Profile_posts(ctx, field, obj)
