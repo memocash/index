@@ -214,30 +214,17 @@ func (a *MemoProfileAttach) AttachNames() {
 	if !a.HasField([]string{"name"}) {
 		return
 	}
-	addrProfileNames, err := memo.GetAddrNames(a.Ctx, a.getAddresses())
-	if err != nil {
-		a.AddError(fmt.Errorf("error getting addr profile names for profile attach; %w", err))
-		return
-	}
-	var allModelSetNames []*model.SetName
+	var allSetNames []*model.SetName
 	a.Mutex.Lock()
-	for _, addrProfileName := range addrProfileNames {
-		for _, profile := range a.Profiles {
-			if profile.Address == addrProfileName.Addr {
-				profile.Name = &model.SetName{
-					Address: addrProfileName.Addr,
-					TxHash:  addrProfileName.TxHash,
-					Name:    addrProfileName.Name,
-				}
-				allModelSetNames = append(allModelSetNames, profile.Name)
-			}
-		}
+	for _, profile := range a.Profiles {
+		profile.Name = &model.SetName{Address: profile.Address}
+		allSetNames = append(allSetNames, profile.Name)
 	}
 	a.Mutex.Unlock()
-	/*if err := AttachToMemoSetNames(a.Ctx, GetPrefixFields(a.Fields, "name"), allModelSetNames); err != nil {
+	if err := AttachToMemoSetNames(a.Ctx, GetPrefixFields(a.Fields, "name"), allSetNames); err != nil {
 		a.AddError(fmt.Errorf("error attaching to names for memo profiles; %w", err))
 		return
-	}*/
+	}
 }
 
 func (a *MemoProfileAttach) AttachProfiles() {

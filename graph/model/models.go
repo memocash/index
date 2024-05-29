@@ -85,6 +85,8 @@ type SetName struct {
 	TxHash  Hash    `json:"tx_hash"`
 	Address Address `json:"address"`
 	Name    string  `json:"name"`
+	Lock    *Lock   `json:"lock"`
+	Tx      *Tx     `json:"tx"`
 }
 
 type SetPic struct {

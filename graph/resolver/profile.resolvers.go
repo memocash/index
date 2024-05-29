@@ -13,24 +13,6 @@ import (
 )
 
 // Tx is the resolver for the tx field.
-func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
-	tx, err := load.GetTx(ctx, obj.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("error getting tx from loader for set name resolver: %s; %w", obj.TxHash, err)
-	}
-	return tx, nil
-}
-
-// Lock is the resolver for the lock field.
-func (r *setNameResolver) Lock(ctx context.Context, obj *model.SetName) (*model.Lock, error) {
-	lock, err := load.GetLock(ctx, obj.Address)
-	if err != nil {
-		return nil, fmt.Errorf("error getting lock from loader for set name resolver: %s %x; %w", obj.TxHash, obj.Address, err)
-	}
-	return lock, nil
-}
-
-// Tx is the resolver for the tx field.
 func (r *setPicResolver) Tx(ctx context.Context, obj *model.SetPic) (*model.Tx, error) {
 	tx, err := load.GetTx(ctx, obj.TxHash)
 	if err != nil {
@@ -66,15 +48,11 @@ func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*
 	return lock, nil
 }
 
-// SetName returns generated.SetNameResolver implementation.
-func (r *Resolver) SetName() generated.SetNameResolver { return &setNameResolver{r} }
-
 // SetPic returns generated.SetPicResolver implementation.
 func (r *Resolver) SetPic() generated.SetPicResolver { return &setPicResolver{r} }
 
 // SetProfile returns generated.SetProfileResolver implementation.
 func (r *Resolver) SetProfile() generated.SetProfileResolver { return &setProfileResolver{r} }
 
-type setNameResolver struct{ *Resolver }
 type setPicResolver struct{ *Resolver }
 type setProfileResolver struct{ *Resolver }
