@@ -6,29 +6,11 @@ package resolver
 import (
 	"context"
 	"fmt"
-	"github.com/memocash/index/db/item/memo"
+
 	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
 )
-
-// Rooms is the resolver for the rooms field.
-func (r *profileResolver) Rooms(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.RoomFollow, error) {
-	lockRoomFollows, err := memo.GetAddrRoomFollows(ctx, [][25]byte{obj.Address})
-	if err != nil {
-		return nil, fmt.Errorf("error getting addr room follows for profile resolver: %s; %w", obj.Address, err)
-	}
-	var roomFollows = make([]*model.RoomFollow, len(lockRoomFollows))
-	for i := range lockRoomFollows {
-		roomFollows[i] = &model.RoomFollow{
-			Name:     lockRoomFollows[i].Room,
-			Address:  lockRoomFollows[i].Addr,
-			Unfollow: lockRoomFollows[i].Unfollow,
-			TxHash:   lockRoomFollows[i].TxHash,
-		}
-	}
-	return roomFollows, nil
-}
 
 // Tx is the resolver for the tx field.
 func (r *setNameResolver) Tx(ctx context.Context, obj *model.SetName) (*model.Tx, error) {
@@ -84,9 +66,6 @@ func (r *setProfileResolver) Lock(ctx context.Context, obj *model.SetProfile) (*
 	return lock, nil
 }
 
-// Profile returns generated.ProfileResolver implementation.
-func (r *Resolver) Profile() generated.ProfileResolver { return &profileResolver{r} }
-
 // SetName returns generated.SetNameResolver implementation.
 func (r *Resolver) SetName() generated.SetNameResolver { return &setNameResolver{r} }
 
@@ -96,7 +75,6 @@ func (r *Resolver) SetPic() generated.SetPicResolver { return &setPicResolver{r}
 // SetProfile returns generated.SetProfileResolver implementation.
 func (r *Resolver) SetProfile() generated.SetProfileResolver { return &setProfileResolver{r} }
 
-type profileResolver struct{ *Resolver }
 type setNameResolver struct{ *Resolver }
 type setPicResolver struct{ *Resolver }
 type setProfileResolver struct{ *Resolver }

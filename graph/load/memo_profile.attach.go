@@ -23,11 +23,12 @@ func AttachToMemoProfiles(ctx context.Context, fields []Field, profiles []*model
 		baseA:    baseA{Ctx: ctx, Fields: fields},
 		Profiles: profiles,
 	}
-	o.Wait.Add(4)
+	o.Wait.Add(5)
 	go o.AttachLocks()
 	go o.AttachPosts()
 	go o.AttachFollowing()
 	go o.AttachFollowers()
+	go o.AttachRooms()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to memo profiles; %w", o.Errors[0])
@@ -168,6 +169,42 @@ func (a *MemoProfileAttach) AttachFollowers() {
 	}
 	if err := AttachToMemoFollows(a.Ctx, followersField.Fields, allFollows); err != nil {
 		a.AddError(fmt.Errorf("error attaching to followers for memo profiles; %w", err))
+		return
+	}
+}
+
+func (a *MemoProfileAttach) AttachRooms() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"rooms"}) {
+		return
+	}
+	lockRoomFollows, err := memo.GetAddrRoomFollows(a.Ctx, a.getAddresses())
+	if err != nil {
+		a.AddError(fmt.Errorf("error getting addr room follows for profile attach; %w", err))
+		return
+	}
+	var allRoomFollows []*model.RoomFollow
+	a.Mutex.Lock()
+	for _, lockRoomFollow := range lockRoomFollows {
+		if lockRoomFollow.Unfollow {
+			continue
+		}
+		for _, profile := range a.Profiles {
+			if profile.Address == lockRoomFollow.Addr {
+				roomFollow := &model.RoomFollow{
+					Name:     lockRoomFollow.Room,
+					Address:  lockRoomFollow.Addr,
+					TxHash:   lockRoomFollow.TxHash,
+					Unfollow: lockRoomFollow.Unfollow,
+				}
+				profile.Rooms = append(profile.Rooms, roomFollow)
+				allRoomFollows = append(allRoomFollows, roomFollow)
+			}
+		}
+	}
+	a.Mutex.Unlock()
+	if err := AttachToMemoRoomFollows(a.Ctx, GetPrefixFields(a.Fields, "rooms"), allRoomFollows); err != nil {
+		a.AddError(fmt.Errorf("error attaching to rooms for memo profiles; %w", err))
 		return
 	}
 }
