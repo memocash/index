@@ -14,31 +14,6 @@ import (
 	"github.com/memocash/index/graph/model"
 )
 
-// Following is the resolver for the following field.
-func (r *profileResolver) Following(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error) {
-	var startTime time.Time
-	if start != nil {
-		startTime = time.Time(*start)
-	}
-	addrMemoFollows, err := memo.GetAddrFollowsSingle(ctx, obj.Address, startTime)
-	if err != nil {
-		return nil, fmt.Errorf("error getting address memo follows for address; %w", err)
-	}
-	var follows []*model.Follow
-	for _, addrMemoFollow := range addrMemoFollows {
-		follows = append(follows, &model.Follow{
-			TxHash:        addrMemoFollow.TxHash,
-			Address:       addrMemoFollow.Addr,
-			FollowAddress: addrMemoFollow.FollowAddr,
-			Unfollow:      addrMemoFollow.Unfollow,
-		})
-	}
-	if err := load.AttachToMemoFollows(ctx, load.GetFields(ctx), follows); err != nil {
-		return nil, fmt.Errorf("error attaching to memo following for profile resolver: %s; %w", obj.Address, err)
-	}
-	return follows, nil
-}
-
 // Followers is the resolver for the followers field.
 func (r *profileResolver) Followers(ctx context.Context, obj *model.Profile, start *model.Date) ([]*model.Follow, error) {
 	var startTime time.Time

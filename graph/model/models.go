@@ -60,12 +60,13 @@ type Block struct {
 }
 
 type Profile struct {
-	Address Address     `json:"address"`
-	Name    *SetName    `json:"name"`
-	Profile *SetProfile `json:"profile"`
-	Pic     *SetPic     `json:"pic"`
-	Lock    *Lock       `json:"lock"`
-	Posts   []*Post     `json:"posts"`
+	Address   Address     `json:"address"`
+	Name      *SetName    `json:"name"`
+	Profile   *SetProfile `json:"profile"`
+	Pic       *SetPic     `json:"pic"`
+	Lock      *Lock       `json:"lock"`
+	Posts     []*Post     `json:"posts"`
+	Following []*Follow   `json:"following"`
 }
 
 type Follow struct {
