@@ -51,24 +51,33 @@ func (p *AddrProfile) Deserialize(data []byte) {
 	p.Profile = string(data)
 }
 
-func GetAddrProfile(ctx context.Context, addr [25]byte) (*AddrProfile, error) {
-	shardConfig := config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicMemoAddrProfile,
-		Prefixes: [][]byte{addr[:]},
-		Max:      1,
-		Newest:   true,
-		Context:  ctx,
-	}); err != nil {
-		return nil, fmt.Errorf("error getting db addr memo profile by prefix; %w", err)
+func GetAddrProfiles(ctx context.Context, addrs [][25]byte) ([]*AddrProfile, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
+	for i := range addrs {
+		shard := db.GetShardIdFromByte32(addrs[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
-	if len(dbClient.Messages) == 0 {
-		return nil, fmt.Errorf("error no addr memo profiles found; %w", client.EntryNotFoundError)
+	shardConfigs := config.GetQueueShards()
+	var addrProfiles []*AddrProfile
+	for shard, prefixes := range shardPrefixes {
+		shardConfig := config.GetShardConfig(shard, shardConfigs)
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:    db.TopicMemoAddrProfile,
+			Prefixes: prefixes,
+			Max:      1,
+			Newest:   true,
+			Context:  ctx,
+		}); err != nil {
+			return nil, fmt.Errorf("error getting db addr memo profiles by prefix; %w", err)
+		}
+		for _, msg := range dbClient.Messages {
+			var addrProfile = new(AddrProfile)
+			db.Set(addrProfile, msg)
+			addrProfiles = append(addrProfiles, addrProfile)
+		}
 	}
-	var addrProfile = new(AddrProfile)
-	db.Set(addrProfile, dbClient.Messages[0])
-	return addrProfile, nil
+	return addrProfiles, nil
 }
 
 func ListenAddrProfiles(ctx context.Context, addrs [][25]byte) (chan *AddrProfile, error) {

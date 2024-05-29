@@ -270,11 +270,7 @@ func (p *Profile) GetProfileChan(ctx context.Context) <-chan *model.Profile {
 				if !ok {
 					return
 				}
-				profile, err := load.GetProfile(ctx, addr)
-				if err != nil {
-					log.Printf("error getting profile from dataloader for profile subscription resolver; %v", err)
-					return
-				}
+				var profile = &model.Profile{Address: addr}
 				if err := load.AttachToMemoProfiles(ctx, profileFields, []*model.Profile{profile}); err != nil {
 					log.Printf("error attaching to memo profiles for profile subscription resolver; %v", err)
 					return

@@ -51,24 +51,33 @@ func (p *AddrProfilePic) Deserialize(data []byte) {
 	p.Pic = string(data)
 }
 
-func GetAddrProfilePic(ctx context.Context, addr [25]byte) (*AddrProfilePic, error) {
-	shardConfig := config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicMemoAddrProfilePic,
-		Prefixes: [][]byte{addr[:]},
-		Max:      1,
-		Newest:   true,
-		Context:  ctx,
-	}); err != nil {
-		return nil, fmt.Errorf("error getting db addr memo profile pic by prefix; %w", err)
+func GetAddrProfilePics(ctx context.Context, addrs [][25]byte) ([]*AddrProfilePic, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
+	for i := range addrs {
+		shard := db.GetShardIdFromByte32(addrs[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
-	if len(dbClient.Messages) == 0 {
-		return nil, fmt.Errorf("error no addr memo profile pics found; %w", client.EntryNotFoundError)
+	shardConfigs := config.GetQueueShards()
+	var addrProfilePics []*AddrProfilePic
+	for shard, prefixes := range shardPrefixes {
+		shardConfig := config.GetShardConfig(shard, shardConfigs)
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:    db.TopicMemoAddrProfilePic,
+			Prefixes: prefixes,
+			Max:      1,
+			Newest:   true,
+			Context:  ctx,
+		}); err != nil {
+			return nil, fmt.Errorf("error getting db addr memo profile pics by prefix; %w", err)
+		}
+		for _, msg := range dbClient.Messages {
+			var addrProfilePic = new(AddrProfilePic)
+			db.Set(addrProfilePic, msg)
+			addrProfilePics = append(addrProfilePics, addrProfilePic)
+		}
 	}
-	var addrProfilePic = new(AddrProfilePic)
-	db.Set(addrProfilePic, dbClient.Messages[0])
-	return addrProfilePic, nil
+	return addrProfilePics, nil
 }
 
 func ListenAddrProfilePics(ctx context.Context, addrs [][25]byte) (chan *AddrProfilePic, error) {

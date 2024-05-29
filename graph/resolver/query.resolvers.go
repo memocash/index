@@ -177,13 +177,8 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 func (r *queryResolver) Profiles(ctx context.Context, addresses []model.Address) ([]*model.Profile, error) {
 	metric.AddGraphQuery(metric.EndPointProfiles)
 	var profiles []*model.Profile
-	for _, addressString := range addresses {
-		profile, err := load.GetProfile(ctx, addressString)
-		if err != nil {
-			return nil, InternalError{fmt.Errorf(
-				"error getting profile from dataloader for profile query resolver; %w", err)}
-		}
-		profiles = append(profiles, profile)
+	for _, address := range addresses {
+		profiles = append(profiles, &model.Profile{Address: address})
 	}
 	if err := load.AttachToMemoProfiles(ctx, load.GetFields(ctx), profiles); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to profiles for query resolver; %w", err)}

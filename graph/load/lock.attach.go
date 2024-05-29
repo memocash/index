@@ -46,25 +46,14 @@ func (l *Lock) AttachProfiles() {
 	if !l.HasField([]string{"profile"}) {
 		return
 	}
-	var profiles []*model.Profile
-	for _, lockAddr := range l.GetLockAddrs() {
-		profile, err := GetProfile(l.Ctx, lockAddr)
-		if err != nil {
-			l.AddError(fmt.Errorf("error getting profile for lock resolver; %w", err))
-			return
-		}
-		profiles = append(profiles, profile)
-	}
+	var allProfiles []*model.Profile
 	l.Mutex.Lock()
 	for _, lock := range l.Locks {
-		for _, profile := range profiles {
-			if profile.Address == lock.Address {
-				lock.Profile = profile
-			}
-		}
+		lock.Profile = &model.Profile{Address: lock.Address}
+		allProfiles = append(allProfiles, lock.Profile)
 	}
 	l.Mutex.Unlock()
-	if err := AttachToMemoProfiles(l.Ctx, GetPrefixFields(l.Fields, "profile"), profiles); err != nil {
+	if err := AttachToMemoProfiles(l.Ctx, GetPrefixFields(l.Fields, "profile"), allProfiles); err != nil {
 		l.AddError(fmt.Errorf("error attaching to lock profiles; %w", err))
 		return
 	}

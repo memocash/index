@@ -51,24 +51,33 @@ func (n *AddrName) Deserialize(data []byte) {
 	n.Name = string(data)
 }
 
-func GetAddrName(ctx context.Context, addr [25]byte) (*AddrName, error) {
-	shardConfig := config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicMemoAddrName,
-		Prefixes: [][]byte{addr[:]},
-		Max:      1,
-		Newest:   true,
-		Context:  ctx,
-	}); err != nil {
-		return nil, fmt.Errorf("error getting db addr memo name by prefix; %w", err)
+func GetAddrNames(ctx context.Context, addrs [][25]byte) ([]*AddrName, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
+	for i := range addrs {
+		shard := db.GetShardIdFromByte32(addrs[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
 	}
-	if len(dbClient.Messages) == 0 {
-		return nil, fmt.Errorf("error no addr memo names found; %w", client.EntryNotFoundError)
+	shardConfigs := config.GetQueueShards()
+	var addrNames []*AddrName
+	for shard, prefixes := range shardPrefixes {
+		shardConfig := config.GetShardConfig(shard, shardConfigs)
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:    db.TopicMemoAddrName,
+			Prefixes: prefixes,
+			Max:      1,
+			Newest:   true,
+			Context:  ctx,
+		}); err != nil {
+			return nil, fmt.Errorf("error getting db addr memo names by prefix; %w", err)
+		}
+		for _, msg := range dbClient.Messages {
+			var addrName = new(AddrName)
+			db.Set(addrName, msg)
+			addrNames = append(addrNames, addrName)
+		}
 	}
-	var addrName = new(AddrName)
-	db.Set(addrName, dbClient.Messages[0])
-	return addrName, nil
+	return addrNames, nil
 }
 
 func ListenAddrNames(ctx context.Context, addrs [][25]byte) (chan *AddrName, error) {
