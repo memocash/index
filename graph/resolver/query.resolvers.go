@@ -27,12 +27,12 @@ func (r *queryResolver) Tx(ctx context.Context, hash model.Hash) (*model.Tx, err
 	metric.AddGraphQuery(metric.EndPointTx)
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	tx, err := load.GetTx(ctxWithTimeout, hash)
-	if err != nil {
+	var tx = &model.Tx{Hash: hash}
+	if err := load.AttachToTxs(ctxWithTimeout, load.GetFields(ctx), []*model.Tx{tx}); err != nil {
 		if errors.Is(err, load.TxMissingError) {
 			return nil, fmt.Errorf("tx not found: %s", hash)
 		}
-		return nil, InternalError{fmt.Errorf("error getting tx from dataloader for tx query resolver; %w", err)}
+		return nil, InternalError{fmt.Errorf("error attaching to tx for query resolver; %w", err)}
 	}
 	return tx, nil
 }
@@ -45,10 +45,9 @@ func (r *queryResolver) Txs(ctx context.Context, hashes []model.Hash) ([]*model.
 // Address is the resolver for the address field.
 func (r *queryResolver) Address(ctx context.Context, address model.Address) (*model.Lock, error) {
 	metric.AddGraphQuery(metric.EndPointAddress)
-	lock, err := load.GetLock(ctx, address)
-	if err != nil {
-		return nil, InternalError{fmt.Errorf("error getting lock from loader for query address resolver: %s; %w",
-			address, err)}
+	var lock = &model.Lock{Address: address}
+	if err := load.AttachToLocks(ctx, load.GetFields(ctx), []*model.Lock{lock}); err != nil {
+		return nil, fmt.Errorf("error attaching details to lock; %w", err)
 	}
 	return lock, nil
 }

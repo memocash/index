@@ -3,7 +3,6 @@ package sub
 import (
 	"context"
 	"fmt"
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/load"
 	"github.com/memocash/index/graph/model"
@@ -45,6 +44,7 @@ func (r *Room) Listen(ctx context.Context, names []string) (<-chan *model.Post, 
 			close(postChan)
 			r.Cancel()
 		}()
+		fields := load.GetFields(ctx)
 		for {
 			select {
 			case <-ctx.Done():
@@ -53,9 +53,9 @@ func (r *Room) Listen(ctx context.Context, names []string) (<-chan *model.Post, 
 				if !ok {
 					return
 				}
-				post, err := load.Post.Load(chainhash.Hash(txHash).String())
-				if err != nil {
-					log.Printf("error getting post from dataloader for room subscription resolver; %v", err)
+				var post = &model.Post{TxHash: txHash}
+				if err := load.AttachToMemoPosts(ctx, fields, []*model.Post{post}); err != nil {
+					log.Printf("error attaching to memo posts for room subscription resolver; %v", err)
 					return
 				}
 				postChan <- post
