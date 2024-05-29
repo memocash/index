@@ -232,30 +232,17 @@ func (a *MemoProfileAttach) AttachProfiles() {
 	if !a.HasField([]string{"profile"}) {
 		return
 	}
-	addrProfiles, err := memo.GetAddrProfiles(a.Ctx, a.getAddresses())
-	if err != nil {
-		a.AddError(fmt.Errorf("error getting addr profiles for profile attach; %w", err))
-		return
-	}
-	var allModelSetProfiles []*model.SetProfile
+	var allSetProfiles []*model.SetProfile
 	a.Mutex.Lock()
-	for _, addrProfile := range addrProfiles {
-		for _, profile := range a.Profiles {
-			if profile.Address == addrProfile.Addr {
-				profile.Profile = &model.SetProfile{
-					Address: addrProfile.Addr,
-					TxHash:  addrProfile.TxHash,
-					Text:    addrProfile.Profile,
-				}
-				allModelSetProfiles = append(allModelSetProfiles, profile.Profile)
-			}
-		}
+	for _, profile := range a.Profiles {
+		profile.Profile = &model.SetProfile{Address: profile.Address}
+		allSetProfiles = append(allSetProfiles, profile.Profile)
 	}
 	a.Mutex.Unlock()
-	/*if err := AttachToMemoSetProfiles(a.Ctx, GetPrefixFields(a.Fields, "profile"), allModelSetProfiles); err != nil {
+	if err := AttachToMemoSetProfiles(a.Ctx, GetPrefixFields(a.Fields, "profile"), allSetProfiles); err != nil {
 		a.AddError(fmt.Errorf("error attaching to profiles for memo profiles; %w", err))
 		return
-	}*/
+	}
 }
 
 func (a *MemoProfileAttach) AttachPics() {
@@ -263,28 +250,15 @@ func (a *MemoProfileAttach) AttachPics() {
 	if !a.HasField([]string{"pic"}) {
 		return
 	}
-	addrProfilePics, err := memo.GetAddrProfilePics(a.Ctx, a.getAddresses())
-	if err != nil {
-		a.AddError(fmt.Errorf("error getting addr profile pics for profile attach; %w", err))
-		return
-	}
-	var allModelSetPics []*model.SetPic
+	var allSetPics []*model.SetPic
 	a.Mutex.Lock()
-	for _, addrProfilePic := range addrProfilePics {
-		for _, profile := range a.Profiles {
-			if profile.Address == addrProfilePic.Addr {
-				profile.Pic = &model.SetPic{
-					Address: addrProfilePic.Addr,
-					TxHash:  addrProfilePic.TxHash,
-					Pic:     addrProfilePic.Pic,
-				}
-				allModelSetPics = append(allModelSetPics, profile.Pic)
-			}
-		}
+	for _, profile := range a.Profiles {
+		profile.Pic = &model.SetPic{Address: profile.Address}
+		allSetPics = append(allSetPics, profile.Pic)
 	}
 	a.Mutex.Unlock()
-	/*if err := AttachToMemoSetPics(a.Ctx, GetPrefixFields(a.Fields, "pic"), allModelSetPics); err != nil {
+	if err := AttachToMemoSetPics(a.Ctx, GetPrefixFields(a.Fields, "pic"), allSetPics); err != nil {
 		a.AddError(fmt.Errorf("error attaching to pics for memo profiles; %w", err))
 		return
-	}*/
+	}
 }

@@ -93,12 +93,16 @@ type SetPic struct {
 	TxHash  Hash    `json:"tx_hash"`
 	Address Address `json:"address"`
 	Pic     string  `json:"pic"`
+	Lock    *Lock   `json:"lock"`
+	Tx      *Tx     `json:"tx"`
 }
 
 type SetProfile struct {
 	TxHash  Hash    `json:"tx_hash"`
 	Address Address `json:"address"`
 	Text    string  `json:"text"`
+	Lock    *Lock   `json:"lock"`
+	Tx      *Tx     `json:"tx"`
 }
 
 type Post struct {
