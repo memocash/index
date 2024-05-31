@@ -124,13 +124,31 @@ func (a *MemoPost) AttachParents() {
 		a.AddError(fmt.Errorf("error getting memo post parents for post attach; %w", err))
 		return
 	}
+	var postParentTxHashes = make([][32]byte, len(postParents))
+	for i := range postParents {
+		postParentTxHashes[i] = postParents[i].ParentTxHash
+	}
+	// This verifies the parent post exists before trying to attach things to it.
+	verifyParentPosts, err := memo.GetPosts(a.Ctx, postParentTxHashes)
+	if err != nil {
+		a.AddError(fmt.Errorf("error getting memo parent posts for post attach; %w", err))
+		return
+	}
 	a.Mutex.Lock()
 	var allPosts []*model.Post
 	for _, postParent := range postParents {
 		for i := range a.Posts {
 			if a.Posts[i].TxHash == postParent.PostTxHash {
-				a.Posts[i].Parent = &model.Post{TxHash: postParent.ParentTxHash}
-				allPosts = append(allPosts, a.Posts[i].Parent)
+				for _, verifyParentPost := range verifyParentPosts {
+					if verifyParentPost.TxHash == postParent.ParentTxHash {
+						a.Posts[i].Parent = &model.Post{
+							TxHash: verifyParentPost.TxHash,
+							Text:   verifyParentPost.Post,
+						}
+						allPosts = append(allPosts, a.Posts[i].Parent)
+						break
+					}
+				}
 			}
 		}
 	}
