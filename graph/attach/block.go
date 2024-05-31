@@ -92,7 +92,7 @@ func (b *Blocks) AttachHeights() {
 			if b.Blocks[i].Hash != blockHeights[j].BlockHash {
 				continue
 			}
-			b.Blocks[i].Height = int(blockHeights[j].Height)
+			b.Blocks[i].Height = model.IntPtr(int(blockHeights[j].Height))
 			break
 		}
 	}

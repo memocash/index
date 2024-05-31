@@ -63,3 +63,7 @@ func UnmarshalUint32(v interface{}) (Uint32, error) {
 		return 0, fmt.Errorf("%T is not an uint32", v)
 	}
 }
+
+func IntPtr(i int) *int {
+	return &i
+}

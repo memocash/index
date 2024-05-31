@@ -87,7 +87,7 @@ func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	}
 	var modelBlock = &model.Block{
 		Hash:   heightBlock.BlockHash,
-		Height: int(heightBlock.Height),
+		Height: model.IntPtr(int(heightBlock.Height)),
 	}
 	if err := attach.ToBlocks(ctx, attach.GetFields(ctx), []*model.Block{modelBlock}); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to newest block for query resolver; %w", err)}
@@ -122,7 +122,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	for i := range heightBlocks {
 		modelBlocks[i] = &model.Block{
 			Hash:   heightBlocks[i].BlockHash,
-			Height: int(heightBlocks[i].Height),
+			Height: model.IntPtr(int(heightBlocks[i].Height)),
 		}
 		for _, block := range blocks {
 			if block.Hash == heightBlocks[i].BlockHash {
@@ -284,8 +284,8 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 				}
 			}
 			var block = &model.Block{
-				Hash:      blockHeight.BlockHash,
-				Height:    int(blockHeight.Height),
+				Hash:   blockHeight.BlockHash,
+				Height: model.IntPtr(int(blockHeight.Height)),
 			}
 			if err := attach.ToBlocks(ctx, attach.GetFields(ctx), []*model.Block{block}); err != nil {
 				log.Printf("error attaching to blocks for subscription; %v", err)
