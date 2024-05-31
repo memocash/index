@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -7,17 +7,17 @@ import (
 	"github.com/memocash/index/graph/model"
 )
 
-type MemoRoomAttach struct {
-	baseA
+type MemoRoom struct {
+	base
 	Rooms []*model.Room
 }
 
-func AttachToMemoRooms(ctx context.Context, fields []Field, rooms []*model.Room) error {
+func ToMemoRooms(ctx context.Context, fields []Field, rooms []*model.Room) error {
 	if len(rooms) == 0 {
 		return nil
 	}
-	o := MemoRoomAttach{
-		baseA: baseA{Ctx: ctx, Fields: fields},
+	o := MemoRoom{
+		base:  base{Ctx: ctx, Fields: fields},
 		Rooms: rooms,
 	}
 	o.Wait.Add(2)
@@ -30,7 +30,7 @@ func AttachToMemoRooms(ctx context.Context, fields []Field, rooms []*model.Room)
 	return nil
 }
 
-func (o *MemoRoomAttach) GetRoomNames() []string {
+func (o *MemoRoom) GetRoomNames() []string {
 	o.Mutex.Lock()
 	defer o.Mutex.Unlock()
 	var roomNames = make([]string, len(o.Rooms))
@@ -40,7 +40,7 @@ func (o *MemoRoomAttach) GetRoomNames() []string {
 	return roomNames
 }
 
-func (o *MemoRoomAttach) AttachPosts() {
+func (o *MemoRoom) AttachPosts() {
 	defer o.Wait.Done()
 	if !o.HasField([]string{"posts"}) {
 		return
@@ -74,7 +74,7 @@ func (o *MemoRoomAttach) AttachPosts() {
 	}*/
 }
 
-func (o *MemoRoomAttach) AttachFollowers() {
+func (o *MemoRoom) AttachFollowers() {
 	defer o.Wait.Done()
 	if !o.HasField([]string{"followers"}) {
 		return
@@ -107,7 +107,7 @@ func (o *MemoRoomAttach) AttachFollowers() {
 		}
 		o.Mutex.Unlock()
 	}
-	if err := AttachToMemoRoomFollows(o.Ctx, GetPrefixFields(o.Fields, "followers."), allRoomFollows); err != nil {
+	if err := ToMemoRoomFollows(o.Ctx, GetPrefixFields(o.Fields, "followers."), allRoomFollows); err != nil {
 		o.AddError(fmt.Errorf("error attaching to followers for memo rooms; %w", err))
 		return
 	}

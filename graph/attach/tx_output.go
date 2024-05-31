@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -12,17 +12,17 @@ import (
 )
 
 type Outputs struct {
-	baseA
+	base
 	Outputs     []*model.TxOutput
 	DetailsWait sync.WaitGroup
 }
 
-func AttachToOutputs(ctx context.Context, fields Fields, outputs []*model.TxOutput) error {
+func ToOutputs(ctx context.Context, fields Fields, outputs []*model.TxOutput) error {
 	if len(outputs) == 0 {
 		return nil
 	}
 	o := Outputs{
-		baseA:   baseA{Ctx: ctx, Fields: fields},
+		base:    base{Ctx: ctx, Fields: fields},
 		Outputs: outputs,
 	}
 	o.DetailsWait.Add(1)
@@ -113,7 +113,7 @@ func (o *Outputs) AttachSpends() {
 		allSpends = append(allSpends, o.Outputs[i].Spends...)
 	}
 	o.Mutex.Unlock()
-	if err := AttachToInputs(o.Ctx, GetPrefixFields(o.Fields, "spends."), allSpends); err != nil {
+	if err := ToInputs(o.Ctx, GetPrefixFields(o.Fields, "spends."), allSpends); err != nil {
 		o.AddError(fmt.Errorf("error attaching to tx inputs spends for model tx outputs; %w", err))
 		return
 	}
@@ -147,7 +147,7 @@ func (o *Outputs) AttachSlps() {
 		}
 	}
 	o.Mutex.Unlock()
-	if err := AttachToSlpOutputs(o.Ctx, GetPrefixFields(o.Fields, "slp."), allSlpOutputs); err != nil {
+	if err := ToSlpOutputs(o.Ctx, GetPrefixFields(o.Fields, "slp."), allSlpOutputs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp outputs for tx outputs; %w", err))
 		return
 	}
@@ -180,7 +180,7 @@ func (o *Outputs) AttachSlpBatons() {
 		}
 	}
 	o.Mutex.Unlock()
-	if err := AttachToSlpBatons(o.Ctx, GetPrefixFields(o.Fields, "slp_baton."), allSlpBatons); err != nil {
+	if err := ToSlpBatons(o.Ctx, GetPrefixFields(o.Fields, "slp_baton."), allSlpBatons); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp batons for tx outputs; %w", err))
 		return
 	}
@@ -198,7 +198,7 @@ func (o *Outputs) AttachTxs() {
 		allTxs = append(allTxs, o.Outputs[j].Tx)
 	}
 	o.Mutex.Unlock()
-	if err := AttachToTxs(o.Ctx, GetPrefixFields(o.Fields, "tx."), allTxs); err != nil {
+	if err := ToTxs(o.Ctx, GetPrefixFields(o.Fields, "tx."), allTxs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to txs for model tx outputs; %w", err))
 		return
 	}
@@ -223,7 +223,7 @@ func (o *Outputs) AttachLocks() {
 	if len(allLocks) == 0 {
 		return
 	}
-	if err := AttachToLocks(o.Ctx, GetPrefixFields(o.Fields, "lock."), allLocks); err != nil {
+	if err := ToLocks(o.Ctx, GetPrefixFields(o.Fields, "lock."), allLocks); err != nil {
 		o.AddError(fmt.Errorf("error attaching to locks for model tx outputs; %w", err))
 		return
 	}

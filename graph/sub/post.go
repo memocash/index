@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/memocash/index/db/item/memo"
-	"github.com/memocash/index/graph/load"
+	"github.com/memocash/index/graph/attach"
 	"github.com/memocash/index/graph/model"
 	"log"
 )
@@ -85,7 +85,7 @@ func (r *Post) Listen(ctx context.Context, txHashes [][32]byte) (<-chan *model.P
 					return
 				}
 				var post = &model.Post{TxHash: txHash}
-				if err := load.AttachToMemoPosts(ctx, load.GetFields(ctx), []*model.Post{post}); err != nil {
+				if err := attach.ToMemoPosts(ctx, attach.GetFields(ctx), []*model.Post{post}); err != nil {
 					log.Printf("error attaching to posts for query resolver posts; %v", err)
 					return
 				}

@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -8,18 +8,18 @@ import (
 	"sync"
 )
 
-type MemoSetProfileAttach struct {
-	baseA
+type MemoSetProfile struct {
+	base
 	SetProfiles []*model.SetProfile
 	DetailsWait sync.WaitGroup
 }
 
-func AttachToMemoSetProfiles(ctx context.Context, fields []Field, setProfiles []*model.SetProfile) error {
+func ToMemoSetProfiles(ctx context.Context, fields []Field, setProfiles []*model.SetProfile) error {
 	if len(setProfiles) == 0 {
 		return nil
 	}
-	o := MemoSetProfileAttach{
-		baseA:       baseA{Ctx: ctx, Fields: fields},
+	o := MemoSetProfile{
+		base:        base{Ctx: ctx, Fields: fields},
 		SetProfiles: setProfiles,
 	}
 	o.DetailsWait.Add(1)
@@ -35,7 +35,7 @@ func AttachToMemoSetProfiles(ctx context.Context, fields []Field, setProfiles []
 	return nil
 }
 
-func (a *MemoSetProfileAttach) getAddresses() [][25]byte {
+func (a *MemoSetProfile) getAddresses() [][25]byte {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 	var addresses [][25]byte
@@ -45,7 +45,7 @@ func (a *MemoSetProfileAttach) getAddresses() [][25]byte {
 	return addresses
 }
 
-func (a *MemoSetProfileAttach) AttachInfo() {
+func (a *MemoSetProfile) AttachInfo() {
 	defer a.DetailsWait.Done()
 	if !a.HasField([]string{"tx", "tx_hash", "profile"}) {
 		return
@@ -67,7 +67,7 @@ func (a *MemoSetProfileAttach) AttachInfo() {
 	a.Mutex.Unlock()
 }
 
-func (a *MemoSetProfileAttach) AttachLocks() {
+func (a *MemoSetProfile) AttachLocks() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"lock"}) {
 		return
@@ -79,13 +79,13 @@ func (a *MemoSetProfileAttach) AttachLocks() {
 		allLocks = append(allLocks, setProfile.Lock)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
+	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
 		a.AddError(fmt.Errorf("error attaching to locks for memo set profiles; %w", err))
 		return
 	}
 }
 
-func (a *MemoSetProfileAttach) AttachTxs() {
+func (a *MemoSetProfile) AttachTxs() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"tx"}) {
 		return
@@ -97,7 +97,7 @@ func (a *MemoSetProfileAttach) AttachTxs() {
 		allTxs = append(allTxs, setProfile.Tx)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
+	if err := ToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
 		a.AddError(fmt.Errorf("error attaching to txs for memo set profiles; %w", err))
 		return
 	}

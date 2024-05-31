@@ -16,7 +16,7 @@ import (
 	memo_db "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/db/metric"
 	"github.com/memocash/index/graph/generated"
-	"github.com/memocash/index/graph/load"
+	"github.com/memocash/index/graph/attach"
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/graph/sub"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -28,8 +28,8 @@ func (r *queryResolver) Tx(ctx context.Context, hash model.Hash) (*model.Tx, err
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	var tx = &model.Tx{Hash: hash}
-	if err := load.AttachToTxs(ctxWithTimeout, load.GetFields(ctx), []*model.Tx{tx}); err != nil {
-		if errors.Is(err, load.TxMissingError) {
+	if err := attach.ToTxs(ctxWithTimeout, attach.GetFields(ctx), []*model.Tx{tx}); err != nil {
+		if errors.Is(err, attach.TxMissingError) {
 			return nil, fmt.Errorf("tx not found: %s", hash)
 		}
 		return nil, InternalError{fmt.Errorf("error attaching to tx for query resolver; %w", err)}
@@ -46,7 +46,7 @@ func (r *queryResolver) Txs(ctx context.Context, hashes []model.Hash) ([]*model.
 func (r *queryResolver) Address(ctx context.Context, address model.Address) (*model.Lock, error) {
 	metric.AddGraphQuery(metric.EndPointAddress)
 	var lock = &model.Lock{Address: address}
-	if err := load.AttachToLocks(ctx, load.GetFields(ctx), []*model.Lock{lock}); err != nil {
+	if err := attach.ToLocks(ctx, attach.GetFields(ctx), []*model.Lock{lock}); err != nil {
 		return nil, fmt.Errorf("error attaching details to lock; %w", err)
 	}
 	return lock, nil
@@ -55,7 +55,7 @@ func (r *queryResolver) Address(ctx context.Context, address model.Address) (*mo
 // Addresses is the resolver for the addresses field.
 func (r *queryResolver) Addresses(ctx context.Context, addresses []model.Address) ([]*model.Lock, error) {
 	metric.AddGraphQuery(metric.EndPointAddresses)
-	if load.GetFields(ctx).HasField("balance") {
+	if attach.GetFields(ctx).HasField("balance") {
 		// TODO: Reimplement if needed
 		return nil, InternalError{fmt.Errorf("error balance no longer implemented")}
 	}
@@ -65,7 +65,7 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []model.Address
 			Address: address,
 		})
 	}
-	if err := load.AttachToLocks(ctx, load.GetFields(ctx), locks); err != nil {
+	if err := attach.ToLocks(ctx, attach.GetFields(ctx), locks); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to locks for query resolver; %w", err)}
 	}
 	return locks, nil
@@ -93,7 +93,7 @@ func (r *queryResolver) Block(ctx context.Context, hash model.Hash) (*model.Bloc
 		Height:    &height,
 		Raw:       block.Raw,
 	}
-	if err := load.AttachToBlocks(ctx, load.GetFields(ctx), []*model.Block{modelBlock}); err != nil {
+	if err := attach.ToBlocks(ctx, attach.GetFields(ctx), []*model.Block{modelBlock}); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to block for query resolver; %w", err)}
 	}
 	return modelBlock, nil
@@ -165,7 +165,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 			}
 		}
 	}
-	if err := load.AttachToBlocks(ctx, load.GetFields(ctx), modelBlocks); err != nil {
+	if err := attach.ToBlocks(ctx, attach.GetFields(ctx), modelBlocks); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to blocks for query resolver; %w", err)}
 
 	}
@@ -179,7 +179,7 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []model.Address)
 	for _, address := range addresses {
 		profiles = append(profiles, &model.Profile{Address: address})
 	}
-	if err := load.AttachToMemoProfiles(ctx, load.GetFields(ctx), profiles); err != nil {
+	if err := attach.ToMemoProfiles(ctx, attach.GetFields(ctx), profiles); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to profiles for query resolver; %w", err)}
 	}
 	return profiles, nil
@@ -192,7 +192,7 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []model.Hash) ([]*mo
 	for _, txHash := range txHashes {
 		posts = append(posts, &model.Post{TxHash: txHash})
 	}
-	if err := load.AttachToMemoPosts(ctx, load.GetFields(ctx), posts); err != nil {
+	if err := attach.ToMemoPosts(ctx, attach.GetFields(ctx), posts); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to posts for query resolver posts; %w", err)}
 	}
 	return posts, nil
@@ -230,7 +230,7 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 	for _, seenPost := range seenPosts {
 		posts = append(posts, &model.Post{TxHash: seenPost.PostTxHash})
 	}
-	if err := load.AttachToMemoPosts(ctx, load.GetFields(ctx), posts); err != nil {
+	if err := attach.ToMemoPosts(ctx, attach.GetFields(ctx), posts); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to posts for query resolver posts newest; %w", err)}
 	}
 	return posts, nil
@@ -240,7 +240,7 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, error) {
 	metric.AddGraphQuery(metric.EndPointRoom)
 	var room = &model.Room{Name: name}
-	if err := load.AttachToMemoRooms(ctx, load.GetFields(ctx), []*model.Room{room}); err != nil {
+	if err := attach.ToMemoRooms(ctx, attach.GetFields(ctx), []*model.Room{room}); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to rooms for room query resolver; %w", err)}
 	}
 	return room, nil
@@ -263,7 +263,7 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []model.
 		cancel()
 		return nil, InternalError{fmt.Errorf("error getting addr seen txs listener for address subscription; %w", err)}
 	}
-	fields := load.GetFields(ctx)
+	fields := attach.GetFields(ctx)
 	var txChan = make(chan *model.Tx)
 	go func() {
 		defer func() {
@@ -279,7 +279,7 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []model.
 				Hash: addrSeenTx.TxHash,
 				Seen: model.Date(addrSeenTx.Seen),
 			}
-			if err := load.AttachToTxs(ctx, fields, []*model.Tx{tx}); err != nil {
+			if err := attach.ToTxs(ctx, fields, []*model.Tx{tx}); err != nil {
 				log.Printf("error attaching to txs for address subscription; %v", err)
 				return
 			}
@@ -347,7 +347,7 @@ func (r *subscriptionResolver) Posts(ctx context.Context, hashes []model.Hash) (
 // Profiles is the resolver for the profiles field.
 func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []model.Address) (<-chan *model.Profile, error) {
 	var profile = new(sub.Profile)
-	profileChan, err := profile.Listen(ctx, model.AddressesToArrays(addresses), load.GetFields(ctx))
+	profileChan, err := profile.Listen(ctx, model.AddressesToArrays(addresses), attach.GetFields(ctx))
 	if err != nil {
 		return nil, InternalError{fmt.Errorf("error getting profile listener for subscription; %w", err)}
 	}

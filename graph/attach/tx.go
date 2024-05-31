@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -15,15 +15,15 @@ import (
 )
 
 type Tx struct {
-	baseA
+	base
 	Txs         []*model.Tx
 	DetailsWait sync.WaitGroup
 }
 
-func AttachToTxs(ctx context.Context, fields []Field, txs []*model.Tx) error {
+func ToTxs(ctx context.Context, fields []Field, txs []*model.Tx) error {
 	t := Tx{
-		baseA: baseA{Ctx: ctx, Fields: fields},
-		Txs:   txs,
+		base: base{Ctx: ctx, Fields: fields},
+		Txs:  txs,
 	}
 	t.DetailsWait.Add(3)
 	t.Wait.Add(4)
@@ -89,7 +89,7 @@ func (t *Tx) AttachInputs() {
 		})
 	}
 	t.Mutex.Unlock()
-	if err := AttachToInputs(t.Ctx, GetPrefixFields(t.Fields, "inputs."), allInputs); err != nil {
+	if err := ToInputs(t.Ctx, GetPrefixFields(t.Fields, "inputs."), allInputs); err != nil {
 		t.AddError(fmt.Errorf("error attaching to inputs for tx; %w", err))
 		return
 	}
@@ -137,7 +137,7 @@ func (t *Tx) AttachToOutputs() {
 		allOutputs = append(allOutputs, tx.Outputs...)
 	}
 	t.Mutex.Unlock()
-	if err := AttachToOutputs(t.Ctx, GetPrefixFields(t.Fields, "outputs."), allOutputs); err != nil {
+	if err := ToOutputs(t.Ctx, GetPrefixFields(t.Fields, "outputs."), allOutputs); err != nil {
 		t.AddError(fmt.Errorf("error attaching to outputs for tx; %w", err))
 		return
 	}
@@ -273,7 +273,7 @@ func (t *Tx) AttachBlocks() {
 		})
 	}
 	t.Mutex.Unlock()
-	if err := AttachToBlocks(t.Ctx, GetPrefixFields(t.Fields, "blocks.block."), allBlocks); err != nil {
+	if err := ToBlocks(t.Ctx, GetPrefixFields(t.Fields, "blocks.block."), allBlocks); err != nil {
 		t.AddError(fmt.Errorf("error attaching to blocks for tx; %w", err))
 		return
 	}

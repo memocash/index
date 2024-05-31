@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -6,17 +6,17 @@ import (
 	"github.com/memocash/index/graph/model"
 )
 
-type MemoRoomFollowAttach struct {
-	baseA
+type MemoRoomFollow struct {
+	base
 	RoomFollows []*model.RoomFollow
 }
 
-func AttachToMemoRoomFollows(ctx context.Context, fields []Field, roomFollows []*model.RoomFollow) error {
+func ToMemoRoomFollows(ctx context.Context, fields []Field, roomFollows []*model.RoomFollow) error {
 	if len(roomFollows) == 0 {
 		return nil
 	}
-	o := MemoRoomFollowAttach{
-		baseA:       baseA{Ctx: ctx, Fields: fields},
+	o := MemoRoomFollow{
+		base:        base{Ctx: ctx, Fields: fields},
 		RoomFollows: roomFollows,
 	}
 	o.Wait.Add(3)
@@ -30,7 +30,7 @@ func AttachToMemoRoomFollows(ctx context.Context, fields []Field, roomFollows []
 	return nil
 }
 
-func (a *MemoRoomFollowAttach) AttachRooms() {
+func (a *MemoRoomFollow) AttachRooms() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"room"}) {
 		return
@@ -42,13 +42,13 @@ func (a *MemoRoomFollowAttach) AttachRooms() {
 		allRooms = append(allRooms, roomFollow.Room)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToMemoRooms(a.Ctx, GetPrefixFields(a.Fields, "room."), allRooms); err != nil {
+	if err := ToMemoRooms(a.Ctx, GetPrefixFields(a.Fields, "room."), allRooms); err != nil {
 		a.AddError(fmt.Errorf("error attaching to rooms for memo room follows; %w", err))
 		return
 	}
 }
 
-func (a *MemoRoomFollowAttach) AttachLocks() {
+func (a *MemoRoomFollow) AttachLocks() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"lock"}) {
 		return
@@ -60,13 +60,13 @@ func (a *MemoRoomFollowAttach) AttachLocks() {
 		allLocks = append(allLocks, roomFollow.Lock)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
+	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
 		a.AddError(fmt.Errorf("error attaching to locks for memo room follows; %w", err))
 		return
 	}
 }
 
-func (a *MemoRoomFollowAttach) AttachTxs() {
+func (a *MemoRoomFollow) AttachTxs() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"tx"}) {
 		return
@@ -78,7 +78,7 @@ func (a *MemoRoomFollowAttach) AttachTxs() {
 		allTxs = append(allTxs, roomFollow.Tx)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
+	if err := ToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
 		a.AddError(fmt.Errorf("error attaching to txs for memo room follows; %w", err))
 		return
 	}

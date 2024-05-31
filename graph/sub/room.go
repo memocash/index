@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/memocash/index/db/item/memo"
-	"github.com/memocash/index/graph/load"
+	"github.com/memocash/index/graph/attach"
 	"github.com/memocash/index/graph/model"
 	"log"
 )
@@ -44,7 +44,7 @@ func (r *Room) Listen(ctx context.Context, names []string) (<-chan *model.Post, 
 			close(postChan)
 			r.Cancel()
 		}()
-		fields := load.GetFields(ctx)
+		fields := attach.GetFields(ctx)
 		for {
 			select {
 			case <-ctx.Done():
@@ -54,7 +54,7 @@ func (r *Room) Listen(ctx context.Context, names []string) (<-chan *model.Post, 
 					return
 				}
 				var post = &model.Post{TxHash: txHash}
-				if err := load.AttachToMemoPosts(ctx, fields, []*model.Post{post}); err != nil {
+				if err := attach.ToMemoPosts(ctx, fields, []*model.Post{post}); err != nil {
 					log.Printf("error attaching to memo posts for room subscription resolver; %v", err)
 					return
 				}

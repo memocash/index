@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -9,18 +9,18 @@ import (
 	"sync"
 )
 
-type MemoLikeAttach struct {
-	baseA
+type MemoLike struct {
+	base
 	Likes       []*model.Like
 	DetailsWait sync.WaitGroup
 }
 
-func AttachToMemoLikes(ctx context.Context, fields []Field, likes []*model.Like) error {
+func ToMemoLikes(ctx context.Context, fields []Field, likes []*model.Like) error {
 	if len(likes) == 0 {
 		return nil
 	}
-	o := MemoLikeAttach{
-		baseA: baseA{Ctx: ctx, Fields: fields},
+	o := MemoLike{
+		base:  base{Ctx: ctx, Fields: fields},
 		Likes: likes,
 	}
 	o.DetailsWait.Add(1)
@@ -38,7 +38,7 @@ func AttachToMemoLikes(ctx context.Context, fields []Field, likes []*model.Like)
 	return nil
 }
 
-func (a *MemoLikeAttach) getTxHashes(checkAddressPostTxHash, checkTips bool) [][32]byte {
+func (a *MemoLike) getTxHashes(checkAddressPostTxHash, checkTips bool) [][32]byte {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 	var txHashes [][32]byte
@@ -55,7 +55,7 @@ func (a *MemoLikeAttach) getTxHashes(checkAddressPostTxHash, checkTips bool) [][
 	return txHashes
 }
 
-func (a *MemoLikeAttach) AttachInfo() {
+func (a *MemoLike) AttachInfo() {
 	defer a.DetailsWait.Done()
 	if !a.HasField([]string{"address", "lock", "post_tx_hash", "post"}) {
 		return
@@ -67,7 +67,7 @@ func (a *MemoLikeAttach) AttachInfo() {
 	}
 }
 
-func (a *MemoLikeAttach) AttachTips() {
+func (a *MemoLike) AttachTips() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"tip"}) {
 		return
@@ -88,7 +88,7 @@ func (a *MemoLikeAttach) AttachTips() {
 	a.Mutex.Unlock()
 }
 
-func (a *MemoLikeAttach) AttachLocks() {
+func (a *MemoLike) AttachLocks() {
 	defer a.Wait.Done()
 	var allLocks []*model.Lock
 	if !a.HasField([]string{"lock"}) {
@@ -100,13 +100,13 @@ func (a *MemoLikeAttach) AttachLocks() {
 		allLocks = append(allLocks, like.Lock)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
+	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
 		a.AddError(fmt.Errorf("error attaching to locks for memo likes; %w", err))
 		return
 	}
 }
 
-func (a *MemoLikeAttach) AttachTxs() {
+func (a *MemoLike) AttachTxs() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"tx"}) {
 		return
@@ -118,13 +118,13 @@ func (a *MemoLikeAttach) AttachTxs() {
 		allTxs = append(allTxs, like.Tx)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
+	if err := ToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
 		a.AddError(fmt.Errorf("error attaching to txs for memo likes; %w", err))
 		return
 	}
 }
 
-func (a *MemoLikeAttach) AttachPosts() {
+func (a *MemoLike) AttachPosts() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"post"}) {
 		return
@@ -136,7 +136,7 @@ func (a *MemoLikeAttach) AttachPosts() {
 		allPosts = append(allPosts, like.Post)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToMemoPosts(a.Ctx, GetPrefixFields(a.Fields, "post."), allPosts); err != nil {
+	if err := ToMemoPosts(a.Ctx, GetPrefixFields(a.Fields, "post."), allPosts); err != nil {
 		a.AddError(fmt.Errorf("error attaching to posts for memo likes; %w", err))
 		return
 	}

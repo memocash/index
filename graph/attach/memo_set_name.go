@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -8,18 +8,18 @@ import (
 	"sync"
 )
 
-type MemoSetNameAttach struct {
-	baseA
+type MemoSetName struct {
+	base
 	SetNames    []*model.SetName
 	DetailsWait sync.WaitGroup
 }
 
-func AttachToMemoSetNames(ctx context.Context, fields []Field, setNames []*model.SetName) error {
+func ToMemoSetNames(ctx context.Context, fields []Field, setNames []*model.SetName) error {
 	if len(setNames) == 0 {
 		return nil
 	}
-	o := MemoSetNameAttach{
-		baseA:    baseA{Ctx: ctx, Fields: fields},
+	o := MemoSetName{
+		base:     base{Ctx: ctx, Fields: fields},
 		SetNames: setNames,
 	}
 	o.DetailsWait.Add(1)
@@ -35,7 +35,7 @@ func AttachToMemoSetNames(ctx context.Context, fields []Field, setNames []*model
 	return nil
 }
 
-func (a *MemoSetNameAttach) getAddresses() [][25]byte {
+func (a *MemoSetName) getAddresses() [][25]byte {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 	var addresses [][25]byte
@@ -45,7 +45,7 @@ func (a *MemoSetNameAttach) getAddresses() [][25]byte {
 	return addresses
 }
 
-func (a *MemoSetNameAttach) AttachInfo() {
+func (a *MemoSetName) AttachInfo() {
 	defer a.DetailsWait.Done()
 	if !a.HasField([]string{"tx", "tx_hash", "name"}) {
 		return
@@ -67,7 +67,7 @@ func (a *MemoSetNameAttach) AttachInfo() {
 	a.Mutex.Unlock()
 }
 
-func (a *MemoSetNameAttach) AttachLocks() {
+func (a *MemoSetName) AttachLocks() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"lock"}) {
 		return
@@ -79,13 +79,13 @@ func (a *MemoSetNameAttach) AttachLocks() {
 		allLocks = append(allLocks, setName.Lock)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
+	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
 		a.AddError(fmt.Errorf("error attaching to locks for memo set names; %w", err))
 		return
 	}
 }
 
-func (a *MemoSetNameAttach) AttachTxs() {
+func (a *MemoSetName) AttachTxs() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"tx"}) {
 		return
@@ -97,7 +97,7 @@ func (a *MemoSetNameAttach) AttachTxs() {
 		allTxs = append(allTxs, setName.Tx)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
+	if err := ToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
 		a.AddError(fmt.Errorf("error attaching to txs for memo set names; %w", err))
 		return
 	}

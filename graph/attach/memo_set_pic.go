@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -8,18 +8,18 @@ import (
 	"sync"
 )
 
-type MemoSetPicAttach struct {
-	baseA
+type MemoSetPic struct {
+	base
 	SetPics     []*model.SetPic
 	DetailsWait sync.WaitGroup
 }
 
-func AttachToMemoSetPics(ctx context.Context, fields []Field, setPics []*model.SetPic) error {
+func ToMemoSetPics(ctx context.Context, fields []Field, setPics []*model.SetPic) error {
 	if len(setPics) == 0 {
 		return nil
 	}
-	o := MemoSetPicAttach{
-		baseA:   baseA{Ctx: ctx, Fields: fields},
+	o := MemoSetPic{
+		base:    base{Ctx: ctx, Fields: fields},
 		SetPics: setPics,
 	}
 	o.DetailsWait.Add(1)
@@ -35,7 +35,7 @@ func AttachToMemoSetPics(ctx context.Context, fields []Field, setPics []*model.S
 	return nil
 }
 
-func (a *MemoSetPicAttach) getAddresses() [][25]byte {
+func (a *MemoSetPic) getAddresses() [][25]byte {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 	var addresses [][25]byte
@@ -45,7 +45,7 @@ func (a *MemoSetPicAttach) getAddresses() [][25]byte {
 	return addresses
 }
 
-func (a *MemoSetPicAttach) AttachInfo() {
+func (a *MemoSetPic) AttachInfo() {
 	defer a.DetailsWait.Done()
 	if !a.HasField([]string{"tx", "tx_hash", "pic"}) {
 		return
@@ -67,7 +67,7 @@ func (a *MemoSetPicAttach) AttachInfo() {
 	a.Mutex.Unlock()
 }
 
-func (a *MemoSetPicAttach) AttachLocks() {
+func (a *MemoSetPic) AttachLocks() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"lock"}) {
 		return
@@ -79,13 +79,13 @@ func (a *MemoSetPicAttach) AttachLocks() {
 		allLocks = append(allLocks, setPic.Lock)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
+	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
 		a.AddError(fmt.Errorf("error attaching to locks for memo set pics; %w", err))
 		return
 	}
 }
 
-func (a *MemoSetPicAttach) AttachTxs() {
+func (a *MemoSetPic) AttachTxs() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"tx"}) {
 		return
@@ -97,7 +97,7 @@ func (a *MemoSetPicAttach) AttachTxs() {
 		allTxs = append(allTxs, setPic.Tx)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
+	if err := ToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
 		a.AddError(fmt.Errorf("error attaching to txs for memo set pics; %w", err))
 		return
 	}

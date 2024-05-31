@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -6,17 +6,17 @@ import (
 	"github.com/memocash/index/graph/model"
 )
 
-type MemoFollowAttach struct {
-	baseA
+type MemoFollow struct {
+	base
 	Follows []*model.Follow
 }
 
-func AttachToMemoFollows(ctx context.Context, fields []Field, follows []*model.Follow) error {
+func ToMemoFollows(ctx context.Context, fields []Field, follows []*model.Follow) error {
 	if len(follows) == 0 {
 		return nil
 	}
-	o := MemoFollowAttach{
-		baseA:   baseA{Ctx: ctx, Fields: fields},
+	o := MemoFollow{
+		base:    base{Ctx: ctx, Fields: fields},
 		Follows: follows,
 	}
 	o.Wait.Add(3)
@@ -30,7 +30,7 @@ func AttachToMemoFollows(ctx context.Context, fields []Field, follows []*model.F
 	return nil
 }
 
-func (a *MemoFollowAttach) AttachLocks() {
+func (a *MemoFollow) AttachLocks() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"lock"}) {
 		return
@@ -42,13 +42,13 @@ func (a *MemoFollowAttach) AttachLocks() {
 		allLocks = append(allLocks, follow.Lock)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
+	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
 		a.AddError(fmt.Errorf("error attaching to locks for memo follows; %w", err))
 		return
 	}
 }
 
-func (a *MemoFollowAttach) AttachFollowLocks() {
+func (a *MemoFollow) AttachFollowLocks() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"follow_lock"}) {
 		return
@@ -60,13 +60,13 @@ func (a *MemoFollowAttach) AttachFollowLocks() {
 		allLocks = append(allLocks, follow.FollowLock)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToLocks(a.Ctx, GetPrefixFields(a.Fields, "follow_lock."), allLocks); err != nil {
+	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "follow_lock."), allLocks); err != nil {
 		a.AddError(fmt.Errorf("error attaching to follow locks for memo follows; %w", err))
 		return
 	}
 }
 
-func (a *MemoFollowAttach) AttachTxs() {
+func (a *MemoFollow) AttachTxs() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"tx"}) {
 		return
@@ -78,7 +78,7 @@ func (a *MemoFollowAttach) AttachTxs() {
 		allTxs = append(allTxs, follow.Tx)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
+	if err := ToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
 		a.AddError(fmt.Errorf("error attaching to txs for memo follows; %w", err))
 		return
 	}

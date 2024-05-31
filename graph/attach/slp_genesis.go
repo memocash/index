@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -9,16 +9,16 @@ import (
 )
 
 type SlpGeneses struct {
-	baseA
+	base
 	SlpGeneses []*model.SlpGenesis
 }
 
-func AttachToSlpGeneses(ctx context.Context, fields []Field, slpGeneses []*model.SlpGenesis) error {
+func ToSlpGeneses(ctx context.Context, fields []Field, slpGeneses []*model.SlpGenesis) error {
 	if len(slpGeneses) == 0 {
 		return nil
 	}
 	o := SlpGeneses{
-		baseA:      baseA{Ctx: ctx, Fields: fields},
+		base:       base{Ctx: ctx, Fields: fields},
 		SlpGeneses: slpGeneses,
 	}
 	o.Wait.Add(3)
@@ -86,7 +86,7 @@ func (o *SlpGeneses) AttachSlpOutputs() {
 		}
 	}
 	o.Mutex.Unlock()
-	if err := AttachToSlpOutputs(o.Ctx, GetPrefixFields(o.Fields, "output."), allSlpOutputs); err != nil {
+	if err := ToSlpOutputs(o.Ctx, GetPrefixFields(o.Fields, "output."), allSlpOutputs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp outputs for slp geneses; %w", err))
 		return
 	}
@@ -119,7 +119,7 @@ func (o *SlpGeneses) AttachSlpBatons() {
 		}
 	}
 	o.Mutex.Unlock()
-	if err := AttachToSlpBatons(o.Ctx, GetPrefixFields(o.Fields, "baton."), allBatons); err != nil {
+	if err := ToSlpBatons(o.Ctx, GetPrefixFields(o.Fields, "baton."), allBatons); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp batons for slp geneses; %w", err))
 		return
 	}
@@ -137,7 +137,7 @@ func (o *SlpGeneses) AttachTxs() {
 		allTxs = append(allTxs, o.SlpGeneses[j].Tx)
 	}
 	o.Mutex.Unlock()
-	if err := AttachToTxs(o.Ctx, GetPrefixFields(o.Fields, "tx."), allTxs); err != nil {
+	if err := ToTxs(o.Ctx, GetPrefixFields(o.Fields, "tx."), allTxs); err != nil {
 		o.AddError(fmt.Errorf("error attaching to txs for model slp geneses; %w", err))
 		return
 	}

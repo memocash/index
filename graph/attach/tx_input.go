@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -9,13 +9,13 @@ import (
 )
 
 type Inputs struct {
-	baseA
+	base
 	Inputs []*model.TxInput
 }
 
-func AttachToInputs(ctx context.Context, fields []Field, inputs []*model.TxInput) error {
+func ToInputs(ctx context.Context, fields []Field, inputs []*model.TxInput) error {
 	i := Inputs{
-		baseA:  baseA{Ctx: ctx, Fields: fields},
+		base:   base{Ctx: ctx, Fields: fields},
 		Inputs: inputs,
 	}
 	i.Wait.Add(3)
@@ -80,7 +80,7 @@ func (i *Inputs) AttachTxs() {
 		allTxs = append(allTxs, i.Inputs[j].Tx)
 	}
 	i.Mutex.Unlock()
-	if err := AttachToTxs(i.Ctx, GetPrefixFields(i.Fields, "tx."), allTxs); err != nil {
+	if err := ToTxs(i.Ctx, GetPrefixFields(i.Fields, "tx."), allTxs); err != nil {
 		i.AddError(fmt.Errorf("error attaching to txs for model tx inputs; %w", err))
 		return
 	}
@@ -98,7 +98,7 @@ func (i *Inputs) AttachTxOutputs() {
 		allOutputs = append(allOutputs, i.Inputs[j].Output)
 	}
 	i.Mutex.Unlock()
-	if err := AttachToOutputs(i.Ctx, GetPrefixFields(i.Fields, "output."), allOutputs); err != nil {
+	if err := ToOutputs(i.Ctx, GetPrefixFields(i.Fields, "output."), allOutputs); err != nil {
 		i.AddError(fmt.Errorf("error attaching all to input tx output; %w", err))
 		return
 	}

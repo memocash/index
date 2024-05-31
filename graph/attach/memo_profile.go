@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -10,17 +10,17 @@ import (
 	"time"
 )
 
-type MemoProfileAttach struct {
-	baseA
+type MemoProfile struct {
+	base
 	Profiles []*model.Profile
 }
 
-func AttachToMemoProfiles(ctx context.Context, fields []Field, profiles []*model.Profile) error {
+func ToMemoProfiles(ctx context.Context, fields []Field, profiles []*model.Profile) error {
 	if len(profiles) == 0 {
 		return nil
 	}
-	o := MemoProfileAttach{
-		baseA:    baseA{Ctx: ctx, Fields: fields},
+	o := MemoProfile{
+		base:     base{Ctx: ctx, Fields: fields},
 		Profiles: profiles,
 	}
 	o.Wait.Add(5)
@@ -36,7 +36,7 @@ func AttachToMemoProfiles(ctx context.Context, fields []Field, profiles []*model
 	return nil
 }
 
-func (a *MemoProfileAttach) getAddresses() [][25]byte {
+func (a *MemoProfile) getAddresses() [][25]byte {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 	var addresses [][25]byte
@@ -46,7 +46,7 @@ func (a *MemoProfileAttach) getAddresses() [][25]byte {
 	return addresses
 }
 
-func (a *MemoProfileAttach) AttachLocks() {
+func (a *MemoProfile) AttachLocks() {
 	defer a.Wait.Done()
 	var allLocks []*model.Lock
 	if !a.HasField([]string{"lock"}) {
@@ -58,13 +58,13 @@ func (a *MemoProfileAttach) AttachLocks() {
 		allLocks = append(allLocks, profile.Lock)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
+	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
 		a.AddError(fmt.Errorf("error attaching to locks for memo profiles; %w", err))
 		return
 	}
 }
 
-func (a *MemoProfileAttach) AttachPosts() {
+func (a *MemoProfile) AttachPosts() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"posts"}) {
 		return
@@ -93,13 +93,13 @@ func (a *MemoProfileAttach) AttachPosts() {
 		}
 		a.Mutex.Unlock()
 	}
-	if err := AttachToMemoPosts(a.Ctx, postsField.Fields, allProfilePosts); err != nil {
+	if err := ToMemoPosts(a.Ctx, postsField.Fields, allProfilePosts); err != nil {
 		a.AddError(fmt.Errorf("error attaching to posts for memo profiles; %w", err))
 		return
 	}
 }
 
-func (a *MemoProfileAttach) AttachFollowing() {
+func (a *MemoProfile) AttachFollowing() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"following"}) {
 		return
@@ -130,13 +130,13 @@ func (a *MemoProfileAttach) AttachFollowing() {
 		}
 		a.Mutex.Unlock()
 	}
-	if err := AttachToMemoFollows(a.Ctx, followingField.Fields, allFollows); err != nil {
+	if err := ToMemoFollows(a.Ctx, followingField.Fields, allFollows); err != nil {
 		a.AddError(fmt.Errorf("error attaching to following for memo profiles; %w", err))
 		return
 	}
 }
 
-func (a *MemoProfileAttach) AttachFollowers() {
+func (a *MemoProfile) AttachFollowers() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"followers"}) {
 		return
@@ -167,13 +167,13 @@ func (a *MemoProfileAttach) AttachFollowers() {
 		}
 		a.Mutex.Unlock()
 	}
-	if err := AttachToMemoFollows(a.Ctx, followersField.Fields, allFollows); err != nil {
+	if err := ToMemoFollows(a.Ctx, followersField.Fields, allFollows); err != nil {
 		a.AddError(fmt.Errorf("error attaching to followers for memo profiles; %w", err))
 		return
 	}
 }
 
-func (a *MemoProfileAttach) AttachRooms() {
+func (a *MemoProfile) AttachRooms() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"rooms"}) {
 		return
@@ -203,13 +203,13 @@ func (a *MemoProfileAttach) AttachRooms() {
 		}
 	}
 	a.Mutex.Unlock()
-	if err := AttachToMemoRoomFollows(a.Ctx, GetPrefixFields(a.Fields, "rooms"), allRoomFollows); err != nil {
+	if err := ToMemoRoomFollows(a.Ctx, GetPrefixFields(a.Fields, "rooms"), allRoomFollows); err != nil {
 		a.AddError(fmt.Errorf("error attaching to rooms for memo profiles; %w", err))
 		return
 	}
 }
 
-func (a *MemoProfileAttach) AttachNames() {
+func (a *MemoProfile) AttachNames() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"name"}) {
 		return
@@ -221,13 +221,13 @@ func (a *MemoProfileAttach) AttachNames() {
 		allSetNames = append(allSetNames, profile.Name)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToMemoSetNames(a.Ctx, GetPrefixFields(a.Fields, "name"), allSetNames); err != nil {
+	if err := ToMemoSetNames(a.Ctx, GetPrefixFields(a.Fields, "name"), allSetNames); err != nil {
 		a.AddError(fmt.Errorf("error attaching to names for memo profiles; %w", err))
 		return
 	}
 }
 
-func (a *MemoProfileAttach) AttachProfiles() {
+func (a *MemoProfile) AttachProfiles() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"profile"}) {
 		return
@@ -239,13 +239,13 @@ func (a *MemoProfileAttach) AttachProfiles() {
 		allSetProfiles = append(allSetProfiles, profile.Profile)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToMemoSetProfiles(a.Ctx, GetPrefixFields(a.Fields, "profile"), allSetProfiles); err != nil {
+	if err := ToMemoSetProfiles(a.Ctx, GetPrefixFields(a.Fields, "profile"), allSetProfiles); err != nil {
 		a.AddError(fmt.Errorf("error attaching to profiles for memo profiles; %w", err))
 		return
 	}
 }
 
-func (a *MemoProfileAttach) AttachPics() {
+func (a *MemoProfile) AttachPics() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"pic"}) {
 		return
@@ -257,7 +257,7 @@ func (a *MemoProfileAttach) AttachPics() {
 		allSetPics = append(allSetPics, profile.Pic)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToMemoSetPics(a.Ctx, GetPrefixFields(a.Fields, "pic"), allSetPics); err != nil {
+	if err := ToMemoSetPics(a.Ctx, GetPrefixFields(a.Fields, "pic"), allSetPics); err != nil {
 		a.AddError(fmt.Errorf("error attaching to pics for memo profiles; %w", err))
 		return
 	}

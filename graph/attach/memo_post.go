@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -10,18 +10,18 @@ import (
 	"sync"
 )
 
-type MemoPostAttach struct {
-	baseA
+type MemoPost struct {
+	base
 	DetailsWait sync.WaitGroup
 	Posts       []*model.Post
 }
 
-func AttachToMemoPosts(ctx context.Context, fields []Field, posts []*model.Post) error {
+func ToMemoPosts(ctx context.Context, fields []Field, posts []*model.Post) error {
 	if len(posts) == 0 {
 		return nil
 	}
-	o := MemoPostAttach{
-		baseA: baseA{Ctx: ctx, Fields: fields},
+	o := MemoPost{
+		base:  base{Ctx: ctx, Fields: fields},
 		Posts: posts,
 	}
 	o.DetailsWait.Add(1)
@@ -41,7 +41,7 @@ func AttachToMemoPosts(ctx context.Context, fields []Field, posts []*model.Post)
 	return nil
 }
 
-func (a *MemoPostAttach) getTxHashes(checkTextAddress bool) [][32]byte {
+func (a *MemoPost) getTxHashes(checkTextAddress bool) [][32]byte {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 	var txHashes [][32]byte
@@ -56,7 +56,7 @@ func (a *MemoPostAttach) getTxHashes(checkTextAddress bool) [][32]byte {
 	return txHashes
 }
 
-func (a *MemoPostAttach) AttachInfo() {
+func (a *MemoPost) AttachInfo() {
 	defer a.DetailsWait.Done()
 	if !a.HasField([]string{"address", "text", "lock"}) {
 		return
@@ -79,7 +79,7 @@ func (a *MemoPostAttach) AttachInfo() {
 	a.Mutex.Unlock()
 }
 
-func (a *MemoPostAttach) AttachLocks() {
+func (a *MemoPost) AttachLocks() {
 	defer a.Wait.Done()
 	var allLocks []*model.Lock
 	if !a.HasField([]string{"lock"}) {
@@ -91,13 +91,13 @@ func (a *MemoPostAttach) AttachLocks() {
 		allLocks = append(allLocks, post.Lock)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
+	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
 		a.AddError(fmt.Errorf("error attaching to locks for memo posts; %w", err))
 		return
 	}
 }
 
-func (a *MemoPostAttach) AttachTxs() {
+func (a *MemoPost) AttachTxs() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"tx"}) {
 		return
@@ -109,13 +109,13 @@ func (a *MemoPostAttach) AttachTxs() {
 		allTxs = append(allTxs, post.Tx)
 	}
 	a.Mutex.Unlock()
-	if err := AttachToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
+	if err := ToTxs(a.Ctx, GetPrefixFields(a.Fields, "tx."), allTxs); err != nil {
 		a.AddError(fmt.Errorf("error attaching to txs for memo posts; %w", err))
 		return
 	}
 }
 
-func (a *MemoPostAttach) AttachParents() {
+func (a *MemoPost) AttachParents() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"parent"}) {
 		return
@@ -136,13 +136,13 @@ func (a *MemoPostAttach) AttachParents() {
 		}
 	}
 	a.Mutex.Unlock()
-	if err := AttachToMemoPosts(a.Ctx, GetPrefixFields(a.Fields, "parent."), allPosts); err != nil {
+	if err := ToMemoPosts(a.Ctx, GetPrefixFields(a.Fields, "parent."), allPosts); err != nil {
 		a.AddError(fmt.Errorf("error attaching to parents for memo posts; %w", err))
 		return
 	}
 }
 
-func (a *MemoPostAttach) AttachLikes() {
+func (a *MemoPost) AttachLikes() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"likes"}) {
 		return
@@ -168,13 +168,13 @@ func (a *MemoPostAttach) AttachLikes() {
 		}
 	}
 	a.Mutex.Unlock()
-	if err := AttachToMemoLikes(a.Ctx, GetPrefixFields(a.Fields, "likes."), allLikes); err != nil {
+	if err := ToMemoLikes(a.Ctx, GetPrefixFields(a.Fields, "likes."), allLikes); err != nil {
 		a.AddError(fmt.Errorf("error attaching to likes for memo posts; %w", err))
 		return
 	}
 }
 
-func (a *MemoPostAttach) AttachReplies() {
+func (a *MemoPost) AttachReplies() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"replies"}) {
 		return
@@ -199,13 +199,13 @@ func (a *MemoPostAttach) AttachReplies() {
 		}
 	}
 	a.Mutex.Unlock()
-	if err := AttachToMemoPosts(a.Ctx, GetPrefixFields(a.Fields, "replies."), allReplies); err != nil {
+	if err := ToMemoPosts(a.Ctx, GetPrefixFields(a.Fields, "replies."), allReplies); err != nil {
 		a.AddError(fmt.Errorf("error attaching to replies for memo posts; %w", err))
 		return
 	}
 }
 
-func (a *MemoPostAttach) AttachRooms() {
+func (a *MemoPost) AttachRooms() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"room"}) {
 		return
@@ -226,7 +226,7 @@ func (a *MemoPostAttach) AttachRooms() {
 		}
 	}
 	a.Mutex.Unlock()
-	if err := AttachToMemoRooms(a.Ctx, GetPrefixFields(a.Fields, "room."), allRooms); err != nil {
+	if err := ToMemoRooms(a.Ctx, GetPrefixFields(a.Fields, "room."), allRooms); err != nil {
 		a.AddError(fmt.Errorf("error attaching to rooms for memo posts; %w", err))
 		return
 	}

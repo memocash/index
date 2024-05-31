@@ -1,5 +1,4 @@
-//go:generate go run github.com/99designs/gqlgen
-package load
+package attach
 
 import (
 	"context"
@@ -7,10 +6,9 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"log"
 	"strings"
+	"sync"
 	"time"
 )
-
-const defaultWait = 10 * time.Millisecond
 
 type Fields []Field
 
@@ -115,4 +113,48 @@ func PrintFields(fields []Field, layer int) {
 		}
 		PrintFields(field.Fields, layer+1)
 	}
+}
+
+type base struct {
+	Ctx    context.Context
+	Fields Fields
+	Mutex  mutex1second
+	mutexB sync.Mutex
+	Wait   sync.WaitGroup
+	Errors []error
+}
+
+func (b *base) HasField(checks []string) bool {
+	b.mutexB.Lock()
+	defer b.mutexB.Unlock()
+	return b.Fields.HasFieldAny(checks)
+}
+
+func (b *base) AddError(err error) {
+	b.mutexB.Lock()
+	defer b.mutexB.Unlock()
+	b.Errors = append(b.Errors, err)
+}
+
+type mutex1second struct {
+	mutex sync.Mutex
+}
+
+func (m *mutex1second) Lock() {
+	var locked = make(chan struct{})
+	go func() {
+		m.mutex.Lock()
+		close(locked)
+	}()
+	t := time.NewTimer(time.Second)
+	select {
+	case <-locked:
+		t.Stop()
+	case <-t.C:
+		panic("mutex held locked for more than 1 second")
+	}
+}
+
+func (m *mutex1second) Unlock() {
+	m.mutex.Unlock()
 }

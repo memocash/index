@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -10,16 +10,16 @@ import (
 )
 
 type Blocks struct {
-	baseA
+	base
 	Blocks []*model.Block
 }
 
-func AttachToBlocks(ctx context.Context, fields []Field, blocks []*model.Block) error {
+func ToBlocks(ctx context.Context, fields []Field, blocks []*model.Block) error {
 	if len(blocks) == 0 {
 		return nil
 	}
 	b := Blocks{
-		baseA:  baseA{Ctx: ctx, Fields: fields},
+		base:   base{Ctx: ctx, Fields: fields},
 		Blocks: blocks,
 	}
 	b.Wait.Add(4)
@@ -159,8 +159,7 @@ func (b *Blocks) AttachTxs() {
 			allTxs = append(allTxs, block.Txs[i].Tx)
 		}
 	}
-	prefixFields := GetPrefixFields(txsField.Fields, "tx.")
-	if err := AttachToTxs(b.Ctx, prefixFields, allTxs); err != nil {
+	if err := ToTxs(b.Ctx, GetPrefixFields(txsField.Fields, "tx."), allTxs); err != nil {
 		b.AddError(fmt.Errorf("error attaching to block transactions; %w", err))
 		return
 	}

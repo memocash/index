@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/memocash/index/db/item/memo"
-	"github.com/memocash/index/graph/load"
+	"github.com/memocash/index/graph/attach"
 	"github.com/memocash/index/graph/model"
 	"log"
 )
@@ -18,7 +18,7 @@ type Profile struct {
 	PicAddresses     [][25]byte
 }
 
-func (p *Profile) Listen(ctx context.Context, addresses [][25]byte, fields load.Fields) (<-chan *model.Profile, error) {
+func (p *Profile) Listen(ctx context.Context, addresses [][25]byte, fields attach.Fields) (<-chan *model.Profile, error) {
 	ctx, p.Cancel = context.WithCancel(ctx)
 	if err := p.SetupAddresses(addresses); err != nil {
 		return nil, fmt.Errorf("error setting up lock hashes for profile; %w", err)
@@ -72,7 +72,7 @@ func (p *Profile) SetupAddresses(addresses [][25]byte) error {
 	return nil
 }
 
-func (p *Profile) SetupFollowingLockHashes(ctx context.Context, fields load.Fields) error {
+func (p *Profile) SetupFollowingLockHashes(ctx context.Context, fields attach.Fields) error {
 	if !fields.HasFieldAny([]string{
 		"following.follow_lock.profile.name",
 		"following.follow_lock.profile.profile",
@@ -105,7 +105,7 @@ func (p *Profile) SetupFollowingLockHashes(ctx context.Context, fields load.Fiel
 	return nil
 }
 
-func (p *Profile) SetupFollowersLockHashes(ctx context.Context, fields load.Fields) error {
+func (p *Profile) SetupFollowersLockHashes(ctx context.Context, fields attach.Fields) error {
 	if !fields.HasFieldAny([]string{
 		"followers.lock.profile.name",
 		"followers.lock.profile.profile",
@@ -261,7 +261,7 @@ func (p *Profile) GetProfileChan(ctx context.Context) <-chan *model.Profile {
 			close(profileChan)
 			p.Cancel()
 		}()
-		profileFields := load.GetFields(ctx)
+		profileFields := attach.GetFields(ctx)
 		for {
 			select {
 			case <-ctx.Done():
@@ -271,7 +271,7 @@ func (p *Profile) GetProfileChan(ctx context.Context) <-chan *model.Profile {
 					return
 				}
 				var profile = &model.Profile{Address: addr}
-				if err := load.AttachToMemoProfiles(ctx, profileFields, []*model.Profile{profile}); err != nil {
+				if err := attach.ToMemoProfiles(ctx, profileFields, []*model.Profile{profile}); err != nil {
 					log.Printf("error attaching to memo profiles for profile subscription resolver; %v", err)
 					return
 				}

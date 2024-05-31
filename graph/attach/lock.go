@@ -1,4 +1,4 @@
-package load
+package attach
 
 import (
 	"context"
@@ -12,13 +12,13 @@ import (
 )
 
 type Lock struct {
-	baseA
+	base
 	Locks []*model.Lock
 }
 
-func AttachToLocks(ctx context.Context, fields []Field, locks []*model.Lock) error {
+func ToLocks(ctx context.Context, fields []Field, locks []*model.Lock) error {
 	t := Lock{
-		baseA: baseA{Ctx: ctx, Fields: fields},
+		base:  base{Ctx: ctx, Fields: fields},
 		Locks: locks,
 	}
 	t.Wait.Add(2)
@@ -53,7 +53,7 @@ func (l *Lock) AttachProfiles() {
 		allProfiles = append(allProfiles, lock.Profile)
 	}
 	l.Mutex.Unlock()
-	if err := AttachToMemoProfiles(l.Ctx, GetPrefixFields(l.Fields, "profile"), allProfiles); err != nil {
+	if err := ToMemoProfiles(l.Ctx, GetPrefixFields(l.Fields, "profile"), allProfiles); err != nil {
 		l.AddError(fmt.Errorf("error attaching to lock profiles; %w", err))
 		return
 	}
@@ -97,7 +97,7 @@ func (l *Lock) AttachTxs() {
 		}
 		allTxs = append(allTxs, lock.Txs...)
 	}
-	if err := AttachToTxs(l.Ctx, txsField.Fields, allTxs); err != nil {
+	if err := ToTxs(l.Ctx, txsField.Fields, allTxs); err != nil {
 		l.AddError(fmt.Errorf("error attaching to lock transactions; %w", err))
 		return
 	}
