@@ -15,8 +15,8 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	memo_db "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/db/metric"
-	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/graph/attach"
+	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/graph/sub"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -55,15 +55,9 @@ func (r *queryResolver) Address(ctx context.Context, address model.Address) (*mo
 // Addresses is the resolver for the addresses field.
 func (r *queryResolver) Addresses(ctx context.Context, addresses []model.Address) ([]*model.Lock, error) {
 	metric.AddGraphQuery(metric.EndPointAddresses)
-	if attach.GetFields(ctx).HasField("balance") {
-		// TODO: Reimplement if needed
-		return nil, InternalError{fmt.Errorf("error balance no longer implemented")}
-	}
-	var locks []*model.Lock
-	for _, address := range addresses {
-		locks = append(locks, &model.Lock{
-			Address: address,
-		})
+	var locks = make([]*model.Lock, len(addresses))
+	for i := range addresses {
+		locks[i] = &model.Lock{Address: addresses[i]}
 	}
 	if err := attach.ToLocks(ctx, attach.GetFields(ctx), locks); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to locks for query resolver; %w", err)}
@@ -74,25 +68,7 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []model.Address
 // Block is the resolver for the block field.
 func (r *queryResolver) Block(ctx context.Context, hash model.Hash) (*model.Block, error) {
 	metric.AddGraphQuery(metric.EndPointBlock)
-	blockHeight, err := chain.GetBlockHeight(hash)
-	if err != nil {
-		return nil, InternalError{fmt.Errorf("error getting block height for query resolver; %w", err)}
-	}
-	block, err := chain.GetBlock(hash)
-	if err != nil {
-		return nil, InternalError{fmt.Errorf("error getting raw block; %w", err)}
-	}
-	blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
-	if err != nil {
-		return nil, InternalError{fmt.Errorf("error getting block header from raw; %w", err)}
-	}
-	height := int(blockHeight.Height)
-	var modelBlock = &model.Block{
-		Hash:      blockHeight.BlockHash,
-		Timestamp: model.Date(blockHeader.Timestamp),
-		Height:    &height,
-		Raw:       block.Raw,
-	}
+	var modelBlock = &model.Block{Hash: hash}
 	if err := attach.ToBlocks(ctx, attach.GetFields(ctx), []*model.Block{modelBlock}); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to block for query resolver; %w", err)}
 	}
@@ -109,20 +85,14 @@ func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	if heightBlock == nil {
 		return nil, nil
 	}
-	block, err := chain.GetBlock(heightBlock.BlockHash)
-	if err != nil {
-		return nil, InternalError{fmt.Errorf("error getting raw block; %w", err)}
+	var modelBlock = &model.Block{
+		Hash:   heightBlock.BlockHash,
+		Height: int(heightBlock.Height),
 	}
-	blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
-	if err != nil {
-		return nil, InternalError{fmt.Errorf("error getting block header from raw; %w", err)}
+	if err := attach.ToBlocks(ctx, attach.GetFields(ctx), []*model.Block{modelBlock}); err != nil {
+		return nil, InternalError{fmt.Errorf("error attaching to newest block for query resolver; %w", err)}
 	}
-	height := int(heightBlock.Height)
-	return &model.Block{
-		Hash:      heightBlock.BlockHash,
-		Timestamp: model.Date(blockHeader.Timestamp),
-		Height:    &height,
-	}, nil
+	return modelBlock, nil
 }
 
 // Blocks is the resolver for the blocks field.
@@ -150,10 +120,9 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	}
 	var modelBlocks = make([]*model.Block, len(heightBlocks))
 	for i := range heightBlocks {
-		var height = int(heightBlocks[i].Height)
 		modelBlocks[i] = &model.Block{
 			Hash:   heightBlocks[i].BlockHash,
-			Height: &height,
+			Height: int(heightBlocks[i].Height),
 		}
 		for _, block := range blocks {
 			if block.Hash == heightBlocks[i].BlockHash {
@@ -314,22 +283,15 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 					return
 				}
 			}
-			block, err := chain.GetBlock(blockHeight.BlockHash)
-			if err != nil {
-				log.Println(fmt.Errorf("error getting block for block height subscription; %w", err))
-				return
-			}
-			blockHeader, err := memo.GetBlockHeaderFromRaw(block.Raw)
-			if err != nil {
-				log.Println(fmt.Errorf("error getting block header from raw; %w", err))
-				return
-			}
-			height := int(blockHeight.Height)
-			blockChan <- &model.Block{
+			var block = &model.Block{
 				Hash:      blockHeight.BlockHash,
-				Timestamp: model.Date(blockHeader.Timestamp),
-				Height:    &height,
+				Height:    int(blockHeight.Height),
 			}
+			if err := attach.ToBlocks(ctx, attach.GetFields(ctx), []*model.Block{block}); err != nil {
+				log.Printf("error attaching to blocks for subscription; %v", err)
+				return
+			}
+			blockChan <- block
 		}
 	}()
 	return blockChan, nil

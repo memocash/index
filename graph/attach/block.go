@@ -92,8 +92,7 @@ func (b *Blocks) AttachHeights() {
 			if b.Blocks[i].Hash != blockHeights[j].BlockHash {
 				continue
 			}
-			height := int(blockHeights[j].Height)
-			b.Blocks[i].Height = &height
+			b.Blocks[i].Height = int(blockHeights[j].Height)
 			break
 		}
 	}
