@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/jchavannes/jgo/jutil"
+	"github.com/memocash/index/graph/model"
 	"log"
 	"strings"
 	"sync"
@@ -157,4 +159,16 @@ func (m *mutex1second) Lock() {
 
 func (m *mutex1second) Unlock() {
 	m.mutex.Unlock()
+}
+
+func SetNameExists(setName *model.SetName) bool {
+	return setName != nil && !jutil.AllZeros(setName.TxHash[:])
+}
+
+func SetProfileExists(setProfile *model.SetProfile) bool {
+	return setProfile != nil && !jutil.AllZeros(setProfile.TxHash[:])
+}
+
+func SetPicExists(setPic *model.SetPic) bool {
+	return setPic != nil && !jutil.AllZeros(setPic.TxHash[:])
 }

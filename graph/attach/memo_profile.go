@@ -218,15 +218,24 @@ func (a *MemoProfile) AttachNames() {
 		return
 	}
 	var allSetNames []*model.SetName
-	a.Mutex.Lock()
-	for _, profile := range a.Profiles {
-		profile.Name = &model.SetName{Address: profile.Address}
-		allSetNames = append(allSetNames, profile.Name)
+	for _, address := range a.getAddresses() {
+		allSetNames = append(allSetNames, &model.SetName{Address: address})
 	}
-	a.Mutex.Unlock()
 	if err := ToMemoSetNames(a.Ctx, GetPrefixFields(a.Fields, "name"), allSetNames); err != nil {
 		a.AddError(fmt.Errorf("error attaching to names for memo profiles; %w", err))
 		return
+	}
+	a.Mutex.Lock()
+	defer a.Mutex.Unlock()
+	for _, setName := range allSetNames {
+		if !SetNameExists(setName) {
+			continue
+		}
+		for _, profile := range a.Profiles {
+			if profile.Address == setName.Address {
+				profile.Name = setName
+			}
+		}
 	}
 }
 
@@ -236,15 +245,24 @@ func (a *MemoProfile) AttachProfiles() {
 		return
 	}
 	var allSetProfiles []*model.SetProfile
-	a.Mutex.Lock()
-	for _, profile := range a.Profiles {
-		profile.Profile = &model.SetProfile{Address: profile.Address}
-		allSetProfiles = append(allSetProfiles, profile.Profile)
+	for _, address := range a.getAddresses() {
+		allSetProfiles = append(allSetProfiles, &model.SetProfile{Address: address})
 	}
-	a.Mutex.Unlock()
 	if err := ToMemoSetProfiles(a.Ctx, GetPrefixFields(a.Fields, "profile"), allSetProfiles); err != nil {
 		a.AddError(fmt.Errorf("error attaching to profiles for memo profiles; %w", err))
 		return
+	}
+	a.Mutex.Lock()
+	defer a.Mutex.Unlock()
+	for _, setProfile := range allSetProfiles {
+		if !SetProfileExists(setProfile) {
+			continue
+		}
+		for _, profile := range a.Profiles {
+			if profile.Address == setProfile.Address {
+				profile.Profile = setProfile
+			}
+		}
 	}
 }
 
@@ -254,14 +272,23 @@ func (a *MemoProfile) AttachPics() {
 		return
 	}
 	var allSetPics []*model.SetPic
-	a.Mutex.Lock()
-	for _, profile := range a.Profiles {
-		profile.Pic = &model.SetPic{Address: profile.Address}
-		allSetPics = append(allSetPics, profile.Pic)
+	for _, address := range a.getAddresses() {
+		allSetPics = append(allSetPics, &model.SetPic{Address: address})
 	}
-	a.Mutex.Unlock()
 	if err := ToMemoSetPics(a.Ctx, GetPrefixFields(a.Fields, "pic"), allSetPics); err != nil {
 		a.AddError(fmt.Errorf("error attaching to pics for memo profiles; %w", err))
 		return
+	}
+	a.Mutex.Lock()
+	defer a.Mutex.Unlock()
+	for _, setPic := range allSetPics {
+		if !SetPicExists(setPic) {
+			continue
+		}
+		for _, profile := range a.Profiles {
+			if profile.Address == setPic.Address {
+				profile.Pic = setPic
+			}
+		}
 	}
 }
