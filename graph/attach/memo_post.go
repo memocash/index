@@ -74,7 +74,6 @@ func (a *MemoPost) AttachInfo() {
 				a.Posts[i].Text = memoPost.Post
 			}
 		}
-
 	}
 	a.Mutex.Unlock()
 }

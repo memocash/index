@@ -58,7 +58,7 @@ func (a *MemoSetName) AttachInfo() {
 	a.Mutex.Lock()
 	for _, addrProfileName := range addrProfileNames {
 		for _, setName := range a.SetNames {
-			if addrProfileName.Name == setName.Name {
+			if addrProfileName.Addr == setName.Address {
 				setName.TxHash = addrProfileName.TxHash
 				setName.Name = addrProfileName.Name
 			}
