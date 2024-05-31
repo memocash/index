@@ -23,12 +23,15 @@ func ToMemoProfiles(ctx context.Context, fields []Field, profiles []*model.Profi
 		base:     base{Ctx: ctx, Fields: fields},
 		Profiles: profiles,
 	}
-	o.Wait.Add(5)
+	o.Wait.Add(8)
 	go o.AttachLocks()
 	go o.AttachPosts()
 	go o.AttachFollowing()
 	go o.AttachFollowers()
 	go o.AttachRooms()
+	go o.AttachNames()
+	go o.AttachProfiles()
+	go o.AttachPics()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to memo profiles; %w", o.Errors[0])
