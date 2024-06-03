@@ -217,6 +217,7 @@ func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, err
 
 // Address is the resolver for the address field.
 func (r *subscriptionResolver) Address(ctx context.Context, address model.Address) (<-chan *model.Tx, error) {
+	OpenSubscriptionWithRequest(ctx, "address")
 	txChan, err := r.Addresses(ctx, []model.Address{address})
 	if err != nil {
 		return nil, InternalError{fmt.Errorf("error getting address for address subscription; %w", err)}
@@ -226,6 +227,7 @@ func (r *subscriptionResolver) Address(ctx context.Context, address model.Addres
 
 // Addresses is the resolver for the address field.
 func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []model.Address) (<-chan *model.Tx, error) {
+	OpenSubscriptionWithRequest(ctx, "addresses")
 	ctx, cancel := context.WithCancel(ctx)
 	addrSeenTxsListener, err := addr.ListenAddrSeenTxs(ctx, model.AddressesToArrays(addresses))
 	if err != nil {
@@ -260,6 +262,7 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []model.
 
 // Blocks is the resolver for the blocks field.
 func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block, error) {
+	OpenSubscriptionWithRequest(ctx, "blocks")
 	ctx, cancel := context.WithCancel(ctx)
 	blockHeightListener, err := chain.ListenBlockHeights(ctx)
 	if err != nil {
@@ -299,6 +302,7 @@ func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block,
 
 // Posts is the resolver for the posts field.
 func (r *subscriptionResolver) Posts(ctx context.Context, hashes []model.Hash) (<-chan *model.Post, error) {
+	OpenSubscriptionWithRequest(ctx, "posts")
 	postChan, err := new(sub.Post).Listen(ctx, model.HashesToArrays(hashes))
 	if err != nil {
 		return nil, InternalError{fmt.Errorf("error getting post listener for subscription; %w", err)}
@@ -308,6 +312,7 @@ func (r *subscriptionResolver) Posts(ctx context.Context, hashes []model.Hash) (
 
 // Profiles is the resolver for the profiles field.
 func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []model.Address) (<-chan *model.Profile, error) {
+	OpenSubscriptionWithRequest(ctx, "profiles")
 	var profile = new(sub.Profile)
 	profileChan, err := profile.Listen(ctx, model.AddressesToArrays(addresses), attach.GetFields(ctx))
 	if err != nil {
@@ -318,6 +323,7 @@ func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []model.A
 
 // Rooms is the resolver for the rooms field.
 func (r *subscriptionResolver) Rooms(ctx context.Context, names []string) (<-chan *model.Post, error) {
+	OpenSubscriptionWithRequest(ctx, "rooms")
 	var room = new(sub.Room)
 	roomPostsChan, err := room.Listen(ctx, names)
 	if err != nil {
@@ -328,6 +334,7 @@ func (r *subscriptionResolver) Rooms(ctx context.Context, names []string) (<-cha
 
 // RoomFollows is the resolver for the room_follows field.
 func (r *subscriptionResolver) RoomFollows(ctx context.Context, addresses []model.Address) (<-chan *model.RoomFollow, error) {
+	OpenSubscriptionWithRequest(ctx, "room follows")
 	var roomFollow = new(sub.RoomFollow)
 	roomFollowsChan, err := roomFollow.Listen(ctx, model.AddressesToArrays(addresses))
 	if err != nil {

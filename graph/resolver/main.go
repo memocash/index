@@ -2,6 +2,7 @@ package resolver
 
 import (
 	"context"
+	"fmt"
 	"github.com/memocash/index/db/metric"
 	"log"
 	"time"
@@ -61,4 +62,11 @@ func LogContextRequest(ctx context.Context, message string) {
 func SetEndPoint(ctx context.Context, endPoint string) {
 	metric.AddGraphQuery(endPoint)
 	SetContextRequestQuery(ctx, endPoint)
+}
+
+func OpenSubscriptionWithRequest(ctx context.Context, endPoint string) {
+	if r, ok := ctx.Value(RequestContextKey).(*Request); ok {
+		r.Query = "sub: " + endPoint
+		r.Log(fmt.Sprintf("/graphql (%s) [open]", r.Query))
+	}
 }
