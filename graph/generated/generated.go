@@ -78,7 +78,6 @@ type ComplexityRoot struct {
 
 	Lock struct {
 		Address func(childComplexity int) int
-		Balance func(childComplexity int) int
 		Profile func(childComplexity int) int
 		Txs     func(childComplexity int, start *model.Date, tx *model.Hash) int
 	}
@@ -448,13 +447,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Lock.Address(childComplexity), true
-
-	case "Lock.balance":
-		if e.complexity.Lock.Balance == nil {
-			break
-		}
-
-		return e.complexity.Lock.Balance(childComplexity), true
 
 	case "Lock.profile":
 		if e.complexity.Lock.Profile == nil {
@@ -1485,7 +1477,6 @@ var sources = []*ast.Source{
 	{Name: "../schema/lock.graphqls", Input: `type Lock {
     address: Address
     profile: Profile
-    balance: Int64!
     txs(start: Date, tx: Hash): [Tx!]
 }
 `, BuiltIn: false},
@@ -2649,8 +2640,6 @@ func (ec *executionContext) fieldContext_Follow_lock(ctx context.Context, field 
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -2747,8 +2736,6 @@ func (ec *executionContext) fieldContext_Follow_follow_lock(ctx context.Context,
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -2995,8 +2982,6 @@ func (ec *executionContext) fieldContext_Like_lock(ctx context.Context, field gr
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -3298,50 +3283,6 @@ func (ec *executionContext) fieldContext_Lock_profile(ctx context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Lock_balance(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Lock_balance(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Balance, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Lock_balance(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Lock",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Lock_txs(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Lock_txs(ctx, field)
 	if err != nil {
@@ -3616,8 +3557,6 @@ func (ec *executionContext) fieldContext_Post_lock(ctx context.Context, field gr
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -3986,8 +3925,6 @@ func (ec *executionContext) fieldContext_Profile_lock(ctx context.Context, field
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -4656,8 +4593,6 @@ func (ec *executionContext) fieldContext_Query_address(ctx context.Context, fiel
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -4718,8 +4653,6 @@ func (ec *executionContext) fieldContext_Query_addresses(ctx context.Context, fi
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -5664,8 +5597,6 @@ func (ec *executionContext) fieldContext_RoomFollow_lock(ctx context.Context, fi
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -6018,8 +5949,6 @@ func (ec *executionContext) fieldContext_SetName_lock(ctx context.Context, field
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -6266,8 +6195,6 @@ func (ec *executionContext) fieldContext_SetPic_lock(ctx context.Context, field 
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -6514,8 +6441,6 @@ func (ec *executionContext) fieldContext_SetProfile_lock(ctx context.Context, fi
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -9768,8 +9693,6 @@ func (ec *executionContext) fieldContext_TxOutput_lock(ctx context.Context, fiel
 				return ec.fieldContext_Lock_address(ctx, field)
 			case "profile":
 				return ec.fieldContext_Lock_profile(ctx, field)
-			case "balance":
-				return ec.fieldContext_Lock_balance(ctx, field)
 			case "txs":
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
@@ -11770,13 +11693,6 @@ func (ec *executionContext) _Lock(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Values[i] = ec._Lock_profile(ctx, field, obj)
 
-		case "balance":
-
-			out.Values[i] = ec._Lock_balance(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "txs":
 
 			out.Values[i] = ec._Lock_txs(ctx, field, obj)
