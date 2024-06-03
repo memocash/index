@@ -32,6 +32,7 @@ func (s *Client) SetConn() error {
 	if connHandler == nil {
 		connHandler = new(ConnHandler)
 		connHandler.Start()
+		startStats()
 	}
 	conn := connHandler.Get(s.host)
 	if conn != nil {
@@ -339,6 +340,8 @@ func (s *Client) ListenOpts(opts Opts) (chan *Message, error) {
 	}
 	var messageChan = make(chan *Message)
 	go func() {
+		stat := newStat()
+		defer removeStat(stat)
 		for {
 			msg, err := stream.Recv()
 			if err != nil {
@@ -354,6 +357,7 @@ func (s *Client) ListenOpts(opts Opts) (chan *Message, error) {
 				Uid:     msg.Uid,
 				Message: msg.Message,
 			}
+			stat.incr()
 		}
 	}()
 	return messageChan, nil
