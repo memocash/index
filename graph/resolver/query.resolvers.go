@@ -24,7 +24,7 @@ import (
 
 // Tx is the resolver for the tx field.
 func (r *queryResolver) Tx(ctx context.Context, hash model.Hash) (*model.Tx, error) {
-	metric.AddGraphQuery(metric.EndPointTx)
+	SetEndPoint(ctx, metric.EndPointTx)
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	var tx = &model.Tx{Hash: hash}
@@ -44,7 +44,7 @@ func (r *queryResolver) Txs(ctx context.Context, hashes []model.Hash) ([]*model.
 
 // Address is the resolver for the address field.
 func (r *queryResolver) Address(ctx context.Context, address model.Address) (*model.Lock, error) {
-	metric.AddGraphQuery(metric.EndPointAddress)
+	SetEndPoint(ctx, metric.EndPointAddress)
 	var lock = &model.Lock{Address: address}
 	if err := attach.ToLocks(ctx, attach.GetFields(ctx), []*model.Lock{lock}); err != nil {
 		return nil, fmt.Errorf("error attaching details to lock; %w", err)
@@ -54,7 +54,7 @@ func (r *queryResolver) Address(ctx context.Context, address model.Address) (*mo
 
 // Addresses is the resolver for the addresses field.
 func (r *queryResolver) Addresses(ctx context.Context, addresses []model.Address) ([]*model.Lock, error) {
-	metric.AddGraphQuery(metric.EndPointAddresses)
+	SetEndPoint(ctx, metric.EndPointAddresses)
 	var locks = make([]*model.Lock, len(addresses))
 	for i := range addresses {
 		locks[i] = &model.Lock{Address: addresses[i]}
@@ -67,7 +67,7 @@ func (r *queryResolver) Addresses(ctx context.Context, addresses []model.Address
 
 // Block is the resolver for the block field.
 func (r *queryResolver) Block(ctx context.Context, hash model.Hash) (*model.Block, error) {
-	metric.AddGraphQuery(metric.EndPointBlock)
+	SetEndPoint(ctx, metric.EndPointBlock)
 	var modelBlock = &model.Block{Hash: hash}
 	if err := attach.ToBlocks(ctx, attach.GetFields(ctx), []*model.Block{modelBlock}); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to block for query resolver; %w", err)}
@@ -77,7 +77,7 @@ func (r *queryResolver) Block(ctx context.Context, hash model.Hash) (*model.Bloc
 
 // BlockNewest is the resolver for the block_newest field.
 func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
-	metric.AddGraphQuery(metric.EndPointBlockNewest)
+	SetEndPoint(ctx, metric.EndPointBlockNewest)
 	heightBlock, err := chain.GetRecentHeightBlock()
 	if err != nil {
 		return nil, InternalError{fmt.Errorf("error getting recent height block for query; %w", err)}
@@ -97,7 +97,7 @@ func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 
 // Blocks is the resolver for the blocks field.
 func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error) {
-	metric.AddGraphQuery(metric.EndPointBlocks)
+	SetEndPoint(ctx, metric.EndPointBlocks)
 	var startInt int64
 	if start != nil {
 		startInt = int64(*start)
@@ -143,7 +143,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 
 // Profiles is the resolver for the profiles field.
 func (r *queryResolver) Profiles(ctx context.Context, addresses []model.Address) ([]*model.Profile, error) {
-	metric.AddGraphQuery(metric.EndPointProfiles)
+	SetEndPoint(ctx, metric.EndPointProfiles)
 	var profiles []*model.Profile
 	for _, address := range addresses {
 		profiles = append(profiles, &model.Profile{Address: address})
@@ -156,7 +156,7 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []model.Address)
 
 // Posts is the resolver for the posts field.
 func (r *queryResolver) Posts(ctx context.Context, txHashes []model.Hash) ([]*model.Post, error) {
-	metric.AddGraphQuery(metric.EndPointPosts)
+	SetEndPoint(ctx, metric.EndPointPosts)
 	var posts []*model.Post
 	for _, txHash := range txHashes {
 		posts = append(posts, &model.Post{TxHash: txHash})
@@ -169,7 +169,7 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []model.Hash) ([]*mo
 
 // PostsNewest is the resolver for the posts_newest field.
 func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *model.Hash, limit *uint32) ([]*model.Post, error) {
-	metric.AddGraphQuery(metric.EndPointPostsNewest)
+	SetEndPoint(ctx, metric.EndPointPostsNewest)
 	var txHash chainhash.Hash
 	if tx != nil {
 		txHash = chainhash.Hash(*tx)
@@ -207,7 +207,7 @@ func (r *queryResolver) PostsNewest(ctx context.Context, start *model.Date, tx *
 
 // Room is the resolver for the room field.
 func (r *queryResolver) Room(ctx context.Context, name string) (*model.Room, error) {
-	metric.AddGraphQuery(metric.EndPointRoom)
+	SetEndPoint(ctx, metric.EndPointRoom)
 	var room = &model.Room{Name: name}
 	if err := attach.ToMemoRooms(ctx, attach.GetFields(ctx), []*model.Room{room}); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to rooms for room query resolver; %w", err)}

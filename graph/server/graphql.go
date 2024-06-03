@@ -35,21 +35,25 @@ func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 		return graphql.DefaultErrorPresenter(ctx, e)
 	})
 	return func(w http.ResponseWriter, r *http.Request) {
-		reqLog := NewRequestLog(getIpAddress(r))
-		var wsClose string
+		graphRequest := resolver.NewRequest(getIpAddress(r))
+		var queryExtra string
 		if r.Header.Get("Upgrade") != "" {
-			wsClose = " [close]"
-			reqLog.Log("/graphql [open]")
+			queryExtra = " [close]"
+			graphRequest.Log("/graphql [open]")
 		}
 		h := w.Header()
 		h.Set("Access-Control-Allow-Origin", "*")
 		h.Set("Access-Control-Allow-Headers", "Content-Type, Server")
+		r = r.WithContext(resolver.AttachRequestToContext(r.Context(), graphRequest))
 		srv.ServeHTTP(w, r)
 		var code int
 		if r.Response != nil {
 			code = r.Response.StatusCode
 		}
-		reqLog.Log(fmt.Sprintf("/graphql%s %dms %d", wsClose, reqLog.GetDuration().Milliseconds(), code))
+		if graphRequest.Query != "" {
+			queryExtra = fmt.Sprintf(" (%s)", graphRequest.Query)
+		}
+		graphRequest.Log(fmt.Sprintf("/graphql%s %dms %d", queryExtra, graphRequest.GetDuration().Milliseconds(), code))
 	}
 }
 
