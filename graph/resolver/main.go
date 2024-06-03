@@ -52,6 +52,12 @@ func SetContextRequestQuery(ctx context.Context, query string) {
 	}
 }
 
+func LogContextRequest(ctx context.Context, message string) {
+	if r, ok := ctx.Value(RequestContextKey).(*Request); ok {
+		r.Log(message)
+	}
+}
+
 func SetEndPoint(ctx context.Context, endPoint string) {
 	metric.AddGraphQuery(endPoint)
 	SetContextRequestQuery(ctx, endPoint)

@@ -10,7 +10,6 @@ import (
 	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/graph/resolver"
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	"log"
 	"net"
 	"net/http"
 )
@@ -22,7 +21,7 @@ func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 		if pathStr != "" {
 			pathStr = " (" + pathStr + ")"
 		}
-		log.Printf("error processing request%s; %v\n", pathStr, e)
+		resolver.LogContextRequest(ctx, fmt.Sprintf("error processing request%s; %v", pathStr, e))
 		var internalError resolver.InternalError
 		if errors.As(e, &internalError) {
 			return &gqlerror.Error{
