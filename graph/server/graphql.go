@@ -43,9 +43,13 @@ func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 		h.Set("Access-Control-Allow-Origin", "*")
 		h.Set("Access-Control-Allow-Headers", "Content-Type, Server")
 		r = r.WithContext(resolver.AttachRequestToContext(r.Context(), graphRequest))
-		srv.ServeHTTP(w, r)
+		writer := &sizeWriter{httpWriter: w}
+		srv.ServeHTTP(writer, r)
 		if graphRequest.Query != "" {
 			queryExtra = fmt.Sprintf(" (%s)%s", graphRequest.Query, queryExtra)
+		}
+		if writer.totalSize > 0 {
+			queryExtra = fmt.Sprintf(" %.1fkb%s", float32(writer.totalSize)/1000, queryExtra)
 		}
 		graphRequest.Log(fmt.Sprintf("/graphql%s %dms", queryExtra, graphRequest.GetDuration().Milliseconds()))
 	}
