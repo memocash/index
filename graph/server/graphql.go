@@ -34,10 +34,10 @@ func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 		return graphql.DefaultErrorPresenter(ctx, e)
 	})
 	return func(w http.ResponseWriter, r *http.Request) {
-		graphRequest := resolver.NewRequest(getIpAddress(r))
-		var queryExtra string
+		graphRequest := resolver.NewRequest(getIpAddress(r), "/graphql")
+		var finalMessages []string
 		if r.Header.Get("Upgrade") != "" {
-			queryExtra = " [close]"
+			finalMessages = append(finalMessages, "[close]")
 		}
 		h := w.Header()
 		h.Set("Access-Control-Allow-Origin", "*")
@@ -45,13 +45,8 @@ func GetGraphQLHandler() func(w http.ResponseWriter, r *http.Request) {
 		r = r.WithContext(resolver.AttachRequestToContext(r.Context(), graphRequest))
 		writer := &sizeWriter{httpWriter: w}
 		srv.ServeHTTP(writer, r)
-		if graphRequest.Query != "" {
-			queryExtra = fmt.Sprintf(" (%s)%s", graphRequest.Query, queryExtra)
-		}
-		if writer.totalSize > 0 {
-			queryExtra = fmt.Sprintf(" %.1fkb%s", float32(writer.totalSize)/1000, queryExtra)
-		}
-		graphRequest.Log(fmt.Sprintf("/graphql%s %dms", queryExtra, graphRequest.GetDuration().Milliseconds()))
+		graphRequest.Size = writer.totalSize
+		graphRequest.LogFinal(finalMessages...)
 	}
 }
 

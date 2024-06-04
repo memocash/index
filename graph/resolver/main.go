@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/memocash/index/db/metric"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -23,22 +24,36 @@ func (e InternalError) Unwrap() error {
 type Request struct {
 	Start time.Time
 	Ip    string
+	Url   string
 	Query string
+	Size  int
 }
 
-func NewRequest(ip string) *Request {
+func NewRequest(ip, url string) *Request {
 	return &Request{
 		Start: time.Now(),
 		Ip:    ip,
+		Url:   url,
 	}
 }
 
-func (r *Request) Log(urlPlus string) {
-	log.Printf("%s %s\n", r.Ip, urlPlus)
+func (r *Request) Log(messages ...string) {
+	if r.Query != "" {
+		messages = append([]string{fmt.Sprintf("(%s)", r.Query)}, messages...)
+	}
+	log.Printf("%s %s %s\n", r.Ip, r.Url, strings.Join(messages, " "))
 }
 
 func (r *Request) GetDuration() time.Duration {
 	return time.Since(r.Start)
+}
+
+func (r *Request) LogFinal(messages ...string) {
+	if r.Size > 0 {
+		messages = append(messages, fmt.Sprintf("%.1fkb", float32(r.Size)/1000))
+	}
+	messages = append(messages, fmt.Sprintf("%dms", r.GetDuration().Milliseconds()))
+	r.Log(messages...)
 }
 
 const RequestContextKey = "requestContextKey"
@@ -66,7 +81,7 @@ func SetEndPoint(ctx context.Context, endPoint string) {
 
 func OpenSubscriptionWithRequest(ctx context.Context, endPoint string) {
 	if r, ok := ctx.Value(RequestContextKey).(*Request); ok {
-		r.Query = "sub: " + endPoint
-		r.Log(fmt.Sprintf("/graphql (%s) [open]", r.Query))
+		r.Query = "sub:" + endPoint
+		r.Log("[open]")
 	}
 }
