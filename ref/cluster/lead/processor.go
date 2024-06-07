@@ -72,6 +72,7 @@ func (p *Processor) Run() error {
 				if p.ProcessBlock(block, "block node") {
 					continue
 				}
+				p.ErrorChan <- fmt.Errorf("error processing block")
 			case <-p.BlockNode.SyncDone:
 				log.Printf("Node sync done\n")
 				p.Synced = true
