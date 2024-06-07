@@ -88,7 +88,7 @@ func (s *Client) Save(messages []*Message, timestamp time.Time) error {
 			return fmt.Errorf("error saving messages and getting reply rpc: %d; %w", len(queueMessagesToUse), err)
 		}
 		if reply.Error != "" {
-			return fmt.Errorf("error queueing message; %w", fmt.Errorf("%s", reply.Error))
+			return fmt.Errorf("error queueing message client save; %w", fmt.Errorf("%s", reply.Error))
 		}
 	}
 	return nil
@@ -294,7 +294,7 @@ func (s *Client) GetTopicList() error {
 		return fmt.Errorf("error setting connection; %w", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultSetTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultGetTimeout)
 	defer cancel()
 	topicList, err := c.GetTopicList(ctx, new(queue_pb.EmptyRequest))
 	if err != nil {
@@ -368,7 +368,7 @@ func (s *Client) GetTopicCount(topic string, prefix []byte) (uint64, error) {
 		return 0, fmt.Errorf("error setting connection; %w", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultSetTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultGetTimeout)
 	defer cancel()
 	topicCount, err := c.GetMessageCount(ctx, &queue_pb.CountRequest{
 		Topic:  topic,

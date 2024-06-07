@@ -36,7 +36,7 @@ func (s *Server) SaveMessages(_ context.Context, messages *queue_pb.Messages) (*
 	err := s.queueSaveMessage(msgs)
 	var errMsg string
 	if err != nil {
-		errMsg = fmt.Errorf("error queueing message; %w", err).Error()
+		errMsg = fmt.Errorf("error queueing message server save; %w", err).Error()
 	}
 	return &queue_pb.ErrorReply{
 		Error: errMsg,
@@ -89,14 +89,14 @@ func (s *Server) SaveMsgs(msgs []*Msg) error {
 func (s *Server) queueSaveMessage(msgs []*Msg) error {
 	var timeout = s.Timeout
 	if timeout == 0 {
-		timeout = client.DefaultGetTimeout
+		timeout = client.DefaultSetTimeout
 	}
 	msgDone := NewMsgDone(msgs)
 	select {
 	case s.MsgDoneChan <- msgDone:
 		err := <-msgDone.Done
 		if err != nil {
-			return fmt.Errorf("error queueing message; %w", err)
+			return fmt.Errorf("error queueing message server queue; %w", err)
 		}
 		return nil
 	case <-time.NewTimer(timeout).C:
