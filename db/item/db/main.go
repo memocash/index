@@ -3,8 +3,8 @@ package db
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
-	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
@@ -150,7 +150,7 @@ func Save(objects []Object) error {
 	}
 	wg.Wait()
 	if len(errs) > 0 {
-		return fmt.Errorf("error saving messages; %w", jerr.Combine(errs...))
+		return fmt.Errorf("error saving messages; %w", errors.Join(errs...))
 	}
 	return nil
 }
