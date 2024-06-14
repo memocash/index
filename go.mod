@@ -10,6 +10,7 @@ go 1.20
 
 require (
 	github.com/99designs/gqlgen v0.17.20
+	github.com/gorilla/websocket v1.5.0
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
 	github.com/jchavannes/bchutil v1.1.5-0.20220519214029-6a6c086b1f21
 	github.com/jchavannes/btcd v1.1.5-0.20230112162803-412def37b600
@@ -37,7 +38,6 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
