@@ -263,40 +263,10 @@ func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []model.
 // Blocks is the resolver for the blocks field.
 func (r *subscriptionResolver) Blocks(ctx context.Context) (<-chan *model.Block, error) {
 	OpenSubscriptionWithRequest(ctx, "blocks")
-	ctx, cancel := context.WithCancel(ctx)
-	blockHeightListener, err := chain.ListenBlockHeights(ctx)
+	blockChan, err := new(sub.Block).Listen(ctx)
 	if err != nil {
-		cancel()
-		return nil, InternalError{fmt.Errorf("error getting block height listener for subscription; %w", err)}
+		return nil, InternalError{fmt.Errorf("error getting block listener for subscription; %w", err)}
 	}
-	var blockChan = make(chan *model.Block)
-	go func() {
-		defer func() {
-			close(blockChan)
-			cancel()
-		}()
-		for {
-			var blockHeight *chain.BlockHeight
-			var ok bool
-			select {
-			case <-ctx.Done():
-				return
-			case blockHeight, ok = <-blockHeightListener:
-				if !ok {
-					return
-				}
-			}
-			var block = &model.Block{
-				Hash:   blockHeight.BlockHash,
-				Height: model.IntPtr(int(blockHeight.Height)),
-			}
-			if err := attach.ToBlocks(ctx, attach.GetFields(ctx), []*model.Block{block}); err != nil {
-				log.Printf("error attaching to blocks for subscription; %v", err)
-				return
-			}
-			blockChan <- block
-		}
-	}()
 	return blockChan, nil
 }
 
