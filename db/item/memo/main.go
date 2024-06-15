@@ -20,5 +20,8 @@ func GetTopics() []db.Object {
 		&PostRoom{},
 		&RoomFollow{},
 		&RoomPost{},
+		&LinkRequest{},
+		&AddrLinkRequest{},
+		&AddrLinkRequested{},
 	}
 }

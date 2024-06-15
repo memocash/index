@@ -41,6 +41,10 @@ const (
 	TopicMemoRoomPost       = "memo_room_post"
 	TopicMemoSeenPost       = "memo_seen_post"
 
+	TopicMemoAddrLinkRequest   = "memo_addr_link_request"
+	TopicMemoAddrLinkRequested = "memo_addr_link_requested"
+	TopicMemoLinkRequest       = "memo_link_request"
+
 	TopicChainBlock           = "chain_block"
 	TopicChainBlockHeight     = "chain_block_height"
 	TopicChainHeightBlock     = "chain_height_block"
