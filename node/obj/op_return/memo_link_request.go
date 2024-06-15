@@ -32,7 +32,7 @@ var memoLinkRequestHandler = &Handler{
 			}
 			return nil
 		}
-		parentAddr := *wallet.GetAddrFromPkHash(info.PushData[1])
+		parentAddr := wallet.GetAddrFromPkHash(info.PushData[1])
 		var message string
 		if len(info.PushData) > 2 {
 			message = string(info.PushData[2])
@@ -40,7 +40,7 @@ var memoLinkRequestHandler = &Handler{
 		var linkRequest = &dbMemo.LinkRequest{
 			TxHash:     info.TxHash,
 			ChildAddr:  info.Addr,
-			ParentAddr: parentAddr,
+			ParentAddr: *parentAddr,
 			Message:    message,
 		}
 		var addrLinkRequest = &dbMemo.AddrLinkRequest{
@@ -49,7 +49,7 @@ var memoLinkRequestHandler = &Handler{
 			TxHash: info.TxHash,
 		}
 		var addrLinkRequested = &dbMemo.AddrLinkRequested{
-			Addr:   parentAddr,
+			Addr:   *parentAddr,
 			Seen:   info.Seen,
 			TxHash: info.TxHash,
 		}

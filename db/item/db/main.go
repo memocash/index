@@ -43,6 +43,8 @@ const (
 
 	TopicMemoAddrLinkRequest   = "memo_addr_link_request"
 	TopicMemoAddrLinkRequested = "memo_addr_link_requested"
+	TopicMemoLinkAccept        = "memo_link_accept"
+	TopicMemoLinkAccepted      = "memo_link_accepted"
 	TopicMemoLinkRequest       = "memo_link_request"
 
 	TopicChainBlock           = "chain_block"
