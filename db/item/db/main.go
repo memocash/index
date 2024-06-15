@@ -46,6 +46,8 @@ const (
 	TopicMemoLinkAccept        = "memo_link_accept"
 	TopicMemoLinkAccepted      = "memo_link_accepted"
 	TopicMemoLinkRequest       = "memo_link_request"
+	TopicMemoLinkRevoke        = "memo_link_revoke"
+	TopicMemoLinkRevoked       = "memo_link_revoked"
 
 	TopicChainBlock           = "chain_block"
 	TopicChainBlockHeight     = "chain_block_height"

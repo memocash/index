@@ -44,6 +44,7 @@ func GetHandlers() ([]*Handler, error) {
 		memoRoomUnfollowHandler,
 		memoLinkRequestHandler,
 		memoLinkAcceptHandler,
+		memoLinkRevokeHandler,
 		slpTokenHandler,
 	}
 	for _, opReturn := range handlers {

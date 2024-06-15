@@ -25,5 +25,7 @@ func GetTopics() []db.Object {
 		&AddrLinkRequested{},
 		&LinkAccept{},
 		&LinkAccepted{},
+		&LinkRevoke{},
+		&LinkRevoked{},
 	}
 }
