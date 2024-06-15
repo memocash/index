@@ -1,9 +1,6 @@
 module example
 
-replace (
-	github.com/memocash/index => ../../
-	golang.org/x/net => golang.org/x/net v0.23.0
-)
+replace github.com/memocash/index => ../../
 
 go 1.19
 
