@@ -1,10 +1,13 @@
 package memo
 
 import (
+	"context"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/config"
 	"time"
 )
 
@@ -44,3 +47,31 @@ func (r *AddrLinkRequested) Serialize() []byte {
 }
 
 func (r *AddrLinkRequested) Deserialize([]byte) {}
+
+func GetAddrLinkRequesteds(ctx context.Context, addrs [][25]byte) ([]*AddrLinkRequested, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
+	for i := range addrs {
+		shard := client.GenShardSource32(addrs[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
+	}
+	shardConfigs := config.GetQueueShards()
+	var addrLinkRequesteds []*AddrLinkRequested
+	for shard, prefixes := range shardPrefixes {
+		shardConfig := config.GetShardConfig(shard, shardConfigs)
+		dbClient := client.NewClient(shardConfig.GetHost())
+		if err := dbClient.GetWOpts(client.Opts{
+			Topic:    db.TopicMemoAddrLinkRequested,
+			Prefixes: prefixes,
+			Max:      client.ExLargeLimit,
+			Context:  ctx,
+		}); err != nil {
+			return nil, fmt.Errorf("error getting db addr memo link requesteds by prefix; %w", err)
+		}
+		for _, msg := range dbClient.Messages {
+			var addrLinkRequested = new(AddrLinkRequested)
+			db.Set(addrLinkRequested, msg)
+			addrLinkRequesteds = append(addrLinkRequesteds, addrLinkRequested)
+		}
+	}
+	return addrLinkRequesteds, nil
+}

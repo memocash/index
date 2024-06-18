@@ -76,6 +76,14 @@ type ComplexityRoot struct {
 		TxHash     func(childComplexity int) int
 	}
 
+	Link struct {
+		AcceptTx   func(childComplexity int) int
+		ChildLock  func(childComplexity int) int
+		ParentLock func(childComplexity int) int
+		RequestTx  func(childComplexity int) int
+		RevokeTx   func(childComplexity int) int
+	}
+
 	Lock struct {
 		Address func(childComplexity int) int
 		Profile func(childComplexity int) int
@@ -102,6 +110,7 @@ type ComplexityRoot struct {
 		Address   func(childComplexity int) int
 		Followers func(childComplexity int, start *model.Date) int
 		Following func(childComplexity int, start *model.Date) int
+		Links     func(childComplexity int) int
 		Lock      func(childComplexity int) int
 		Name      func(childComplexity int) int
 		Pic       func(childComplexity int) int
@@ -441,6 +450,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Like.TxHash(childComplexity), true
 
+	case "Link.accept_tx":
+		if e.complexity.Link.AcceptTx == nil {
+			break
+		}
+
+		return e.complexity.Link.AcceptTx(childComplexity), true
+
+	case "Link.child_lock":
+		if e.complexity.Link.ChildLock == nil {
+			break
+		}
+
+		return e.complexity.Link.ChildLock(childComplexity), true
+
+	case "Link.parent_lock":
+		if e.complexity.Link.ParentLock == nil {
+			break
+		}
+
+		return e.complexity.Link.ParentLock(childComplexity), true
+
+	case "Link.request_tx":
+		if e.complexity.Link.RequestTx == nil {
+			break
+		}
+
+		return e.complexity.Link.RequestTx(childComplexity), true
+
+	case "Link.revoke_tx":
+		if e.complexity.Link.RevokeTx == nil {
+			break
+		}
+
+		return e.complexity.Link.RevokeTx(childComplexity), true
+
 	case "Lock.address":
 		if e.complexity.Lock.Address == nil {
 			break
@@ -572,6 +616,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Profile.Following(childComplexity, args["start"].(*model.Date)), true
+
+	case "Profile.links":
+		if e.complexity.Profile.Links == nil {
+			break
+		}
+
+		return e.complexity.Profile.Links(childComplexity), true
 
 	case "Profile.lock":
 		if e.complexity.Profile.Lock == nil {
@@ -1486,6 +1537,7 @@ var sources = []*ast.Source{
 `, BuiltIn: false},
 	{Name: "../schema/profile.graphqls", Input: `type Profile {
     lock: Lock!
+    links: [Link]
     address: Address!
     name: SetName
     profile: SetProfile
@@ -1551,6 +1603,14 @@ type Like {
     post_tx_hash: Hash!
     post: Post
     tip: Int64
+}
+
+type Link {
+    parent_lock: Lock!
+    child_lock: Lock!
+    request_tx: Tx!
+    accept_tx: Tx
+    revoke_tx: Tx
 }
 `, BuiltIn: false},
 	{Name: "../schema/query.graphqls", Input: `type Query {
@@ -3181,6 +3241,290 @@ func (ec *executionContext) fieldContext_Like_tip(ctx context.Context, field gra
 	return fc, nil
 }
 
+func (ec *executionContext) _Link_parent_lock(ctx context.Context, field graphql.CollectedField, obj *model.Link) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Link_parent_lock(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ParentLock, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Link_parent_lock(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Link",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "address":
+				return ec.fieldContext_Lock_address(ctx, field)
+			case "profile":
+				return ec.fieldContext_Lock_profile(ctx, field)
+			case "txs":
+				return ec.fieldContext_Lock_txs(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Lock", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Link_child_lock(ctx context.Context, field graphql.CollectedField, obj *model.Link) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Link_child_lock(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ChildLock, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Lock)
+	fc.Result = res
+	return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Link_child_lock(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Link",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "address":
+				return ec.fieldContext_Lock_address(ctx, field)
+			case "profile":
+				return ec.fieldContext_Lock_profile(ctx, field)
+			case "txs":
+				return ec.fieldContext_Lock_txs(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Lock", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Link_request_tx(ctx context.Context, field graphql.CollectedField, obj *model.Link) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Link_request_tx(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RequestTx, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tx)
+	fc.Result = res
+	return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Link_request_tx(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Link",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hash":
+				return ec.fieldContext_Tx_hash(ctx, field)
+			case "raw":
+				return ec.fieldContext_Tx_raw(ctx, field)
+			case "inputs":
+				return ec.fieldContext_Tx_inputs(ctx, field)
+			case "outputs":
+				return ec.fieldContext_Tx_outputs(ctx, field)
+			case "blocks":
+				return ec.fieldContext_Tx_blocks(ctx, field)
+			case "seen":
+				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Link_accept_tx(ctx context.Context, field graphql.CollectedField, obj *model.Link) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Link_accept_tx(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AcceptTx, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tx)
+	fc.Result = res
+	return ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Link_accept_tx(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Link",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hash":
+				return ec.fieldContext_Tx_hash(ctx, field)
+			case "raw":
+				return ec.fieldContext_Tx_raw(ctx, field)
+			case "inputs":
+				return ec.fieldContext_Tx_inputs(ctx, field)
+			case "outputs":
+				return ec.fieldContext_Tx_outputs(ctx, field)
+			case "blocks":
+				return ec.fieldContext_Tx_blocks(ctx, field)
+			case "seen":
+				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Link_revoke_tx(ctx context.Context, field graphql.CollectedField, obj *model.Link) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Link_revoke_tx(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RevokeTx, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tx)
+	fc.Result = res
+	return ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTx(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Link_revoke_tx(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Link",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hash":
+				return ec.fieldContext_Tx_hash(ctx, field)
+			case "raw":
+				return ec.fieldContext_Tx_raw(ctx, field)
+			case "inputs":
+				return ec.fieldContext_Tx_inputs(ctx, field)
+			case "outputs":
+				return ec.fieldContext_Tx_outputs(ctx, field)
+			case "blocks":
+				return ec.fieldContext_Tx_blocks(ctx, field)
+			case "seen":
+				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Lock_address(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Lock_address(ctx, field)
 	if err != nil {
@@ -3260,6 +3604,8 @@ func (ec *executionContext) fieldContext_Lock_profile(ctx context.Context, field
 			switch field.Name {
 			case "lock":
 				return ec.fieldContext_Profile_lock(ctx, field)
+			case "links":
+				return ec.fieldContext_Profile_links(ctx, field)
 			case "address":
 				return ec.fieldContext_Profile_address(ctx, field)
 			case "name":
@@ -3929,6 +4275,59 @@ func (ec *executionContext) fieldContext_Profile_lock(ctx context.Context, field
 				return ec.fieldContext_Lock_txs(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Lock", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_links(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Profile_links(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Links, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Link)
+	fc.Result = res
+	return ec.marshalOLink2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLink(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Profile_links(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "parent_lock":
+				return ec.fieldContext_Link_parent_lock(ctx, field)
+			case "child_lock":
+				return ec.fieldContext_Link_child_lock(ctx, field)
+			case "request_tx":
+				return ec.fieldContext_Link_request_tx(ctx, field)
+			case "accept_tx":
+				return ec.fieldContext_Link_accept_tx(ctx, field)
+			case "revoke_tx":
+				return ec.fieldContext_Link_revoke_tx(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Link", field.Name)
 		},
 	}
 	return fc, nil
@@ -4904,6 +5303,8 @@ func (ec *executionContext) fieldContext_Query_profiles(ctx context.Context, fie
 			switch field.Name {
 			case "lock":
 				return ec.fieldContext_Profile_lock(ctx, field)
+			case "links":
+				return ec.fieldContext_Profile_links(ctx, field)
 			case "address":
 				return ec.fieldContext_Profile_address(ctx, field)
 			case "name":
@@ -8009,6 +8410,8 @@ func (ec *executionContext) fieldContext_Subscription_profiles(ctx context.Conte
 			switch field.Name {
 			case "lock":
 				return ec.fieldContext_Profile_lock(ctx, field)
+			case "links":
+				return ec.fieldContext_Profile_links(ctx, field)
 			case "address":
 				return ec.fieldContext_Profile_address(ctx, field)
 			case "name":
@@ -11675,6 +12078,56 @@ func (ec *executionContext) _Like(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var linkImplementors = []string{"Link"}
+
+func (ec *executionContext) _Link(ctx context.Context, sel ast.SelectionSet, obj *model.Link) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, linkImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Link")
+		case "parent_lock":
+
+			out.Values[i] = ec._Link_parent_lock(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "child_lock":
+
+			out.Values[i] = ec._Link_child_lock(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "request_tx":
+
+			out.Values[i] = ec._Link_request_tx(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "accept_tx":
+
+			out.Values[i] = ec._Link_accept_tx(ctx, field, obj)
+
+		case "revoke_tx":
+
+			out.Values[i] = ec._Link_revoke_tx(ctx, field, obj)
+
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var lockImplementors = []string{"Lock"}
 
 func (ec *executionContext) _Lock(ctx context.Context, sel ast.SelectionSet, obj *model.Lock) graphql.Marshaler {
@@ -11836,6 +12289,10 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "links":
+
+			out.Values[i] = ec._Profile_links(ctx, field, obj)
+
 		case "address":
 
 			out.Values[i] = ec._Profile_address(ctx, field, obj)
@@ -14228,6 +14685,54 @@ func (ec *executionContext) marshalOLike2ᚕᚖgithubᚗcomᚋmemocashᚋindex�
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalOLink2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLink(ctx context.Context, sel ast.SelectionSet, v []*model.Link) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOLink2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLink(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOLink2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLink(ctx context.Context, sel ast.SelectionSet, v *model.Link) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Link(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOLock2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v []*model.Lock) graphql.Marshaler {

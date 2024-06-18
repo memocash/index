@@ -60,6 +60,7 @@ type Block struct {
 
 type Profile struct {
 	Address   Address       `json:"address"`
+	Links     []*Link       `json:"links"`
 	Name      *SetName      `json:"name"`
 	Profile   *SetProfile   `json:"profile"`
 	Pic       *SetPic       `json:"pic"`
@@ -68,6 +69,14 @@ type Profile struct {
 	Following []*Follow     `json:"following"`
 	Followers []*Follow     `json:"followers"`
 	Rooms     []*RoomFollow `json:"rooms"`
+}
+
+type Link struct {
+	ParentLock *Lock `json:"parent_lock"`
+	ChildLock  *Lock `json:"child_lock"`
+	RequestTx  *Tx   `json:"request_tx"`
+	AcceptTx   *Tx   `json:"accept_tx"`
+	RevokeTx   *Tx   `json:"revoke_tx"`
 }
 
 type Follow struct {
