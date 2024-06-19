@@ -386,11 +386,13 @@ func (a *MemoProfile) AttachLinks() {
 			}
 		}
 		for _, linkRequest := range foundLinkRequests {
-			// TODO: Include Link Request Message
 			profile.Links = append(profile.Links, &model.Link{
-				ChildLock:  &model.Lock{Address: linkRequest.ChildAddr},
-				ParentLock: &model.Lock{Address: linkRequest.ParentAddr},
-				RequestTx:  &model.Tx{Hash: linkRequest.TxHash},
+				Request: &model.LinkRequest{
+					Child:   &model.Lock{Address: linkRequest.ChildAddr},
+					Parent:  &model.Lock{Address: linkRequest.ParentAddr},
+					Message: linkRequest.Message,
+					Tx:      &model.Tx{Hash: linkRequest.TxHash},
+				},
 			})
 		}
 	}

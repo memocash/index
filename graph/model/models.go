@@ -72,11 +72,26 @@ type Profile struct {
 }
 
 type Link struct {
-	ParentLock *Lock `json:"parent_lock"`
-	ChildLock  *Lock `json:"child_lock"`
-	RequestTx  *Tx   `json:"request_tx"`
-	AcceptTx   *Tx   `json:"accept_tx"`
-	RevokeTx   *Tx   `json:"revoke_tx"`
+	Request *LinkRequest `json:"request"`
+	Accept  *LinkAccept  `json:"accept"`
+	Revoke  *LinkRevoke  `json:"revoke"`
+}
+
+type LinkRequest struct {
+	Child   *Lock  `json:"child"`
+	Parent  *Lock  `json:"parent"`
+	Message string `json:"message"`
+	Tx      *Tx    `json:"tx"`
+}
+
+type LinkRevoke struct {
+	Message string `json:"message"`
+	Tx      *Tx    `json:"tx"`
+}
+
+type LinkAccept struct {
+	Message string `json:"message"`
+	Tx      *Tx    `json:"tx"`
 }
 
 type Follow struct {

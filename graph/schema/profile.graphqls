@@ -69,9 +69,24 @@ type Like {
 }
 
 type Link {
-    parent_lock: Lock!
-    child_lock: Lock!
-    request_tx: Tx!
-    accept_tx: Tx
-    revoke_tx: Tx
+    request: LinkRequest!
+    accept: LinkAccept
+    revoke: LinkRevoke
+}
+
+type LinkRequest {
+    child: Lock!
+    parent: Lock!
+    message: String!
+    tx: Tx!
+}
+
+type LinkAccept {
+    message: String!
+    tx: Tx!
+}
+
+type LinkRevoke {
+    message: String!
+    tx: Tx!
 }
