@@ -1,0 +1,39 @@
+version: "3"
+services:
+  bitcoind:
+    image: zquestz/bitcoin-cash-node
+    # specify additional command line arguments here
+    command: bitcoind
+    healthcheck:
+      test: ["CMD", "/entrypoint.sh", "bitcoin-cli", "getblockchaininfo"]
+    ports:
+      # change to 18333 if running testnet
+      - "8333:8333"
+    volumes:
+      - bitcoin-data:/data
+    networks:
+      - bitcoin
+  bitcoin-cli:
+    image: zquestz/bitcoin-cash-node
+    entrypoint: ["/entrypoint.sh", "bitcoin-cli"]
+    command: ""
+    depends_on:
+      - bitcoind
+    network_mode: service:bitcoind
+  indexer:
+    build: .
+    ports: 
+      - "26770:26770"
+    volumes:
+      - ./db/data:/usr/src/app/db/data
+      - ./data:/usr/src/app/data
+    depends_on:
+      - bitcoind
+    networks:
+      - bitcoin
+
+networks:
+  bitcoin:
+
+volumes:
+  bitcoin-data:
