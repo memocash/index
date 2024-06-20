@@ -67,7 +67,7 @@ type Config struct {
 var _config Config
 
 var DefaultConfig = Config{
-	NodeHost:        GetHost(8333),
+	NodeHost:        "[bitcoind]:8333",
 	InitBlock:       DefaultInitBlock,
 	InitBlockHeight: DefaultInitBlockHeight,
 	InitBlockParent: DefaultInitBlockParent,
@@ -103,6 +103,7 @@ var DefaultConfig = Config{
 }
 
 func Init(cmd *cobra.Command) error {
+	fmt.Print(GetHost(8333))
 	config, _ := cmd.Flags().GetString(FlagConfig)
 	if config != "" && !strings.HasPrefix(config, "config-") {
 		config = "config-" + config
@@ -209,6 +210,7 @@ func GetCompactionDataSize() int {
 }
 
 func GetHost(port uint) string {
+	fmt.Printf("[%s]:%d", Localhost, port)
 	return fmt.Sprintf("[%s]:%d", Localhost, port)
 }
 
