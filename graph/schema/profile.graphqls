@@ -1,5 +1,6 @@
 type Profile {
     lock: Lock!
+    links: [Link]
     address: Address!
     name: SetName
     profile: SetProfile
@@ -65,4 +66,27 @@ type Like {
     post_tx_hash: Hash!
     post: Post
     tip: Int64
+}
+
+type Link {
+    request: LinkRequest!
+    accept: LinkAccept
+    revoke: LinkRevoke
+}
+
+type LinkRequest {
+    child: Lock!
+    parent: Lock!
+    message: String!
+    tx: Tx!
+}
+
+type LinkAccept {
+    message: String!
+    tx: Tx!
+}
+
+type LinkRevoke {
+    message: String!
+    tx: Tx!
 }
