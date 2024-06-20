@@ -7,6 +7,8 @@ import (
 	"github.com/memocash/index/test/tasks"
 	"github.com/spf13/cobra"
 	"log"
+	"os"
+	"strings"
 )
 
 var testCmd = &cobra.Command{
@@ -17,6 +19,10 @@ var testCmd = &cobra.Command{
 var initCmd bool
 
 func GetCommand() *cobra.Command {
+	if strings.ToLower(os.Getenv("SAFE_MODE")) != "false" {
+		testCmd.Short = "DISABLED"
+		return testCmd
+	}
 	if !initCmd {
 		initCmd = true
 		for _, tst := range tasks.GetTests() {
@@ -37,6 +43,7 @@ func GetCommand() *cobra.Command {
 	}
 	testCmd.AddCommand(
 		saveTxCmd,
+		itemDeleteCmd,
 		fund.GetCommand(),
 		graph.GetCommand(),
 	)

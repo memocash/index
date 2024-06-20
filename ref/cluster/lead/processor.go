@@ -15,6 +15,7 @@ import (
 	"github.com/memocash/index/ref/dbi"
 	"google.golang.org/grpc"
 	"log"
+	"math"
 	"sync"
 	"time"
 )
@@ -164,7 +165,7 @@ func (p *Processor) SaveBlockShards(height int64, seen time.Time, shardBlocks ma
 					IsInitial: !p.Synced,
 					Height:    height,
 					Seen:      seen.UnixNano(),
-				}); err != nil {
+				}, grpc.MaxCallSendMsgSize(8*math.MaxInt32)); err != nil {
 					return fmt.Errorf("error saving block shard txs; %w", err)
 				}
 				return nil
