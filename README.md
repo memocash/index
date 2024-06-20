@@ -11,3 +11,17 @@ cd index
 go build
 ./index serve live
 ```
+
+## Configuration
+
+Two options for setting config values.
+
+1. Use environment variables, e.g.
+    ```sh
+    NODE_HOST=example.com:8333 ./index serve live
+    ```
+2. Use a config file, e.g. `config.yaml`:
+    ```yaml
+    NODE_HOST: example.com:8333
+    GRAPHQL_PORT: 8080
+    ```
