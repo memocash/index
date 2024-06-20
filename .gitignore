@@ -8,3 +8,4 @@
 example.db
 .DS_Store
 /client/examples/example-linux
+.vscode
