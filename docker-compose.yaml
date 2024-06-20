@@ -6,9 +6,6 @@ services:
     command: bitcoind
     healthcheck:
       test: ["CMD", "/entrypoint.sh", "bitcoin-cli", "getblockchaininfo"]
-    ports:
-      # change to 18333 if running testnet
-      - "8333:8333"
     volumes:
       - bitcoin-data:/data
     networks:
