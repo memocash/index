@@ -13,13 +13,6 @@ services:
       - bitcoin-data:/data
     networks:
       - bitcoin
-  bitcoin-cli:
-    image: zquestz/bitcoin-cash-node
-    entrypoint: ["/entrypoint.sh", "bitcoin-cli"]
-    command: ""
-    depends_on:
-      - bitcoind
-    network_mode: service:bitcoind
   indexer:
     build: .
     ports: 
