@@ -64,9 +64,7 @@ type Config struct {
 	Influx InfluxConfig `mapstructure:"INFLUX"`
 }
 
-var _config Config
-
-var DefaultConfig = Config{
+var _config = Config{
 	NodeHost:        GetHost(8333),
 	InitBlock:       DefaultInitBlock,
 	InitBlockHeight: DefaultInitBlockHeight,
@@ -113,9 +111,9 @@ func Init(cmd *cobra.Command) error {
 	viper.AddConfigPath("$HOME/.index")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath(".config/index")
+	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {
 		// Config not found, use default
-		_config = DefaultConfig
 		return nil
 	}
 	if err := viper.Unmarshal(&_config); err != nil {
