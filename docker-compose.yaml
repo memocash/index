@@ -19,7 +19,8 @@ services:
     command: ""
     depends_on:
       - bitcoind
-    network_mode: service:bitcoind
+    network_mode:
+      - service:bitcoind
   indexer:
     build: .
     ports: 
