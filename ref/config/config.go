@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"strings"
@@ -112,10 +113,16 @@ func Init(cmd *cobra.Command) error {
 	viper.AddConfigPath(".")
 	viper.AddConfigPath(".config/index")
 	viper.AutomaticEnv()
-	if err := viper.ReadInConfig(); err != nil {
-		// Config not found, use default
-		return nil
+	envKeysMap := &map[string]interface{}{}
+	if err := mapstructure.Decode(_config, &envKeysMap); err != nil {
+		return fmt.Errorf("error decoding config; %w", err)
 	}
+	for k := range *envKeysMap {
+		if err := viper.BindEnv(k); err != nil {
+			return fmt.Errorf("error binding env; %w", err)
+		}
+	}
+	viper.ReadInConfig()
 	if err := viper.Unmarshal(&_config); err != nil {
 		return fmt.Errorf("error unmarshalling config; %w", err)
 	}
