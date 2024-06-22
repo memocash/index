@@ -19,7 +19,7 @@ var testCmd = &cobra.Command{
 var initCmd bool
 
 func GetCommand() *cobra.Command {
-	if strings.ToLower(os.Getenv("SAFE_MODE")) != "false" {
+	if strings.ToLower(os.Getenv("UNSAFE")) != "true" {
 		testCmd.Short = "DISABLED"
 		return testCmd
 	}
