@@ -1,0 +1,31 @@
+version: "3"
+services:
+  bitcoind:
+    image: zquestz/bitcoin-cash-node
+    # specify additional command line arguments here
+    command: bitcoind
+    healthcheck:
+      test: ["CMD", "/entrypoint.sh", "bitcoin-cli", "getblockchaininfo"]
+    volumes:
+      - ./docker/bitcoin-data:/data
+      - ./docker/bitcoin.conf:/data/bitcoin.conf
+    networks:
+      - bitcoin
+  indexer:
+    build: .
+    ports: 
+      - "26770:26770"
+    volumes:
+      - ./docker/indexer-data:/usr/src/app/db/data
+    depends_on:
+      - bitcoind
+    networks:
+      - bitcoin
+    environment:
+      - 'NODE_HOST=[bitcoind]:8333'
+
+networks:
+  bitcoin:
+
+volumes:
+  bitcoin-data:

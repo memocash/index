@@ -1,0 +1,6 @@
+index
+.gitignore
+Dockerfile
+docker-compose.yaml
+README.md
+LICENSE
