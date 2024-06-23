@@ -5,7 +5,6 @@ import (
 	"github.com/memocash/index/cmd/maint"
 	"github.com/memocash/index/cmd/peer"
 	"github.com/memocash/index/cmd/serve"
-	"github.com/memocash/index/cmd/test"
 	"github.com/memocash/index/db/store"
 	"github.com/memocash/index/ref/broadcast/broadcast_client"
 	"github.com/memocash/index/ref/config"
@@ -53,15 +52,15 @@ var indexCmd = &cobra.Command{
 	},
 }
 
-func Execute() error {
+func Execute(extra ...*cobra.Command) error {
 	indexCmd.PersistentFlags().String(config.FlagConfig, "", "config file name")
 	indexCmd.PersistentFlags().Bool(config.FlagProfile, false, "profile execution")
 	indexCmd.AddCommand(
-		test.GetCommand(),
 		peer.GetCommand(),
 		serve.GetCommand(),
 		maint.GetCommand(),
 	)
+	indexCmd.AddCommand(extra...)
 	if err := indexCmd.Execute(); err != nil {
 		return fmt.Errorf("error executing server command; %w", err)
 	}
