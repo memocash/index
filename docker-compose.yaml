@@ -14,7 +14,7 @@ services:
   indexer:
     build: .
     ports: 
-      - "26770:26770"
+      - "${PORT}:26770"
     volumes:
       - ./docker/indexer-data:/usr/src/app/db/data
     depends_on:
