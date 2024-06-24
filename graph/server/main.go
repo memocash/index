@@ -14,6 +14,10 @@ type Server struct {
 	listener net.Listener
 }
 
+func (s *Server) GetHost() string {
+	return config.GetHost(s.Port)
+}
+
 func (s *Server) Run() error {
 	if err := s.Start(); err != nil {
 		return fmt.Errorf("error starting admin server; %w", err)
@@ -28,7 +32,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/graphql", GetGraphQLHandler())
 	s.server = http.Server{Handler: mux}
 	var err error
-	if s.listener, err = net.Listen("tcp", config.GetHost(s.Port)); err != nil {
+	if s.listener, err = net.Listen("tcp", s.GetHost()); err != nil {
 		return fmt.Errorf("failed to listen admin server; %w", err)
 	}
 	return nil
