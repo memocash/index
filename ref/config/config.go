@@ -13,6 +13,7 @@ const (
 	FlagProfile = "profile"
 
 	Localhost            = "127.0.0.1"
+	DefaultNodeHost      = "localhost:8333"
 	DefaultAdminPort     = 26768
 	DefaultBroadcastPort = 26769
 	DefaultGraphQLPort   = 26770
@@ -66,7 +67,7 @@ type Config struct {
 }
 
 var _config = Config{
-	NodeHost:        GetHost(8333),
+	NodeHost:        DefaultNodeHost,
 	InitBlock:       DefaultInitBlock,
 	InitBlockHeight: DefaultInitBlockHeight,
 	InitBlockParent: DefaultInitBlockParent,
@@ -214,7 +215,7 @@ func GetCompactionDataSize() int {
 }
 
 func GetHost(port uint) string {
-	return fmt.Sprintf("[%s]:%d", Localhost, port)
+	return fmt.Sprintf("[%s]:%d", _config.ServerHost, port)
 }
 
 func GetDataDir() string {

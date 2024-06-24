@@ -36,7 +36,7 @@ func (s *Server) Run() error {
 	if err := graphServer.Start(); err != nil {
 		return fmt.Errorf("fatal error starting graph server; %w", err)
 	}
-	log.Printf("GraphQL server started on port: %d...\n", graphServer.Port)
+	log.Printf("GraphQL server started at: %s...\n", graphServer.GetHost())
 	go func() {
 		errorHandler <- fmt.Errorf("error running GraphQL server; %w", graphServer.Serve())
 	}()
