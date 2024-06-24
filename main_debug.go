@@ -4,13 +4,13 @@ package main
 
 import (
 	"github.com/memocash/index/cmd"
-	"github.com/memocash/index/cmd/test"
+	"github.com/memocash/index/cmd/debug"
 	"log"
 )
 
 func main() {
 	if err := cmd.Execute(
-		test.GetCommand(),
+		debug.GetCommand(),
 	); err != nil {
 		log.Fatalf("fatal error executing debug command; %v", err)
 	}
