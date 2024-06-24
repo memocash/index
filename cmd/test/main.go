@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/memocash/index/cmd/test/fund"
 	"github.com/memocash/index/cmd/test/graph"
+	"github.com/memocash/index/cmd/test/load"
 	"github.com/memocash/index/test/suite"
 	"github.com/memocash/index/test/tasks"
 	"github.com/spf13/cobra"
@@ -40,6 +41,7 @@ func GetCommand() *cobra.Command {
 		itemDeleteCmd,
 		fund.GetCommand(),
 		graph.GetCommand(),
+		load.GetCommand(),
 	)
 	return testCmd
 }
