@@ -23,6 +23,7 @@ services:
       - bitcoin
     environment:
       - 'NODE_HOST=[bitcoind]:8333'
+      - 'SERVER_HOST=0.0.0.0'
 
 networks:
   bitcoin:
