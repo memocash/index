@@ -115,7 +115,7 @@ export default function LockHash() {
                                             <td>{txBlock.index}.</td>
                                             <td>
                                                 <Link href={"/tx/" + txBlock.tx.hash}>
-                                                    <a>{txBlock.tx.hash}</a>
+                                                    {txBlock.tx.hash}
                                                 </Link>
                                             </td>
                                         </tr>
@@ -128,7 +128,7 @@ export default function LockHash() {
                     </div>
                     <div>
                         <Link href={{pathname: "/block/" + block.hash}}>
-                            <a>First</a>
+                            First
                         </Link>
                         &nbsp;&middot;&nbsp;
                         <Link href={{
@@ -137,7 +137,7 @@ export default function LockHash() {
                                 start: offset,
                             }
                         }}>
-                            <a>Next</a>
+                            Next
                         </Link>
                     </div>
                 </Loading>

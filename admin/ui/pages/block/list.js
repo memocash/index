@@ -92,7 +92,7 @@ export default function Block() {
                             newest: true,
                         }
                     }}>
-                        <a><span className={lastNewest ? styles.underline : null}>Newest</span></a>
+                        <span className={lastNewest ? styles.underline : null}>Newest</span>
                     </Link>
                     &nbsp;&middot;&nbsp;
                     <Link href={{
@@ -101,7 +101,7 @@ export default function Block() {
                             newest: false,
                         }
                     }}>
-                        <a><span className={lastNewest ? null : styles.underline}>Oldest</span></a>
+                        <span className={lastNewest ? null : styles.underline}>Oldest</span>
                     </Link>
                 </p>
                 <Loading loading={loading} error={errorMessage}>
@@ -112,10 +112,7 @@ export default function Block() {
                                 <div className={column.width15}>{block.height}</div>
                                 <div className={column.width40}>
                                     <Link href={"/block/" + block.hash}>
-                                        <a>
-                                            <PreInline>{block.hash}</PreInline>
-
-                                        </a>
+                                        <PreInline>{block.hash}</PreInline>
                                     </Link>
                                 </div>
                                 <div className={[column.width15].join(" ")}>
@@ -138,7 +135,7 @@ export default function Block() {
                                 start: prev,
                             }
                         }}>
-                            <a>Prev</a>
+                            Prev
                         </Link>
                         &nbsp;&middot;&nbsp;
                         <Link href={{
@@ -148,7 +145,7 @@ export default function Block() {
                                 start: next,
                             }
                         }}>
-                            <a>Next</a>
+                            Next
                         </Link>
                     </div>
                 </Loading>

@@ -30,7 +30,7 @@ function List() {
                         return (
                             <li key={key}>
                                 <Link href={{pathname: "/topic/" + topic.Name}}>
-                                    <a>{topic.Name}</a>
+                                    {topic.Name}
                                 </Link>
                             </li>
                         )

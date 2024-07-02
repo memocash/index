@@ -77,7 +77,7 @@ export default function Topic() {
                 </h2>
                 <h4>
                     <Link href={{pathname: "/topic/" + topic}}>
-                        <a>{topic}</a>
+                        {topic}
                     </Link>
                 </h4>
                 <form onSubmit={formSubmit}>
@@ -91,11 +91,11 @@ export default function Topic() {
                     <p key={key}>{item.Shard}: <Link href={{
                         pathname: "/topic/" + topic + "/" + item.Uid,
                         query: {shard: item.Shard},
-                    }}><a>{item.Uid}</a></Link></p>
+                    }}>{item.Uid}</Link></p>
                 ))}
                 <p>
                     <Link href={{pathname: "/topic/list"}}>
-                        <a>Back to List</a>
+                        Back to List
                     </Link> &middot; {topicData.Items && topicData.Items.length &&
                     <Link href={{
                         pathname: "/topic/" + topic, query: {
@@ -103,7 +103,7 @@ export default function Topic() {
                             start: topicData.Items[topicData.Items.length - 1].Uid,
                         }
                     }}>
-                        <a>Next Page</a>
+                        Next Page
                     </Link>
                     }
                 </p>

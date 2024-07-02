@@ -92,7 +92,7 @@ function DoubleSpends() {
                                         return (
                                             <li key={input.hash + input.index}>
                                                 <Link href={"/tx/" + input.hash}>
-                                                    <a>{input.hash}:{input.index}</a>
+                                                    {input.hash}:{input.index}
                                                 </Link> &middot; ({input.tx.seen})&nbsp;
                                                 {input.tx.lost ?
                                                     <span className={[column.red, column.bold].join(" ")}>
@@ -115,7 +115,7 @@ function DoubleSpends() {
                         <Link href={{
                             pathname: "/tx/double-spends",
                         }}>
-                            <a>First</a>
+                            First
                         </Link>
                         &nbsp;&middot;&nbsp;
                         <Link href={{
@@ -124,7 +124,7 @@ function DoubleSpends() {
                                 start: nextStart
                             },
                         }}>
-                            <a>Next</a>
+                            Next
                         </Link>
                     </div>
                 </Loading>

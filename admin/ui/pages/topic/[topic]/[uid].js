@@ -51,7 +51,7 @@ export default function Topic() {
                 </h2>
                 <h4>
                     <Link href={{pathname: "/topic/" + topic}}>
-                        <a>{topic}</a>
+                        {topic}
                     </Link>
                 </h4>
                 <p>{uid}</p>
@@ -68,7 +68,7 @@ export default function Topic() {
                 </ul>
                 <p>
                     <Link href={{pathname: "/topic/list"}}>
-                        <a>Back to List</a>
+                        Back to List
                     </Link>
                 </p>
             </div>

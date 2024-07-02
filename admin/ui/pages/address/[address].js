@@ -130,7 +130,7 @@ export default function LockHash() {
                                 return (
                                     <div key={index} className={column.container}>
                                         <Link href={"/tx/" + tx.hash}>
-                                            <a><PreInline>{tx.hash}</PreInline></a>
+                                            <PreInline>{tx.hash}</PreInline>
                                         </Link>
                                         : {tx.amount}
                                     </div>

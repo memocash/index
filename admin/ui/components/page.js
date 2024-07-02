@@ -43,10 +43,10 @@ export default function Page(props) {
         localStorage.setItem(LocalStorageKey, e.target.value)
     }
 
-    useEffect(async () => {
+    useEffect(() => {
         const prevSelect = localStorage.getItem(LocalStorageKey)
         if (prevSelect && prevSelect.length) {
-            await setSelect(prevSelect)
+            setSelect(prevSelect)
         }
     }, [])
 
@@ -61,9 +61,7 @@ export default function Page(props) {
                     <div className={styles.header}>
                         <h1 className={styles.title}>
                             <Link href="/">
-                                <a>
-                                    Index
-                                </a>
+                                Index
                             </Link>
                         </h1>
                     </div>
@@ -71,27 +69,27 @@ export default function Page(props) {
                     <ul>
                         <li>
                             <Link href="/hello">
-                                <a>Hello</a>
+                                Hello
                             </Link>
                         </li>
                         <li>
                             <Link href="/tx/aa3c2117090349ae08fba883c2f70548b502957ffed8e18c0a5ca8e0b6761cf8">
-                                <a>Transaction</a>
+                                Transaction
                             </Link>
                         </li>
                         <li>
                             <Link href="/address/1Pzdrdoj2NC25GMWknYn18eHYuvLoZ6dpv">
-                                <a>Address</a>
+                                Address
                             </Link>
                         </li>
                         <li>
                             <Link href="/tx/double-spends">
-                                <a>Double Spends</a>
+                                Double Spends
                             </Link>
                         </li>
                         <li>
                             <Link href="/block/list">
-                                <a>Blocks</a>
+                                Blocks
                             </Link>
                         </li>
                     </ul>
@@ -99,17 +97,17 @@ export default function Page(props) {
                     <ul>
                         <li>
                             <Link href="/tx/broadcast">
-                                <a>Broadcast</a>
+                                Broadcast
                             </Link>
                         </li>
                         <li>
                             <Link href="/peer/list">
-                                <a>Peer List</a>
+                                Peer List
                             </Link>
                         </li>
                         <li>
                             <Link href="/peer/report">
-                                <a>Peer Report</a>
+                                Peer Report
                             </Link>
                         </li>
                     </ul>
@@ -117,7 +115,7 @@ export default function Page(props) {
                     <ul>
                         <li>
                             <Link href="/topic/list">
-                                <a>Topic List</a>
+                                Topic List
                             </Link>
                         </li>
                     </ul>

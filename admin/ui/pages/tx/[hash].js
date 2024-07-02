@@ -204,7 +204,7 @@ function BlockInfo({tx}) {
                     return (
                         <div key={txBlock.block.hash}>
                             Hash: <Link href={"/block/" + txBlock.block.hash}>
-                            <a>{txBlock.block.hash}</a></Link>
+                            {txBlock.block.hash}</Link>
                             <br/>
                             Timestamp: {txBlock.block.timestamp.length ? txBlock.block.timestamp : "Not set"}
                             <br/>
@@ -228,7 +228,7 @@ function Inputs({tx}) {
                         <div className={column.width85}>{input.output ? (<>
                             Address: {input.output.lock ?
                             <Link href={"/address/" + input.output.lock.address}>
-                                <a>{input.output.lock.address}</a>
+                                {input.output.lock.address}
                             </Link>
                             : <>Not found</>}
                             <br/>
@@ -240,17 +240,13 @@ function Inputs({tx}) {
                             {input.output.slp ? <div>
                                 SLP: {input.output.slp.amount} {input.output.slp.genesis ?
                                 <Link href={"/tx/" + input.output.slp.token_hash}>
-                                    <a>
-                                        {input.output.slp.genesis.ticker}
-                                    </a>
+                                    {input.output.slp.genesis.ticker}
                                 </Link> : null}
                             </div> : null}
                             {input.output.slp_baton ? <div>
                                 SLP Baton: {input.output.slp_baton.genesis ?
                                 <Link href={"/tx/" + input.output.slp_baton.token_hash}>
-                                    <a>
-                                        {input.output.slp_baton.genesis.ticker}
-                                    </a>
+                                    {input.output.slp_baton.genesis.ticker}
                                 </Link> : null}
                             </div> : null}
                             {input.output.spends && input.output.spends.length >= 2 ?
@@ -260,11 +256,11 @@ function Inputs({tx}) {
                                 : null
                             }
                             <Link href={"/tx/" + input.prev_hash}>
-                                <a><PreInline>{input.prev_hash}:{input.prev_index}</PreInline></a>
+                                <PreInline>{input.prev_hash}:{input.prev_index}</PreInline>
                             </Link>
                         </>) : (isCoinbase(input) ? "Coinbase" : (
                             <Link href={"/tx/" + input.prev_hash}>
-                                <a><PreInline>{input.prev_hash}:{input.prev_index}</PreInline></a>
+                                <PreInline>{input.prev_hash}:{input.prev_index}</PreInline>
                             </Link>
                         ))}</div>
                     </div>
@@ -291,7 +287,7 @@ const GetOutputScriptInfo = (script) => {
                 return "Memo post: " + Buffer.from(script.substr(10), "hex")
             case "6d03":
                 const replyTxHash = script.substr(10, 64).match(/.{2}/g).reverse().join("")
-                return (<>Memo reply (<Link href={"/tx/" + replyTxHash}><a>{ShortTxHash(replyTxHash)}</a></Link>): {
+                return (<>Memo reply (<Link href={"/tx/" + replyTxHash}>{ShortTxHash(replyTxHash)}</Link>): {
                     "" + Buffer.from(script.substr(76), "hex")}</>)
             case "6d04":
                 if (script.length < 12) {
@@ -299,10 +295,10 @@ const GetOutputScriptInfo = (script) => {
                     break
                 }
                 const likeTxHash = script.substr(10).match(/.{2}/g).reverse().join("")
-                return (<>Memo like: <Link href={"/tx/" + likeTxHash}><a>{ShortTxHash(likeTxHash)}</a></Link></>)
+                return (<>Memo like: <Link href={"/tx/" + likeTxHash}>{ShortTxHash(likeTxHash)}</Link></>)
             case "6d0a":
                 const picUrl = "" + Buffer.from(script.substr(10), "hex")
-                return (<>Memo profile pic: <Link href={picUrl}><a>{picUrl}</a></Link></>)
+                return (<>Memo profile pic: <Link href={picUrl}>{picUrl}</Link></>)
             case "6d0c":
                 let size = parseInt(script.substr(8, 2), 16)
                 size *= 2
@@ -345,7 +341,7 @@ function Outputs({tx}) {
                         <div className={column.width85}>
                             {(!output.lock || output.lock.address.includes(": ")) ? <>{GetOutputScriptInfo(output.script)}</> : <>
                                 Address: <Link href={"/address/" + output.lock.address}>
-                                <a>{output.lock.address}</a>
+                                {output.lock.address}
                             </Link></>}
                             <br/>
                             Amount: {output.amount}
@@ -355,17 +351,13 @@ function Outputs({tx}) {
                             {output.slp ? <div>
                                 SLP: {output.slp.amount} {output.slp.genesis ?
                                 <Link href={"/tx/" + output.slp.token_hash}>
-                                    <a>
-                                        {output.slp.genesis.ticker}
-                                    </a>
+                                    {output.slp.genesis.ticker}
                                 </Link> : null}
                             </div> : null}
                             {output.slp_baton ? <div>
                                 SLP Baton: {output.slp_baton.genesis ?
                                 <Link href={"/tx/" + output.slp_baton.token_hash}>
-                                    <a>
-                                        {output.slp_baton.genesis.ticker}
-                                    </a>
+                                    {output.slp_baton.genesis.ticker}
                                 </Link> : null}
                             </div> : null}
                             {output.spends ? <>
@@ -381,9 +373,7 @@ function Outputs({tx}) {
                                     return (
                                         <div key={index}>
                                             <Link href={"/tx/" + spend.hash}>
-                                                <a>
-                                                    <PreInline>{spend.hash}:{spend.index}</PreInline>
-                                                </a>
+                                                <PreInline>{spend.hash}:{spend.index}</PreInline>
                                             </Link>
                                         </div>
                                     )
