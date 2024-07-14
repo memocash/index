@@ -62,18 +62,26 @@ func TestGetByPrefixes(t *testing.T) {
 		t.Errorf("error initializing test db; %v", err)
 	}
 
+	const prefixTest = "test"
+	const prefixOther = "other"
+
 	const MessageCount = 10
 	for i := 0; i < MessageCount; i++ {
 		if err := store.SaveMessages(TestTopic, TestShard, []*store.Message{{
-			Uid:     []byte(fmt.Sprintf("test-%d", i)),
-			Message: []byte(fmt.Sprintf("test-message-%d", i)),
+			Uid:     []byte(fmt.Sprintf("%s-%d", prefixTest, i)),
+			Message: []byte(fmt.Sprintf("message-%d", i)),
+		}, {
+			Uid:     []byte(fmt.Sprintf("%s-%d", prefixOther, i)),
+			Message: []byte(fmt.Sprintf("message-%d", i)),
 		}}); err != nil {
 			t.Errorf("error saving prefix messages; %v", err)
 		}
 	}
 
-	prefix := []byte("test-")
-	messages, err := store.GetMessages(TestTopic, TestShard, [][]byte{prefix}, nil, 0, false)
+	messages, err := store.GetMessages(TestTopic, TestShard, [][]byte{
+		[]byte(prefixTest),
+		[]byte(prefixOther),
+	}, nil, 5, false)
 	if err != nil {
 		t.Errorf("error getting message; %v", err)
 		return
@@ -86,12 +94,18 @@ func TestGetByPrefixes(t *testing.T) {
 
 	for i := range messages {
 		message := messages[i]
-		expectedUid := fmt.Sprintf("test-%d", i)
+		var prefix = prefixTest
+		var id = i
+		if i >= MessageCount/2 {
+			prefix = prefixOther
+			id = i - MessageCount/2
+		}
+		expectedUid := fmt.Sprintf("%s-%d", prefix, id)
 		if string(message.Uid) != expectedUid {
 			t.Errorf("unexpected message uid: %s, expected %s\n", message.Uid, expectedUid)
 			return
 		}
-		expectedMessage := fmt.Sprintf("test-message-%d", i)
+		expectedMessage := fmt.Sprintf("message-%d", id)
 		if string(message.Message) != expectedMessage {
 			t.Errorf("unexpected message: %s, expected %s\n", message.Message, expectedMessage)
 			return
