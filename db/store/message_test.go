@@ -70,6 +70,14 @@ var tests = []GetMessagesTest{{
 	Expected: []*store.Message{
 		testMessageTest1, testMessageTest2, testMessageTest3, testMessageTest4, testMessageTest5,
 	},
+}, {
+	Prefixes: [][]byte{[]byte(PrefixTest), []byte(PrefixOther)},
+	Max:      5,
+	Newest:   true,
+	Expected: []*store.Message{
+		testMessageTest9, testMessageTest8, testMessageTest7, testMessageTest6, testMessageTest5,
+		testMessageOther9, testMessageOther8, testMessageOther7, testMessageOther6, testMessageOther5,
+	},
 }}
 
 func initTestDb() error {
