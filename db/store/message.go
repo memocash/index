@@ -81,63 +81,104 @@ func GetMessagesByUids(topic string, shard uint, uids [][]byte) ([]*Message, err
 	return messages, nil
 }
 
-// GetMessages returns messages. Options:
-//   - Topic: required
-//   - Shard: required
-//   - Prefixes: optional, limits results
-//   - Start: optional, where to start
-//   - Max: optional, number of results
-//   - Newest: optional, reverse order (fff first, instead of 000)
-func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max int, newest bool) ([]*Message, error) {
-	db, err := getDb(topic, shard)
+type RequestByPrefixes struct {
+	Topic    string // required
+	Shard    uint   // required
+	Prefixes []Prefix
+	Max      int
+	Newest   bool
+}
+
+type Prefix struct {
+	Prefix []byte
+	Start  []byte
+	Max    int
+}
+
+// GetByPrefixes returns messages.
+func GetByPrefixes(request RequestByPrefixes) ([]*Message, error) {
+	db, err := getDb(request.Topic, request.Shard)
 	if err != nil {
-		return nil, fmt.Errorf("error getting db shard %d; %w", shard, err)
+		return nil, fmt.Errorf("error getting db shard %d; %w", request.Shard, err)
 	}
-	if max == 0 {
-		max = client.HugeLimit
+
+	var maxResults = request.Max
+	if maxResults == 0 {
+		maxResults = client.HugeLimit
 	}
+
+	var prefixes = request.Prefixes
 	if len(prefixes) == 0 {
-		prefixes = append(prefixes, []byte{})
+		prefixes = append(prefixes, Prefix{})
 	}
+
 	var messages []*Message
 	defer func() {
 		metric.AddTopicRead(metric.TopicRead{
-			Topic:    topic,
+			Topic:    request.Topic,
 			Quantity: len(messages),
 		})
 	}()
+
 	for _, prefix := range prefixes {
-		var prefixMessages []*Message
-		iterRange := util.BytesPrefix(prefix)
-		if len(start) > 0 {
-			if newest && (len(prefix) == 0 || bytes.Compare(start, prefix) != 1) {
-				iterRange.Limit = start
-			} else if !newest && (len(prefix) == 0 || bytes.Compare(start, prefix) != -1) {
-				iterRange.Start = start
-			}
+		prefixMessages, err := getPrefixMessages(db, prefix, request.Newest, maxResults-len(messages))
+		if err != nil {
+			return nil, fmt.Errorf("error getting prefix messages; %w", err)
 		}
-		iter := db.NewIterator(iterRange, nil)
-		storePrefixMessage := func() bool {
-			prefixMessages = append(prefixMessages, &Message{
-				Uid:     GetPtrSlice(iter.Key()),
-				Message: GetPtrSlice(iter.Value()),
-			})
-			return len(prefixMessages) < max
-		}
-		if newest {
-			for ok := iter.Last(); ok && storePrefixMessage(); ok = iter.Prev() {
-			}
-		} else {
-			for iter.Next() && storePrefixMessage() {
-			}
-		}
+
 		messages = append(messages, prefixMessages...)
-		iter.Release()
-		if err = iter.Error(); err != nil {
-			return nil, fmt.Errorf("error with releasing iterator; %w", err)
+
+		if len(messages) >= maxResults {
+			break
 		}
 	}
+
 	return messages, nil
+}
+
+func getPrefixMessages(db *leveldb.DB, prefix Prefix, newest bool, totalMaxLeft int) ([]*Message, error) {
+	var maxPrefixResults = prefix.Max
+	if maxPrefixResults == 0 {
+		maxPrefixResults = client.HugeLimit
+	}
+	if maxPrefixResults > totalMaxLeft {
+		maxPrefixResults = totalMaxLeft
+	}
+
+	iterRange := util.BytesPrefix(prefix.Prefix)
+	if len(prefix.Start) > 0 {
+		if newest && (len(prefix.Prefix) == 0 || bytes.Compare(prefix.Start, prefix.Prefix) != 1) {
+			iterRange.Limit = prefix.Start
+		} else if !newest && (len(prefix.Prefix) == 0 || bytes.Compare(prefix.Start, prefix.Prefix) != -1) {
+			iterRange.Start = prefix.Start
+		}
+	}
+
+	iter := db.NewIterator(iterRange, nil)
+	var prefixMessages []*Message
+
+	storePrefixMessage := func() bool {
+		prefixMessages = append(prefixMessages, &Message{
+			Uid:     GetPtrSlice(iter.Key()),
+			Message: GetPtrSlice(iter.Value()),
+		})
+		return len(prefixMessages) < maxPrefixResults
+	}
+
+	if newest {
+		for ok := iter.Last(); ok && storePrefixMessage(); ok = iter.Prev() {
+		}
+	} else {
+		for iter.Next() && storePrefixMessage() {
+		}
+	}
+
+	iter.Release()
+	if err := iter.Error(); err != nil {
+		return nil, fmt.Errorf("error with releasing iterator; %w", err)
+	}
+
+	return prefixMessages, nil
 }
 
 func DeleteMessages(topic string, shard uint, uids [][]byte) error {

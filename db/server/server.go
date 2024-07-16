@@ -129,8 +129,19 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 		}
 	} else {
 		for i := 0; i < 2; i++ {
-			messages, err = store.GetMessages(request.Topic, s.Shard, request.Prefixes, request.Start, int(request.Max),
-				request.Newest)
+			var requestByPrefixes = store.RequestByPrefixes{
+				Topic:  request.Topic,
+				Shard:  s.Shard,
+				Max:    int(request.Max),
+				Newest: request.Newest,
+			}
+			for _, prefix := range request.Prefixes {
+				requestByPrefixes.Prefixes = append(requestByPrefixes.Prefixes, store.Prefix{
+					Prefix: prefix,
+					Start:  request.Start,
+				})
+			}
+			messages, err = store.GetByPrefixes(requestByPrefixes)
 			if err != nil {
 				return nil, fmt.Errorf("error getting messages for topic: %s (shard %d); %w", request.Topic, s.Shard, err)
 			}

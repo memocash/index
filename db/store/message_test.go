@@ -41,38 +41,43 @@ var (
 )
 
 type GetMessagesTest struct {
-	Prefixes [][]byte
-	Start    []byte
+	Name     string
+	Prefixes []store.Prefix
 	Max      int
 	Newest   bool
 	Expected []*store.Message
 }
 
 var tests = []GetMessagesTest{{
-	Prefixes: [][]byte{[]byte(PrefixTest), []byte(PrefixOther)},
-	Max:      5,
+	Name:     "Basic",
+	Prefixes: []store.Prefix{{Prefix: []byte(PrefixTest), Max: 5}, {Prefix: []byte(PrefixOther), Max: 5}},
 	Expected: []*store.Message{
 		testMessageTest0, testMessageTest1, testMessageTest2, testMessageTest3, testMessageTest4,
 		testMessageOther0, testMessageOther1, testMessageOther2, testMessageOther3, testMessageOther4,
 	},
 }, {
-	Prefixes: [][]byte{[]byte(PrefixTest), []byte(PrefixOther)},
-	Start:    []byte(fmt.Sprintf("%s-%d", PrefixOther, 1)),
-	Max:      5,
+	Name: "Start 1",
+	Prefixes: []store.Prefix{
+		{Prefix: []byte(PrefixTest), Start: []byte(fmt.Sprintf("%s-%d", PrefixOther, 1)), Max: 5},
+		{Prefix: []byte(PrefixOther), Start: []byte(fmt.Sprintf("%s-%d", PrefixOther, 1)), Max: 5},
+	},
 	Expected: []*store.Message{
 		testMessageTest0, testMessageTest1, testMessageTest2, testMessageTest3, testMessageTest4,
 		testMessageOther1, testMessageOther2, testMessageOther3, testMessageOther4, testMessageOther5,
 	},
 }, {
-	Prefixes: [][]byte{[]byte(PrefixTest), []byte(PrefixOther)},
-	Start:    []byte(fmt.Sprintf("%s-%d", PrefixTest, 1)),
-	Max:      5,
+	Name: "Start 2",
+	Prefixes: []store.Prefix{
+		{Prefix: []byte(PrefixTest), Start: []byte(fmt.Sprintf("%s-%d", PrefixTest, 1))},
+		{Prefix: []byte(PrefixOther), Start: []byte(fmt.Sprintf("%s-%d", PrefixTest, 1))},
+	},
+	Max: 5,
 	Expected: []*store.Message{
 		testMessageTest1, testMessageTest2, testMessageTest3, testMessageTest4, testMessageTest5,
 	},
 }, {
-	Prefixes: [][]byte{[]byte(PrefixTest), []byte(PrefixOther)},
-	Max:      5,
+	Name:     "Newest",
+	Prefixes: []store.Prefix{{Prefix: []byte(PrefixTest), Max: 5}, {Prefix: []byte(PrefixOther), Max: 5}},
 	Newest:   true,
 	Expected: []*store.Message{
 		testMessageTest9, testMessageTest8, testMessageTest7, testMessageTest6, testMessageTest5,
@@ -133,14 +138,21 @@ func TestGetByPrefixes(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		messages, err := store.GetMessages(TestTopic, TestShard, test.Prefixes, test.Start, test.Max, test.Newest)
+		messages, err := store.GetByPrefixes(store.RequestByPrefixes{
+			Topic:    TestTopic,
+			Shard:    TestShard,
+			Prefixes: test.Prefixes,
+			Max:      test.Max,
+			Newest:   test.Newest,
+		})
 		if err != nil {
-			t.Errorf("error getting message; %v", err)
+			t.Errorf("%s test error getting message; %v", test.Name, err)
 			return
 		}
 
 		if len(messages) != len(test.Expected) {
-			t.Errorf("unexpected number of messages: %d, expected %d\n", len(messages), len(test.Expected))
+			t.Errorf("%s test error unexpected number of messages: %d, expected %d\n",
+				test.Name, len(messages), len(test.Expected))
 			return
 		}
 
@@ -149,12 +161,14 @@ func TestGetByPrefixes(t *testing.T) {
 			expected := test.Expected[i]
 
 			if !bytes.Equal(message.Uid, expected.Uid) {
-				t.Errorf("unexpected message uid: %s, expected %s\n", message.Uid, expected.Uid)
+				t.Errorf("%s test error unexpected message uid: %s, expected %s\n",
+					test.Name, message.Uid, expected.Uid)
 				return
 			}
 
 			if !bytes.Equal(message.Message, expected.Message) {
-				t.Errorf("unexpected message: %s, expected %s\n", message.Message, expected.Message)
+				t.Errorf("%s test error unexpected message: %s, expected %s\n",
+					test.Name, message.Message, expected.Message)
 				return
 			}
 		}
