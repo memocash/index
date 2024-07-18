@@ -114,6 +114,7 @@ func TestGetMessage(t *testing.T) {
 	if err := initTestDb(); err != nil {
 		t.Errorf("error initializing test db; %v", err)
 	}
+	defer store.CloseAll()
 
 	message, err := store.GetMessage(TestTopic, TestShard, testMessageTest1.Uid)
 	if err != nil {
@@ -136,6 +137,7 @@ func TestGetByPrefixes(t *testing.T) {
 	if err := initTestDb(); err != nil {
 		t.Errorf("error initializing test db; %v", err)
 	}
+	defer store.CloseAll()
 
 	for _, test := range tests {
 		messages, err := store.GetByPrefixes(store.RequestByPrefixes{
