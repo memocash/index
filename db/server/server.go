@@ -155,17 +155,43 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 			}
 		}
 	}
+
+	return getQueueMessagesFromStoreMessages(request.Topic, messages), nil
+}
+
+func getQueueMessagesFromStoreMessages(topic string, messages []*store.Message) *queue_pb.Messages {
 	var queueMessages = make([]*queue_pb.Message, len(messages))
 	for i := range messages {
 		queueMessages[i] = &queue_pb.Message{
-			Topic:   request.Topic,
+			Topic:   topic,
 			Uid:     messages[i].Uid,
 			Message: messages[i].Message,
 		}
 	}
 	return &queue_pb.Messages{
 		Messages: queueMessages,
-	}, nil
+	}
+}
+
+func (s *Server) GetByPrefixes(ctx context.Context, req *queue_pb.RequestPrefixes) (*queue_pb.Messages, error) {
+	var requestByPrefixes = store.RequestByPrefixes{
+		Topic:  req.Topic,
+		Shard:  s.Shard,
+		Max:    int(req.Max),
+		Newest: req.Newest,
+	}
+	for _, prefix := range req.Prefixes {
+		requestByPrefixes.Prefixes = append(requestByPrefixes.Prefixes, store.Prefix{
+			Prefix: prefix.Prefix,
+			Start:  prefix.Start,
+		})
+	}
+	messages, err := store.GetByPrefixes(requestByPrefixes)
+	if err != nil {
+		return nil, fmt.Errorf("error getting messages by prefixes: %s (shard %d); %w", req.Topic, s.Shard, err)
+	}
+
+	return getQueueMessagesFromStoreMessages(req.Topic, messages), nil
 }
 
 func (s *Server) GetStreamMessages(request *queue_pb.RequestStream, server queue_pb.Queue_GetStreamMessagesServer) error {
