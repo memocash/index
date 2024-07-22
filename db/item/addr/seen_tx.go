@@ -50,13 +50,11 @@ func (i *SeenTx) Deserialize([]byte) {}
 func GetSeenTxs(ctx context.Context, addr [25]byte, start []byte) ([]*SeenTx, error) {
 	shardConfig := config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Context:  ctx,
-		Topic:    db.TopicAddrSeenTx,
-		Start:    start,
-		Prefixes: [][]byte{addr[:]},
-		Max:      client.ExLargeLimit,
-	}); err != nil {
+	if err := dbClient.GetByPrefixesNew(ctx, db.TopicAddrSeenTx, []client.Prefix{{
+		Prefix: addr[:],
+		Start:  start,
+		Limit:  client.ExLargeLimit,
+	}}); err != nil {
 		return nil, fmt.Errorf("error getting db addr seen txs by prefix; %w", err)
 	}
 	var seenTxs = make([]*SeenTx, len(dbClient.Messages))

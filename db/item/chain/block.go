@@ -36,7 +36,6 @@ func (b *Block) Serialize() []byte {
 
 func (b *Block) Deserialize(data []byte) {
 	b.Raw = data
-
 }
 
 func GetBlock(blockHash [32]byte) (*Block, error) {

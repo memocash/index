@@ -125,6 +125,68 @@ func (s *Client) GetByPrefixes(topic string, prefixes [][]byte) error {
 	return nil
 }
 
+type Prefix struct {
+	Prefix []byte
+	Start  []byte
+	Limit  uint32
+}
+
+type Option interface {
+	Apply(*queue_pb.RequestPrefixes)
+}
+
+type OptionMax struct {
+	Max int
+}
+
+func (o *OptionMax) Apply(r *queue_pb.RequestPrefixes) {
+	r.Max = uint32(o.Max)
+}
+
+type OptionNewest struct {
+	Newest bool
+}
+
+func (o *OptionNewest) Apply(r *queue_pb.RequestPrefixes) {
+	r.Newest = o.Newest
+}
+
+func (s *Client) GetByPrefixesNew(ctx context.Context, topic string, prefixes []Prefix, opts ...Option) error {
+	c := queue_pb.NewQueueClient(s.conn)
+	ctxNew, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	s.Messages = nil
+	var reqPrefixes = make([]*queue_pb.RequestPrefix, len(prefixes))
+	for i := range prefixes {
+		reqPrefixes[i] = &queue_pb.RequestPrefix{
+			Prefix: prefixes[i].Prefix,
+			Start:  prefixes[i].Start,
+			Max:    prefixes[i].Limit,
+		}
+	}
+	req := &queue_pb.RequestPrefixes{
+		Topic:    topic,
+		Prefixes: reqPrefixes,
+	}
+	for _, opt := range opts {
+		opt.Apply(req)
+	}
+	message, err := c.GetByPrefixes(ctxNew, req, grpc.MaxCallRecvMsgSize(MaxMessageSize))
+	if err != nil {
+		return fmt.Errorf("error getting messages rpc; %w", err)
+	}
+	var messages = make([]Message, len(message.Messages))
+	for i := range message.Messages {
+		messages[i] = Message{
+			Topic:   message.Messages[i].Topic,
+			Uid:     message.Messages[i].Uid,
+			Message: message.Messages[i].Message,
+		}
+	}
+	s.Messages = append(s.Messages, messages...)
+	return nil
+}
+
 func (s *Client) GetByPrefix(topic string, prefix []byte) error {
 	if err := s.GetWOpts(Opts{
 		Topic:    topic,

@@ -37,14 +37,14 @@ var queueProfileCmd = &cobra.Command{
 			if err != nil {
 				log.Fatalf("fatal error getting block txs; %v", err)
 			}
-			var uids [][]byte
+			var prefixes [][]byte
 			for _, blockTx := range blockTxs {
 				if db.GetShardIdFromByte(blockTx.TxHash[:]) == Shard {
-					uids = append(uids, jutil.ByteReverse(blockTx.TxHash[:]))
+					prefixes = append(prefixes, jutil.ByteReverse(blockTx.TxHash[:]))
 				}
 			}
 			dbClient := client.NewClient(config.GetShardConfig(Shard, config.GetQueueShards()).GetHost())
-			if err := dbClient.GetByPrefixes(db.TopicChainTxOutput, uids); err != nil {
+			if err := dbClient.GetByPrefixes(db.TopicChainTxOutput, prefixes); err != nil {
 				log.Fatalf("fatal error getting db message tx outputs; %v", err)
 			}
 			log.Printf("%d outputs retrieved for shard 0 (height: %d, txs: %d)\n",

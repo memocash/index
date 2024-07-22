@@ -91,13 +91,11 @@ func GetBlockTxs(request BlockTxsRequest) ([]*BlockTx, error) {
 	if request.StartIndex > 0 {
 		startUid = GetBlockTxUid(request.BlockHash, request.StartIndex)
 	}
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicChainBlockTx,
-		Prefixes: [][]byte{jutil.ByteReverse(request.BlockHash[:])},
-		Start:    startUid,
-		Max:      limit,
-		Context:  request.Context,
-	}); err != nil {
+	if err := dbClient.GetByPrefixesNew(request.Context, db.TopicChainBlockTx, []client.Prefix{{
+		Prefix: jutil.ByteReverse(request.BlockHash[:]),
+		Start:  startUid,
+		Limit:  limit,
+	}}); err != nil {
 		return nil, fmt.Errorf("error getting client message; %w", err)
 	}
 	var blocks = make([]*BlockTx, len(dbClient.Messages))
