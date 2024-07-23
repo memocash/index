@@ -1,6 +1,7 @@
 package saver
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/db/client"
@@ -13,6 +14,7 @@ import (
 )
 
 type Block struct {
+	Context         context.Context
 	Verbose         bool
 	BlockHash       chainhash.Hash
 	PrevBlockHash   chainhash.Hash
@@ -44,7 +46,7 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 		parentHeight = b.PrevBlockHeight
 		hasParent = true
 	} else {
-		parentBlockHeight, err := chain.GetBlockHeight(info.Header.PrevBlock)
+		parentBlockHeight, err := chain.GetBlockHeight(b.Context, info.Header.PrevBlock)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return fmt.Errorf("error getting parent block height for potential orphan; %w", err)
 		}
@@ -116,7 +118,7 @@ func (b *Block) GetBlock(heightBack int64) (*chainhash.Hash, error) {
 	}
 	if heightBack > 0 {
 		height := heightBlock.Height - heightBack
-		heightBlock, err = chain.GetHeightBlockSingle(height)
+		heightBlock, err = chain.GetHeightBlockSingle(b.Context, height)
 		if err != nil {
 			return nil, fmt.Errorf("error getting height back height block (height: %d, back: %d); %w",
 				height, heightBack, err)
@@ -128,8 +130,9 @@ func (b *Block) GetBlock(heightBack int64) (*chainhash.Hash, error) {
 	return &blockHash, nil
 }
 
-func NewBlock(verbose bool) *Block {
+func NewBlock(ctx context.Context, verbose bool) *Block {
 	return &Block{
+		Context: ctx,
 		Verbose: verbose,
 	}
 }

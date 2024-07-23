@@ -6,6 +6,7 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/config"
 	"sync"
 )
@@ -60,27 +61,52 @@ func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byt
 	return messages, nil
 }
 
-func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][][]byte) ([]client.Message, error) {
+func removeDupeAndEmptyPrefixes(prefixes []client.Prefix) []client.Prefix {
+	var seen = make(map[string]bool)
+	var newPrefixes []client.Prefix
+	for _, prefix := range prefixes {
+		if len(prefix.Prefix) == 0 {
+			continue
+		}
+		if _, ok := seen[string(prefix.Prefix)]; ok {
+			continue
+		}
+		seen[string(prefix.Prefix)] = true
+		newPrefixes = append(newPrefixes, prefix)
+	}
+	return newPrefixes
+}
+
+func ShardPrefixesTxHashes(txHashes [][32]byte) map[uint32][]client.Prefix {
+	return ShardPrefixes(hs.HashesToSlices(txHashes))
+}
+
+func ShardPrefixes(bytePrefixes [][]byte) map[uint32][]client.Prefix {
+	var shardPrefixes = make(map[uint32][]client.Prefix)
+	for _, bytePrefix := range bytePrefixes {
+		shard := GetShardIdFromByte32(bytePrefix)
+		shardPrefixes[shard] = append(shardPrefixes[shard], client.NewPrefix(bytePrefix))
+	}
+	return shardPrefixes
+}
+
+func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][]client.Prefix) ([]client.Message, error) {
 	wait := NewWait(len(shardPrefixes))
 	var messages []client.Message
 	for shardT, prefixesT := range shardPrefixes {
-		go func(shard uint32, prefixes [][]byte) {
+		go func(shard uint32, prefixes []client.Prefix) {
 			defer wait.Group.Done()
-			prefixes = jutil.RemoveDupesAndEmpties(prefixes)
+			prefixes = removeDupeAndEmptyPrefixes(prefixes)
 			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 			dbClient := client.NewClient(shardConfig.GetHost())
 			for len(prefixes) > 0 {
-				var prefixesToUse [][]byte
+				var prefixesToUse []client.Prefix
 				if len(prefixes) > client.HugeLimit {
 					prefixesToUse, prefixes = prefixes[:client.HugeLimit], prefixes[client.HugeLimit:]
 				} else {
 					prefixesToUse, prefixes = prefixes, nil
 				}
-				if err := dbClient.GetWOpts(client.Opts{
-					Context:  ctx,
-					Topic:    topic,
-					Prefixes: prefixesToUse,
-				}); err != nil {
+				if err := dbClient.GetByPrefixes(ctx, topic, prefixesToUse); err != nil {
 					wait.AddError(fmt.Errorf("error getting client message get by prefixes; %w", err))
 					return
 				}

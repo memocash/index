@@ -71,12 +71,7 @@ func GetAllTxOutputs(shard uint32, startUid []byte) ([]*TxOutput, error) {
 }
 
 func GetTxOutputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxOutput, error) {
-	var shardPrefixes = make(map[uint32][][]byte)
-	for i := range txHashes {
-		shard := uint32(db.GetShardIdFromByte(txHashes[i][:]))
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
-	}
-	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxOutput, shardPrefixes)
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxOutput, db.ShardPrefixesTxHashes(txHashes))
 	if err != nil {
 		return nil, fmt.Errorf("error getting client message chain tx output; %w", err)
 	}

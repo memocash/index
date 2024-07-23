@@ -127,7 +127,7 @@ func (p *Processor) ProcessBlock(block *dbi.Block, loc string) bool {
 	}
 	var height int64
 	if dbi.BlockHeaderSet(block.Header) {
-		blockSaver := saver.NewBlock(p.Verbose)
+		blockSaver := saver.NewBlock(context.TODO(), p.Verbose)
 		if err := blockSaver.SaveBlock(blockInfo); err != nil {
 			log.Printf("error saving block for lead node; %v", err)
 			return false

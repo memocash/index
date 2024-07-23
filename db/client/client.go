@@ -115,20 +115,16 @@ func (s *Client) GetSpecific(topic string, uids [][]byte) error {
 	return nil
 }
 
-func (s *Client) GetByPrefixes(topic string, prefixes [][]byte) error {
-	if err := s.GetWOpts(Opts{
-		Topic:    topic,
-		Prefixes: prefixes,
-	}); err != nil {
-		return fmt.Errorf("error getting with opts prefixes; %w", err)
-	}
-	return nil
-}
-
 type Prefix struct {
 	Prefix []byte
 	Start  []byte
 	Limit  uint32
+}
+
+func NewPrefix(prefix []byte) Prefix {
+	return Prefix{
+		Prefix: prefix,
+	}
 }
 
 type Option interface {
@@ -151,7 +147,7 @@ func (o *OptionNewest) Apply(r *queue_pb.RequestPrefixes) {
 	r.Newest = o.Newest
 }
 
-func (s *Client) GetByPrefixesNew(ctx context.Context, topic string, prefixes []Prefix, opts ...Option) error {
+func (s *Client) GetByPrefixes(ctx context.Context, topic string, prefixes []Prefix, opts ...Option) error {
 	c := queue_pb.NewQueueClient(s.conn)
 	ctxNew, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -187,12 +183,9 @@ func (s *Client) GetByPrefixesNew(ctx context.Context, topic string, prefixes []
 	return nil
 }
 
-func (s *Client) GetByPrefix(topic string, prefix []byte) error {
-	if err := s.GetWOpts(Opts{
-		Topic:    topic,
-		Prefixes: [][]byte{prefix},
-	}); err != nil {
-		return fmt.Errorf("error getting with opts prefix; %w", err)
+func (s *Client) GetByPrefix(ctx context.Context, topic string, prefix Prefix) error {
+	if err := s.GetByPrefixes(ctx, topic, []Prefix{prefix}); err != nil {
+		return fmt.Errorf("error getting with single prefix; %w", err)
 	}
 	return nil
 }

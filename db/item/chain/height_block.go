@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jutil"
@@ -103,8 +104,8 @@ func GetOldestHeightBlock() (*HeightBlock, error) {
 	return oldestHeightBlock, nil
 }
 
-func GetHeightBlockSingle(height int64) (*HeightBlock, error) {
-	heightBlocks, err := GetHeightBlock(height)
+func GetHeightBlockSingle(ctx context.Context, height int64) (*HeightBlock, error) {
+	heightBlocks, err := GetHeightBlock(ctx, height)
 	if err != nil {
 		return nil, fmt.Errorf("error getting height block; %w", err)
 	}
@@ -121,10 +122,11 @@ func GetHeightBlockSingle(height int64) (*HeightBlock, error) {
 	return heightBlocks[0], nil
 }
 
-func GetHeightBlock(height int64) ([]*HeightBlock, error) {
+func GetHeightBlock(ctx context.Context, height int64) ([]*HeightBlock, error) {
 	shardConfig := config.GetShardConfig(uint32(height), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetByPrefix(db.TopicChainHeightBlock, jutil.GetInt64DataBig(height)); err != nil {
+	prefix := client.NewPrefix(jutil.GetInt64DataBig(height))
+	if err := dbClient.GetByPrefix(ctx, db.TopicChainHeightBlock, prefix); err != nil {
 		return nil, fmt.Errorf("error getting height blocks for height from queue client; %w", err)
 	}
 	var heightBlocks = make([]*HeightBlock, len(dbClient.Messages))

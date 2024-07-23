@@ -49,7 +49,7 @@ func (s *Server) SaveTxs(ctx context.Context, txs *network_pb.Txs) (*network_pb.
 		}
 		blockTxs[blockHashStr] = append(blockTxs[blockHashStr], txMsg)
 	}
-	blockSaver := saver.NewBlock(false)
+	blockSaver := saver.NewBlock(ctx, false)
 	combinedSaver := saver.NewCombinedTx(false)
 	for blockHashStr, msgTxs := range blockTxs {
 		var blockHeader *wire.BlockHeader
@@ -179,7 +179,7 @@ func (s *Server) SaveTxBlock(ctx context.Context, txBlock *network_pb.TxBlock) (
 	if err != nil {
 		return nil, fmt.Errorf("error parsing block header; %w", err)
 	}
-	blockSaver := saver.NewBlock(true)
+	blockSaver := saver.NewBlock(ctx, true)
 	if err := blockSaver.SaveBlock(dbi.BlockInfo{Header: *blockHeader}); err != nil {
 		return nil, fmt.Errorf("error saving block; %w", err)
 	}
@@ -298,12 +298,12 @@ func GetBlockTxCount(blockHash [32]byte) (int64, error) {
 	return int64(blockInfo.TxCount), nil
 }
 
-func (s *Server) GetBlockByHash(_ context.Context, req *network_pb.BlockHashRequest) (*network_pb.BlockInfo, error) {
+func (s *Server) GetBlockByHash(ctx context.Context, req *network_pb.BlockHashRequest) (*network_pb.BlockInfo, error) {
 	blockHash, err := chainhash.NewHash(req.GetHash())
 	if err != nil {
 		return nil, fmt.Errorf("error getting block hash for network server block by hash; %w", err)
 	}
-	blockHeight, err := chain.GetBlockHeight(*blockHash)
+	blockHeight, err := chain.GetBlockHeight(ctx, *blockHash)
 	if err != nil && !client.IsEntryNotFoundError(err) {
 		return nil, fmt.Errorf("error getting block height by hash; %w", err)
 	}
@@ -327,8 +327,8 @@ func (s *Server) GetBlockByHash(_ context.Context, req *network_pb.BlockHashRequ
 	}, nil
 }
 
-func (s *Server) GetBlockByHeight(_ context.Context, req *network_pb.BlockRequest) (*network_pb.BlockInfo, error) {
-	heightBlock, err := chain.GetHeightBlockSingle(req.GetHeight())
+func (s *Server) GetBlockByHeight(ctx context.Context, req *network_pb.BlockRequest) (*network_pb.BlockInfo, error) {
+	heightBlock, err := chain.GetHeightBlockSingle(ctx, req.GetHeight())
 	if err != nil {
 		return nil, fmt.Errorf("error getting height block by height; %w", err)
 	}
