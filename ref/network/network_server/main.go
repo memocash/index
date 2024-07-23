@@ -223,10 +223,10 @@ BlockTxsLoop:
 	return &network_pb.ErrorReply{}, nil
 }
 
-func (s *Server) GetBlockInfos(_ context.Context, req *network_pb.BlockRequest) (*network_pb.BlockInfoReply, error) {
+func (s *Server) GetBlockInfos(ctx context.Context, req *network_pb.BlockRequest) (*network_pb.BlockInfoReply, error) {
 	var heightBlocks []*chain.HeightBlock
 	for _, shardConfig := range config.GetQueueShards() {
-		shardHeightBlocks, err := chain.GetHeightBlocks(shardConfig.Shard, req.GetHeight(), req.Newest)
+		shardHeightBlocks, err := chain.GetHeightBlocks(ctx, shardConfig.Shard, req.GetHeight(), req.Newest)
 		if err != nil {
 			return nil, fmt.Errorf("error getting height block raws; %w", err)
 		}

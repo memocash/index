@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -19,13 +18,6 @@ type Client struct {
 	conn     *grpc.ClientConn
 	Messages []Message
 	Topics   []Topic
-}
-
-func (s *Client) GetLast() string {
-	if len(s.Messages) == 0 {
-		return ""
-	}
-	return hex.EncodeToString(s.Messages[len(s.Messages)-1].Uid)
 }
 
 func (s *Client) SetConn() error {
@@ -45,13 +37,6 @@ func (s *Client) SetConn() error {
 	}
 	connHandler.Add(s.host, newConn)
 	s.conn = newConn
-	return nil
-}
-
-func (s *Client) SaveSingle(message *Message, timestamp time.Time) error {
-	if err := s.Save([]*Message{message}, timestamp); err != nil {
-		return fmt.Errorf("error saving single client message; %w", err)
-	}
 	return nil
 }
 
@@ -94,59 +79,6 @@ func (s *Client) Save(messages []*Message, timestamp time.Time) error {
 	return nil
 }
 
-func (s *Client) Get(topic string, start []byte, wait bool) error {
-	if err := s.GetWOpts(Opts{
-		Topic: topic,
-		Start: start,
-		Wait:  wait,
-	}); err != nil {
-		return fmt.Errorf("error getting with opts; %w", err)
-	}
-	return nil
-}
-
-func (s *Client) GetSpecific(topic string, uids [][]byte) error {
-	if err := s.GetWOpts(Opts{
-		Topic: topic,
-		Uids:  uids,
-	}); err != nil {
-		return fmt.Errorf("error getting with opts specific; %w", err)
-	}
-	return nil
-}
-
-type Prefix struct {
-	Prefix []byte
-	Start  []byte
-	Limit  uint32
-}
-
-func NewPrefix(prefix []byte) Prefix {
-	return Prefix{
-		Prefix: prefix,
-	}
-}
-
-type Option interface {
-	Apply(*queue_pb.RequestPrefixes)
-}
-
-type OptionMax struct {
-	Max int
-}
-
-func (o *OptionMax) Apply(r *queue_pb.RequestPrefixes) {
-	r.Max = uint32(o.Max)
-}
-
-type OptionNewest struct {
-	Newest bool
-}
-
-func (o *OptionNewest) Apply(r *queue_pb.RequestPrefixes) {
-	r.Newest = o.Newest
-}
-
 func (s *Client) GetByPrefixes(ctx context.Context, topic string, prefixes []Prefix, opts ...Option) error {
 	c := queue_pb.NewQueueClient(s.conn)
 	ctxNew, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -183,8 +115,8 @@ func (s *Client) GetByPrefixes(ctx context.Context, topic string, prefixes []Pre
 	return nil
 }
 
-func (s *Client) GetByPrefix(ctx context.Context, topic string, prefix Prefix) error {
-	if err := s.GetByPrefixes(ctx, topic, []Prefix{prefix}); err != nil {
+func (s *Client) GetByPrefix(ctx context.Context, topic string, prefix Prefix, opts ...Option) error {
+	if err := s.GetByPrefixes(ctx, topic, []Prefix{prefix}, opts...); err != nil {
 		return fmt.Errorf("error getting with single prefix; %w", err)
 	}
 	return nil
@@ -223,29 +155,13 @@ func (s *Client) GetSingleContext(ctx context.Context, topic string, uid []byte)
 	return nil
 }
 
-func (s *Client) GetLarge(topic string, start []byte, wait bool, newest bool) error {
-	if err := s.GetWOpts(Opts{
-		Topic:  topic,
-		Start:  start,
-		Wait:   wait,
-		Max:    LargeLimit,
-		Newest: newest,
-	}); err != nil {
-		return fmt.Errorf("error getting with opts; %w", err)
-	}
-	return nil
-}
-
-func (s *Client) GetNext(topic string, start []byte, wait bool, newest bool) error {
+func (s *Client) GetNext(ctx context.Context, topic string, start []byte) error {
 	startPlusOne := jutil.CombineBytes(start, []byte{0x0})
-	if err := s.GetWOpts(Opts{
-		Topic:  topic,
-		Start:  startPlusOne,
-		Wait:   wait,
-		Max:    1,
-		Newest: newest,
+	if err := s.GetByPrefix(ctx, topic, Prefix{
+		Start: startPlusOne,
+		Limit: 1,
 	}); err != nil {
-		return fmt.Errorf("error getting next with opts; %w", err)
+		return fmt.Errorf("error getting next with prefix; %w", err)
 	}
 	return nil
 }

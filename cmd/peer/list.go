@@ -16,7 +16,7 @@ var listCmd = &cobra.Command{
 		if len(args) > 0 {
 			shard = jutil.GetUInt32FromString(args[0])
 		}
-		peers, err := item.GetPeers(shard, nil)
+		peers, err := item.GetPeers(cmd.Context(), shard, nil)
 		if err != nil {
 			log.Fatalf("fatal error getting peers; %v", err)
 		}
@@ -53,7 +53,7 @@ var listPeerFoundsCmd = &cobra.Command{
 		if len(args) > 0 {
 			shard = jutil.GetUInt32FromString(args[0])
 		}
-		foundPeers, err := item.GetPeerFounds(shard, nil)
+		foundPeers, err := item.GetPeerFounds(cmd.Context(), shard, nil)
 		if err != nil {
 			log.Fatalf("fatal error getting peer founds; %v", err)
 		}

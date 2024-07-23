@@ -1,7 +1,6 @@
 package maint
 
 import (
-	"context"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
@@ -20,14 +19,13 @@ var queueProfileCmd = &cobra.Command{
 			startHeight = jutil.GetInt64FromString(args[0])
 		}
 		const Shard = 0
-		heightBlocks, err := chain.GetHeightBlocks(Shard, startHeight, false)
+		heightBlocks, err := chain.GetHeightBlocks(cmd.Context(), Shard, startHeight, false)
 		if err != nil {
 			log.Fatalf("fatal error getting height blocks; %v", err)
 		}
 		var outputs int
 		start := time.Now()
 		log.Println("starting queue profile...")
-		ctx := context.Background()
 		for _, heightBlock := range heightBlocks {
 			if db.GetShardIdFromByte(heightBlock.BlockHash[:]) != Shard {
 				continue
@@ -46,7 +44,7 @@ var queueProfileCmd = &cobra.Command{
 				}
 			}
 			dbClient := client.NewClient(config.GetShardConfig(Shard, config.GetQueueShards()).GetHost())
-			if err := dbClient.GetByPrefixes(ctx, db.TopicChainTxOutput, prefixes); err != nil {
+			if err := dbClient.GetByPrefixes(cmd.Context(), db.TopicChainTxOutput, prefixes); err != nil {
 				log.Fatalf("fatal error getting db message tx outputs; %v", err)
 			}
 			log.Printf("%d outputs retrieved for shard 0 (height: %d, txs: %d)\n",

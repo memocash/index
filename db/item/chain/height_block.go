@@ -76,34 +76,6 @@ func GetRecentHeightBlock() (*HeightBlock, error) {
 	return newestHeightBlock, nil
 }
 
-func GetOldestHeightBlock() (*HeightBlock, error) {
-	var heightBlocks []*HeightBlock
-	for i, shardConfig := range config.GetQueueShards() {
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetNext(db.TopicChainHeightBlock, nil, false, false); err != nil {
-			return nil, fmt.Errorf("error getting oldest height block for shard: %d; %w", i, err)
-		}
-		for i := range dbClient.Messages {
-			var heightBlock = new(HeightBlock)
-			db.Set(heightBlock, dbClient.Messages[i])
-			heightBlocks = append(heightBlocks, heightBlock)
-		}
-	}
-	if len(heightBlocks) == 0 {
-		return nil, nil
-	}
-	var oldestHeightBlock *HeightBlock
-	for _, heightBlock := range heightBlocks {
-		if oldestHeightBlock == nil || oldestHeightBlock.Height > heightBlock.Height {
-			oldestHeightBlock = heightBlock
-		}
-	}
-	if oldestHeightBlock == nil {
-		return nil, nil
-	}
-	return oldestHeightBlock, nil
-}
-
 func GetHeightBlockSingle(ctx context.Context, height int64) (*HeightBlock, error) {
 	heightBlocks, err := GetHeightBlock(ctx, height)
 	if err != nil {
@@ -137,14 +109,17 @@ func GetHeightBlock(ctx context.Context, height int64) ([]*HeightBlock, error) {
 	return heightBlocks, nil
 }
 
-func GetHeightBlocks(shard uint32, startHeight int64, newest bool) ([]*HeightBlock, error) {
+func GetHeightBlocks(ctx context.Context, shard uint32, startHeight int64, newest bool) ([]*HeightBlock, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var startHeightBytes []byte
 	if startHeight > 0 || !newest {
 		startHeightBytes = jutil.GetInt64DataBig(startHeight)
 	}
-	if err := dbClient.GetLarge(db.TopicChainHeightBlock, startHeightBytes, false, newest); err != nil {
+	if err := dbClient.GetByPrefix(ctx, db.TopicChainHeightBlock, client.Prefix{
+		Start: startHeightBytes,
+		Limit: client.LargeLimit,
+	}, client.NewOptionNewest(newest)); err != nil {
 		return nil, fmt.Errorf("error getting height blocks from queue client; %w", err)
 	}
 	var heightBlocks = make([]*HeightBlock, len(dbClient.Messages))
