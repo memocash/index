@@ -72,7 +72,7 @@ func (a *MemoLike) AttachTips() {
 	if !a.HasField([]string{"tip"}) {
 		return
 	}
-	memoLikeTips, err := memo.GetLikeTips(a.getTxHashes(false, true))
+	memoLikeTips, err := memo.GetLikeTips(a.Ctx, a.getTxHashes(false, true))
 	if err != nil {
 		a.AddError(fmt.Errorf("error getting memo like tips for post resolver; %w", err))
 		return

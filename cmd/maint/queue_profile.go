@@ -1,6 +1,7 @@
 package maint
 
 import (
+	"context"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
@@ -26,6 +27,7 @@ var queueProfileCmd = &cobra.Command{
 		var outputs int
 		start := time.Now()
 		log.Println("starting queue profile...")
+		ctx := context.Background()
 		for _, heightBlock := range heightBlocks {
 			if db.GetShardIdFromByte(heightBlock.BlockHash[:]) != Shard {
 				continue
@@ -37,14 +39,14 @@ var queueProfileCmd = &cobra.Command{
 			if err != nil {
 				log.Fatalf("fatal error getting block txs; %v", err)
 			}
-			var prefixes [][]byte
+			var prefixes []client.Prefix
 			for _, blockTx := range blockTxs {
 				if db.GetShardIdFromByte(blockTx.TxHash[:]) == Shard {
-					prefixes = append(prefixes, jutil.ByteReverse(blockTx.TxHash[:]))
+					prefixes = append(prefixes, client.Prefix{Prefix: jutil.ByteReverse(blockTx.TxHash[:])})
 				}
 			}
 			dbClient := client.NewClient(config.GetShardConfig(Shard, config.GetQueueShards()).GetHost())
-			if err := dbClient.GetByPrefixes(db.TopicChainTxOutput, prefixes); err != nil {
+			if err := dbClient.GetByPrefixesNew(ctx, db.TopicChainTxOutput, prefixes); err != nil {
 				log.Fatalf("fatal error getting db message tx outputs; %v", err)
 			}
 			log.Printf("%d outputs retrieved for shard 0 (height: %d, txs: %d)\n",
