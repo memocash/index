@@ -48,7 +48,7 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 				if err != nil {
 					return fmt.Errorf("error getting block txs for populate p2sh; %w", err)
 				}
-				block, err := chain.GetBlock(heightBlock.BlockHash)
+				block, err := chain.GetBlock(p.Ctx, heightBlock.BlockHash)
 				if err != nil {
 					return fmt.Errorf("error getting block info for populate p2sh; %w", err)
 				}

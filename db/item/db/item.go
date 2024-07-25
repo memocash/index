@@ -11,10 +11,10 @@ import (
 	"sync"
 )
 
-func GetItem(obj Object) error {
+func GetItem(ctx context.Context, obj Object) error {
 	shardConfig := config.GetShardConfig(uint32(obj.GetShardSource()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetSingle(obj.GetTopic(), obj.GetUid()); err != nil && !client.IsMessageNotSetError(err) {
+	if err := dbClient.GetSingle(ctx, obj.GetTopic(), obj.GetUid()); err != nil && !client.IsMessageNotSetError(err) {
 		return fmt.Errorf("error getting db item single; %w", err)
 	}
 	if len(dbClient.Messages) != 1 {

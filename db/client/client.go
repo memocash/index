@@ -122,14 +122,7 @@ func (s *Client) GetByPrefix(ctx context.Context, topic string, prefix Prefix, o
 	return nil
 }
 
-func (s *Client) GetSingle(topic string, uid []byte) error {
-	if err := s.GetSingleContext(context.Background(), topic, uid); err != nil {
-		return fmt.Errorf("error getting single for topic / uid: %s, %x; %w", topic, uid, err)
-	}
-	return nil
-}
-
-func (s *Client) GetSingleContext(ctx context.Context, topic string, uid []byte) error {
+func (s *Client) GetSingle(ctx context.Context, topic string, uid []byte) error {
 	if err := s.SetConn(); err != nil {
 		return fmt.Errorf("error setting connection; %w", err)
 	}

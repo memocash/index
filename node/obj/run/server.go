@@ -62,7 +62,7 @@ func (s *Server) Run() error {
 		errorHandler <- fmt.Errorf("error running network server; %w", networkServer.Serve())
 	}()
 	if !s.Dev {
-		processor := lead.NewProcessor(s.Verbose)
+		processor := lead.NewProcessor(s.Context, s.Verbose)
 		log.Printf("Cluster lead processor starting...\n")
 		go func() {
 			errorHandler <- fmt.Errorf("error running cluster lead processor; %w", processor.Run())

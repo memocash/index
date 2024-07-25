@@ -21,6 +21,7 @@ import (
 )
 
 type Processor struct {
+	Context     context.Context
 	Clients     map[int]*Client
 	ErrorChan   chan error
 	BlockNode   *Node
@@ -44,7 +45,7 @@ func (p *Processor) Run() error {
 	var syncStatusComplete *item.SyncStatus
 	if err := ExecWithRetry(func() error {
 		var err error
-		syncStatusComplete, err = item.GetSyncStatus(item.SyncStatusComplete)
+		syncStatusComplete, err = item.GetSyncStatus(p.Context, item.SyncStatusComplete)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return fmt.Errorf("error getting sync status complete; %w", err)
 		}
@@ -127,7 +128,7 @@ func (p *Processor) ProcessBlock(block *dbi.Block, loc string) bool {
 	}
 	var height int64
 	if dbi.BlockHeaderSet(block.Header) {
-		blockSaver := saver.NewBlock(context.TODO(), p.Verbose)
+		blockSaver := saver.NewBlock(p.Context, p.Verbose)
 		if err := blockSaver.SaveBlock(blockInfo); err != nil {
 			log.Printf("error saving block for lead node; %v", err)
 			return false
@@ -160,7 +161,7 @@ func (p *Processor) SaveBlockShards(height int64, seen time.Time, shardBlocks ma
 				return
 			}
 			if err := ExecWithRetry(func() error {
-				if _, err := c.Client.SaveTxs(context.Background(), &cluster_pb.SaveReq{
+				if _, err := c.Client.SaveTxs(p.Context, &cluster_pb.SaveReq{
 					Block:     shardBlocks[c.Config.Shard],
 					IsInitial: !p.Synced,
 					Height:    height,
@@ -178,8 +179,9 @@ func (p *Processor) SaveBlockShards(height int64, seen time.Time, shardBlocks ma
 	return !hadError
 }
 
-func NewProcessor(verbose bool) *Processor {
+func NewProcessor(ctx context.Context, verbose bool) *Processor {
 	return &Processor{
+		Context:   ctx,
 		ErrorChan: make(chan error),
 		Verbose:   verbose,
 	}

@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"context"
 	"fmt"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
@@ -21,7 +22,7 @@ var SaveMessage = suite.Test{
 		if err := db.Save(messages); err != nil {
 			return fmt.Errorf("error saving message to client; %w", err)
 		}
-		message, err := item.GetMessage(0)
+		message, err := item.GetMessage(context.TODO(), 0)
 		if err != nil {
 			return fmt.Errorf("error getting message from client; %w", err)
 		}
