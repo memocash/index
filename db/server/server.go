@@ -130,10 +130,10 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 	} else {
 		for i := 0; i < 2; i++ {
 			var requestByPrefixes = store.RequestByPrefixes{
-				Topic:  request.Topic,
-				Shard:  s.Shard,
-				Max:    int(request.Max),
-				Newest: request.Newest,
+				Topic: request.Topic,
+				Shard: s.Shard,
+				Limit: int(request.Max),
+				Desc:  request.Newest,
 			}
 			for _, prefix := range request.Prefixes {
 				requestByPrefixes.Prefixes = append(requestByPrefixes.Prefixes, store.Prefix{
@@ -175,10 +175,10 @@ func getQueueMessagesFromStoreMessages(topic string, messages []*store.Message) 
 
 func (s *Server) GetByPrefixes(ctx context.Context, req *queue_pb.RequestPrefixes) (*queue_pb.Messages, error) {
 	var requestByPrefixes = store.RequestByPrefixes{
-		Topic:  req.Topic,
-		Shard:  s.Shard,
-		Max:    int(req.Max),
-		Newest: req.Newest,
+		Topic: req.Topic,
+		Shard: s.Shard,
+		Limit: int(req.Limit),
+		Desc:  req.Order == queue_pb.Order_DESC,
 	}
 	for _, prefix := range req.Prefixes {
 		requestByPrefixes.Prefixes = append(requestByPrefixes.Prefixes, store.Prefix{

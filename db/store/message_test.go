@@ -43,8 +43,8 @@ var (
 type GetMessagesTest struct {
 	Name     string
 	Prefixes []store.Prefix
-	Max      int
-	Newest   bool
+	Limit    int
+	Desc     bool
 	Expected []*store.Message
 }
 
@@ -71,14 +71,14 @@ var tests = []GetMessagesTest{{
 		{Prefix: []byte(PrefixTest), Start: []byte(fmt.Sprintf("%s-%d", PrefixTest, 1))},
 		{Prefix: []byte(PrefixOther), Start: []byte(fmt.Sprintf("%s-%d", PrefixTest, 1))},
 	},
-	Max: 5,
+	Limit: 5,
 	Expected: []*store.Message{
 		testMessageTest1, testMessageTest2, testMessageTest3, testMessageTest4, testMessageTest5,
 	},
 }, {
-	Name:     "Newest",
+	Name:     "Descending",
 	Prefixes: []store.Prefix{{Prefix: []byte(PrefixTest), Max: 5}, {Prefix: []byte(PrefixOther), Max: 5}},
-	Newest:   true,
+	Desc:     true,
 	Expected: []*store.Message{
 		testMessageTest9, testMessageTest8, testMessageTest7, testMessageTest6, testMessageTest5,
 		testMessageOther9, testMessageOther8, testMessageOther7, testMessageOther6, testMessageOther5,
@@ -144,8 +144,8 @@ func TestGetByPrefixes(t *testing.T) {
 			Topic:    TestTopic,
 			Shard:    TestShard,
 			Prefixes: test.Prefixes,
-			Max:      test.Max,
-			Newest:   test.Newest,
+			Limit:    test.Limit,
+			Desc:     test.Desc,
 		})
 		if err != nil {
 			t.Errorf("%s test error getting message; %v", test.Name, err)

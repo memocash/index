@@ -85,8 +85,8 @@ type RequestByPrefixes struct {
 	Topic    string // required
 	Shard    uint   // required
 	Prefixes []Prefix
-	Max      int
-	Newest   bool
+	Limit    int
+	Desc     bool
 }
 
 type Prefix struct {
@@ -102,7 +102,7 @@ func GetByPrefixes(request RequestByPrefixes) ([]*Message, error) {
 		return nil, fmt.Errorf("error getting db shard %d; %w", request.Shard, err)
 	}
 
-	var maxResults = request.Max
+	var maxResults = request.Limit
 	if maxResults == 0 {
 		maxResults = client.HugeLimit
 	}
@@ -121,7 +121,7 @@ func GetByPrefixes(request RequestByPrefixes) ([]*Message, error) {
 	}()
 
 	for _, prefix := range prefixes {
-		prefixMessages, err := getPrefixMessages(db, prefix, request.Newest, maxResults-len(messages))
+		prefixMessages, err := getPrefixMessages(db, prefix, request.Desc, maxResults-len(messages))
 		if err != nil {
 			return nil, fmt.Errorf("error getting prefix messages; %w", err)
 		}

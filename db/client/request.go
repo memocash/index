@@ -24,30 +24,34 @@ type Option interface {
 	Apply(*queue_pb.RequestPrefixes)
 }
 
-type OptionMax struct {
-	Max int
+type OptionLimit struct {
+	Limit int
 }
 
-func (o *OptionMax) Apply(r *queue_pb.RequestPrefixes) {
-	r.Max = uint32(o.Max)
+func (o *OptionLimit) Apply(r *queue_pb.RequestPrefixes) {
+	r.Limit = uint32(o.Limit)
 }
 
-func NewOptionMax(max int) *OptionMax {
-	return &OptionMax{
-		Max: max,
+func NewOptionLimit(limit int) *OptionLimit {
+	return &OptionLimit{
+		Limit: limit,
 	}
 }
 
-type OptionNewest struct {
-	Newest bool
+type OptionOrder struct {
+	Desc bool
 }
 
-func (o *OptionNewest) Apply(r *queue_pb.RequestPrefixes) {
-	r.Newest = o.Newest
+func (o *OptionOrder) Apply(r *queue_pb.RequestPrefixes) {
+	if o.Desc {
+		r.Order = queue_pb.Order_DESC
+	} else {
+		r.Order = queue_pb.Order_ASC
+	}
 }
 
-func NewOptionNewest(newest bool) *OptionNewest {
-	return &OptionNewest{
-		Newest: newest,
+func NewOptionOrder(desc bool) *OptionOrder {
+	return &OptionOrder{
+		Desc: desc,
 	}
 }

@@ -87,12 +87,17 @@ message TopicCount {
 message RequestPrefixes {
   string topic = 1;
   repeated RequestPrefix prefixes = 2;
-  uint32 max = 3;
-  bool newest = 4;
+  uint32 limit = 3;
+  Order order = 4;
+}
+
+enum Order {
+  ASC = 0;
+  DESC = 1;
 }
 
 message RequestPrefix {
   bytes prefix = 1;
   bytes start = 2;
-  uint32 max = 3;
+  uint32 limit = 3;
 }

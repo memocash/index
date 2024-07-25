@@ -89,7 +89,7 @@ func (s *Client) GetByPrefixes(ctx context.Context, topic string, prefixes []Pre
 		reqPrefixes[i] = &queue_pb.RequestPrefix{
 			Prefix: prefixes[i].Prefix,
 			Start:  prefixes[i].Start,
-			Max:    prefixes[i].Limit,
+			Limit:  prefixes[i].Limit,
 		}
 	}
 	req := &queue_pb.RequestPrefixes{

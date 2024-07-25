@@ -109,17 +109,17 @@ func GetHeightBlock(ctx context.Context, height int64) ([]*HeightBlock, error) {
 	return heightBlocks, nil
 }
 
-func GetHeightBlocks(ctx context.Context, shard uint32, startHeight int64, newest bool) ([]*HeightBlock, error) {
+func GetHeightBlocks(ctx context.Context, shard uint32, startHeight int64, desc bool) ([]*HeightBlock, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var startHeightBytes []byte
-	if startHeight > 0 || !newest {
+	if startHeight > 0 || !desc {
 		startHeightBytes = jutil.GetInt64DataBig(startHeight)
 	}
 	if err := dbClient.GetByPrefix(ctx, db.TopicChainHeightBlock, client.Prefix{
 		Start: startHeightBytes,
 		Limit: client.LargeLimit,
-	}, client.NewOptionNewest(newest)); err != nil {
+	}, client.NewOptionOrder(desc)); err != nil {
 		return nil, fmt.Errorf("error getting height blocks from queue client; %w", err)
 	}
 	var heightBlocks = make([]*HeightBlock, len(dbClient.Messages))
