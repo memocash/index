@@ -165,10 +165,8 @@ type Opts struct {
 	Prefixes [][]byte
 	Max      uint32
 	Uids     [][]byte
-	Wait     bool
 	Newest   bool
 	Context  context.Context
-	Timeout  time.Duration
 }
 
 func (s *Client) GetWOpts(opts Opts) error {
@@ -209,18 +207,12 @@ func (s *Client) GetWOpts(opts Opts) error {
 	if err := s.SetConn(); err != nil {
 		return fmt.Errorf("error setting connection; %w", err)
 	}
-	var timeout time.Duration
-	if opts.Timeout > 0 {
-		timeout = opts.Timeout
-	} else {
-		timeout = DefaultGetTimeout
-	}
 	c := queue_pb.NewQueueClient(s.conn)
 	var bgCtx = opts.Context
 	if jutil.IsNil(bgCtx) {
 		bgCtx = context.Background()
 	}
-	ctx, cancel := context.WithTimeout(bgCtx, timeout)
+	ctx, cancel := context.WithTimeout(bgCtx, DefaultGetTimeout)
 	defer cancel()
 	s.Messages = nil
 	for _, optGroup := range optGroups {
