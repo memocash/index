@@ -154,7 +154,7 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 		}
 		checked = len(txInputs)
 	} else {
-		txOutputs, err := chain.GetAllTxOutputs(shard, shardStatus.Status)
+		txOutputs, err := chain.GetAllTxOutputs(p.Context, shard, shardStatus.Status)
 		if err != nil {
 			return false, fmt.Errorf("error getting tx outputs for populate addr shard: %d; %w", shard, err)
 		}

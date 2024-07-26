@@ -59,8 +59,7 @@ func (t *TxInput) Deserialize(data []byte) {
 
 func GetAllTxInputs(ctx context.Context, shard uint32, startUid []byte) ([]*TxInput, error) {
 	dbClient := db.GetShardClient(shard)
-	optionLimit := client.NewOptionLimit(client.HugeLimit)
-	if err := dbClient.GetAll(ctx, db.TopicChainTxInput, startUid, optionLimit); err != nil {
+	if err := dbClient.GetAll(ctx, db.TopicChainTxInput, startUid, client.OptionHugeLimit()); err != nil {
 		return nil, fmt.Errorf("error getting db message chain tx inputs for all; %w", err)
 	}
 	var txInputs = make([]*TxInput, len(dbClient.Messages))

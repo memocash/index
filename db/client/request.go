@@ -38,6 +38,14 @@ func NewOptionLimit(limit int) *OptionLimit {
 	}
 }
 
+func OptionHugeLimit() *OptionLimit {
+	return NewOptionLimit(HugeLimit)
+}
+
+func OptionLargeLimit() *OptionLimit {
+	return NewOptionLimit(LargeLimit)
+}
+
 type OptionOrder struct {
 	Desc bool
 }

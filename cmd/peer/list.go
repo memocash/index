@@ -34,7 +34,7 @@ var listFoundPeersCmd = &cobra.Command{
 		if len(args) > 0 {
 			shard = jutil.GetUInt32FromString(args[0])
 		}
-		foundPeers, err := item.GetFoundPeers(shard, nil, nil, 0)
+		foundPeers, err := item.GetFoundPeers(cmd.Context(), shard, nil, nil, 0)
 		if err != nil {
 			log.Fatalf("fatal error getting found peers; %v", err)
 		}

@@ -120,7 +120,7 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 	if shardStatus == nil {
 		shardStatus = item.NewProcessStatus(uint(shard), item.ProcessStatusPopulateP2sh)
 	}
-	txOutputs, err := chain.GetAllTxOutputs(shard, shardStatus.Status)
+	txOutputs, err := chain.GetAllTxOutputs(p.Ctx, shard, shardStatus.Status)
 	if err != nil {
 		return false, fmt.Errorf("error getting tx outputs for populate p2sh shard: %d; %w", shard, err)
 	}
