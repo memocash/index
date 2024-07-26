@@ -185,7 +185,6 @@ func (s *Client) GetWOpts(opts Opts) error {
 				Prefixes: opts.Prefixes[i:end],
 				Max:      opts.Max,
 				Uids:     opts.Uids,
-				Wait:     opts.Wait,
 				Newest:   opts.Newest,
 			})
 		}
@@ -201,7 +200,6 @@ func (s *Client) GetWOpts(opts Opts) error {
 				Start:    opts.Start,
 				Max:      opts.Max,
 				Uids:     opts.Uids[i:end],
-				Wait:     opts.Wait,
 				Newest:   opts.Newest,
 			})
 		}
@@ -214,10 +212,8 @@ func (s *Client) GetWOpts(opts Opts) error {
 	var timeout time.Duration
 	if opts.Timeout > 0 {
 		timeout = opts.Timeout
-	} else if !opts.Wait {
-		timeout = DefaultGetTimeout
 	} else {
-		timeout = DefaultWaitTimeout
+		timeout = DefaultGetTimeout
 	}
 	c := queue_pb.NewQueueClient(s.conn)
 	var bgCtx = opts.Context
@@ -234,7 +230,6 @@ func (s *Client) GetWOpts(opts Opts) error {
 			Start:    optGroup.Start,
 			Max:      optGroup.Max,
 			Uids:     optGroup.Uids,
-			Wait:     optGroup.Wait,
 			Newest:   optGroup.Newest,
 		}, grpc.MaxCallRecvMsgSize(MaxMessageSize))
 		if err != nil {

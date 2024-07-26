@@ -54,8 +54,7 @@ message Request {
   uint32 max = 3;
   repeated bytes prefixes = 4;
   repeated bytes uids = 5;
-  bool wait = 6;
-  bool newest = 7;
+  bool newest = 6;
 }
 
 message RequestStream {

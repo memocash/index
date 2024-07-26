@@ -10,7 +10,6 @@ import (
 	"github.com/memocash/index/ref/config"
 	"sort"
 	"strings"
-	"time"
 )
 
 type HeightBlock struct {
@@ -130,35 +129,28 @@ func GetHeightBlocks(ctx context.Context, shard uint32, startHeight int64, desc 
 	return heightBlocks, nil
 }
 
-func GetHeightBlocksAll(startHeight int64, waitSingle bool) ([]*HeightBlock, error) {
-	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, client.LargeLimit, false)
+func GetHeightBlocksAll(startHeight int64) ([]*HeightBlock, error) {
+	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, client.LargeLimit, false)
 	if err != nil {
 		return nil, fmt.Errorf("error getting height blocks all large limit; %w", err)
 	}
 	return heightBlocks, nil
 }
 
-func GetHeightBlocksAllDefault(startHeight int64, waitSingle bool, newest bool) ([]*HeightBlock, error) {
-	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, waitSingle, client.DefaultLimit, newest)
+func GetHeightBlocksAllDefault(startHeight int64, newest bool) ([]*HeightBlock, error) {
+	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, client.DefaultLimit, newest)
 	if err != nil {
 		return nil, fmt.Errorf("error getting height blocks all default limit; %w", err)
 	}
 	return heightBlocks, nil
 }
 
-func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32, newest bool) ([]*HeightBlock, error) {
+func GetHeightBlocksAllLimit(startHeight int64, limit uint32, newest bool) ([]*HeightBlock, error) {
 	var heightBlocks []*HeightBlock
 	shardConfigs := config.GetQueueShards()
 	shardLimit := limit / uint32(len(shardConfigs))
 	for _, shardConfig := range shardConfigs {
-		if waitSingle && db.GetShardId32(uint(startHeight)) != shardConfig.Shard {
-			continue
-		}
 		dbClient := client.NewClient(shardConfig.GetHost())
-		var timeout time.Duration
-		if waitSingle {
-			timeout = time.Hour
-		}
 		var start []byte
 		if startHeight != 0 {
 			start = jutil.GetInt64DataBig(startHeight)
@@ -166,10 +158,8 @@ func GetHeightBlocksAllLimit(startHeight int64, waitSingle bool, limit uint32, n
 		if err := dbClient.GetWOpts(client.Opts{
 			Topic:   db.TopicChainHeightBlock,
 			Start:   start,
-			Wait:    waitSingle,
 			Max:     shardLimit,
 			Newest:  newest,
-			Timeout: timeout,
 		}); err != nil {
 			return nil, fmt.Errorf("error getting height blocks from queue client all; %w", err)
 		}

@@ -110,16 +110,6 @@ func (s *Server) GetTxBlock(ctx context.Context, req *network_pb.TxBlockRequest)
 	return &network_pb.TxBlockReply{Txs: txs}, nil
 }
 
-func (s *Server) ListenTx(ctx context.Context, req *network_pb.TxRequest) (*network_pb.ListenTxReply, error) {
-	txProcessed, err := chain.WaitForTxProcessed(ctx, req.GetHash())
-	if err != nil {
-		return nil, fmt.Errorf("error waiting for tx processed; %w", err)
-	}
-	return &network_pb.ListenTxReply{
-		Timestamp: txProcessed.Timestamp.Unix(),
-	}, nil
-}
-
 func (s *Server) GetOutputInputs(ctx context.Context, req *network_pb.OutputInputsRequest) (*network_pb.OutputInputsResponse, error) {
 	var outs = make([]memo.Out, len(req.Outputs))
 	for i := range req.Outputs {
@@ -276,7 +266,7 @@ func (s *Server) GetBlockInfos(ctx context.Context, req *network_pb.BlockRequest
 
 func (s *Server) GetHeightBlocks(_ context.Context, req *network_pb.BlockHeightRequest) (*network_pb.BlockHeightResponse, error) {
 	var response = new(network_pb.BlockHeightResponse)
-	if heightBlocks, err := chain.GetHeightBlocksAll(req.Start, req.Wait); err != nil {
+	if heightBlocks, err := chain.GetHeightBlocksAll(req.Start); err != nil {
 		return nil, fmt.Errorf("error getting height blocks all; %w", err)
 	} else {
 		response.Blocks = make([]*network_pb.BlockHeight, len(heightBlocks))

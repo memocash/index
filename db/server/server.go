@@ -128,31 +128,21 @@ func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*q
 			return nil, fmt.Errorf("error getting messages by uids; %w", err)
 		}
 	} else {
-		for i := 0; i < 2; i++ {
-			var requestByPrefixes = store.RequestByPrefixes{
-				Topic: request.Topic,
-				Shard: s.Shard,
-				Limit: int(request.Max),
-				Desc:  request.Newest,
-			}
-			for _, prefix := range request.Prefixes {
-				requestByPrefixes.Prefixes = append(requestByPrefixes.Prefixes, store.Prefix{
-					Prefix: prefix,
-					Start:  request.Start,
-				})
-			}
-			messages, err = store.GetByPrefixes(requestByPrefixes)
-			if err != nil {
-				return nil, fmt.Errorf("error getting messages for topic: %s (shard %d); %w", request.Topic, s.Shard, err)
-			}
-			if len(messages) == 0 && request.Wait && i == 0 {
-				metric.AddTopicListen(metric.TopicListen{Topic: request.Topic})
-				if err := ListenSingle(ctx, s.Shard, request.Topic, request.Start, request.Prefixes); err != nil {
-					return nil, fmt.Errorf("error listening for new topic item; %w", err)
-				}
-			} else {
-				break
-			}
+		var requestByPrefixes = store.RequestByPrefixes{
+			Topic: request.Topic,
+			Shard: s.Shard,
+			Limit: int(request.Max),
+			Desc:  request.Newest,
+		}
+		for _, prefix := range request.Prefixes {
+			requestByPrefixes.Prefixes = append(requestByPrefixes.Prefixes, store.Prefix{
+				Prefix: prefix,
+				Start:  request.Start,
+			})
+		}
+		messages, err = store.GetByPrefixes(requestByPrefixes)
+		if err != nil {
+			return nil, fmt.Errorf("error getting messages for topic: %s (shard %d); %w", request.Topic, s.Shard, err)
 		}
 	}
 

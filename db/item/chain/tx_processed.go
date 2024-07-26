@@ -1,12 +1,9 @@
 package chain
 
 import (
-	"context"
-	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
-	"github.com/memocash/index/ref/config"
 	"time"
 )
 
@@ -43,23 +40,4 @@ func (s *TxProcessed) Deserialize([]byte) {}
 
 func GetTxProcessedUid(txHash []byte, timestamp time.Time) []byte {
 	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetTimeByteNanoBig(timestamp))
-}
-
-func WaitForTxProcessed(ctx context.Context, txHash []byte) (*TxProcessed, error) {
-	shardConfig := config.GetShardConfig(db.GetShardIdFromByte32(txHash), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Context:  ctx,
-		Topic:    db.TopicChainTxProcessed,
-		Prefixes: [][]byte{jutil.ByteReverse(txHash)},
-		Wait:     true,
-	}); err != nil {
-		return nil, fmt.Errorf("error getting tx processed with wait db message; %w", err)
-	}
-	if len(dbClient.Messages) == 0 {
-		return nil, fmt.Errorf("error with tx processed wait, empty message; %w", client.EntryNotFoundError)
-	}
-	var txProcessed = new(TxProcessed)
-	db.Set(txProcessed, dbClient.Messages[0])
-	return txProcessed, nil
 }
