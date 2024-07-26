@@ -6,7 +6,6 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
-	"github.com/memocash/index/ref/config"
 )
 
 type Tx struct {
@@ -50,24 +49,14 @@ func (t *Tx) Deserialize(data []byte) {
 }
 
 func GetTxsByHashes(ctx context.Context, txHashes [][32]byte) ([]*Tx, error) {
-	var shardPrefixes = make(map[uint32][][]byte)
-	for i := range txHashes {
-		shard := uint32(db.GetShardIdFromByte(txHashes[i][:]))
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainTx, db.ShardPrefixesTxHashes(txHashes))
+	if err != nil {
+		return nil, fmt.Errorf("error getting db message chain txs by hashes; %w", err)
 	}
-	var txs []*Tx
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		err := dbClient.GetWOpts(client.Opts{Context: ctx, Topic: db.TopicChainTx, Prefixes: prefixes})
-		if err != nil {
-			return nil, fmt.Errorf("error getting db message chain txs by hashes; %w", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var tx = new(Tx)
-			db.Set(tx, msg)
-			txs = append(txs, tx)
-		}
+	var txs = make([]*Tx, len(messages))
+	for i := range messages {
+		txs[i] = new(Tx)
+		db.Set(txs[i], messages[i])
 	}
 	return txs, nil
 }

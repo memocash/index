@@ -109,7 +109,7 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 }
 
 func (b *Block) GetBlock(heightBack int64) (*chainhash.Hash, error) {
-	heightBlock, err := chain.GetRecentHeightBlock()
+	heightBlock, err := chain.GetRecentHeightBlock(b.Context)
 	if err != nil {
 		return nil, fmt.Errorf("error getting recent height block from queue; %w", err)
 	}

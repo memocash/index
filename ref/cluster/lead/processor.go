@@ -78,7 +78,7 @@ func (p *Processor) Run() error {
 			case <-p.BlockNode.SyncDone:
 				log.Printf("Node sync done\n")
 				p.Synced = true
-				recentBlock, err := chain.GetRecentHeightBlock()
+				recentBlock, err := chain.GetRecentHeightBlock(p.Context)
 				if err != nil {
 					p.ErrorChan <- fmt.Errorf("error getting recent height block; %w", err)
 					break

@@ -264,9 +264,9 @@ func (s *Server) GetBlockInfos(ctx context.Context, req *network_pb.BlockRequest
 	}, nil
 }
 
-func (s *Server) GetHeightBlocks(_ context.Context, req *network_pb.BlockHeightRequest) (*network_pb.BlockHeightResponse, error) {
+func (s *Server) GetHeightBlocks(ctx context.Context, req *network_pb.BlockHeightRequest) (*network_pb.BlockHeightResponse, error) {
 	var response = new(network_pb.BlockHeightResponse)
-	if heightBlocks, err := chain.GetHeightBlocksAll(req.Start); err != nil {
+	if heightBlocks, err := chain.GetHeightBlocksAll(ctx, req.Start); err != nil {
 		return nil, fmt.Errorf("error getting height blocks all; %w", err)
 	} else {
 		response.Blocks = make([]*network_pb.BlockHeight, len(heightBlocks))

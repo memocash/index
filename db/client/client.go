@@ -122,6 +122,27 @@ func (s *Client) GetByPrefix(ctx context.Context, topic string, prefix Prefix, o
 	return nil
 }
 
+func (s *Client) GetFirst(ctx context.Context, topic string) error {
+	if err := s.GetByPrefix(ctx, topic, Prefix{Limit: 1}); err != nil {
+		return fmt.Errorf("error getting first; %w", err)
+	}
+	return nil
+}
+
+func (s *Client) GetLast(ctx context.Context, topic string) error {
+	if err := s.GetByPrefix(ctx, topic, Prefix{Limit: 1}, NewOptionOrder(true)); err != nil {
+		return fmt.Errorf("error getting last; %w", err)
+	}
+	return nil
+}
+
+func (s *Client) GetAll(ctx context.Context, topic string, start []byte, opts ...Option) error {
+	if err := s.GetByPrefix(ctx, topic, Prefix{Start: start}, opts...); err != nil {
+		return fmt.Errorf("error getting all; %w", err)
+	}
+	return nil
+}
+
 func (s *Client) GetSingle(ctx context.Context, topic string, uid []byte) error {
 	if err := s.SetConn(); err != nil {
 		return fmt.Errorf("error setting connection; %w", err)

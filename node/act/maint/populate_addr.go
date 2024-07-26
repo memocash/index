@@ -133,7 +133,7 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 	var objMap = make(map[[57]byte]*addr.SeenTx)
 	var checked int
 	if p.Inputs {
-		txInputs, err := chain.GetAllTxInputs(shard, shardStatus.Status)
+		txInputs, err := chain.GetAllTxInputs(p.Context, shard, shardStatus.Status)
 		if err != nil {
 			return false, fmt.Errorf("error getting tx outputs for populate addr shard: %d; %w", shard, err)
 		}

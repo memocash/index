@@ -43,15 +43,11 @@ func (b *HeightBlock) Serialize() []byte {
 
 func (b *HeightBlock) Deserialize([]byte) {}
 
-func GetRecentHeightBlock() (*HeightBlock, error) {
+func GetRecentHeightBlock(ctx context.Context) (*HeightBlock, error) {
 	var heightBlocks []*HeightBlock
 	for i, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic:  db.TopicChainHeightBlock,
-			Max:    1,
-			Newest: true,
-		}); err != nil {
+		if err := dbClient.GetLast(ctx, db.TopicChainHeightBlock); err != nil {
 			return nil, fmt.Errorf("error getting recent height block for shard: %d; %w", i, err)
 		}
 		for i := range dbClient.Messages {
@@ -129,38 +125,36 @@ func GetHeightBlocks(ctx context.Context, shard uint32, startHeight int64, desc 
 	return heightBlocks, nil
 }
 
-func GetHeightBlocksAll(startHeight int64) ([]*HeightBlock, error) {
-	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, client.LargeLimit, false)
+func GetHeightBlocksAll(ctx context.Context, startHeight int64) ([]*HeightBlock, error) {
+	heightBlocks, err := GetHeightBlocksAllLimit(ctx, startHeight, client.LargeLimit, false)
 	if err != nil {
 		return nil, fmt.Errorf("error getting height blocks all large limit; %w", err)
 	}
 	return heightBlocks, nil
 }
 
-func GetHeightBlocksAllDefault(startHeight int64, newest bool) ([]*HeightBlock, error) {
-	heightBlocks, err := GetHeightBlocksAllLimit(startHeight, client.DefaultLimit, newest)
+func GetHeightBlocksAllDefault(ctx context.Context, startHeight int64, newest bool) ([]*HeightBlock, error) {
+	heightBlocks, err := GetHeightBlocksAllLimit(ctx, startHeight, client.DefaultLimit, newest)
 	if err != nil {
 		return nil, fmt.Errorf("error getting height blocks all default limit; %w", err)
 	}
 	return heightBlocks, nil
 }
 
-func GetHeightBlocksAllLimit(startHeight int64, limit uint32, newest bool) ([]*HeightBlock, error) {
+func GetHeightBlocksAllLimit(ctx context.Context, startHeight int64, limit int, newest bool) ([]*HeightBlock, error) {
 	var heightBlocks []*HeightBlock
 	shardConfigs := config.GetQueueShards()
-	shardLimit := limit / uint32(len(shardConfigs))
+	shardLimit := limit / len(shardConfigs)
 	for _, shardConfig := range shardConfigs {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		var start []byte
 		if startHeight != 0 {
 			start = jutil.GetInt64DataBig(startHeight)
 		}
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic:   db.TopicChainHeightBlock,
-			Start:   start,
-			Max:     shardLimit,
-			Newest:  newest,
-		}); err != nil {
+		if err := dbClient.GetAll(ctx, db.TopicChainHeightBlock, start,
+			client.NewOptionOrder(newest),
+			client.NewOptionLimit(shardLimit),
+		); err != nil {
 			return nil, fmt.Errorf("error getting height blocks from queue client all; %w", err)
 		}
 		for i := range dbClient.Messages {
