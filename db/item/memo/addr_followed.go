@@ -64,50 +64,27 @@ func (f *AddrFollowed) Deserialize(data []byte) {
 }
 
 func GetAddrFolloweds(ctx context.Context, followAddresses [][25]byte) ([]*AddrFollowed, error) {
-	var shardPrefixes = make(map[uint32][][]byte)
-	for i := range followAddresses {
-		shard := client.GenShardSource32(followAddresses[i][:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], followAddresses[i][:])
+	shardPrefixes := db.ShardPrefixesAddrs(followAddresses)
+	messages, err := db.GetByPrefixes(ctx, db.TopicMemoAddrFollowed, shardPrefixes, client.OptionExLargeLimit())
+	if err != nil {
+		return nil, fmt.Errorf("error getting db addr memo followed by prefix; %w", err)
 	}
-	shardConfigs := config.GetQueueShards()
-	var addrFolloweds []*AddrFollowed
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicMemoAddrFollowed,
-			Prefixes: prefixes,
-			Max:      client.ExLargeLimit,
-			Context:  ctx,
-		}); err != nil {
-			return nil, fmt.Errorf("error getting db addr memo followed by prefix; %w", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var addrFollowed = new(AddrFollowed)
-			db.Set(addrFollowed, msg)
-			addrFolloweds = append(addrFolloweds, addrFollowed)
-		}
+	var addrFolloweds = make([]*AddrFollowed, len(messages))
+	for i := range messages {
+		addrFolloweds[i] = new(AddrFollowed)
+		db.Set(addrFolloweds[i], messages[i])
 	}
 	return addrFolloweds, nil
 }
 
 func GetAddrFollowedsSingle(ctx context.Context, followAddr [25]byte, start time.Time) ([]*AddrFollowed, error) {
-	shardConfig := config.GetShardConfig(client.GenShardSource32(followAddr[:]), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	var startByte []byte
+	dbClient := db.GetShardClient(client.GenShardSource32(followAddr[:]))
+	var prefix = client.NewPrefix(followAddr[:])
 	if !jutil.IsTimeZero(start) {
-		startByte = jutil.CombineBytes(followAddr[:], jutil.GetTimeByteNanoBig(start))
-	} else {
-		startByte = followAddr[:]
+		prefix.Start = jutil.CombineBytes(followAddr[:], jutil.GetTimeByteNanoBig(start))
 	}
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicMemoAddrFollowed,
-		Prefixes: [][]byte{followAddr[:]},
-		Start:    startByte,
-		Max:      client.ExLargeLimit,
-		Context:  ctx,
-	}); err != nil {
-		return nil, fmt.Errorf("error getting db addr memo follow by prefix; %w", err)
+	if err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrFollowed, prefix, client.OptionExLargeLimit()); err != nil {
+		return nil, fmt.Errorf("error getting db addr memo followed by prefix; %w", err)
 	}
 	var addrFolloweds = make([]*AddrFollowed, len(dbClient.Messages))
 	for i := range dbClient.Messages {

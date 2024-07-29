@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/config"
 	"time"
 )
 
@@ -49,57 +48,35 @@ func (p *AddrPost) Serialize() []byte {
 func (p *AddrPost) Deserialize([]byte) {}
 
 func GetSingleAddrPosts(ctx context.Context, addr [25]byte, newest bool, start time.Time) ([]*AddrPost, error) {
-	var startByte []byte
+	dbClient := db.GetShardClient(client.GenShardSource32(addr[:]))
+	prefix := client.NewPrefix(addr[:])
 	if !jutil.IsTimeZero(start) {
-		startByte = jutil.CombineBytes(addr[:], jutil.GetTimeByteNanoBig(start))
-	} else {
-		startByte = addr[:]
+		prefix.Start = jutil.CombineBytes(addr[:], jutil.GetTimeByteNanoBig(start))
 	}
-	dbClient := client.NewClient(config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards()).GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicMemoAddrPost,
-		Prefixes: [][]byte{addr[:]},
-		Max:      client.ExLargeLimit,
-		Start:    startByte,
-		Newest:   newest,
-		Context:  ctx,
-	}); err != nil {
+	var opts = []client.Option{client.OptionExLargeLimit(), client.NewOptionOrder(newest)}
+	err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrPost, prefix, opts...)
+	if err != nil {
 		return nil, fmt.Errorf("error getting db addr memo post by prefix; %w", err)
 	}
-	var addrPosts []*AddrPost
-	for _, msg := range dbClient.Messages {
-		var addrPost = new(AddrPost)
-		db.Set(addrPost, msg)
-		addrPosts = append(addrPosts, addrPost)
+	var addrPosts = make([]*AddrPost, len(dbClient.Messages))
+	for i := range dbClient.Messages {
+		addrPosts[i] = new(AddrPost)
+		db.Set(addrPosts[i], dbClient.Messages[i])
 	}
 	return addrPosts, nil
 }
 
 func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool) ([]*AddrPost, error) {
-	var shardPrefixes = make(map[uint32][][]byte)
-	for i := range addrs {
-		shard := client.GenShardSource32(addrs[i][:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
+	shardPrefixes := db.ShardPrefixesAddrs(addrs)
+	var opts = []client.Option{client.OptionExLargeLimit(), client.NewOptionOrder(newest)}
+	messages, err := db.GetByPrefixes(ctx, db.TopicMemoAddrPost, shardPrefixes, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error getting db addr memo post by prefix; %w", err)
 	}
-	shardConfigs := config.GetQueueShards()
-	var addrPosts []*AddrPost
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicMemoAddrPost,
-			Prefixes: prefixes,
-			Max:      client.ExLargeLimit,
-			Newest:   newest,
-			Context:  ctx,
-		}); err != nil {
-			return nil, fmt.Errorf("error getting db addr memo post by prefix; %w", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var addrPost = new(AddrPost)
-			db.Set(addrPost, msg)
-			addrPosts = append(addrPosts, addrPost)
-		}
+	var addrPosts = make([]*AddrPost, len(messages))
+	for i := range messages {
+		addrPosts[i] = new(AddrPost)
+		db.Set(addrPosts[i], messages[i])
 	}
 	return addrPosts, nil
 }

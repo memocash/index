@@ -7,6 +7,7 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
 	"sync"
 )
@@ -81,6 +82,10 @@ func ShardPrefixesTxHashes(txHashes [][32]byte) map[uint32][]client.Prefix {
 	return ShardPrefixes(hs.HashesToSlices(txHashes))
 }
 
+func ShardPrefixesAddrs(addrs [][25]byte) map[uint32][]client.Prefix {
+	return ShardPrefixes(wallet.AddrsToSlices(addrs))
+}
+
 func ShardPrefixes(bytePrefixes [][]byte) map[uint32][]client.Prefix {
 	var shardPrefixes = make(map[uint32][]client.Prefix)
 	for _, bytePrefix := range bytePrefixes {
@@ -90,15 +95,14 @@ func ShardPrefixes(bytePrefixes [][]byte) map[uint32][]client.Prefix {
 	return shardPrefixes
 }
 
-func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][]client.Prefix) ([]client.Message, error) {
+func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][]client.Prefix, opts ...client.Option) ([]client.Message, error) {
 	wait := NewWait(len(shardPrefixes))
 	var messages []client.Message
 	for shardT, prefixesT := range shardPrefixes {
 		go func(shard uint32, prefixes []client.Prefix) {
 			defer wait.Group.Done()
 			prefixes = removeDupeAndEmptyPrefixes(prefixes)
-			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-			dbClient := client.NewClient(shardConfig.GetHost())
+			dbClient := GetShardClient(shard)
 			for len(prefixes) > 0 {
 				var prefixesToUse []client.Prefix
 				if len(prefixes) > client.HugeLimit {
@@ -106,7 +110,7 @@ func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][
 				} else {
 					prefixesToUse, prefixes = prefixes, nil
 				}
-				if err := dbClient.GetByPrefixes(ctx, topic, prefixesToUse); err != nil {
+				if err := dbClient.GetByPrefixes(ctx, topic, prefixesToUse, opts...); err != nil {
 					wait.AddError(fmt.Errorf("error getting client message get by prefixes; %w", err))
 					return
 				}

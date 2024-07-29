@@ -38,12 +38,36 @@ func NewOptionLimit(limit int) *OptionLimit {
 	}
 }
 
+func OptionLargeLimit() *OptionLimit {
+	return NewOptionLimit(LargeLimit)
+}
+
+func OptionExLargeLimit() *OptionLimit {
+	return NewOptionLimit(ExLargeLimit)
+}
+
 func OptionHugeLimit() *OptionLimit {
 	return NewOptionLimit(HugeLimit)
 }
 
-func OptionLargeLimit() *OptionLimit {
-	return NewOptionLimit(LargeLimit)
+type OptionPrefixLimit struct {
+	Limit int
+}
+
+func (o *OptionPrefixLimit) Apply(r *queue_pb.RequestPrefixes) {
+	for i := range r.Prefixes {
+		r.Prefixes[i].Limit = uint32(o.Limit)
+	}
+}
+
+func NewOptionPrefixLimit(limit int) *OptionPrefixLimit {
+	return &OptionPrefixLimit{
+		Limit: limit,
+	}
+}
+
+func OptionSinglePrefixLimit() *OptionPrefixLimit {
+	return NewOptionPrefixLimit(1)
 }
 
 type OptionOrder struct {
@@ -62,4 +86,8 @@ func NewOptionOrder(desc bool) *OptionOrder {
 	return &OptionOrder{
 		Desc: desc,
 	}
+}
+
+func OptionNewest() *OptionOrder {
+	return NewOptionOrder(true)
 }
