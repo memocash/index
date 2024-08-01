@@ -25,6 +25,23 @@ func GetItem(ctx context.Context, obj Object) error {
 	return nil
 }
 
+func ShardUidsTxHashes(txHashes [][32]byte) map[uint32][][]byte {
+	return ShardUids(hs.HashesToSlices(txHashes))
+}
+
+func ShardUidsAddrs(addrs [][25]byte) map[uint32][][]byte {
+	return ShardUids(wallet.AddrsToSlices(addrs))
+}
+
+func ShardUids(byteUids [][]byte) map[uint32][][]byte {
+	var shardUids = make(map[uint32][][]byte)
+	for _, uid := range byteUids {
+		shard := GetShardIdFromByte32(uid)
+		shardUids[shard] = append(shardUids[shard], uid)
+	}
+	return shardUids
+}
+
 func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byte) ([]client.Message, error) {
 	wait := NewWait(len(shardUids))
 	var messages []client.Message
@@ -32,8 +49,7 @@ func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byt
 		go func(shard uint32, uids [][]byte) {
 			defer wait.Group.Done()
 			uids = jutil.RemoveDupesAndEmpties(uids)
-			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-			dbClient := client.NewClient(shardConfig.GetHost())
+			dbClient := GetShardClient(shard)
 			for len(uids) > 0 {
 				var uidsToUse [][]byte
 				if len(uids) > client.HugeLimit {
@@ -41,11 +57,7 @@ func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byt
 				} else {
 					uidsToUse, uids = uids, nil
 				}
-				if err := dbClient.GetWOpts(client.Opts{
-					Context: ctx,
-					Topic:   topic,
-					Uids:    uidsToUse,
-				}); err != nil {
+				if err := dbClient.GetSpecific(ctx, topic, uidsToUse); err != nil {
 					wait.AddError(fmt.Errorf("error getting client message get specific; %w", err))
 					return
 				}

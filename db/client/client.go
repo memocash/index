@@ -180,6 +180,32 @@ func (s *Client) GetNext(ctx context.Context, topic string, start []byte) error 
 	return nil
 }
 
+func (s *Client) GetSpecific(ctx context.Context, topic string, uids [][]byte) error {
+	if err := s.SetConn(); err != nil {
+		return fmt.Errorf("error setting connection; %w", err)
+	}
+	c := queue_pb.NewQueueClient(s.conn)
+	ctx, cancel := context.WithTimeout(ctx, DefaultGetTimeout)
+	defer cancel()
+	messages, err := c.GetMessages(ctx, &queue_pb.Request{
+		Topic: topic,
+		Uids:  uids,
+	})
+	if err != nil {
+		return fmt.Errorf("error getting specific message rpc; %w", err)
+	} else if messages == nil {
+		return fmt.Errorf("error getting specific message rpc; %w", MessageNotSetError)
+	}
+	for _, message := range messages.Messages {
+		s.Messages = append(s.Messages, Message{
+			Topic:   message.Topic,
+			Uid:     message.Uid,
+			Message: message.Message,
+		})
+	}
+	return nil
+}
+
 type Opts struct {
 	Topic    string
 	Start    []byte
