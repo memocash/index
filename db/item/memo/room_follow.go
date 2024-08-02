@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/config"
 	"time"
 )
 
@@ -65,14 +64,8 @@ func (f *RoomFollow) Deserialize(data []byte) {
 
 func GetRoomFollows(ctx context.Context, room string) ([]*RoomFollow, error) {
 	roomHash := GetRoomHash(room)
-	shardConfig := config.GetShardConfig(client.GenShardSource32(roomHash), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicMemoRoomFollow,
-		Prefixes: [][]byte{roomHash},
-		Max:      client.ExLargeLimit,
-		Context:  ctx,
-	}); err != nil {
+	dbClient := db.GetShardClient(client.GenShardSource32(roomHash))
+	if err := dbClient.GetByPrefix(ctx, db.TopicMemoRoomFollow, client.NewPrefix(roomHash)); err != nil {
 		return nil, fmt.Errorf("error getting db memo room follows; %w", err)
 	}
 	var roomFollows = make([]*RoomFollow, len(dbClient.Messages))

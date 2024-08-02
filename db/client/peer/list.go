@@ -44,7 +44,7 @@ func (l *List) GetPeers(filter string) error {
 				Port: peers[i].Port,
 			}
 		}
-		peerConnectionLasts, err := item.GetPeerConnectionLasts(ipPorts)
+		peerConnectionLasts, err := item.GetPeerConnectionLasts(l.Context, ipPorts)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return fmt.Errorf("error getting peer connection lasts for found peers; %w", err)
 		}

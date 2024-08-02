@@ -44,7 +44,7 @@ func (g *Group) AddNextNode() error {
 		log.Printf("newPeer: %x\n", newPeer.GetUid())
 		log.Printf("newPeer: %s:%d\n", net.IP(newPeer.Ip), newPeer.Port)
 		g.LastPeerId = newPeer.GetUid()
-		peerConnection, err := item.GetPeerConnectionLast(newPeer.Ip, newPeer.Port)
+		peerConnection, err := item.GetPeerConnectionLast(g.Context, newPeer.Ip, newPeer.Port)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return fmt.Errorf("error getting last peer connection for new peer; %w", err)
 		}

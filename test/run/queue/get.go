@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"context"
 	"fmt"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
@@ -11,13 +12,14 @@ type Get struct {
 	Items []Item
 }
 
-func (r *Get) GetByPrefixes(topic string, prefixes [][]byte) error {
+func (r *Get) GetByPrefixes(ctx context.Context, topic string, prefixes [][]byte) error {
 	shardConfig := config.GetShardConfig(r.Shard, config.GetQueueShards())
 	db := client.NewClient(fmt.Sprintf("127.0.0.1:%d", shardConfig.Port))
-	if err := db.GetWOpts(client.Opts{
-		Topic:    topic,
-		Prefixes: prefixes,
-	}); err != nil {
+	var clientPrefixes = make([]client.Prefix, len(prefixes))
+	for i := range prefixes {
+		clientPrefixes[i] = client.NewPrefix(prefixes[i])
+	}
+	if err := db.GetByPrefixes(ctx, topic, clientPrefixes); err != nil {
 		return fmt.Errorf("error getting by prefixes using queue client; %w", err)
 	}
 	r.Items = make([]Item, len(db.Messages))

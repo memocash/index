@@ -80,7 +80,7 @@ var listAttemptsCmd = &cobra.Command{
 			log.Fatalf("error parsing host ip")
 		}
 		port := jutil.GetUInt16FromString(portString)
-		lastPeerConnection, err := item.GetPeerConnectionLast(ip, port)
+		lastPeerConnection, err := item.GetPeerConnectionLast(cmd.Context(), ip, port)
 		if err != nil {
 			log.Fatalf("fatal error last peer connection; %v", err)
 		}

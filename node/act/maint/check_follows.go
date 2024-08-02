@@ -1,7 +1,9 @@
 package maint
 
 import (
+	"context"
 	"fmt"
+	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/memo"
@@ -14,16 +16,13 @@ type CheckFollows struct {
 	BadFollows int
 }
 
-func (c *CheckFollows) Check() error {
+func (c *CheckFollows) Check(ctx context.Context) error {
 	for _, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		var startUid []byte
 		for {
-			if err := dbClient.GetWOpts(client.Opts{
-				Topic: db.TopicMemoAddrFollow,
-				Start: startUid,
-				Max:   client.ExLargeLimit,
-			}); err != nil {
+			opt := client.OptionExLargeLimit()
+			if err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrFollow, client.NewStart(startUid), opt); err != nil {
 				return fmt.Errorf("error getting db memo follow by prefix; %w", err)
 			}
 			for _, msg := range dbClient.Messages {
@@ -31,7 +30,7 @@ func (c *CheckFollows) Check() error {
 				var addrMemoFollow = new(memo.AddrFollow)
 				db.Set(addrMemoFollow, msg)
 				startUid = addrMemoFollow.GetUid()
-				if len(addrMemoFollow.FollowAddr) == 0 {
+				if jutil.AllZeros(addrMemoFollow.FollowAddr[:]) {
 					c.BadFollows++
 					if !c.Delete {
 						continue
