@@ -56,15 +56,8 @@ func GetRoomHash(room string) []byte {
 
 func GetRoomPosts(ctx context.Context, room string) ([]*RoomPost, error) {
 	roomHash := GetRoomHash(room)
-	shard := client.GenShardSource32(roomHash)
-	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicMemoRoomPost,
-		Prefixes: [][]byte{roomHash},
-		Max:      client.ExLargeLimit,
-		Context:  ctx,
-	}); err != nil {
+	dbClient := db.GetShardClient(client.GenShardSource32(roomHash))
+	if err := dbClient.GetByPrefix(ctx, db.TopicMemoRoomPost, client.NewPrefix(roomHash)); err != nil {
 		return nil, fmt.Errorf("error getting db memo room posts; %w", err)
 	}
 	var roomPosts = make([]*RoomPost, len(dbClient.Messages))

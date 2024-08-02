@@ -13,7 +13,7 @@ var checkFollowsCmd = &cobra.Command{
 		deleteItems, _ := c.Flags().GetBool(FlagDelete)
 		checkFollows := maint.NewCheckFollows(deleteItems)
 		log.Printf("Starting check follows (delete flag: %t)...\n", deleteItems)
-		if err := checkFollows.Check(); err != nil {
+		if err := checkFollows.Check(c.Context()); err != nil {
 			log.Fatalf("error maint check follows; %v", err)
 		}
 		log.Printf("Checked follows: %d, bad: %d\n", checkFollows.Processed, checkFollows.BadFollows)

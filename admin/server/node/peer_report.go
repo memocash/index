@@ -45,7 +45,7 @@ var peerReportRoute = admin.Route{
 		var peerInfo = new(PeerInfo)
 		for shard := uint32(0); shard < config.GetTotalShards(); shard++ {
 			for startId := []byte{}; ; {
-				peerConnections, err := item.GetPeerConnections(item.PeerConnectionsRequest{
+				peerConnections, err := item.GetPeerConnections(r.Request.Context(), item.PeerConnectionsRequest{
 					Shard:   shard,
 					StartId: startId,
 					Max:     client.LargeLimit,

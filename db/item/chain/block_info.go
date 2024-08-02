@@ -49,10 +49,10 @@ func (b *BlockInfo) Deserialize(data []byte) {
 	b.TxCount = jutil.GetInt(data[8:12])
 }
 
-func GetBlockInfo(blockHash [32]byte) (*BlockInfo, error) {
+func GetBlockInfo(ctx context.Context, blockHash [32]byte) (*BlockInfo, error) {
 	shardConfig := config.GetShardConfig(client.GenShardSource32(blockHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetSingle(db.TopicChainBlockInfo, jutil.ByteReverse(blockHash[:])); err != nil {
+	if err := dbClient.GetSingle(ctx, db.TopicChainBlockInfo, jutil.ByteReverse(blockHash[:])); err != nil {
 		return nil, fmt.Errorf("error getting client message block info; %w", err)
 	}
 	if len(dbClient.Messages) != 1 {

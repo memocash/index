@@ -32,7 +32,7 @@ var viewRoute = admin.Route{
 				continue
 			}
 			db := client.NewClient(shardConfig.GetHost())
-			if err := db.Get(topicViewRequest.Topic, start, false); err != nil {
+			if err := db.GetByPrefix(r.Request.Context(), topicViewRequest.Topic, client.NewStart(start)); err != nil {
 				log.Printf("error getting topic items for admin view; %v", err)
 				return
 			}

@@ -78,7 +78,7 @@ func (r *queryResolver) Block(ctx context.Context, hash model.Hash) (*model.Bloc
 // BlockNewest is the resolver for the block_newest field.
 func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	SetEndPoint(ctx, metric.EndPointBlockNewest)
-	heightBlock, err := chain.GetRecentHeightBlock()
+	heightBlock, err := chain.GetRecentHeightBlock(ctx)
 	if err != nil {
 		return nil, InternalError{fmt.Errorf("error getting recent height block for query; %w", err)}
 	}
@@ -106,7 +106,7 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 	if newest != nil {
 		newestBool = *newest
 	}
-	heightBlocks, err := chain.GetHeightBlocksAllDefault(startInt, false, newestBool)
+	heightBlocks, err := chain.GetHeightBlocksAllDefault(ctx, startInt, newestBool)
 	if err != nil {
 		return nil, InternalError{fmt.Errorf("error getting height blocks for query; %w", err)}
 	}

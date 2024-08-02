@@ -13,6 +13,8 @@ service Queue {
   }
   rpc GetMessages (Request) returns (Messages) {
   }
+  rpc GetByPrefixes (RequestPrefixes) returns (Messages) {
+  }
   rpc GetStreamMessages(RequestStream) returns (stream Message) {
   }
   rpc GetTopicList (EmptyRequest) returns (TopicListReply) {
@@ -52,8 +54,7 @@ message Request {
   uint32 max = 3;
   repeated bytes prefixes = 4;
   repeated bytes uids = 5;
-  bool wait = 6;
-  bool newest = 7;
+  bool newest = 6;
 }
 
 message RequestStream {
@@ -80,4 +81,22 @@ message CountRequest {
 
 message TopicCount {
   uint64 count = 1;
+}
+
+message RequestPrefixes {
+  string topic = 1;
+  repeated RequestPrefix prefixes = 2;
+  uint32 limit = 3;
+  Order order = 4;
+}
+
+enum Order {
+  ASC = 0;
+  DESC = 1;
+}
+
+message RequestPrefix {
+  bytes prefix = 1;
+  bytes start = 2;
+  uint32 limit = 3;
 }

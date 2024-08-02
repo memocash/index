@@ -1,6 +1,7 @@
 package get
 
 import (
+	"context"
 	"fmt"
 	"github.com/memocash/index/db/item/chain"
 )
@@ -12,13 +13,13 @@ type BlockTx struct {
 	TxBlock   *chain.TxBlock
 }
 
-func (b *BlockTx) Get() error {
+func (b *BlockTx) Get(ctx context.Context) error {
 	var err error
-	b.TxBlock, err = chain.GetSingleTxBlock(b.TxHash, b.BlockHash)
+	b.TxBlock, err = chain.GetSingleTxBlock(ctx, b.TxHash, b.BlockHash)
 	if err != nil {
 		return fmt.Errorf("error getting tx block from queue; %w", err)
 	}
-	b.BlockTx, err = chain.GetBlockTx(b.BlockHash, b.TxBlock.Index)
+	b.BlockTx, err = chain.GetBlockTx(ctx, b.BlockHash, b.TxBlock.Index)
 	if err != nil {
 		return fmt.Errorf("error getting block tx from queue; %w", err)
 	}

@@ -27,12 +27,8 @@ func (p *PopulateSeenPost) Populate() error {
 		var startTxHash [32]byte
 		dbClient := client.NewClient(shardConfig.GetHost())
 		for {
-			if err := dbClient.GetWOpts(client.Opts{
-				Topic:   db.TopicMemoPost,
-				Start:   startTxHash[:],
-				Max:     client.HugeLimit,
-				Context: p.Ctx,
-			}); err != nil {
+			opt := client.OptionHugeLimit()
+			if err := dbClient.GetByPrefix(p.Ctx, db.TopicMemoPost, client.NewStart(startTxHash[:]), opt); err != nil {
 				return fmt.Errorf("error getting memo posts for populate seen posts; %w", err)
 			}
 			var postTxHashes [][32]byte

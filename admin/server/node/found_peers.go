@@ -22,7 +22,7 @@ var foundPeersRoute = admin.Route{
 		var shard uint32
 	FoundPeersLoop:
 		for {
-			foundPeers, err := item.GetFoundPeers(shard, startId, request.Ip, request.Port)
+			foundPeers, err := item.GetFoundPeers(r.Request.Context(), shard, startId, request.Ip, request.Port)
 			if err != nil {
 				log.Fatalf("fatal error getting found peers; %v", err)
 			}

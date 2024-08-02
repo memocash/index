@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -43,9 +44,9 @@ func (s *SyncStatus) Deserialize(data []byte) {
 	s.Height = jutil.GetInt64Big(data)
 }
 
-func GetSyncStatus(name string) (*SyncStatus, error) {
+func GetSyncStatus(ctx context.Context, name string) (*SyncStatus, error) {
 	var syncStatus = &SyncStatus{Name: name}
-	if err := db.GetItem(syncStatus); err != nil {
+	if err := db.GetItem(ctx, syncStatus); err != nil {
 		return nil, fmt.Errorf("error getting item sync status; %w", err)
 	}
 	return syncStatus, nil

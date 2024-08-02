@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -82,22 +83,17 @@ func (r PeerConnectionsRequest) GetShard() uint32 {
 	return r.Shard
 }
 
-func GetPeerConnections(request PeerConnectionsRequest) ([]*PeerConnection, error) {
-	shardConfig := config.GetShardConfig(request.GetShard(), config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	var prefixes [][]byte
+func GetPeerConnections(ctx context.Context, request PeerConnectionsRequest) ([]*PeerConnection, error) {
+	dbClient := db.GetShardClient(request.GetShard())
+	var prefix client.Prefix
 	if len(request.Ip) > 0 {
-		prefixes = [][]byte{jutil.CombineBytes(
+		prefix = client.NewPrefix(jutil.CombineBytes(
 			jutil.BytePadPrefix(request.Ip, IpBytePadSize),
 			jutil.GetUintData(uint(request.Port)),
-		)}
+		))
 	}
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicPeerConnection,
-		Start:    request.StartId,
-		Prefixes: prefixes,
-		Max:      request.Max,
-	}); err != nil {
+	prefix.Limit = request.Max
+	if err := dbClient.GetByPrefix(ctx, db.TopicPeerConnection, prefix); err != nil {
 		return nil, fmt.Errorf("error getting peer connections from queue client; %w", err)
 	}
 	var peerConnections = make([]*PeerConnection, len(dbClient.Messages))
@@ -107,8 +103,8 @@ func GetPeerConnections(request PeerConnectionsRequest) ([]*PeerConnection, erro
 	}
 	return peerConnections, nil
 }
-func GetPeerConnectionLast(ip []byte, port uint16) (*PeerConnection, error) {
-	peerConnections, err := GetPeerConnectionLasts([]IpPort{{
+func GetPeerConnectionLast(ctx context.Context, ip []byte, port uint16) (*PeerConnection, error) {
+	peerConnections, err := GetPeerConnectionLasts(ctx, []IpPort{{
 		Ip:   ip,
 		Port: port,
 	}})
@@ -126,7 +122,7 @@ type IpPort struct {
 	Port uint16
 }
 
-func GetPeerConnectionLasts(ipPorts []IpPort) ([]*PeerConnection, error) {
+func GetPeerConnectionLasts(ctx context.Context, ipPorts []IpPort) ([]*PeerConnection, error) {
 	if len(ipPorts) == 0 {
 		return nil, nil
 	}
@@ -139,15 +135,12 @@ func GetPeerConnectionLasts(ipPorts []IpPort) ([]*PeerConnection, error) {
 	for shard, ipPorts := range shardIpPorts {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		var prefixes = make([][]byte, len(ipPorts))
+		var prefixes = make([]client.Prefix, len(ipPorts))
 		for i := range ipPorts {
-			prefixes[i] = jutil.CombineBytes(jutil.BytePadPrefix(ipPorts[i].Ip, IpBytePadSize), jutil.GetUintData(uint(ipPorts[i].Port)))
+			prefixes[i] = client.NewPrefix(jutil.CombineBytes(jutil.BytePadPrefix(ipPorts[i].Ip, IpBytePadSize), jutil.GetUintData(uint(ipPorts[i].Port))))
 		}
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicPeerConnection,
-			Max:      1,
-			Prefixes: prefixes,
-		}); err != nil {
+		opt := client.OptionSinglePrefixLimit()
+		if err := dbClient.GetByPrefixes(ctx, db.TopicPeerConnection, prefixes, opt); err != nil {
 			return nil, fmt.Errorf("error getting peer connection lasts: %d %d; %w", shard, len(ipPorts), err)
 		}
 		if len(dbClient.Messages) == 0 {

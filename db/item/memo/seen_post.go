@@ -61,29 +61,22 @@ func (i *SeenPost) Serialize() []byte {
 func (i *SeenPost) Deserialize([]byte) {}
 
 func GetSeenPosts(ctx context.Context, start time.Time, startTxHash [32]byte, limit uint32) ([]*SeenPost, error) {
-	if limit == 0 {
-		limit = client.DefaultLimit
-	} else if limit > client.ExLargeLimit {
+	if limit > client.ExLargeLimit {
 		limit = client.ExLargeLimit
 	}
-	shardConfigs := config.GetQueueShards()
+	var options = []client.Option{client.OptionNewest()}
+	if limit > 0 {
+		options = append(options, client.NewOptionLimit(int(limit)))
+	}
 	startShard := GetSeenPostShard32(start)
 	var startByte []byte
 	if !jutil.IsTimeZero(start) {
 		startByte = jutil.CombineBytes(jutil.GetTimeByteNanoBig(start), jutil.ByteReverse(startTxHash[:]))
 	}
 	var allSeenPosts []*SeenPost
-	for i := range shardConfigs {
-		shardId := (startShard + uint32(i)) % uint32(len(shardConfigs))
-		shardConfig := shardConfigs[shardId]
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Context: ctx,
-			Topic:   db.TopicMemoSeenPost,
-			Start:   startByte,
-			Max:     limit,
-			Newest:  true,
-		}); err != nil {
+	for i := range config.GetQueueShards() {
+		dbClient := db.GetShardClient(startShard + uint32(i))
+		if err := dbClient.GetByPrefix(ctx, db.TopicMemoSeenPost, client.NewStart(startByte), options...); err != nil {
 			return nil, fmt.Errorf("error getting db seen posts; %w", err)
 		}
 		if len(dbClient.Messages) == 0 {
