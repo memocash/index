@@ -8,3 +8,5 @@
 example.db
 .DS_Store
 /client/examples/example-linux
+docker/bitcoin-data
+docker/indexer-data
