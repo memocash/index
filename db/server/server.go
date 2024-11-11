@@ -247,6 +247,9 @@ func (s *Server) Start() error {
 	if s.listener, err = net.Listen("tcp", GetListenHost(s.Port)); err != nil {
 		return fmt.Errorf("failed to listen; %w", err)
 	}
+	if s.Port == 0 {
+		s.Port = s.listener.Addr().(*net.TCPAddr).Port
+	}
 	go s.StartMessageChan()
 	s.Grpc = grpc.NewServer(grpc.MaxRecvMsgSize(client.MaxMessageSize), grpc.MaxSendMsgSize(client.MaxMessageSize))
 	queue_pb.RegisterQueueServer(s.Grpc, s)
