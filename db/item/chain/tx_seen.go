@@ -44,12 +44,7 @@ func (s *TxSeen) SetUid(uid []byte) {
 func (s *TxSeen) Deserialize([]byte) {}
 
 func GetTxSeens(ctx context.Context, txHashes [][32]byte) ([]*TxSeen, error) {
-	var shardPrefixes = make(map[uint32][][]byte)
-	for i := range txHashes {
-		shard := db.GetShardIdFromByte32(txHashes[i][:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
-	}
-	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxSeen, shardPrefixes)
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxSeen, db.ShardPrefixesTxHashes(txHashes))
 	if err != nil {
 		return nil, fmt.Errorf("error getting client message chain tx seen; %w", err)
 	}

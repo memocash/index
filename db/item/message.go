@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -43,10 +44,10 @@ func (t *Message) Deserialize(data []byte) {
 	t.Message = string(data[8:])
 }
 
-func GetMessage(id uint) (*Message, error) {
+func GetMessage(ctx context.Context, id uint) (*Message, error) {
 	shardConfig := config.GetShardConfig(client.GenShardSource32(jutil.GetUintData(id)), config.GetQueueShards())
 	queueClient := client.NewClient(shardConfig.GetHost())
-	if err := queueClient.GetSingle(db.TopicMessage, jutil.GetUintData(id)); err != nil {
+	if err := queueClient.GetSingle(ctx, db.TopicMessage, jutil.GetUintData(id)); err != nil {
 		return nil, fmt.Errorf("error getting single client message; %w", err)
 	}
 	if len(queueClient.Messages) != 1 {

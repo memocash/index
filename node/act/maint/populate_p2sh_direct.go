@@ -66,7 +66,7 @@ func (p *PopulateP2shDirect) Populate(newRun bool) error {
 	shardConfigs := config.GetQueueShards()
 	if !newRun {
 		for _, shardConfig := range shardConfigs {
-			syncStatus, err := item.GetProcessStatus(uint(shardConfig.Shard), item.ProcessStatusPopulateP2sh)
+			syncStatus, err := item.GetProcessStatus(p.Ctx, uint(shardConfig.Shard), item.ProcessStatusPopulateP2sh)
 			if err != nil && !client.IsMessageNotSetError(err) {
 				return fmt.Errorf("error getting sync status; %w", err)
 			} else if syncStatus != nil {
@@ -120,7 +120,7 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 	if shardStatus == nil {
 		shardStatus = item.NewProcessStatus(uint(shard), item.ProcessStatusPopulateP2sh)
 	}
-	txOutputs, err := chain.GetAllTxOutputs(shard, shardStatus.Status)
+	txOutputs, err := chain.GetAllTxOutputs(p.Ctx, shard, shardStatus.Status)
 	if err != nil {
 		return false, fmt.Errorf("error getting tx outputs for populate p2sh shard: %d; %w", shard, err)
 	}

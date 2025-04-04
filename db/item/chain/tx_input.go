@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/config"
 )
 
 type TxInput struct {
@@ -58,14 +57,9 @@ func (t *TxInput) Deserialize(data []byte) {
 	t.UnlockScript = data[40:]
 }
 
-func GetAllTxInputs(shard uint32, startUid []byte) ([]*TxInput, error) {
-	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic: db.TopicChainTxInput,
-		Start: startUid,
-		Max:   client.HugeLimit,
-	}); err != nil {
+func GetAllTxInputs(ctx context.Context, shard uint32, startUid []byte) ([]*TxInput, error) {
+	dbClient := db.GetShardClient(shard)
+	if err := dbClient.GetAll(ctx, db.TopicChainTxInput, startUid, client.OptionHugeLimit()); err != nil {
 		return nil, fmt.Errorf("error getting db message chain tx inputs for all; %w", err)
 	}
 	var txInputs = make([]*TxInput, len(dbClient.Messages))
@@ -81,12 +75,7 @@ func GetTxInputUid(txHash [32]byte, index uint32) []byte {
 }
 
 func GetTxInputsByHashes(ctx context.Context, txHashes [][32]byte) ([]*TxInput, error) {
-	var shardPrefixes = make(map[uint32][][]byte)
-	for i := range txHashes {
-		shard := uint32(db.GetShardIdFromByte(txHashes[i][:]))
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
-	}
-	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxInput, shardPrefixes)
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxInput, db.ShardPrefixesTxHashes(txHashes))
 	if err != nil {
 		return nil, fmt.Errorf("error getting client message chain tx input; %w", err)
 	}

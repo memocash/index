@@ -12,7 +12,6 @@ import (
 const (
 	DefaultGetTimeout    = 60 * time.Second
 	DefaultSetTimeout    = 10 * time.Minute
-	DefaultWaitTimeout   = 5 * time.Minute
 	DefaultStreamTimeout = 7 * 24 * time.Hour
 )
 

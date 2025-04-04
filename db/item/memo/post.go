@@ -62,27 +62,14 @@ func GetPost(ctx context.Context, txHash [32]byte) (*Post, error) {
 }
 
 func GetPosts(ctx context.Context, txHashes [][32]byte) ([]*Post, error) {
-	var shardUids = make(map[uint32][][]byte)
-	for i := range txHashes {
-		shard := db.GetShardIdFromByte32(txHashes[i][:])
-		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(txHashes[i][:]))
+	messages, err := db.GetSpecific(ctx, db.TopicMemoPost, db.ShardUidsTxHashes(txHashes))
+	if err != nil {
+		return nil, fmt.Errorf("error getting client message memo posts; %w", err)
 	}
-	var posts []*Post
-	for shard, uids := range shardUids {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Context: ctx,
-			Topic:   db.TopicMemoPost,
-			Uids:    uids,
-		}); err != nil {
-			return nil, fmt.Errorf("error getting client message memo posts; %w", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var post = new(Post)
-			db.Set(post, msg)
-			posts = append(posts, post)
-		}
+	var posts = make([]*Post, len(messages))
+	for i := range messages {
+		posts[i] = new(Post)
+		db.Set(posts[i], messages[i])
 	}
 	return posts, nil
 }

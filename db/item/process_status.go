@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"fmt"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -57,10 +58,10 @@ func NewProcessStatus(shard uint, name string) *ProcessStatus {
 	}
 }
 
-func GetProcessStatus(shard uint, name string) (*ProcessStatus, error) {
+func GetProcessStatus(ctx context.Context, shard uint, name string) (*ProcessStatus, error) {
 	shardConfig := config.GetShardConfig(uint32(shard), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetSingle(db.TopicProcessStatus, []byte(name)); err != nil {
+	if err := dbClient.GetSingle(ctx, db.TopicProcessStatus, []byte(name)); err != nil {
 		return nil, fmt.Errorf("error getting db message process status; %w", err)
 	}
 	if len(dbClient.Messages) == 0 || len(dbClient.Messages[0].Uid) == 0 {

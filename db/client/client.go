@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
@@ -19,13 +18,6 @@ type Client struct {
 	conn     *grpc.ClientConn
 	Messages []Message
 	Topics   []Topic
-}
-
-func (s *Client) GetLast() string {
-	if len(s.Messages) == 0 {
-		return ""
-	}
-	return hex.EncodeToString(s.Messages[len(s.Messages)-1].Uid)
 }
 
 func (s *Client) SetConn() error {
@@ -45,13 +37,6 @@ func (s *Client) SetConn() error {
 	}
 	connHandler.Add(s.host, newConn)
 	s.conn = newConn
-	return nil
-}
-
-func (s *Client) SaveSingle(message *Message, timestamp time.Time) error {
-	if err := s.Save([]*Message{message}, timestamp); err != nil {
-		return fmt.Errorf("error saving single client message; %w", err)
-	}
 	return nil
 }
 
@@ -94,55 +79,71 @@ func (s *Client) Save(messages []*Message, timestamp time.Time) error {
 	return nil
 }
 
-func (s *Client) Get(topic string, start []byte, wait bool) error {
-	if err := s.GetWOpts(Opts{
-		Topic: topic,
-		Start: start,
-		Wait:  wait,
-	}); err != nil {
-		return fmt.Errorf("error getting with opts; %w", err)
+func (s *Client) GetByPrefixes(ctx context.Context, topic string, prefixes []Prefix, opts ...Option) error {
+	c := queue_pb.NewQueueClient(s.conn)
+	ctxNew, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	s.Messages = nil
+	var reqPrefixes = make([]*queue_pb.RequestPrefix, len(prefixes))
+	for i := range prefixes {
+		reqPrefixes[i] = &queue_pb.RequestPrefix{
+			Prefix: prefixes[i].Prefix,
+			Start:  prefixes[i].Start,
+			Limit:  prefixes[i].Limit,
+		}
 	}
-	return nil
-}
-
-func (s *Client) GetSpecific(topic string, uids [][]byte) error {
-	if err := s.GetWOpts(Opts{
-		Topic: topic,
-		Uids:  uids,
-	}); err != nil {
-		return fmt.Errorf("error getting with opts specific; %w", err)
-	}
-	return nil
-}
-
-func (s *Client) GetByPrefixes(topic string, prefixes [][]byte) error {
-	if err := s.GetWOpts(Opts{
+	req := &queue_pb.RequestPrefixes{
 		Topic:    topic,
-		Prefixes: prefixes,
-	}); err != nil {
-		return fmt.Errorf("error getting with opts prefixes; %w", err)
+		Prefixes: reqPrefixes,
+	}
+	for _, opt := range opts {
+		opt.Apply(req)
+	}
+	message, err := c.GetByPrefixes(ctxNew, req, grpc.MaxCallRecvMsgSize(MaxMessageSize))
+	if err != nil {
+		return fmt.Errorf("error getting messages rpc; %w", err)
+	}
+	var messages = make([]Message, len(message.Messages))
+	for i := range message.Messages {
+		messages[i] = Message{
+			Topic:   message.Messages[i].Topic,
+			Uid:     message.Messages[i].Uid,
+			Message: message.Messages[i].Message,
+		}
+	}
+	s.Messages = append(s.Messages, messages...)
+	return nil
+}
+
+func (s *Client) GetByPrefix(ctx context.Context, topic string, prefix Prefix, opts ...Option) error {
+	if err := s.GetByPrefixes(ctx, topic, []Prefix{prefix}, opts...); err != nil {
+		return fmt.Errorf("error getting with single prefix; %w", err)
 	}
 	return nil
 }
 
-func (s *Client) GetByPrefix(topic string, prefix []byte) error {
-	if err := s.GetWOpts(Opts{
-		Topic:    topic,
-		Prefixes: [][]byte{prefix},
-	}); err != nil {
-		return fmt.Errorf("error getting with opts prefix; %w", err)
+func (s *Client) GetFirst(ctx context.Context, topic string) error {
+	if err := s.GetByPrefix(ctx, topic, Prefix{Limit: 1}); err != nil {
+		return fmt.Errorf("error getting first; %w", err)
 	}
 	return nil
 }
 
-func (s *Client) GetSingle(topic string, uid []byte) error {
-	if err := s.GetSingleContext(context.Background(), topic, uid); err != nil {
-		return fmt.Errorf("error getting single for topic / uid: %s, %x; %w", topic, uid, err)
+func (s *Client) GetLast(ctx context.Context, topic string) error {
+	if err := s.GetByPrefix(ctx, topic, Prefix{Limit: 1}, NewOptionOrder(true)); err != nil {
+		return fmt.Errorf("error getting last; %w", err)
 	}
 	return nil
 }
 
-func (s *Client) GetSingleContext(ctx context.Context, topic string, uid []byte) error {
+func (s *Client) GetAll(ctx context.Context, topic string, start []byte, opts ...Option) error {
+	if err := s.GetByPrefix(ctx, topic, Prefix{Start: start}, opts...); err != nil {
+		return fmt.Errorf("error getting all; %w", err)
+	}
+	return nil
+}
+
+func (s *Client) GetSingle(ctx context.Context, topic string, uid []byte) error {
 	if err := s.SetConn(); err != nil {
 		return fmt.Errorf("error setting connection; %w", err)
 	}
@@ -168,29 +169,39 @@ func (s *Client) GetSingleContext(ctx context.Context, topic string, uid []byte)
 	return nil
 }
 
-func (s *Client) GetLarge(topic string, start []byte, wait bool, newest bool) error {
-	if err := s.GetWOpts(Opts{
-		Topic:  topic,
-		Start:  start,
-		Wait:   wait,
-		Max:    LargeLimit,
-		Newest: newest,
+func (s *Client) GetNext(ctx context.Context, topic string, start []byte) error {
+	startPlusOne := jutil.CombineBytes(start, []byte{0x0})
+	if err := s.GetByPrefix(ctx, topic, Prefix{
+		Start: startPlusOne,
+		Limit: 1,
 	}); err != nil {
-		return fmt.Errorf("error getting with opts; %w", err)
+		return fmt.Errorf("error getting next with prefix; %w", err)
 	}
 	return nil
 }
 
-func (s *Client) GetNext(topic string, start []byte, wait bool, newest bool) error {
-	startPlusOne := jutil.CombineBytes(start, []byte{0x0})
-	if err := s.GetWOpts(Opts{
-		Topic:  topic,
-		Start:  startPlusOne,
-		Wait:   wait,
-		Max:    1,
-		Newest: newest,
-	}); err != nil {
-		return fmt.Errorf("error getting next with opts; %w", err)
+func (s *Client) GetSpecific(ctx context.Context, topic string, uids [][]byte) error {
+	if err := s.SetConn(); err != nil {
+		return fmt.Errorf("error setting connection; %w", err)
+	}
+	c := queue_pb.NewQueueClient(s.conn)
+	ctx, cancel := context.WithTimeout(ctx, DefaultGetTimeout)
+	defer cancel()
+	messages, err := c.GetMessages(ctx, &queue_pb.Request{
+		Topic: topic,
+		Uids:  uids,
+	})
+	if err != nil {
+		return fmt.Errorf("error getting specific message rpc; %w", err)
+	} else if messages == nil {
+		return fmt.Errorf("error getting specific message rpc; %w", MessageNotSetError)
+	}
+	for _, message := range messages.Messages {
+		s.Messages = append(s.Messages, Message{
+			Topic:   message.Topic,
+			Uid:     message.Uid,
+			Message: message.Message,
+		})
 	}
 	return nil
 }
@@ -201,137 +212,19 @@ type Opts struct {
 	Prefixes [][]byte
 	Max      uint32
 	Uids     [][]byte
-	Wait     bool
 	Newest   bool
 	Context  context.Context
-	Timeout  time.Duration
-}
-
-func (s *Client) GetWOpts(opts Opts) error {
-	var optGroups []Opts
-	if len(opts.Prefixes) > ExLargeLimit {
-		for i := 0; i < len(opts.Prefixes); i += ExLargeLimit {
-			end := i + ExLargeLimit
-			if end > len(opts.Prefixes) {
-				end = len(opts.Prefixes)
-			}
-			optGroups = append(optGroups, Opts{
-				Topic:    opts.Topic,
-				Start:    opts.Start,
-				Prefixes: opts.Prefixes[i:end],
-				Max:      opts.Max,
-				Uids:     opts.Uids,
-				Wait:     opts.Wait,
-				Newest:   opts.Newest,
-			})
-		}
-	} else if len(opts.Uids) > ExLargeLimit {
-		for i := 0; i < len(opts.Uids); i += ExLargeLimit {
-			end := i + ExLargeLimit
-			if end > len(opts.Uids) {
-				end = len(opts.Uids)
-			}
-			optGroups = append(optGroups, Opts{
-				Topic:    opts.Topic,
-				Prefixes: opts.Prefixes,
-				Start:    opts.Start,
-				Max:      opts.Max,
-				Uids:     opts.Uids[i:end],
-				Wait:     opts.Wait,
-				Newest:   opts.Newest,
-			})
-		}
-	} else {
-		optGroups = []Opts{opts}
-	}
-	if err := s.SetConn(); err != nil {
-		return fmt.Errorf("error setting connection; %w", err)
-	}
-	var timeout time.Duration
-	if opts.Timeout > 0 {
-		timeout = opts.Timeout
-	} else if !opts.Wait {
-		timeout = DefaultGetTimeout
-	} else {
-		timeout = DefaultWaitTimeout
-	}
-	c := queue_pb.NewQueueClient(s.conn)
-	var bgCtx = opts.Context
-	if jutil.IsNil(bgCtx) {
-		bgCtx = context.Background()
-	}
-	ctx, cancel := context.WithTimeout(bgCtx, timeout)
-	defer cancel()
-	s.Messages = nil
-	for _, optGroup := range optGroups {
-		message, err := c.GetMessages(ctx, &queue_pb.Request{
-			Topic:    optGroup.Topic,
-			Prefixes: optGroup.Prefixes,
-			Start:    optGroup.Start,
-			Max:      optGroup.Max,
-			Uids:     optGroup.Uids,
-			Wait:     optGroup.Wait,
-			Newest:   optGroup.Newest,
-		}, grpc.MaxCallRecvMsgSize(MaxMessageSize))
-		if err != nil {
-			return fmt.Errorf("error getting messages rpc; %w", err)
-		}
-		var messages = make([]Message, len(message.Messages))
-		for i := range message.Messages {
-			messages[i] = Message{
-				Topic:   message.Messages[i].Topic,
-				Uid:     message.Messages[i].Uid,
-				Message: message.Messages[i].Message,
-			}
-		}
-		s.Messages = append(s.Messages, messages...)
-	}
-	return nil
-}
-
-func (s *Client) GetTopicList() error {
-	if err := s.SetConn(); err != nil {
-		return fmt.Errorf("error setting connection; %w", err)
-	}
-	c := queue_pb.NewQueueClient(s.conn)
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultGetTimeout)
-	defer cancel()
-	topicList, err := c.GetTopicList(ctx, new(queue_pb.EmptyRequest))
-	if err != nil {
-		return fmt.Errorf("error getting topic list; %w", err)
-	}
-	var topics = make([]Topic, len(topicList.Topics))
-	for i := range topicList.Topics {
-		topics[i] = Topic{
-			Name: topicList.Topics[i].Name,
-			Size: topicList.Topics[i].Count,
-		}
-	}
-	s.Topics = topics
-	return nil
 }
 
 func (s *Client) Listen(ctx context.Context, topic string, prefixes [][]byte) (chan *Message, error) {
-	messageChan, err := s.ListenOpts(Opts{
-		Context:  ctx,
-		Topic:    topic,
-		Prefixes: prefixes,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error getting message chan with opts; %w", err)
-	}
-	return messageChan, nil
-}
-
-func (s *Client) ListenOpts(opts Opts) (chan *Message, error) {
 	if err := s.SetConn(); err != nil {
 		return nil, fmt.Errorf("error setting connection; %w", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
-	ctx, cancel := context.WithTimeout(opts.Context, DefaultStreamTimeout)
+	ctx, cancel := context.WithTimeout(ctx, DefaultStreamTimeout)
 	var request = &queue_pb.RequestStream{
-		Topic:    opts.Topic,
-		Prefixes: opts.Prefixes,
+		Topic:    topic,
+		Prefixes: prefixes,
 	}
 	stream, err := c.GetStreamMessages(ctx, request)
 	if err != nil {

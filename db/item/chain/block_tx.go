@@ -55,11 +55,11 @@ func GetBlockTxUid(blockHash [32]byte, index uint32) []byte {
 	)
 }
 
-func GetBlockTx(blockHash [32]byte, index uint32) (*BlockTx, error) {
+func GetBlockTx(ctx context.Context, blockHash [32]byte, index uint32) (*BlockTx, error) {
 	shard := client.GenShardSource32(blockHash[:])
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetSingle(db.TopicChainBlockTx, GetBlockTxUid(blockHash, index)); err != nil {
+	if err := dbClient.GetSingle(ctx, db.TopicChainBlockTx, GetBlockTxUid(blockHash, index)); err != nil {
 		return nil, fmt.Errorf("error getting client message chain block tx single; %w", err)
 	}
 	if len(dbClient.Messages) != 1 {
@@ -91,12 +91,10 @@ func GetBlockTxs(request BlockTxsRequest) ([]*BlockTx, error) {
 	if request.StartIndex > 0 {
 		startUid = GetBlockTxUid(request.BlockHash, request.StartIndex)
 	}
-	if err := dbClient.GetWOpts(client.Opts{
-		Topic:    db.TopicChainBlockTx,
-		Prefixes: [][]byte{jutil.ByteReverse(request.BlockHash[:])},
-		Start:    startUid,
-		Max:      limit,
-		Context:  request.Context,
+	if err := dbClient.GetByPrefix(request.Context, db.TopicChainBlockTx, client.Prefix{
+		Prefix: jutil.ByteReverse(request.BlockHash[:]),
+		Start:  startUid,
+		Limit:  limit,
 	}); err != nil {
 		return nil, fmt.Errorf("error getting client message; %w", err)
 	}

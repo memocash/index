@@ -36,13 +36,12 @@ func (b *Block) Serialize() []byte {
 
 func (b *Block) Deserialize(data []byte) {
 	b.Raw = data
-
 }
 
-func GetBlock(blockHash [32]byte) (*Block, error) {
+func GetBlock(ctx context.Context, blockHash [32]byte) (*Block, error) {
 	shardConfig := config.GetShardConfig(client.GenShardSource32(blockHash[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetSingle(db.TopicChainBlock, jutil.ByteReverse(blockHash[:])); err != nil {
+	if err := dbClient.GetSingle(ctx, db.TopicChainBlock, jutil.ByteReverse(blockHash[:])); err != nil {
 		return nil, fmt.Errorf("error getting client message block; %w", err)
 	}
 	if len(dbClient.Messages) != 1 {

@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/config"
 	"time"
 )
 
@@ -52,30 +51,16 @@ func (p *AddrProfilePic) Deserialize(data []byte) {
 }
 
 func GetAddrProfilePics(ctx context.Context, addrs [][25]byte) ([]*AddrProfilePic, error) {
-	var shardPrefixes = make(map[uint32][][]byte)
-	for i := range addrs {
-		shard := db.GetShardIdFromByte32(addrs[i][:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
+	shardPrefixes := db.ShardPrefixesAddrs(addrs)
+	var opts = []client.Option{client.OptionSinglePrefixLimit(), client.OptionNewest()}
+	messages, err := db.GetByPrefixes(ctx, db.TopicMemoAddrProfilePic, shardPrefixes, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error getting db addr memo profile pics by prefix; %w", err)
 	}
-	shardConfigs := config.GetQueueShards()
-	var addrProfilePics []*AddrProfilePic
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicMemoAddrProfilePic,
-			Prefixes: prefixes,
-			Max:      1,
-			Newest:   true,
-			Context:  ctx,
-		}); err != nil {
-			return nil, fmt.Errorf("error getting db addr memo profile pics by prefix; %w", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var addrProfilePic = new(AddrProfilePic)
-			db.Set(addrProfilePic, msg)
-			addrProfilePics = append(addrProfilePics, addrProfilePic)
-		}
+	var addrProfilePics = make([]*AddrProfilePic, len(messages))
+	for i := range messages {
+		addrProfilePics[i] = new(AddrProfilePic)
+		db.Set(addrProfilePics[i], messages[i])
 	}
 	return addrProfilePics, nil
 }

@@ -1,12 +1,12 @@
 package memo
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/config"
 )
 
 type LikeTip struct {
@@ -46,24 +46,15 @@ func (t *LikeTip) Deserialize(data []byte) {
 	t.Tip = jutil.GetInt64(data)
 }
 
-func GetLikeTips(likeTxHashes [][32]byte) ([]*LikeTip, error) {
-	var shardPrefixes = make(map[uint32][][]byte)
-	for i := range likeTxHashes {
-		shard := db.GetShardIdFromByte32(likeTxHashes[i][:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(likeTxHashes[i][:]))
+func GetLikeTips(ctx context.Context, likeTxHashes [][32]byte) ([]*LikeTip, error) {
+	messages, err := db.GetByPrefixes(ctx, db.TopicMemoLikeTip, db.ShardPrefixesTxHashes(likeTxHashes))
+	if err != nil {
+		return nil, fmt.Errorf("error getting client messages memo like tips; %w", err)
 	}
-	var likeTips []*LikeTip
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetByPrefixes(db.TopicMemoLikeTip, prefixes); err != nil {
-			return nil, fmt.Errorf("error getting client message memo like tips; %w", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var likeTip = new(LikeTip)
-			db.Set(likeTip, msg)
-			likeTips = append(likeTips, likeTip)
-		}
+	var likeTips = make([]*LikeTip, len(messages))
+	for i := range messages {
+		likeTips[i] = new(LikeTip)
+		db.Set(likeTips[i], messages[i])
 	}
 	return likeTips, nil
 }

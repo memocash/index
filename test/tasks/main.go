@@ -12,6 +12,5 @@ func GetTests() []suite.Test {
 	return []suite.Test{
 		SaveMessage,
 		queueTest,
-		waitTest,
 	}
 }
