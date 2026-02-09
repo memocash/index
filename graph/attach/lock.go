@@ -3,12 +3,13 @@ package attach
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"time"
 )
 
 type Lock struct {
@@ -69,6 +70,7 @@ func (l *Lock) AttachTxs() {
 	txsField := l.Fields.GetField("txs")
 	startDate, _ := model.UnmarshalDate(txsField.Arguments["start"])
 	startTx, _ := txsField.Arguments["tx"].(string)
+	limit, _ := model.UnmarshalUint32(txsField.Arguments["limit"])
 	var allTxs []*model.Tx
 	for _, lock := range l.Locks {
 		var startUid []byte
@@ -83,7 +85,7 @@ func (l *Lock) AttachTxs() {
 				startUid = append(startUid, jutil.ByteReverse(txHash[:])...)
 			}
 		}
-		seenTxs, err := addr.GetSeenTxs(l.Ctx, lock.Address, startUid)
+		seenTxs, err := addr.GetSeenTxs(l.Ctx, lock.Address, startUid, uint32(limit))
 		if err != nil {
 			l.AddError(fmt.Errorf("error getting addr seen txs for lock txs resolver; %w", err))
 			return

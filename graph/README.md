@@ -1,8 +1,12 @@
 # GQL Gen
 
 ```bash
-go get github.com/99designs/gqlgen@v0.17.20
-go generate ./...
+# Run generator from repo root
+GOFLAGS=-mod=mod go run github.com/99designs/gqlgen generate --config graph/gqlgen.yml
+
+# Clean up extra generated files (only graph/generated/generated.go is needed)
+rm -f graph/model/models_gen.go
+rm -rf resolver/
 ```
 
 ### Adding field resolvers

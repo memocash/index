@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/memocash/index/ref/bitcoin/memo"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
 type History []AddrTxs
@@ -27,8 +28,8 @@ type AddrTxs struct {
 	Txs     []Tx
 }
 
-func GetHistory(url string, addressUpdates []AddressUpdate) (History, error) {
-	jsonValue, err := GetHistoryQuery(addressUpdates)
+func GetHistory(url string, addressUpdates []AddressUpdate, limit uint32) (History, error) {
+	jsonValue, err := GetHistoryQuery(addressUpdates, limit)
 	if err != nil {
 		return nil, fmt.Errorf("error getting history query; %w", err)
 	}
@@ -155,24 +156,35 @@ const txQuery = `{
 	}
 }`
 
-func GetHistoryQuery(addressUpdates []AddressUpdate) ([]byte, error) {
+func GetHistoryQuery(addressUpdates []AddressUpdate, limit uint32) ([]byte, error) {
 	var variables = make(map[string]interface{})
 	var paramsStrings []string
 	var subQueries []string
+	if limit > 0 {
+		variables["limit"] = limit
+		paramsStrings = append(paramsStrings, "$limit: Uint32")
+	}
 	for i, addressUpdate := range addressUpdates {
 		variables[fmt.Sprintf("address%d", i)] = addressUpdate.Address.String()
 		var paramString = fmt.Sprintf("$address%d: Address!", i)
-		var startString string
+		var txsArgs []string
 		if addressUpdate.Time.After(memo.GetGenesisTime()) {
 			variables[fmt.Sprintf("start%d", i)] = addressUpdate.Time.Format(time.RFC3339Nano)
 			paramString += fmt.Sprintf(", $start%d: Date", i)
-			startString = fmt.Sprintf("(start: $start%d)", i)
+			txsArgs = append(txsArgs, fmt.Sprintf("start: $start%d", i))
+		}
+		if limit > 0 {
+			txsArgs = append(txsArgs, "limit: $limit")
+		}
+		var txsArgString string
+		if len(txsArgs) > 0 {
+			txsArgString = "(" + strings.Join(txsArgs, ", ") + ")"
 		}
 		paramsStrings = append(paramsStrings, paramString)
 		subQueries = append(subQueries, fmt.Sprintf(`address%d: address(address: $address%d) {
 			address
 			txs%s %s
-		}`, i, i, startString, txQuery))
+		}`, i, i, txsArgString, txQuery))
 	}
 	var query = fmt.Sprintf("query (%s) { %s }", strings.Join(paramsStrings, ", "), strings.Join(subQueries, "\n"))
 	jsonData := map[string]interface{}{

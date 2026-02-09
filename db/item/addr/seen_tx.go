@@ -47,7 +47,10 @@ func (i *SeenTx) Serialize() []byte {
 
 func (i *SeenTx) Deserialize([]byte) {}
 
-func GetSeenTxs(ctx context.Context, addr [25]byte, start []byte) ([]*SeenTx, error) {
+func GetSeenTxs(ctx context.Context, addr [25]byte, start []byte, limit uint32) ([]*SeenTx, error) {
+	if limit == 0 || limit > uint32(client.ExLargeLimit) {
+		limit = uint32(client.ExLargeLimit)
+	}
 	shardConfig := config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	if err := dbClient.GetWOpts(client.Opts{
@@ -55,7 +58,7 @@ func GetSeenTxs(ctx context.Context, addr [25]byte, start []byte) ([]*SeenTx, er
 		Topic:    db.TopicAddrSeenTx,
 		Start:    start,
 		Prefixes: [][]byte{addr[:]},
-		Max:      client.ExLargeLimit,
+		Max:      limit,
 	}); err != nil {
 		return nil, fmt.Errorf("error getting db addr seen txs by prefix; %w", err)
 	}
