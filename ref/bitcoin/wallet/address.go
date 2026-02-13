@@ -297,7 +297,11 @@ func (a Address) GetPkHash() []byte {
 }
 
 func (a Address) GetAddr() Addr {
-	b := append([]byte{0x00}, a.GetPkHash()...)
+	var version byte
+	if a.IsP2SH() {
+		version = AddrVersionP2SH
+	}
+	b := append([]byte{version}, a.GetPkHash()...)
 	var r [25]byte
 	copy(r[:], append(b, chainhash.DoubleHashB(b)[:4]...))
 	return r
