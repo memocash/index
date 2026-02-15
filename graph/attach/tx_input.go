@@ -6,6 +6,8 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"log"
+	"time"
 )
 
 type Inputs struct {
@@ -14,6 +16,7 @@ type Inputs struct {
 }
 
 func ToInputs(ctx context.Context, fields []Field, inputs []*model.TxInput) error {
+	start := time.Now()
 	i := Inputs{
 		base:   base{Ctx: ctx, Fields: fields},
 		Inputs: inputs,
@@ -26,6 +29,7 @@ func ToInputs(ctx context.Context, fields []Field, inputs []*model.TxInput) erro
 	if len(i.Errors) > 0 {
 		return fmt.Errorf("error attaching to inputs; %w", i.Errors[0])
 	}
+	log.Printf("[timing] ToInputs total=%s inputs=%d", time.Since(start), len(inputs))
 	return nil
 }
 
@@ -73,6 +77,7 @@ func (i *Inputs) AttachTxs() {
 	if !i.HasField([]string{"tx"}) {
 		return
 	}
+	start := time.Now()
 	var allTxs []*model.Tx
 	i.Mutex.Lock()
 	for j := range i.Inputs {
@@ -84,6 +89,7 @@ func (i *Inputs) AttachTxs() {
 		i.AddError(fmt.Errorf("error attaching to txs for model tx inputs; %w", err))
 		return
 	}
+	log.Printf("[timing] Inputs.AttachTxs total=%s txs=%d", time.Since(start), len(allTxs))
 }
 
 func (i *Inputs) AttachTxOutputs() {

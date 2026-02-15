@@ -8,7 +8,9 @@ import (
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"log"
 	"sync"
+	"time"
 )
 
 type Outputs struct {
@@ -21,6 +23,7 @@ func ToOutputs(ctx context.Context, fields Fields, outputs []*model.TxOutput) er
 	if len(outputs) == 0 {
 		return nil
 	}
+	start := time.Now()
 	o := Outputs{
 		base:    base{Ctx: ctx, Fields: fields},
 		Outputs: outputs,
@@ -38,6 +41,7 @@ func ToOutputs(ctx context.Context, fields Fields, outputs []*model.TxOutput) er
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to outputs; %w", o.Errors[0])
 	}
+	log.Printf("[timing] ToOutputs total=%s outputs=%d", time.Since(start), len(outputs))
 	return nil
 }
 
@@ -90,12 +94,14 @@ func (o *Outputs) AttachSpends() {
 	if !o.HasField([]string{"spends"}) {
 		return
 	}
+	start := time.Now()
 	outs := o.GetOuts(false)
 	spends, err := chain.GetOutputInputs(o.Ctx, outs)
 	if err != nil {
 		o.AddError(fmt.Errorf("error getting tx inputs spends for model tx outputs; %w", err))
 		return
 	}
+	dbDone := time.Since(start)
 	var allSpends []*model.TxInput
 	o.Mutex.Lock()
 	for i := range o.Outputs {
@@ -117,6 +123,7 @@ func (o *Outputs) AttachSpends() {
 		o.AddError(fmt.Errorf("error attaching to tx inputs spends for model tx outputs; %w", err))
 		return
 	}
+	log.Printf("[timing] Outputs.AttachSpends db=%s total=%s outs=%d spends=%d", dbDone, time.Since(start), len(outs), len(allSpends))
 }
 
 func (o *Outputs) AttachSlps() {

@@ -9,6 +9,7 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
+	"log"
 	"sort"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ type Tx struct {
 }
 
 func ToTxs(ctx context.Context, fields []Field, txs []*model.Tx) error {
+	start := time.Now()
 	t := Tx{
 		base: base{Ctx: ctx, Fields: fields},
 		Txs:  txs,
@@ -38,6 +40,7 @@ func ToTxs(ctx context.Context, fields []Field, txs []*model.Tx) error {
 	if len(t.Errors) > 0 {
 		return fmt.Errorf("error attaching details to txs; %w", t.Errors[0])
 	}
+	log.Printf("[timing] ToTxs total=%s txs=%d", time.Since(start), len(txs))
 	return nil
 }
 
@@ -61,12 +64,14 @@ func (t *Tx) AttachInputs() {
 	if !t.HasField([]string{"inputs", "raw"}) {
 		return
 	}
+	start := time.Now()
 	txHashes := t.GetTxHashes(false, false)
 	txInputs, err := chain.GetTxInputsByHashes(t.Ctx, txHashes)
 	if err != nil {
 		t.AddError(fmt.Errorf("error getting tx inputs for model tx; %w", err))
 		return
 	}
+	dbDone := time.Since(start)
 	var allInputs []*model.TxInput
 	t.Mutex.Lock()
 	for i := range t.Txs {
@@ -93,6 +98,7 @@ func (t *Tx) AttachInputs() {
 		t.AddError(fmt.Errorf("error attaching to inputs for tx; %w", err))
 		return
 	}
+	log.Printf("[timing] Tx.AttachInputs db=%s total=%s hashes=%d inputs=%d", dbDone, time.Since(start), len(txHashes), len(allInputs))
 }
 
 func (t *Tx) AttachOutputs() {
@@ -103,14 +109,17 @@ func (t *Tx) AttachOutputs() {
 	if !t.HasField([]string{"outputs", "raw"}) {
 		return
 	}
+	start := time.Now()
 	txHashes := t.GetTxHashes(false, false)
 	txOutputs, err := chain.GetTxOutputsByHashes(t.Ctx, txHashes)
 	if err != nil {
 		t.AddError(fmt.Errorf("error getting tx outputs for model tx; %w", err))
 		return
 	}
+	dbDone := time.Since(start)
 	t.Mutex.Lock()
 	defer t.Mutex.Unlock()
+	var totalOutputs int
 	for i := range t.Txs {
 		for j := range txOutputs {
 			if t.Txs[i].Hash != txOutputs[j].TxHash {
@@ -123,14 +132,17 @@ func (t *Tx) AttachOutputs() {
 				Script: txOutputs[j].LockScript,
 			})
 		}
+		totalOutputs += len(t.Txs[i].Outputs)
 		sort.Slice(t.Txs[i].Outputs, func(a, b int) bool {
 			return t.Txs[i].Outputs[a].Index < t.Txs[i].Outputs[b].Index
 		})
 	}
+	log.Printf("[timing] Tx.AttachOutputs db=%s total=%s hashes=%d outputs=%d", dbDone, time.Since(start), len(txHashes), totalOutputs)
 }
 
 func (t *Tx) AttachToOutputs() {
 	defer t.Wait.Done()
+	start := time.Now()
 	var allOutputs []*model.TxOutput
 	t.Mutex.Lock()
 	for _, tx := range t.Txs {
@@ -141,6 +153,7 @@ func (t *Tx) AttachToOutputs() {
 		t.AddError(fmt.Errorf("error attaching to outputs for tx; %w", err))
 		return
 	}
+	log.Printf("[timing] Tx.AttachToOutputs total=%s outputs=%d", time.Since(start), len(allOutputs))
 }
 
 func (t *Tx) AttachInfo() {
@@ -148,6 +161,7 @@ func (t *Tx) AttachInfo() {
 	if !t.HasField([]string{"version", "locktime", "raw"}) {
 		return
 	}
+	start := time.Now()
 	txHashes := t.GetTxHashes(true, false)
 	if len(txHashes) == 0 {
 		return
@@ -169,6 +183,7 @@ func (t *Tx) AttachInfo() {
 			break
 		}
 	}
+	log.Printf("[timing] Tx.AttachInfo db=%s hashes=%d", time.Since(start), len(txHashes))
 }
 
 var TxMissingError = fmt.Errorf("error tx missing")
@@ -218,6 +233,7 @@ func (t *Tx) AttachSeens() {
 	if !t.HasField([]string{"seen"}) {
 		return
 	}
+	start := time.Now()
 	txHashes := t.GetTxHashes(false, true)
 	if len(txHashes) == 0 {
 		return
@@ -238,6 +254,7 @@ func (t *Tx) AttachSeens() {
 			break
 		}
 	}
+	log.Printf("[timing] Tx.AttachSeens db=%s hashes=%d", time.Since(start), len(txHashes))
 }
 
 func (t *Tx) AttachBlocks() {
@@ -245,12 +262,14 @@ func (t *Tx) AttachBlocks() {
 	if !t.HasField([]string{"blocks"}) {
 		return
 	}
+	start := time.Now()
 	txHashes := t.GetTxHashes(false, false)
 	txBlocks, err := chain.GetTxBlocks(t.Ctx, txHashes)
 	if err != nil {
 		t.AddError(fmt.Errorf("error getting blocks for tx for block loader; %w", err))
 		return
 	}
+	dbDone := time.Since(start)
 	var allBlocks []*model.Block
 	t.Mutex.Lock()
 	for i := range t.Txs {
@@ -277,4 +296,5 @@ func (t *Tx) AttachBlocks() {
 		t.AddError(fmt.Errorf("error attaching to blocks for tx; %w", err))
 		return
 	}
+	log.Printf("[timing] Tx.AttachBlocks db=%s total=%s hashes=%d blocks=%d", dbDone, time.Since(start), len(txHashes), len(allBlocks))
 }

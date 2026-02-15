@@ -3,6 +3,7 @@ package attach
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -65,6 +66,7 @@ func (l *Lock) AttachTxs() {
 	if !l.HasField([]string{"txs"}) {
 		return
 	}
+	start := time.Now()
 	l.Mutex.Lock()
 	defer l.Mutex.Unlock()
 	txsField := l.Fields.GetField("txs")
@@ -99,8 +101,10 @@ func (l *Lock) AttachTxs() {
 		}
 		allTxs = append(allTxs, lock.Txs...)
 	}
+	seenDone := time.Since(start)
 	if err := ToTxs(l.Ctx, txsField.Fields, allTxs); err != nil {
 		l.AddError(fmt.Errorf("error attaching to lock transactions; %w", err))
 		return
 	}
+	log.Printf("[timing] Lock.AttachTxs seenTxs=%s total=%s txs=%d", seenDone, time.Since(start), len(allTxs))
 }
