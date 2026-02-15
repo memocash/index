@@ -7,7 +7,9 @@ import (
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/ref/config"
+	"log"
 	"sync"
+	"time"
 )
 
 func GetItem(obj Object) error {
@@ -61,6 +63,7 @@ func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byt
 }
 
 func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][][]byte) ([]client.Message, error) {
+	start := time.Now()
 	wait := NewWait(len(shardPrefixes))
 	var messages []client.Message
 	for shardT, prefixesT := range shardPrefixes {
@@ -69,6 +72,7 @@ func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][
 			prefixes = jutil.RemoveDupesAndEmpties(prefixes)
 			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 			dbClient := client.NewClient(shardConfig.GetHost())
+			batch := 0
 			for len(prefixes) > 0 {
 				var prefixesToUse [][]byte
 				if len(prefixes) > client.HugeLimit {
@@ -76,6 +80,7 @@ func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][
 				} else {
 					prefixesToUse, prefixes = prefixes, nil
 				}
+				batchStart := time.Now()
 				if err := dbClient.GetWOpts(client.Opts{
 					Context:  ctx,
 					Topic:    topic,
@@ -84,6 +89,9 @@ func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][
 					wait.AddError(fmt.Errorf("error getting client message get by prefixes; %w", err))
 					return
 				}
+				log.Printf("[timing] GetByPrefixes shard=%d batch=%d prefixes=%d results=%d time=%s topic=%s",
+					shard, batch, len(prefixesToUse), len(dbClient.Messages), time.Since(batchStart), topic)
+				batch++
 				wait.Lock.Lock()
 				messages = append(messages, dbClient.Messages...)
 				wait.Lock.Unlock()
@@ -94,7 +102,17 @@ func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][
 	if len(wait.Errs) > 0 {
 		return nil, fmt.Errorf("error getting prefix messages; %w", jerr.Combine(wait.Errs...))
 	}
+	log.Printf("[timing] GetByPrefixes total=%s shards=%d totalPrefixes=%d totalResults=%d topic=%s",
+		time.Since(start), len(shardPrefixes), countPrefixes(shardPrefixes), len(messages), topic)
 	return messages, nil
+}
+
+func countPrefixes(shardPrefixes map[uint32][][]byte) int {
+	var total int
+	for _, prefixes := range shardPrefixes {
+		total += len(prefixes)
+	}
+	return total
 }
 
 func ListenPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][][]byte) (chan *client.Message, error) {

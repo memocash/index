@@ -263,7 +263,8 @@ func (s *Client) GetWOpts(opts Opts) error {
 	ctx, cancel := context.WithTimeout(bgCtx, timeout)
 	defer cancel()
 	s.Messages = nil
-	for _, optGroup := range optGroups {
+	for gi, optGroup := range optGroups {
+		grpcStart := time.Now()
 		message, err := c.GetMessages(ctx, &queue_pb.Request{
 			Topic:    optGroup.Topic,
 			Prefixes: optGroup.Prefixes,
@@ -283,6 +284,10 @@ func (s *Client) GetWOpts(opts Opts) error {
 				Uid:     message.Messages[i].Uid,
 				Message: message.Messages[i].Message,
 			}
+		}
+		if len(optGroup.Prefixes) > 100 || len(optGroup.Uids) > 100 {
+			log.Printf("[timing] GetWOpts grpc group=%d/%d prefixes=%d uids=%d results=%d time=%s topic=%s host=%s",
+				gi, len(optGroups), len(optGroup.Prefixes), len(optGroup.Uids), len(messages), time.Since(grpcStart), optGroup.Topic, s.host)
 		}
 		s.Messages = append(s.Messages, messages...)
 	}
