@@ -209,9 +209,9 @@ type Opts struct {
 
 func (s *Client) GetWOpts(opts Opts) error {
 	var optGroups []Opts
-	if len(opts.Prefixes) > ExLargeLimit {
-		for i := 0; i < len(opts.Prefixes); i += ExLargeLimit {
-			end := i + ExLargeLimit
+	if len(opts.Prefixes) > HugeLimit {
+		for i := 0; i < len(opts.Prefixes); i += HugeLimit {
+			end := i + HugeLimit
 			if end > len(opts.Prefixes) {
 				end = len(opts.Prefixes)
 			}

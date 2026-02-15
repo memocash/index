@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/index/db/metric"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"sort"
 )
 
 type Message struct {
@@ -106,6 +107,9 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 			Quantity: len(messages),
 		})
 	}()
+	if !newest && len(start) == 0 && len(prefixes) > 1 {
+		return getMessagesSorted(db, prefixes, max)
+	}
 	for _, prefix := range prefixes {
 		var prefixMessages []*Message
 		iterRange := util.BytesPrefix(prefix)
@@ -136,6 +140,31 @@ func GetMessages(topic string, shard uint, prefixes [][]byte, start []byte, max 
 		if err = iter.Error(); err != nil {
 			return nil, fmt.Errorf("error with releasing iterator; %w", err)
 		}
+	}
+	return messages, nil
+}
+
+func getMessagesSorted(db *leveldb.DB, prefixes [][]byte, max int) ([]*Message, error) {
+	sorted := make([][]byte, len(prefixes))
+	copy(sorted, prefixes)
+	sort.Slice(sorted, func(i, j int) bool {
+		return bytes.Compare(sorted[i], sorted[j]) < 0
+	})
+	iter := db.NewIterator(nil, nil)
+	defer iter.Release()
+	var messages []*Message
+	for _, prefix := range sorted {
+		found := iter.Seek(prefix)
+		for count := 0; found && bytes.HasPrefix(iter.Key(), prefix) && count < max; found = iter.Next() {
+			messages = append(messages, &Message{
+				Uid:     GetPtrSlice(iter.Key()),
+				Message: GetPtrSlice(iter.Value()),
+			})
+			count++
+		}
+	}
+	if err := iter.Error(); err != nil {
+		return nil, fmt.Errorf("error with sorted iterator; %w", err)
 	}
 	return messages, nil
 }
