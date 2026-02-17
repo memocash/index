@@ -28,6 +28,7 @@ func GetCommand() *cobra.Command {
 		populateAddrInputsCmd,
 		populateSeenPostsCmd,
 		doubleSpendCmd,
+		randomDoubleSpendCmd,
 	)
 	return maintCommand
 }
