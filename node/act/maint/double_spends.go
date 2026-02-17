@@ -5,9 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/config"
 )
@@ -36,11 +34,11 @@ func (d *DoubleSpends) Check() error {
 				var prefix [36]byte
 				copy(prefix[:], msg.Uid[:36])
 				if prefix == prevPrefix {
-					var outputInput = new(chain.OutputInput)
+					/*var outputInput = new(chain.OutputInput)
 					db.Set(outputInput, msg)
 					log.Printf("Found double spend: %s:%d (spending: %s:%d)\n",
 						chainhash.Hash(outputInput.Hash), outputInput.Index,
-						chainhash.Hash(outputInput.PrevHash), outputInput.PrevIndex)
+						chainhash.Hash(outputInput.PrevHash), outputInput.PrevIndex)*/
 					d.DoubleSpends++
 				}
 				prevPrefix = prefix
