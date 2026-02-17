@@ -1,5 +1,11 @@
 .container {
     display: flex;
+    min-width: 0;
+}
+
+.container > * {
+    overflow-wrap: anywhere;
+    min-width: 0;
 }
 
 .width15 {
