@@ -45,9 +45,7 @@ export default function Page(props) {
 
     useEffect(() => {
         const prevSelect = localStorage.getItem(LocalStorageKey)
-        if (prevSelect && prevSelect.length) {
-            setSelect(prevSelect)
-        }
+        setSelect(prevSelect && prevSelect.length ? prevSelect : SelectValLive)
     }, [])
 
     return (

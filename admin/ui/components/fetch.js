@@ -1,4 +1,19 @@
-let host = ""
+import {DevHost, LiveHost, LiveSvHost} from "./config";
+
+function getInitialHost() {
+    if (typeof window === 'undefined') return DevHost
+    const val = localStorage.getItem("server-select")
+    switch (val) {
+        case "live":
+            return LiveHost
+        case "live-sv":
+            return LiveSvHost
+        default:
+            return LiveHost
+    }
+}
+
+let host = getInitialHost()
 
 export function setHost(newHost) {
     host = newHost

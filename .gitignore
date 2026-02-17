@@ -10,3 +10,6 @@ example.db
 /client/examples/example-linux
 .idea
 CLAUDE.md
+.claude/
+bun.lock
+/test-results/
