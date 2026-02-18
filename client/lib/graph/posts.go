@@ -25,7 +25,7 @@ func GetPosts(start time.Time) ([]*Post, error) {
 		}
 	}`
 	jsonData := map[string]interface{}{
-		"query": query,
+		"query":     query,
 		"variables": map[string]interface{}{"start": start.Format(time.RFC3339)},
 	}
 	jsonValue, err := json.Marshal(jsonData)
@@ -57,7 +57,7 @@ func GetPosts(start time.Time) ([]*Post, error) {
 		return nil, fmt.Errorf("error unmarshalling posts json; %w", err)
 	}
 	if len(dataStruct.Errors) > 0 {
-		return nil, fmt.Errorf("error index client posts response data; %w", fmt.Errorf(dataStruct.Errors[0].Message))
+		return nil, fmt.Errorf("error index client posts response data; %w", fmt.Errorf("%s", dataStruct.Errors[0].Message))
 	}
 	if posts, ok := dataStruct.Data["posts_newest"]; ok {
 		return posts, nil

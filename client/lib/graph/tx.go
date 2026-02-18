@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-
-
 func GetTx(hash string) (*Tx, error) {
 	const query = `
 	query ($hash: Hash!) {
@@ -71,7 +69,7 @@ func GetTx(hash string) (*Tx, error) {
 		return nil, fmt.Errorf("error unmarshalling json; %w", err)
 	}
 	if len(dataStruct.Errors) > 0 {
-		return nil, fmt.Errorf("error index client tx response data; %w", fmt.Errorf(dataStruct.Errors[0].Message))
+		return nil, fmt.Errorf("error index client tx response data; %w", fmt.Errorf("%s", dataStruct.Errors[0].Message))
 	}
 	if tx, ok := dataStruct.Data["tx"]; ok {
 		return &tx, nil

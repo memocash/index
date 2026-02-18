@@ -36,7 +36,7 @@ func TestMnemonicNoPassphrase(t *testing.T) {
 		t.FailNow()
 	}
 	if seed != MnemonicSeedNoPassphrase {
-		t.Error(fmt.Errorf(fmt.Sprintf("seed (%s) does not match expected (%s)", seed, MnemonicSeedNoPassphrase)))
+		t.Error(fmt.Errorf("seed (%s) does not match expected (%s)", seed, MnemonicSeedNoPassphrase))
 		t.FailNow()
 	}
 	fmt.Printf("- Seed without passphrase matches.\n  Seed:     %s\n  Expected: %s\n", seed, MnemonicSeedNoPassphrase)
@@ -58,7 +58,7 @@ func TestMnemonicWithPassphrase(t *testing.T) {
 		t.FailNow()
 	}
 	if seed != MnemonicSeedWithPassphrase {
-		t.Error(fmt.Errorf(fmt.Sprintf("seed (%s) does not match expected (%s)", seed, MnemonicSeedWithPassphrase)))
+		t.Error(fmt.Errorf("seed (%s) does not match expected (%s)", seed, MnemonicSeedWithPassphrase))
 		t.FailNow()
 	}
 	fmt.Printf("- Seed with passphrase matches.\n  Seed:     %s\n  Expected: %s\n", seed, MnemonicSeedWithPassphrase)
@@ -80,7 +80,7 @@ func TestMnemonic256(t *testing.T) {
 		t.FailNow()
 	}
 	if seed != Mnemonic256Seed {
-		t.Error(fmt.Errorf(fmt.Sprintf("seed (%s) does not match expected (%s)", seed, Mnemonic256Seed)))
+		t.Error(fmt.Errorf("seed (%s) does not match expected (%s)", seed, Mnemonic256Seed))
 		t.FailNow()
 	}
 	fmt.Printf("- Seed 256 matches.\n  Seed:     %s\n  Expected: %s\n", seed, Mnemonic256Seed)

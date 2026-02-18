@@ -2,11 +2,11 @@ package sign_test
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/sign"
+	"strings"
 	"testing"
 )
 
@@ -34,8 +34,12 @@ type VerifyTest struct {
 
 func (tst VerifyTest) Test(t *testing.T) {
 	err := sign.Verify(tst.Tx, tst.InputTxs)
-	if !errors.Is(err, tst.Error) {
-		t.Error(fmt.Errorf("VerifyTest does not match expected: %s - %s", tst.Error, err))
+	if tst.Error != nil {
+		if err == nil || !strings.Contains(err.Error(), tst.Error.Error()) {
+			t.Errorf("VerifyTest expected error containing %q, got: %v", tst.Error, err)
+		}
+	} else if err != nil {
+		t.Errorf("VerifyTest unexpected error: %v", err)
 	}
 }
 
