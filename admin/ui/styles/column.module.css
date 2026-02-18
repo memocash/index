@@ -1,5 +1,11 @@
 .container {
     display: flex;
+    min-width: 0;
+}
+
+.container > * {
+    overflow-wrap: anywhere;
+    min-width: 0;
 }
 
 .width15 {
@@ -47,11 +53,11 @@
 }
 
 .red {
-    color: red;
+    color: var(--color-red);
 }
 
 .orange {
-    color: orange;
+    color: var(--color-orange);
 }
 
 .bold {

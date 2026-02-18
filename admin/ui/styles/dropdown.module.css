@@ -1,9 +1,11 @@
 select.select {
     padding: 5px 10px;
-    border-color: #bbb;
+    border-color: var(--color-border-input);
     border-radius: 3px;
+    background-color: var(--color-bg);
+    color: var(--color-text);
 }
 select.select:active,
 select.select:focus {
-    border-color: #aaa;
+    border-color: var(--color-border-input-focus);
 }

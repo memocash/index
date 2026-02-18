@@ -1,9 +1,42 @@
+:root {
+  --color-bg: #ffffff;
+  --color-text: #000000;
+  --color-accent: #0070f3;
+  --color-border: #eaeaea;
+  --color-border-input: #bbb;
+  --color-border-input-focus: #aaa;
+  --color-code-bg: #fafafa;
+  --color-pagination-active: #ccc;
+  --color-pagination-hover: #f4f4f4;
+  --color-red: red;
+  --color-orange: orange;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1a1a1a;
+    --color-text: #e0e0e0;
+    --color-accent: #3b9eff;
+    --color-border: #333333;
+    --color-border-input: #555555;
+    --color-border-input-focus: #777777;
+    --color-code-bg: #2a2a2a;
+    --color-pagination-active: #444444;
+    --color-pagination-hover: #333333;
+    --color-red: #ff6b6b;
+    --color-orange: #ffa94d;
+  }
+}
+
 html,
 body {
   padding: 0;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
     Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  color-scheme: light dark;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
 a {
