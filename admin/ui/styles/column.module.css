@@ -53,11 +53,11 @@
 }
 
 .red {
-    color: red;
+    color: var(--color-red);
 }
 
 .orange {
-    color: orange;
+    color: var(--color-orange);
 }
 
 .bold {
