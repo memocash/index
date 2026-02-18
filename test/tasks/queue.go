@@ -2,7 +2,9 @@ package tasks
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/test/run/queue"
 	"github.com/memocash/index/test/suite"
@@ -76,7 +78,7 @@ var queueTest = suite.Test{
 			return fmt.Errorf("error adding items to queue; %w", err)
 		}
 		get := queue.NewGet(shard)
-		if err := get.GetByPrefixes(topic, [][]byte{[]byte("a"), []byte("c")}); err != nil {
+		if err := get.GetByPrefixes(context.Background(), topic, [][]byte{[]byte("a"), []byte("c")}); err != nil {
 			return fmt.Errorf("error getting by prefix; %w", err)
 		}
 		if err := checkExpectedItems(get.Items, expectedItems); err != nil {

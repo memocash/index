@@ -1,5 +1,5 @@
 type Lock {
     address: Address
     profile: Profile
-    txs(start: Date, tx: Hash): [Tx!]
+    txs(start: Date, tx: Hash, limit: Uint32): [Tx!]
 }

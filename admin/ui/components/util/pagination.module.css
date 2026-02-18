@@ -7,7 +7,7 @@ ul.pagination li {
     display: inline-block;
     border-width: 1px 0 1px 1px;
     border-style: solid;
-    border-color: #bbb;
+    border-color: var(--color-border-input);
 }
 
 ul.pagination li:first-of-type {
@@ -29,9 +29,9 @@ ul.pagination li.pageItem a.pageLinkActive {
 
 ul.pagination li.pageItem a.pageLinkActive {
     font-weight: bold;
-    background-color: #ccc;
+    background-color: var(--color-pagination-active);
 }
 
 ul.pagination a.pageLink:hover {
-    background-color: #f4f4f4;
+    background-color: var(--color-pagination-hover);
 }

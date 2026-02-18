@@ -12,6 +12,7 @@ import (
 type Client struct {
 	GraphUrl string
 	Database Database
+	TxLimit  uint32
 }
 
 func (c *Client) updateDb(addresses []wallet.Addr) error {
@@ -35,7 +36,7 @@ func (c *Client) updateDb(addresses []wallet.Addr) error {
 			break
 		}
 		prevLastUpdates = lastUpdates
-		history, err := graph.GetHistory(c.GraphUrl, lastUpdates)
+		history, err := graph.GetHistory(c.GraphUrl, lastUpdates, c.TxLimit)
 		if err != nil {
 			return fmt.Errorf("error getting history txs; %w", err)
 		}
