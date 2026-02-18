@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/build"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
@@ -22,6 +23,11 @@ func GetHashBytes(hash string) []byte {
 
 func GetAddressPkHash(address string) []byte {
 	return wallet.GetAddressFromString(address).GetPkHash()
+}
+
+func GetPkScript(address string) []byte {
+	pkScript, _ := script.P2pkh{PkHash: GetAddressPkHash(address)}.Get()
+	return pkScript
 }
 
 func GetPrivateKey(wif string) wallet.PrivateKey {

@@ -84,7 +84,7 @@ func TestUnsignedLike(t *testing.T) {
 
 func TestSignedLike(t *testing.T) {
 	Test{
-		Hash: "d4c01b19b50f249d04779bd7acc510026fb215bac9eaa61c4fe56f6a3693f8ca",
+		Hash: "985f3841672cfc1a61a547f9f98e0d618f4b5d90f4b6ed3d68597075c09ba9f4",
 		Sign: true,
 		Req: gen.TxRequest{
 			KeyRing: wallet.GetSingleKeyRing(test_tx.GetPrivateKey(test_tx.Key1String)),
@@ -97,7 +97,7 @@ func TestSignedLike(t *testing.T) {
 
 func TestMultiInput(t *testing.T) {
 	Test{
-		Hash: "1560058808f3ad3a3fe1e54939ce66459c4e98f7311464b3cbffae3173046da1",
+		Hash: "9dfe2ce5daf92c449c3dc620768b57004753d3331052ca302f70d1a0c1023393",
 		Sign: true,
 		Req: gen.TxRequest{
 			KeyRing: wallet.KeyRing{Keys: []wallet.PrivateKey{

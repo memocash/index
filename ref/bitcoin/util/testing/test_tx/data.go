@@ -228,6 +228,7 @@ func GetUTXO(value int64) memo.UTXO {
 	utxoIndex++
 	return memo.UTXO{
 		Input: memo.TxInput{
+			PkScript:     GetPkScript(Address1String),
 			PkHash:       Address1pkHash,
 			PrevOutHash:  HashEmptyTx,
 			PrevOutIndex: indexToUse,
@@ -402,6 +403,7 @@ var UtxosAddress1twoRegularWithToken = []memo.UTXO{{
 
 var Address2InputUtxo100k = memo.UTXO{
 	Input: memo.TxInput{
+		PkScript:     GetPkScript(Address2String),
 		PkHash:       Address2pkHash,
 		PrevOutHash:  Hash2FundTx,
 		PrevOutIndex: 2,

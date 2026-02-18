@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
-	"log"
 )
 
 type TxInfo struct {
@@ -87,9 +88,9 @@ func (t TxInfo) PrintVerbose() {
 			"    requiredSigs: %d\n",
 			out.Address.Address, out.Address.ScriptClass, out.Address.RequiredSigs)
 	}
-	txnInfo += fmt.Sprintf("TxSize: %d, InputValue: %d, Fee: %d, OutputValue: %d, Change: %d\n",
+	txnInfo += fmt.Sprintf("TxSize: %d, InputValue: %d, Fee: %d, OutputValue: %d, Change: %d",
 		t.Size, t.TotalInputValue, t.Fee, t.OutputValue, t.Change)
-	fmt.Printf(txnInfo)
+	fmt.Println(txnInfo)
 }
 
 type TxInfoInput struct {
