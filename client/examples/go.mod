@@ -2,13 +2,13 @@ module example
 
 replace github.com/memocash/index => ../../
 
-go 1.19
+go 1.24.0
 
 require (
 	github.com/jchavannes/btcd v1.1.5-0.20230112162803-412def37b600
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/memocash/index v0.0.0-00010101000000-000000000000
-	golang.org/x/term v0.20.0
+	golang.org/x/term v0.37.0
 )
 
 require (
@@ -22,7 +22,7 @@ require (
 	github.com/jchavannes/jgo v0.0.0-20240515195449-361d07b9e227 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/tyler-smith/go-bip32 v1.0.0 // indirect
-	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 )
