@@ -6,8 +6,8 @@ import (
 	"log"
 )
 
-var allCmd = &cobra.Command{
-	Use: "all",
+var devCmd = &cobra.Command{
+	Use: "dev",
 	Run: func(c *cobra.Command, args []string) {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
 		server := run.NewServer(c.Context(), true, verbose)
