@@ -12,6 +12,28 @@ go build
 ./index serve live
 ```
 
+## Architecture
+
+```mermaid
+graph TD
+    BCH[BCH Node] <-->|P2P| Lead[Lead Processor]
+    Lead -->|Blocks/Txs| CS[Cluster Shards]
+
+    subgraph Shard["Each Shard (0..N)"]
+        CS --> Queue[Queue Server]
+        Queue --> DB[(LevelDB)]
+    end
+
+    GraphQL[GraphQL Server] -->|gRPC| Queue
+    Admin[Admin Server] -->|gRPC| Queue
+    Network[Network Server] -->|gRPC| Queue
+
+    Client([Client]) -->|Query| GraphQL
+    Client -->|Manage| Admin
+    Client -->|Submit Tx| Broadcast[Broadcast Server]
+    Broadcast -->|Raw Tx| Lead
+```
+
 ## Configuration
 
 Two options for setting config values.
