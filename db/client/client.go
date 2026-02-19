@@ -80,6 +80,9 @@ func (s *Client) Save(messages []*Message, timestamp time.Time) error {
 }
 
 func (s *Client) GetByPrefixes(ctx context.Context, topic string, prefixes []Prefix, opts ...Option) error {
+	if err := s.SetConn(); err != nil {
+		return fmt.Errorf("error setting connection; %w", err)
+	}
 	c := queue_pb.NewQueueClient(s.conn)
 	ctxNew, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
