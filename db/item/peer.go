@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -42,14 +43,17 @@ func (p *Peer) Deserialize(data []byte) {
 	p.Services = jutil.GetUint64(data)
 }
 
-func GetPeers(shard uint32, startId []byte) ([]*Peer, error) {
+func GetPeers(ctx context.Context, shard uint32, startId []byte) ([]*Peer, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var startIdBytes []byte
 	if len(startId) > 0 {
 		startIdBytes = startId
 	}
-	if err := dbClient.GetLarge(db.TopicPeer, startIdBytes, false, false); err != nil {
+	if err := dbClient.GetByPrefix(ctx, db.TopicPeer, client.Prefix{
+		Start: startIdBytes,
+		Limit: client.LargeLimit,
+	}); err != nil {
 		return nil, fmt.Errorf("error getting peers from queue client; %w", err)
 	}
 	var peers = make([]*Peer, len(dbClient.Messages))
@@ -60,10 +64,10 @@ func GetPeers(shard uint32, startId []byte) ([]*Peer, error) {
 	return peers, nil
 }
 
-func GetNextPeer(shard uint32, startId []byte) (*Peer, error) {
+func GetNextPeer(ctx context.Context, shard uint32, startId []byte) (*Peer, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetNext(db.TopicPeer, startId, false, false); err != nil {
+	if err := dbClient.GetNext(ctx, db.TopicPeer, startId); err != nil {
 		return nil, fmt.Errorf("error getting peers from queue client; %w", err)
 	} else if len(dbClient.Messages) == 0 {
 		return nil, fmt.Errorf("error next peer not found; %w", client.EntryNotFoundError)

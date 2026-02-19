@@ -1,6 +1,7 @@
 package maint
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -16,6 +17,7 @@ import (
 )
 
 type PopulateAddr struct {
+	Context  context.Context
 	status   map[uint]*item.ProcessStatus
 	hasError bool
 	mu       sync.Mutex
@@ -24,10 +26,11 @@ type PopulateAddr struct {
 	Inputs   bool
 }
 
-func NewPopulateAddr(inputs bool) *PopulateAddr {
+func NewPopulateAddr(ctx context.Context, inputs bool) *PopulateAddr {
 	return &PopulateAddr{
-		status: make(map[uint]*item.ProcessStatus),
-		Inputs: inputs,
+		Context: ctx,
+		status:  make(map[uint]*item.ProcessStatus),
+		Inputs:  inputs,
 	}
 }
 
@@ -72,7 +75,7 @@ func (p *PopulateAddr) Populate(newRun bool) error {
 	shardConfigs := config.GetQueueShards()
 	if !newRun {
 		for _, shardConfig := range shardConfigs {
-			syncStatus, err := item.GetProcessStatus(uint(shardConfig.Shard), p.GetStatusName())
+			syncStatus, err := item.GetProcessStatus(p.Context, uint(shardConfig.Shard), p.GetStatusName())
 			if err != nil && !client.IsMessageNotSetError(err) {
 				return fmt.Errorf("error getting sync status; %w", err)
 			} else if syncStatus != nil {
@@ -130,7 +133,7 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 	var objMap = make(map[[57]byte]*addr.SeenTx)
 	var checked int
 	if p.Inputs {
-		txInputs, err := chain.GetAllTxInputs(shard, shardStatus.Status)
+		txInputs, err := chain.GetAllTxInputs(p.Context, shard, shardStatus.Status)
 		if err != nil {
 			return false, fmt.Errorf("error getting tx outputs for populate addr shard: %d; %w", shard, err)
 		}
@@ -151,7 +154,7 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 		}
 		checked = len(txInputs)
 	} else {
-		txOutputs, err := chain.GetAllTxOutputs(shard, shardStatus.Status)
+		txOutputs, err := chain.GetAllTxOutputs(p.Context, shard, shardStatus.Status)
 		if err != nil {
 			return false, fmt.Errorf("error getting tx outputs for populate addr shard: %d; %w", shard, err)
 		}

@@ -32,7 +32,7 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 	addressSaver.SkipP2pkh = true
 	var maxHeight = startHeight
 	for {
-		heightBlocks, err := chain.GetHeightBlocksAllLimit(maxHeight, false, client.HugeLimit, false)
+		heightBlocks, err := chain.GetHeightBlocksAllLimit(p.Ctx, maxHeight, client.HugeLimit, false)
 		if err != nil {
 			return fmt.Errorf("fatal error getting height blocks all for populate p2sh; %w", err)
 		}
@@ -48,7 +48,7 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 				if err != nil {
 					return fmt.Errorf("error getting block txs for populate p2sh; %w", err)
 				}
-				block, err := chain.GetBlock(heightBlock.BlockHash)
+				block, err := chain.GetBlock(p.Ctx, heightBlock.BlockHash)
 				if err != nil {
 					return fmt.Errorf("error getting block info for populate p2sh; %w", err)
 				}

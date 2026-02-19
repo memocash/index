@@ -14,7 +14,7 @@ type Tx struct {
 }
 
 func (t *Tx) Get(ctx context.Context) error {
-	txBlocks, err := chain.GetSingleTxBlocks(t.TxHash)
+	txBlocks, err := chain.GetSingleTxBlocks(ctx, t.TxHash)
 	if err != nil {
 		return fmt.Errorf("error getting tx blocks; %w", err)
 	}

@@ -22,7 +22,6 @@ func (h *BlockHeightGetter) Get(startHeight int64) error {
 	defer connection.Close()
 	if reply, err := connection.Client.GetHeightBlocks(connection.GetDefaultContext(), &network_pb.BlockHeightRequest{
 		Start: startHeight,
-		Wait:  false,
 	}); err != nil {
 		return fmt.Errorf("could not greet network; %w", err)
 	} else {

@@ -1,11 +1,8 @@
 package chain
 
 import (
-	"fmt"
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
-	"github.com/memocash/index/ref/config"
 )
 
 type HeightDuplicate struct {
@@ -38,20 +35,3 @@ func (d *HeightDuplicate) Serialize() []byte {
 }
 
 func (d *HeightDuplicate) Deserialize([]byte) {}
-
-func GetHeightDuplicatesAll(startHeight int64) ([]*HeightDuplicate, error) {
-	var heightDuplicates []*HeightDuplicate
-	for _, shardConfig := range config.GetQueueShards() {
-		dbClient := client.NewClient(shardConfig.GetHost())
-		err := dbClient.GetLarge(db.TopicChainHeightDuplicate, jutil.GetInt64DataBig(startHeight), false, false)
-		if err != nil {
-			return nil, fmt.Errorf("error getting height duplicates from queue client; %w", err)
-		}
-		for i := range dbClient.Messages {
-			var heightDuplicate = new(HeightDuplicate)
-			db.Set(heightDuplicate, dbClient.Messages[i])
-			heightDuplicates = append(heightDuplicates, heightDuplicate)
-		}
-	}
-	return heightDuplicates, nil
-}

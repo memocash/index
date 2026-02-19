@@ -27,10 +27,6 @@ message SaveTxsReply {
   string error = 1;
 }
 
-message ListenTxReply {
-  int64 timestamp = 1;
-}
-
 message TxBlockRequest {
   repeated bytes txs = 1;
 }

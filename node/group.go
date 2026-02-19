@@ -1,6 +1,7 @@
 package node
 
 import (
+	"context"
 	"fmt"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
@@ -10,6 +11,7 @@ import (
 )
 
 type Group struct {
+	Context    context.Context
 	Nodes      map[string]*Server
 	Looping    bool
 	LastPeerId []byte
@@ -32,7 +34,7 @@ func (g *Group) AddDefaultNode() {
 func (g *Group) AddNextNode() error {
 	var peerToUse *item.Peer
 	for attempt := 1; ; attempt++ {
-		newPeer, err := item.GetNextPeer(0, g.LastPeerId)
+		newPeer, err := item.GetNextPeer(g.Context, 0, g.LastPeerId)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return fmt.Errorf("error getting next peer; %w", err)
 		}
@@ -42,7 +44,7 @@ func (g *Group) AddNextNode() error {
 		log.Printf("newPeer: %x\n", newPeer.GetUid())
 		log.Printf("newPeer: %s:%d\n", net.IP(newPeer.Ip), newPeer.Port)
 		g.LastPeerId = newPeer.GetUid()
-		peerConnection, err := item.GetPeerConnectionLast(newPeer.Ip, newPeer.Port)
+		peerConnection, err := item.GetPeerConnectionLast(g.Context, newPeer.Ip, newPeer.Port)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return fmt.Errorf("error getting last peer connection for new peer; %w", err)
 		}
@@ -89,9 +91,10 @@ func (g *Group) AddNode(ip []byte, port uint16) {
 	}()
 }
 
-func NewGroup() *Group {
+func NewGroup(ctx context.Context) *Group {
 	return &Group{
-		Nodes: make(map[string]*Server),
+		Context: ctx,
+		Nodes:   make(map[string]*Server),
 	}
 }
 

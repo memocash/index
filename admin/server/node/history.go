@@ -23,7 +23,7 @@ var historyRoute = admin.Route{
 		var shard uint32
 	PeerConnectionsLoop:
 		for {
-			peerConnections, err := item.GetPeerConnections(item.PeerConnectionsRequest{
+			peerConnections, err := item.GetPeerConnections(r.Request.Context(), item.PeerConnectionsRequest{
 				Shard:   shard,
 				StartId: startId,
 				Ip:      net.ParseIP(historyRequest.Ip),

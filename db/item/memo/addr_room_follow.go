@@ -64,29 +64,14 @@ func (f *AddrRoomFollow) Deserialize(data []byte) {
 }
 
 func GetAddrRoomFollows(ctx context.Context, addrs [][25]byte) ([]*AddrRoomFollow, error) {
-	var shardPrefixes = make(map[uint32][][]byte)
-	for i := range addrs {
-		shard := client.GenShardSource32(addrs[i][:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
+	messages, err := db.GetByPrefixes(ctx, db.TopicMemoAddrRoomFollow, db.ShardPrefixesAddrs(addrs))
+	if err != nil {
+		return nil, fmt.Errorf("error getting db memo addr room follow by prefix; %w", err)
 	}
-	shardConfigs := config.GetQueueShards()
-	var addrFollows []*AddrRoomFollow
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicMemoAddrRoomFollow,
-			Prefixes: prefixes,
-			Max:      client.ExLargeLimit,
-			Context:  ctx,
-		}); err != nil {
-			return nil, fmt.Errorf("error getting db memo addr room follow by prefix; %w", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var addrFollow = new(AddrRoomFollow)
-			db.Set(addrFollow, msg)
-			addrFollows = append(addrFollows, addrFollow)
-		}
+	var addrFollows = make([]*AddrRoomFollow, len(messages))
+	for i := range messages {
+		addrFollows[i] = new(AddrRoomFollow)
+		db.Set(addrFollows[i], messages[i])
 	}
 	return addrFollows, nil
 }

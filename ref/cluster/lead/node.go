@@ -38,7 +38,7 @@ func (n *Node) GetBlock(heightBack int64) (*chainhash.Hash, error) {
 	if n.Off {
 		return nil, nil
 	}
-	hash, err := saver.NewBlock(n.Verbose).GetBlock(heightBack + 1)
+	hash, err := saver.NewBlock(context.TODO(), n.Verbose).GetBlock(heightBack + 1)
 	if err != nil {
 		return nil, fmt.Errorf("error getting block for lead node; %w", err)
 	}

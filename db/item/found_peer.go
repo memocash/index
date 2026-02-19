@@ -1,11 +1,11 @@
 package item
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
-	"github.com/memocash/index/ref/config"
 )
 
 type FoundPeer struct {
@@ -48,27 +48,19 @@ func (p *FoundPeer) Serialize() []byte {
 
 func (p *FoundPeer) Deserialize([]byte) {}
 
-func GetFoundPeers(shard uint32, startId []byte, ip []byte, port uint16) ([]*FoundPeer, error) {
-	var prefix []byte
+func GetFoundPeers(ctx context.Context, shard uint32, startId []byte, ip []byte, port uint16) ([]*FoundPeer, error) {
+	var prefix client.Prefix
 	if len(ip) > 0 {
-		prefix = append(prefix, jutil.BytePadPrefix(ip, IpBytePadSize)...)
+		prefix.Prefix = jutil.BytePadPrefix(ip, IpBytePadSize)
 		if port > 0 {
-			prefix = append(prefix, jutil.GetUintData(uint(port))...)
+			prefix.Prefix = append(prefix.Prefix, jutil.GetUintData(uint(port))...)
 		}
 	}
-	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-	dbClient := client.NewClient(shardConfig.GetHost())
-	var startIdBytes []byte
 	if len(startId) > 0 {
-		startIdBytes = startId
+		prefix.Start = startId
 	}
-	opts := client.Opts{
-		Topic:    db.TopicFoundPeer,
-		Start:    startIdBytes,
-		Max:      client.LargeLimit,
-		Prefixes: [][]byte{prefix},
-	}
-	if err := dbClient.GetWOpts(opts); err != nil {
+	dbClient := db.GetShardClient(shard)
+	if err := dbClient.GetByPrefix(ctx, db.TopicFoundPeer, prefix, client.OptionLargeLimit()); err != nil {
 		return nil, fmt.Errorf("error getting found peers from queue client; %w", err)
 	}
 	var foundPeers = make([]*FoundPeer, len(dbClient.Messages))

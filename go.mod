@@ -19,8 +19,8 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tyler-smith/go-bip32 v1.0.0
 	github.com/vektah/gqlparser/v2 v2.5.16
-	google.golang.org/grpc v1.56.3
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/grpc v1.65.0
+	google.golang.org/protobuf v1.34.1
 )
 
 require (
@@ -31,7 +31,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.8.2 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect

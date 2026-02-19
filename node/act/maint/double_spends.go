@@ -1,6 +1,7 @@
 package maint
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -15,18 +16,16 @@ type DoubleSpends struct {
 	DoubleSpends int
 }
 
-func (d *DoubleSpends) Check() error {
+func (d *DoubleSpends) Check(ctx context.Context) error {
 	lastStatus := time.Now()
 	for i, shardConfig := range config.GetQueueShards() {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		var startUid []byte
 		var prevPrefix [36]byte
 		for {
-			if err := dbClient.GetWOpts(client.Opts{
-				Topic: db.TopicChainOutputInput,
+			if err := dbClient.GetByPrefix(ctx, db.TopicChainOutputInput, client.Prefix{
 				Start: startUid,
-				Max:   client.HugeLimit,
-			}); err != nil {
+			}, client.OptionHugeLimit()); err != nil {
 				return fmt.Errorf("error getting output inputs for shard %d; %w", i, err)
 			}
 			d.TotalEntries += len(dbClient.Messages)

@@ -16,6 +16,7 @@ import (
 )
 
 type Server struct {
+	Context context.Context
 	Dev     bool
 	Verbose bool
 }
@@ -23,7 +24,7 @@ type Server struct {
 func (s *Server) Run() error {
 	var errorHandler = make(chan error)
 	// Admin server
-	adminServer := admin.NewServer(node.NewGroup())
+	adminServer := admin.NewServer(node.NewGroup(s.Context))
 	if err := adminServer.Start(); err != nil {
 		return fmt.Errorf("fatal error starting admin server; %w", err)
 	}
@@ -61,7 +62,7 @@ func (s *Server) Run() error {
 		errorHandler <- fmt.Errorf("error running network server; %w", networkServer.Serve())
 	}()
 	if !s.Dev {
-		processor := lead.NewProcessor(s.Verbose)
+		processor := lead.NewProcessor(s.Context, s.Verbose)
 		log.Printf("Cluster lead processor starting...\n")
 		go func() {
 			errorHandler <- fmt.Errorf("error running cluster lead processor; %w", processor.Run())
@@ -85,8 +86,9 @@ func (s *Server) Run() error {
 	return <-errorHandler
 }
 
-func NewServer(dev, verbose bool) *Server {
+func NewServer(ctx context.Context, dev, verbose bool) *Server {
 	return &Server{
+		Context: ctx,
 		Dev:     dev,
 		Verbose: verbose,
 	}

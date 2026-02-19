@@ -6,14 +6,16 @@ import (
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/ref/bitcoin/tx/hs"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
 	"sync"
 )
 
-func GetItem(obj Object) error {
+func GetItem(ctx context.Context, obj Object) error {
 	shardConfig := config.GetShardConfig(uint32(obj.GetShardSource()), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetSingle(obj.GetTopic(), obj.GetUid()); err != nil && !client.IsMessageNotSetError(err) {
+	if err := dbClient.GetSingle(ctx, obj.GetTopic(), obj.GetUid()); err != nil && !client.IsMessageNotSetError(err) {
 		return fmt.Errorf("error getting db item single; %w", err)
 	}
 	if len(dbClient.Messages) != 1 {
@@ -23,6 +25,23 @@ func GetItem(obj Object) error {
 	return nil
 }
 
+func ShardUidsTxHashes(txHashes [][32]byte) map[uint32][][]byte {
+	return ShardUids(hs.HashesToSlices(txHashes))
+}
+
+func ShardUidsAddrs(addrs [][25]byte) map[uint32][][]byte {
+	return ShardUids(wallet.AddrsToSlices(addrs))
+}
+
+func ShardUids(byteUids [][]byte) map[uint32][][]byte {
+	var shardUids = make(map[uint32][][]byte)
+	for _, uid := range byteUids {
+		shard := GetShardIdFromByte32(uid)
+		shardUids[shard] = append(shardUids[shard], uid)
+	}
+	return shardUids
+}
+
 func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byte) ([]client.Message, error) {
 	wait := NewWait(len(shardUids))
 	var messages []client.Message
@@ -30,8 +49,7 @@ func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byt
 		go func(shard uint32, uids [][]byte) {
 			defer wait.Group.Done()
 			uids = jutil.RemoveDupesAndEmpties(uids)
-			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-			dbClient := client.NewClient(shardConfig.GetHost())
+			dbClient := GetShardClient(shard)
 			for len(uids) > 0 {
 				var uidsToUse [][]byte
 				if len(uids) > client.HugeLimit {
@@ -39,11 +57,7 @@ func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byt
 				} else {
 					uidsToUse, uids = uids, nil
 				}
-				if err := dbClient.GetWOpts(client.Opts{
-					Context: ctx,
-					Topic:   topic,
-					Uids:    uidsToUse,
-				}); err != nil {
+				if err := dbClient.GetSpecific(ctx, topic, uidsToUse); err != nil {
 					wait.AddError(fmt.Errorf("error getting client message get specific; %w", err))
 					return
 				}
@@ -60,27 +74,55 @@ func GetSpecific(ctx context.Context, topic string, shardUids map[uint32][][]byt
 	return messages, nil
 }
 
-func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][][]byte) ([]client.Message, error) {
+func removeDupeAndEmptyPrefixes(prefixes []client.Prefix) []client.Prefix {
+	var seen = make(map[string]bool)
+	var newPrefixes []client.Prefix
+	for _, prefix := range prefixes {
+		if len(prefix.Prefix) == 0 {
+			continue
+		}
+		if _, ok := seen[string(prefix.Prefix)]; ok {
+			continue
+		}
+		seen[string(prefix.Prefix)] = true
+		newPrefixes = append(newPrefixes, prefix)
+	}
+	return newPrefixes
+}
+
+func ShardPrefixesTxHashes(txHashes [][32]byte) map[uint32][]client.Prefix {
+	return ShardPrefixes(hs.HashesToSlices(txHashes))
+}
+
+func ShardPrefixesAddrs(addrs [][25]byte) map[uint32][]client.Prefix {
+	return ShardPrefixes(wallet.AddrsToSlices(addrs))
+}
+
+func ShardPrefixes(bytePrefixes [][]byte) map[uint32][]client.Prefix {
+	var shardPrefixes = make(map[uint32][]client.Prefix)
+	for _, bytePrefix := range bytePrefixes {
+		shard := GetShardIdFromByte32(bytePrefix)
+		shardPrefixes[shard] = append(shardPrefixes[shard], client.NewPrefix(bytePrefix))
+	}
+	return shardPrefixes
+}
+
+func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][]client.Prefix, opts ...client.Option) ([]client.Message, error) {
 	wait := NewWait(len(shardPrefixes))
 	var messages []client.Message
 	for shardT, prefixesT := range shardPrefixes {
-		go func(shard uint32, prefixes [][]byte) {
+		go func(shard uint32, prefixes []client.Prefix) {
 			defer wait.Group.Done()
-			prefixes = jutil.RemoveDupesAndEmpties(prefixes)
-			shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-			dbClient := client.NewClient(shardConfig.GetHost())
+			prefixes = removeDupeAndEmptyPrefixes(prefixes)
+			dbClient := GetShardClient(shard)
 			for len(prefixes) > 0 {
-				var prefixesToUse [][]byte
+				var prefixesToUse []client.Prefix
 				if len(prefixes) > client.HugeLimit {
 					prefixesToUse, prefixes = prefixes[:client.HugeLimit], prefixes[client.HugeLimit:]
 				} else {
 					prefixesToUse, prefixes = prefixes, nil
 				}
-				if err := dbClient.GetWOpts(client.Opts{
-					Context:  ctx,
-					Topic:    topic,
-					Prefixes: prefixesToUse,
-				}); err != nil {
+				if err := dbClient.GetByPrefixes(ctx, topic, prefixesToUse, opts...); err != nil {
 					wait.AddError(fmt.Errorf("error getting client message get by prefixes; %w", err))
 					return
 				}

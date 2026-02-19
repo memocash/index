@@ -16,7 +16,7 @@ var listCmd = &cobra.Command{
 		if len(args) > 0 {
 			shard = jutil.GetUInt32FromString(args[0])
 		}
-		peers, err := item.GetPeers(shard, nil)
+		peers, err := item.GetPeers(cmd.Context(), shard, nil)
 		if err != nil {
 			log.Fatalf("fatal error getting peers; %v", err)
 		}
@@ -34,7 +34,7 @@ var listFoundPeersCmd = &cobra.Command{
 		if len(args) > 0 {
 			shard = jutil.GetUInt32FromString(args[0])
 		}
-		foundPeers, err := item.GetFoundPeers(shard, nil, nil, 0)
+		foundPeers, err := item.GetFoundPeers(cmd.Context(), shard, nil, nil, 0)
 		if err != nil {
 			log.Fatalf("fatal error getting found peers; %v", err)
 		}
@@ -53,7 +53,7 @@ var listPeerFoundsCmd = &cobra.Command{
 		if len(args) > 0 {
 			shard = jutil.GetUInt32FromString(args[0])
 		}
-		foundPeers, err := item.GetPeerFounds(shard, nil)
+		foundPeers, err := item.GetPeerFounds(cmd.Context(), shard, nil)
 		if err != nil {
 			log.Fatalf("fatal error getting peer founds; %v", err)
 		}
@@ -80,7 +80,7 @@ var listAttemptsCmd = &cobra.Command{
 			log.Fatalf("error parsing host ip")
 		}
 		port := jutil.GetUInt16FromString(portString)
-		lastPeerConnection, err := item.GetPeerConnectionLast(ip, port)
+		lastPeerConnection, err := item.GetPeerConnectionLast(cmd.Context(), ip, port)
 		if err != nil {
 			log.Fatalf("fatal error last peer connection; %v", err)
 		}

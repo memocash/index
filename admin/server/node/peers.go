@@ -17,7 +17,7 @@ var peersRoute = admin.Route{
 			r.Error(fmt.Errorf("error unmarshalling peers request; %w", err))
 			return
 		}
-		peerList := peer.NewList()
+		peerList := peer.NewList(r.Request.Context())
 		if err := peerList.GetPeers(request.Filter); err != nil {
 			r.Error(fmt.Errorf("error getting list of peers with filter; %w", err))
 			return

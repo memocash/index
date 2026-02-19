@@ -2,9 +2,10 @@ package tasks
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+
 	"github.com/jchavannes/jgo/jutil"
-	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/test/run/queue"
 	"github.com/memocash/index/test/suite"
 )
@@ -77,56 +78,11 @@ var queueTest = suite.Test{
 			return fmt.Errorf("error adding items to queue; %w", err)
 		}
 		get := queue.NewGet(shard)
-		if err := get.GetByPrefixes(topic, [][]byte{[]byte("a"), []byte("c")}); err != nil {
+		if err := get.GetByPrefixes(context.Background(), topic, [][]byte{[]byte("a"), []byte("c")}); err != nil {
 			return fmt.Errorf("error getting by prefix; %w", err)
 		}
 		if err := checkExpectedItems(get.Items, expectedItems); err != nil {
 			return fmt.Errorf("error checking expected items; %w", err)
-		}
-		return nil
-	},
-}
-
-var waitTest = suite.Test{
-	Name: TestQueueWait,
-	Test: func(r *suite.TestRequest) error {
-		add := queue.NewAdd(shard)
-		var itemList1 = []queue.Item{
-			itemAA,
-			itemAB,
-		}
-		if err := add.Add(itemList1); err != nil {
-			return fmt.Errorf("error adding items 1 to queue; %w", err)
-		}
-		get := queue.NewGet(shard)
-		if err := get.GetAndWait(topic, nil); err != nil {
-			return fmt.Errorf("error getting and waiting 1; %w", err)
-		}
-		if err := checkExpectedItems(get.Items, itemList1); err != nil {
-			return fmt.Errorf("error checking expected items 1; %w", err)
-		}
-		var response = make(chan error)
-		go func() {
-			err := get.GetAndWait(topic, client.IncrementBytes(bytesAB))
-			if err != nil {
-				response <- fmt.Errorf("error getting and waiting 2; %w", err)
-			} else {
-				response <- nil
-			}
-		}()
-		var itemList2 = []queue.Item{
-			itemBA,
-			itemCA,
-			itemCB,
-		}
-		if err := add.Add(itemList2); err != nil {
-			return fmt.Errorf("error adding items 2 to queue; %w", err)
-		}
-		if err := <-response; err != nil {
-			return fmt.Errorf("error with wait response; %w", err)
-		}
-		if err := checkExpectedItems(get.Items, itemList2); err != nil {
-			return fmt.Errorf("error checking expected items 2; %w", err)
 		}
 		return nil
 	},

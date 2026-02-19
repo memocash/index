@@ -26,10 +26,15 @@ func (s *Server) Run() error {
 	return fmt.Errorf("error serving admin server; %w", s.Serve())
 }
 
+var AddHandlers []func(*http.ServeMux)
+
 func (s *Server) Start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", GetIndexHandler())
 	mux.HandleFunc("/graphql", GetGraphQLHandler())
+	for _, addHandler := range AddHandlers {
+		addHandler(mux)
+	}
 	s.server = http.Server{Handler: mux}
 	var err error
 	if s.listener, err = net.Listen("tcp", s.GetHost()); err != nil {

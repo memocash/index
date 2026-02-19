@@ -53,12 +53,10 @@ func GetSeenTxs(ctx context.Context, addr [25]byte, start []byte, limit uint32) 
 	}
 	shardConfig := config.GetShardConfig(client.GenShardSource32(addr[:]), config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
-	if err := dbClient.GetWOpts(client.Opts{
-		Context:  ctx,
-		Topic:    db.TopicAddrSeenTx,
-		Start:    start,
-		Prefixes: [][]byte{addr[:]},
-		Max:      limit,
+	if err := dbClient.GetByPrefix(ctx, db.TopicAddrSeenTx, client.Prefix{
+		Prefix: addr[:],
+		Start:  start,
+		Limit:  limit,
 	}); err != nil {
 		return nil, fmt.Errorf("error getting db addr seen txs by prefix; %w", err)
 	}

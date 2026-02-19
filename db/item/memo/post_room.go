@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/config"
 )
 
 type PostRoom struct {
@@ -43,27 +42,14 @@ func (r *PostRoom) Deserialize(data []byte) {
 }
 
 func GetPostRooms(ctx context.Context, postTxHashes [][32]byte) ([]*PostRoom, error) {
-	var shardUids = make(map[uint32][][]byte)
-	for i := range postTxHashes {
-		shard := db.GetShardIdFromByte32(postTxHashes[i][:])
-		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(postTxHashes[i][:]))
+	messages, err := db.GetSpecific(ctx, db.TopicMemoPostRoom, db.ShardUidsTxHashes(postTxHashes))
+	if err != nil {
+		return nil, fmt.Errorf("error getting client message memo post rooms; %w", err)
 	}
-	var postRooms []*PostRoom
-	for shard, uids := range shardUids {
-		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Context:  ctx,
-			Topic:    db.TopicMemoPostRoom,
-			Uids: uids,
-		}); err != nil {
-			return nil, fmt.Errorf("error getting client message memo post rooms; %w", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var postRoom = new(PostRoom)
-			db.Set(postRoom, msg)
-			postRooms = append(postRooms, postRoom)
-		}
+	var postRooms = make([]*PostRoom, len(messages))
+	for i := range messages {
+		postRooms[i] = new(PostRoom)
+		db.Set(postRooms[i], messages[i])
 	}
 	return postRooms, nil
 }

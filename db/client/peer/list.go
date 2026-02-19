@@ -2,6 +2,7 @@ package peer
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
@@ -24,14 +25,15 @@ type Peer struct {
 }
 
 type List struct {
-	Peers []*Peer
+	Context context.Context
+	Peers   []*Peer
 }
 
 func (l *List) GetPeers(filter string) error {
 	var startId []byte
 	var shard uint32
 	for {
-		peers, err := item.GetPeers(shard, startId)
+		peers, err := item.GetPeers(l.Context, shard, startId)
 		if err != nil {
 			return fmt.Errorf("error getting next set of peers; %w", err)
 		}
@@ -42,7 +44,7 @@ func (l *List) GetPeers(filter string) error {
 				Port: peers[i].Port,
 			}
 		}
-		peerConnectionLasts, err := item.GetPeerConnectionLasts(ipPorts)
+		peerConnectionLasts, err := item.GetPeerConnectionLasts(l.Context, ipPorts)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			return fmt.Errorf("error getting peer connection lasts for found peers; %w", err)
 		}
@@ -89,6 +91,6 @@ func (l *List) GetPeers(filter string) error {
 	return nil
 }
 
-func NewList() *List {
-	return &List{}
+func NewList(ctx context.Context) *List {
+	return &List{Context: ctx}
 }

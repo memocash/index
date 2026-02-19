@@ -13,7 +13,7 @@ var randomDoubleSpendCmd = &cobra.Command{
 	Short: "Find a random double spend in output_inputs topic",
 	Run: func(c *cobra.Command, args []string) {
 		r := new(maint.RandomDoubleSpend)
-		if err := r.Find(); err != nil {
+		if err := r.Find(c.Context()); err != nil {
 			log.Fatalf("error finding random double spend; %v", err)
 		}
 		for _, doubleSpend := range r.DoubleSpends {

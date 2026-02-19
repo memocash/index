@@ -29,7 +29,6 @@ service Network {
     rpc GetDoubleSpends (DoubleSpendRequest) returns (DoubleSpendResponse);
     rpc GetUtxos (UtxosRequest) returns (UtxosResponse);
     rpc GetOutputInputs (OutputInputsRequest) returns (OutputInputsResponse);
-    rpc ListenTx (TxRequest) returns (ListenTxReply);
     rpc OutputMessage (StringMessage) returns (ErrorReply);
 }
 

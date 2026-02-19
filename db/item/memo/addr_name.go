@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/config"
 	"time"
 )
 
@@ -52,30 +51,16 @@ func (n *AddrName) Deserialize(data []byte) {
 }
 
 func GetAddrNames(ctx context.Context, addrs [][25]byte) ([]*AddrName, error) {
-	var shardPrefixes = make(map[uint32][][]byte)
-	for i := range addrs {
-		shard := db.GetShardIdFromByte32(addrs[i][:])
-		shardPrefixes[shard] = append(shardPrefixes[shard], addrs[i][:])
+	shardPrefixes := db.ShardPrefixesAddrs(addrs)
+	var options = []client.Option{client.OptionSinglePrefixLimit(), client.OptionNewest()}
+	messages, err := db.GetByPrefixes(ctx, db.TopicMemoAddrName, shardPrefixes, options...)
+	if err != nil {
+		return nil, fmt.Errorf("error getting db addr memo names by prefix; %w", err)
 	}
-	shardConfigs := config.GetQueueShards()
-	var addrNames []*AddrName
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic:    db.TopicMemoAddrName,
-			Prefixes: prefixes,
-			Max:      1,
-			Newest:   true,
-			Context:  ctx,
-		}); err != nil {
-			return nil, fmt.Errorf("error getting db addr memo names by prefix; %w", err)
-		}
-		for _, msg := range dbClient.Messages {
-			var addrName = new(AddrName)
-			db.Set(addrName, msg)
-			addrNames = append(addrNames, addrName)
-		}
+	var addrNames = make([]*AddrName, len(messages))
+	for i := range messages {
+		addrNames[i] = new(AddrName)
+		db.Set(addrNames[i], messages[i])
 	}
 	return addrNames, nil
 }

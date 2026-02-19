@@ -1,6 +1,7 @@
 package maint
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"math/big"
@@ -19,7 +20,7 @@ type RandomDoubleSpend struct {
 	DoubleSpends []DoubleSpend
 }
 
-func (r *RandomDoubleSpend) Find() error {
+func (r *RandomDoubleSpend) Find(ctx context.Context) error {
 	shards := config.GetQueueShards()
 	shardIdx, err := rand.Int(rand.Reader, big.NewInt(int64(len(shards))))
 	if err != nil {
@@ -32,11 +33,9 @@ func (r *RandomDoubleSpend) Find() error {
 	}
 	dbClient := client.NewClient(shardConfig.GetHost())
 	for {
-		if err := dbClient.GetWOpts(client.Opts{
-			Topic: db.TopicChainOutputInput,
+		if err := dbClient.GetByPrefix(ctx, db.TopicChainOutputInput, client.Prefix{
 			Start: startUid,
-			Max:   client.LargeLimit,
-		}); err != nil {
+		}, client.OptionLargeLimit()); err != nil {
 			return fmt.Errorf("error getting output inputs; %w", err)
 		}
 		var prevOutputInput *chain.OutputInput

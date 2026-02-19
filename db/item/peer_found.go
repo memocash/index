@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
@@ -52,14 +53,17 @@ func (p *PeerFound) SetUid(uid []byte) {
 
 func (p *PeerFound) Deserialize([]byte) {}
 
-func GetPeerFounds(shard uint32, startId []byte) ([]*PeerFound, error) {
+func GetPeerFounds(ctx context.Context, shard uint32, startId []byte) ([]*PeerFound, error) {
 	shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 	dbClient := client.NewClient(shardConfig.GetHost())
 	var startIdBytes []byte
 	if len(startId) > 0 {
 		startIdBytes = startId
 	}
-	if err := dbClient.GetLarge(db.TopicPeerFound, startIdBytes, false, false); err != nil {
+	if err := dbClient.GetByPrefix(ctx, db.TopicPeerFound, client.Prefix{
+		Start: startIdBytes,
+		Limit: client.LargeLimit,
+	}); err != nil {
 		return nil, fmt.Errorf("error getting peer founds from queue client; %w", err)
 	}
 	var peerFounds = make([]*PeerFound, len(dbClient.Messages))

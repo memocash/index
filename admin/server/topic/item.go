@@ -36,7 +36,7 @@ var itemRoute = admin.Route{
 		var topicItemResponse = new(admin.TopicItemResponse)
 		shardConfig := config.GetShardConfig(uint32(topicItemRequest.Shard), config.GetQueueShards())
 		dbClient := client.NewClient(shardConfig.GetHost())
-		if err := dbClient.GetSingle(topicItemRequest.Topic, uid); err != nil {
+		if err := dbClient.GetSingle(r.Request.Context(), topicItemRequest.Topic, uid); err != nil {
 			log.Printf("error getting topic item for admin view; %v", err)
 			return
 		}

@@ -13,7 +13,7 @@ var doubleSpendCmd = &cobra.Command{
 	Run: func(c *cobra.Command, args []string) {
 		doubleSpends := new(maint.DoubleSpends)
 		log.Println("Counting double spends...")
-		if err := doubleSpends.Check(); err != nil {
+		if err := doubleSpends.Check(c.Context()); err != nil {
 			log.Fatalf("error checking double spends; %v", err)
 		}
 		log.Printf("Total entries: %d\n", doubleSpends.TotalEntries)

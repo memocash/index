@@ -29,10 +29,20 @@ func CloseAll() {
 	}
 }
 
+func SetConn(connId string, db *leveldb.DB) {
+	connsMutex.Lock()
+	defer connsMutex.Unlock()
+	conns[connId] = db
+}
+
+func GetConnId(topic string, shard uint) string {
+	return fmt.Sprintf("%d:%s", shard, topic)
+}
+
 func getDb(topic string, shard uint) (*leveldb.DB, error) {
 	connsMutex.Lock()
 	defer connsMutex.Unlock()
-	connId := fmt.Sprintf("%d:%s", shard, topic)
+	connId := GetConnId(topic, shard)
 	if conns[connId] == nil {
 		if conns[connId] != nil {
 			return conns[connId], nil
