@@ -78,11 +78,3 @@ func GetHashIndexWithString(txHash string, index uint32) string {
 	return fmt.Sprintf("%s:%d", txHash, index)
 }
 
-// HashesToSlices converts a slice of 32 byte hashes to a slice of byte slices
-func HashesToSlices(txHashes [][32]byte) [][]byte {
-	var slices = make([][]byte, len(txHashes))
-	for i, txHash := range txHashes {
-		slices[i] = txHash[:]
-	}
-	return slices
-}

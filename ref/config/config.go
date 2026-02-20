@@ -25,7 +25,7 @@ const (
 
 	DefaultInitBlock       = "00000000000000000038a66316b28503ca99d50f184b27cb2152d77ae6a38a12"
 	DefaultInitBlockParent = "000000000000000000925634d697d3dcd7a8f5aef312f043f4cb278fd9152baa"
-	DefaultInitBlockHeight = 625306
+	DefaultInitBlockHeight = 625307
 	DefaultBlocksToConfirm = 5
 
 	DefaultDataDir = "db/data"

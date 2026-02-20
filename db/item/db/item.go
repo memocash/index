@@ -3,13 +3,13 @@ package db
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/jchavannes/jgo/jerr"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/ref/bitcoin/tx/hs"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
-	"sync"
 )
 
 func GetItem(ctx context.Context, obj Object) error {
@@ -25,8 +25,17 @@ func GetItem(ctx context.Context, obj Object) error {
 	return nil
 }
 
+func shardReversedTxHashes(txHashes [][32]byte) map[uint32][][]byte {
+	var shardUids = make(map[uint32][][]byte)
+	for _, txHash := range txHashes {
+		shard := GetShardIdFromByte32(txHash[:])
+		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(txHash[:]))
+	}
+	return shardUids
+}
+
 func ShardUidsTxHashes(txHashes [][32]byte) map[uint32][][]byte {
-	return ShardUids(hs.HashesToSlices(txHashes))
+	return shardReversedTxHashes(txHashes)
 }
 
 func ShardUidsAddrs(addrs [][25]byte) map[uint32][][]byte {
@@ -91,7 +100,13 @@ func removeDupeAndEmptyPrefixes(prefixes []client.Prefix) []client.Prefix {
 }
 
 func ShardPrefixesTxHashes(txHashes [][32]byte) map[uint32][]client.Prefix {
-	return ShardPrefixes(hs.HashesToSlices(txHashes))
+	var shardPrefixes = make(map[uint32][]client.Prefix)
+	for shard, uids := range shardReversedTxHashes(txHashes) {
+		for _, uid := range uids {
+			shardPrefixes[shard] = append(shardPrefixes[shard], client.NewPrefix(uid))
+		}
+	}
+	return shardPrefixes
 }
 
 func ShardPrefixesAddrs(addrs [][25]byte) map[uint32][]client.Prefix {
