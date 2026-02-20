@@ -11,7 +11,7 @@ type Send struct {
 }
 
 func (p Send) Get() ([]byte, error) {
-	if len(p.Hash) != memo.PkHashLength || len(p.Hash) != memo.ScriptHashLength {
+	if len(p.Hash) != memo.PkHashLength && len(p.Hash) != memo.ScriptHashLength {
 		return nil, fmt.Errorf("pk hash incorrect length %d", len(p.Hash))
 	}
 	message := []byte(p.Message)
