@@ -12,9 +12,6 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ## Generate the Go Code
 
 ```bash
-src="/usr/local/src"
-cd $src/github.com/memocash/index/db/proto
-mkdir -p queue_pb
-protoc --go_out=$src ./queue.proto
-protoc --go-grpc_out=$src ./queue.proto
+cd db/proto
+protoc --go_out=../.. --go-grpc_out=../.. --go_opt=module=github.com/memocash/index --go-grpc_opt=module=github.com/memocash/index ./queue.proto
 ```

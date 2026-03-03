@@ -120,32 +120,10 @@ func (s *Server) GetMessage(_ context.Context, request *queue_pb.RequestSingle) 
 }
 
 func (s *Server) GetMessages(ctx context.Context, request *queue_pb.Request) (*queue_pb.Messages, error) {
-	var messages []*store.Message
-	var err error
-	if len(request.Uids) > 0 {
-		messages, err = store.GetMessagesByUids(request.Topic, s.Shard, request.Uids)
-		if err != nil {
-			return nil, fmt.Errorf("error getting messages by uids; %w", err)
-		}
-	} else {
-		var requestByPrefixes = store.RequestByPrefixes{
-			Topic: request.Topic,
-			Shard: s.Shard,
-			Limit: int(request.Max),
-			Desc:  request.Newest,
-		}
-		for _, prefix := range request.Prefixes {
-			requestByPrefixes.Prefixes = append(requestByPrefixes.Prefixes, store.Prefix{
-				Prefix: prefix,
-				Start:  request.Start,
-			})
-		}
-		messages, err = store.GetByPrefixes(requestByPrefixes)
-		if err != nil {
-			return nil, fmt.Errorf("error getting messages for topic: %s (shard %d); %w", request.Topic, s.Shard, err)
-		}
+	messages, err := store.GetMessagesByUids(request.Topic, s.Shard, request.Uids)
+	if err != nil {
+		return nil, fmt.Errorf("error getting messages by uids; %w", err)
 	}
-
 	return getQueueMessagesFromStoreMessages(request.Topic, messages), nil
 }
 
