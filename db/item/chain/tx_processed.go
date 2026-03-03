@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"context"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -40,4 +42,30 @@ func (s *TxProcessed) Deserialize([]byte) {}
 
 func GetTxProcessedUid(txHash []byte, timestamp time.Time) []byte {
 	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetTimeByteNanoBig(timestamp))
+}
+
+func ListenTxProcessed(ctx context.Context, txHashes [][32]byte) (chan *TxProcessed, error) {
+	var shardPrefixes = make(map[uint32][][]byte)
+	for i := range txHashes {
+		shard := db.GetShardIdFromByte32(txHashes[i][:])
+		shardPrefixes[shard] = append(shardPrefixes[shard], jutil.ByteReverse(txHashes[i][:]))
+	}
+	chanMessages, err := db.ListenPrefixes(ctx, db.TopicChainTxProcessed, shardPrefixes)
+	if err != nil {
+		return nil, fmt.Errorf("error getting listen prefixes for chain tx processed; %w", err)
+	}
+	var chanTxProcessed = make(chan *TxProcessed)
+	go func() {
+		for {
+			msg, ok := <-chanMessages
+			if !ok {
+				close(chanTxProcessed)
+				return
+			}
+			var txProcessed = new(TxProcessed)
+			db.Set(txProcessed, *msg)
+			chanTxProcessed <- txProcessed
+		}
+	}()
+	return chanTxProcessed, nil
 }

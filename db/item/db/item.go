@@ -39,7 +39,7 @@ func ShardUidsTxHashes(txHashes [][32]byte) map[uint32][][]byte {
 }
 
 func ShardUidsAddrs(addrs [][25]byte) map[uint32][][]byte {
-	return ShardUids(wallet.AddrsToSlices(addrs))
+	return ShardUids(wallet.AddrArraysToSlices(addrs))
 }
 
 func ShardUids(byteUids [][]byte) map[uint32][][]byte {
@@ -110,7 +110,7 @@ func ShardPrefixesTxHashes(txHashes [][32]byte) map[uint32][]client.Prefix {
 }
 
 func ShardPrefixesAddrs(addrs [][25]byte) map[uint32][]client.Prefix {
-	return ShardPrefixes(wallet.AddrsToSlices(addrs))
+	return ShardPrefixes(wallet.AddrArraysToSlices(addrs))
 }
 
 func ShardPrefixes(bytePrefixes [][]byte) map[uint32][]client.Prefix {

@@ -205,6 +205,7 @@ type ComplexityRoot struct {
 		Profiles    func(childComplexity int, addresses []model.Address) int
 		RoomFollows func(childComplexity int, addresses []model.Address) int
 		Rooms       func(childComplexity int, names []string) int
+		Tx          func(childComplexity int, hash model.Hash) int
 	}
 
 	Tx struct {
@@ -267,6 +268,7 @@ type QueryResolver interface {
 	Room(ctx context.Context, name string) (*model.Room, error)
 }
 type SubscriptionResolver interface {
+	Tx(ctx context.Context, hash model.Hash) (<-chan *model.Tx, error)
 	Address(ctx context.Context, address model.Address) (<-chan *model.Tx, error)
 	Addresses(ctx context.Context, addresses []model.Address) (<-chan *model.Tx, error)
 	Blocks(ctx context.Context) (<-chan *model.Block, error)
@@ -1176,6 +1178,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.Rooms(childComplexity, args["names"].([]string)), true
 
+	case "Subscription.tx":
+		if e.complexity.Subscription.Tx == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_tx_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.Tx(childComplexity, args["hash"].(model.Hash)), true
+
 	case "Tx.blocks":
 		if e.complexity.Tx.Blocks == nil {
 			break
@@ -1612,6 +1626,7 @@ type Like {
 }
 
 type Subscription {
+    tx(hash: Hash!): Tx
     address(address: Address!): Tx
     addresses(addresses: [Address!]): Tx
     blocks: Block
@@ -2183,6 +2198,21 @@ func (ec *executionContext) field_Subscription_rooms_args(ctx context.Context, r
 		}
 	}
 	args["names"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_tx_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.Hash
+	if tmp, ok := rawArgs["hash"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hash"))
+		arg0, err = ec.unmarshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["hash"] = arg0
 	return args, nil
 }
 
@@ -7684,6 +7714,90 @@ func (ec *executionContext) fieldContext_SlpOutput_genesis(ctx context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _Subscription_tx(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_tx(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().Tx(rctx, fc.Args["hash"].(model.Hash))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.Tx):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalOTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTx(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_tx(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hash":
+				return ec.fieldContext_Tx_hash(ctx, field)
+			case "raw":
+				return ec.fieldContext_Tx_raw(ctx, field)
+			case "inputs":
+				return ec.fieldContext_Tx_inputs(ctx, field)
+			case "outputs":
+				return ec.fieldContext_Tx_outputs(ctx, field)
+			case "blocks":
+				return ec.fieldContext_Tx_blocks(ctx, field)
+			case "seen":
+				return ec.fieldContext_Tx_seen(ctx, field)
+			case "version":
+				return ec.fieldContext_Tx_version(ctx, field)
+			case "locktime":
+				return ec.fieldContext_Tx_locktime(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_tx_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Subscription_address(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
 	fc, err := ec.fieldContext_Subscription_address(ctx, field)
 	if err != nil {
@@ -12708,6 +12822,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	}
 
 	switch fields[0].Name {
+	case "tx":
+		return ec._Subscription_tx(ctx, fields[0])
 	case "address":
 		return ec._Subscription_address(ctx, fields[0])
 	case "addresses":

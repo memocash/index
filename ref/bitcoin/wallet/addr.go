@@ -164,7 +164,15 @@ func GetAddrFromBytes(b []byte) *Addr {
 	return addr
 }
 
-func AddrsToSlices(addrs [][25]byte) [][]byte {
+func AddrsToSlices(addrs []Addr) [][]byte {
+	var addrSlices = make([][]byte, len(addrs))
+	for i := range addrs {
+		addrSlices[i] = addrs[i][:]
+	}
+	return addrSlices
+}
+
+func AddrArraysToSlices(addrs [][25]byte) [][]byte {
 	var addrSlices = make([][]byte, len(addrs))
 	for i := range addrs {
 		addrSlices[i] = addrs[i][:]
