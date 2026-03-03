@@ -225,6 +225,11 @@ func (r *subscriptionResolver) Tx(ctx context.Context, hash model.Hash) (<-chan 
 		cancel()
 		return nil, InternalError{fmt.Errorf("error getting tx processed listener for tx subscription; %w", err)}
 	}
+	existing, err := chain.GetTxProcessed(ctx, [][32]byte{hash})
+	if err != nil {
+		cancel()
+		return nil, InternalError{fmt.Errorf("error checking existing tx processed for tx subscription; %w", err)}
+	}
 	fields := attach.GetFields(ctx)
 	var txChan = make(chan *model.Tx)
 	go func() {
@@ -232,6 +237,15 @@ func (r *subscriptionResolver) Tx(ctx context.Context, hash model.Hash) (<-chan 
 			close(txChan)
 			cancel()
 		}()
+		if len(existing) > 0 {
+			var tx = &model.Tx{Hash: hash}
+			if err := attach.ToTxs(ctx, fields, []*model.Tx{tx}); err != nil {
+				log.Printf("error attaching to txs for tx subscription (existing); %v", err)
+				return
+			}
+			txChan <- tx
+			return
+		}
 		for {
 			_, ok := <-txProcessedListener
 			if !ok {

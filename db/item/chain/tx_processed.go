@@ -44,6 +44,20 @@ func GetTxProcessedUid(txHash []byte, timestamp time.Time) []byte {
 	return jutil.CombineBytes(jutil.ByteReverse(txHash), jutil.GetTimeByteNanoBig(timestamp))
 }
 
+func GetTxProcessed(ctx context.Context, txHashes [][32]byte) ([]*TxProcessed, error) {
+	messages, err := db.GetByPrefixes(ctx, db.TopicChainTxProcessed, db.ShardPrefixesTxHashes(txHashes))
+	if err != nil {
+		return nil, fmt.Errorf("error getting client message chain tx processed; %w", err)
+	}
+	var txProcessedList []*TxProcessed
+	for _, msg := range messages {
+		var txProcessed = new(TxProcessed)
+		db.Set(txProcessed, msg)
+		txProcessedList = append(txProcessedList, txProcessed)
+	}
+	return txProcessedList, nil
+}
+
 func ListenTxProcessed(ctx context.Context, txHashes [][32]byte) (chan *TxProcessed, error) {
 	var shardPrefixes = make(map[uint32][][]byte)
 	for i := range txHashes {
