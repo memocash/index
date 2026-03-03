@@ -23,9 +23,7 @@ const (
 	DefaultShard1Port    = 26791
 	DefaultServerPort    = 19021
 
-	DefaultInitBlock       = "00000000000000000038a66316b28503ca99d50f184b27cb2152d77ae6a38a12"
-	DefaultInitBlockParent = "000000000000000000925634d697d3dcd7a8f5aef312f043f4cb278fd9152baa"
-	DefaultInitBlockHeight = 625307
+	DefaultInitBlockHeight = 625306
 	DefaultBlocksToConfirm = 5
 
 	DefaultDataDir = "db/data"
@@ -34,9 +32,7 @@ const (
 type Config struct {
 	NodeHost string `mapstructure:"NODE_HOST"`
 
-	InitBlock       string `mapstructure:"INIT_BLOCK"`
-	InitBlockHeight uint   `mapstructure:"INIT_BLOCK_HEIGHT"`
-	InitBlockParent string `mapstructure:"INIT_BLOCK_PARENT"`
+	InitBlockHeight uint `mapstructure:"INIT_BLOCK_HEIGHT"`
 
 	BlocksToConfirm uint `mapstructure:"BLOCKS_TO_CONFIRM"`
 
@@ -68,9 +64,7 @@ type Config struct {
 
 var _config = Config{
 	NodeHost:        DefaultNodeHost,
-	InitBlock:       DefaultInitBlock,
 	InitBlockHeight: DefaultInitBlockHeight,
-	InitBlockParent: DefaultInitBlockParent,
 	BlocksToConfirm: DefaultBlocksToConfirm,
 	ServerHost:      Localhost,
 	ServerPort:      DefaultServerPort,
@@ -137,16 +131,8 @@ func GetNodeHost() string {
 	return _config.NodeHost
 }
 
-func GetInitBlock() string {
-	return _config.InitBlock
-}
-
 func GetInitBlockHeight() uint {
 	return _config.InitBlockHeight
-}
-
-func GetInitBlockParent() string {
-	return _config.InitBlockParent
 }
 
 func GetBlocksToConfirm() uint {

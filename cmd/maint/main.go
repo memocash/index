@@ -33,7 +33,7 @@ func GetCommand() *cobra.Command {
 		populateSeenPostsCmd,
 		doubleSpendCmd,
 		randomDoubleSpendCmd,
-		scanHeadersCmd,
+		rescanHeadersCmd,
 		backfillCmd,
 	)
 	return maintCommand

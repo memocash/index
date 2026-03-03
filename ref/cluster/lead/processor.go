@@ -31,6 +31,12 @@ type Processor struct {
 }
 
 func (p *Processor) Run() error {
+	if p.BlockNode == nil {
+		log.Println("Scanning block headers...")
+		if err := NewScanHeaders().Run(); err != nil {
+			return fmt.Errorf("error scanning block headers; %w", err)
+		}
+	}
 	p.Clients = make(map[int]*Client)
 	clusterShards := config.GetClusterShards()
 	for _, clusterShard := range clusterShards {

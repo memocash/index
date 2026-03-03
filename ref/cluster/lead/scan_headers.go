@@ -1,7 +1,9 @@
-package maint
+package lead
 
 import (
+	"context"
 	"fmt"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/peer"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jfmt"
@@ -16,12 +18,26 @@ import (
 )
 
 type ScanHeaders struct {
-	height int64
-	peer   *peer.Peer
+	height    int64
+	startHash *chainhash.Hash
+	peer      *peer.Peer
+	Rescan    bool
 }
 
 func (s *ScanHeaders) Run() error {
 	nodePeer.SetBtcdLogLevel()
+	if !s.Rescan {
+		recentBlock, err := chain.GetRecentHeightBlock(context.Background())
+		if err != nil {
+			return fmt.Errorf("error getting recent height block; %w", err)
+		}
+		if recentBlock != nil {
+			s.height = recentBlock.Height
+			blockHash := chainhash.Hash(recentBlock.BlockHash)
+			s.startHash = &blockHash
+			log.Printf("Resuming header scan from height %s\n", jfmt.AddCommas(s.height))
+		}
+	}
 	connectionString := config.GetNodeHost()
 	newPeer, err := peer.NewOutboundPeer(&peer.Config{
 		UserAgentName:    "memo-index",
@@ -49,9 +65,14 @@ func (s *ScanHeaders) Run() error {
 }
 
 func (s *ScanHeaders) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
-	genesisHash := wallet.GetGenesisBlock().Hash
+	var locatorHash *chainhash.Hash
+	if s.startHash != nil {
+		locatorHash = s.startHash
+	} else {
+		locatorHash = wallet.GetGenesisBlock().Hash
+	}
 	msgGetHeaders := wire.NewMsgGetHeaders()
-	msgGetHeaders.BlockLocatorHashes = append(msgGetHeaders.BlockLocatorHashes, genesisHash)
+	msgGetHeaders.BlockLocatorHashes = append(msgGetHeaders.BlockLocatorHashes, locatorHash)
 	s.peer.QueueMessage(msgGetHeaders, nil)
 }
 

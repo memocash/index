@@ -9,6 +9,7 @@ import (
 	"github.com/jchavannes/btclog"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/jchavannes/jgo/jutil"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/config"
@@ -101,36 +102,14 @@ func (p *Peer) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 		msgGetHeaders.BlockLocatorHashes = append(msgGetHeaders.BlockLocatorHashes, blockHash)
 	}
 	if len(msgGetHeaders.BlockLocatorHashes) == 0 {
-		initBlockParent := config.GetInitBlockParent()
-		if len(initBlockParent) == 0 {
-			initBlock := config.GetInitBlock()
-			if initBlock == "" {
-				p.Error(fmt.Errorf("error init block not set"))
-				return
-			}
-			p.LastBlock, err = chainhash.NewHashFromStr(initBlock)
-			if err != nil {
-				p.Error(fmt.Errorf("error getting init block; %w", err))
-				return
-			}
-			msgGetData := wire.NewMsgGetData()
-			err := msgGetData.AddInvVect(&wire.InvVect{
-				Type: wire.InvTypeBlock,
-				Hash: *p.LastBlock,
-			})
-			if err != nil {
-				p.Error(fmt.Errorf("error adding init block inventory vector; %w", err))
-				return
-			}
-			p.peer.QueueMessage(msgGetData, nil)
-			return
-		}
-		blockHash, err := chainhash.NewHashFromStr(initBlockParent)
+		initHeight := int64(config.GetInitBlockHeight()) - 1
+		heightBlock, err := chain.GetHeightBlockSingle(context.Background(), initHeight)
 		if err != nil {
-			p.Error(fmt.Errorf("error getting block hash for init block parent; %w", err))
+			p.Error(fmt.Errorf("error getting height block for init (height %d), header scan may not have completed; %w", initHeight, err))
 			return
 		}
-		msgGetHeaders.BlockLocatorHashes = append(msgGetHeaders.BlockLocatorHashes, blockHash)
+		locatorHash := chainhash.Hash(heightBlock.BlockHash)
+		msgGetHeaders.BlockLocatorHashes = append(msgGetHeaders.BlockLocatorHashes, &locatorHash)
 	}
 	p.peer.QueueMessage(msgGetHeaders, nil)
 }

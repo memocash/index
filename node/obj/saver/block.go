@@ -8,7 +8,7 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/config"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/dbi"
 	"log"
 )
@@ -63,17 +63,10 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 	}
 	if hasParent {
 		b.NewHeight = parentHeight + 1
+	} else if b.BlockHash == *wallet.GetGenesisBlock().Hash {
+		b.NewHeight = 0
 	} else {
-		initBlockParent, err := chainhash.NewHashFromStr(config.GetInitBlockParent())
-		if err != nil {
-			return fmt.Errorf("error parsing init block hash; %w", err)
-		}
-		if *initBlockParent == info.Header.PrevBlock {
-			b.NewHeight = int64(config.GetInitBlockHeight())
-		} else {
-			b.NewHeight = 0
-			// block does not match parent or config init block
-		}
+		return fmt.Errorf("block %s has unknown parent %s", b.BlockHash, info.Header.PrevBlock)
 	}
 	var heightBlock *chain.HeightBlock
 	if b.NewHeight != 0 {
