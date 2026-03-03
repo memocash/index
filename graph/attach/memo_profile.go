@@ -292,3 +292,108 @@ func (a *MemoProfile) AttachPics() {
 		}
 	}
 }
+
+func (a *MemoProfile) AttachLinks() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"links"}) {
+		return
+	}
+	var allAddresses [][25]byte
+	var allLinkRequests []*memo.LinkRequest
+	var checkAddresses = a.getAddresses()
+	for len(checkAddresses) > 0 {
+		addrLinkRequests, err := memo.GetAddrLinkRequests(a.Ctx, checkAddresses)
+		if err != nil {
+			a.AddError(fmt.Errorf("error getting addr link requests for profile attach; %w", err))
+			return
+		}
+		addrLinkRequesteds, err := memo.GetAddrLinkRequesteds(a.Ctx, checkAddresses)
+		if err != nil {
+			a.AddError(fmt.Errorf("error getting addr link requesteds for profile attach; %w", err))
+			return
+		}
+		var linkRequestTxHashes [][32]byte
+		for _, addrLinkRequest := range addrLinkRequests {
+			linkRequestTxHashes = append(linkRequestTxHashes, addrLinkRequest.TxHash)
+		}
+		for _, addrLinkRequested := range addrLinkRequesteds {
+			linkRequestTxHashes = append(linkRequestTxHashes, addrLinkRequested.TxHash)
+		}
+		linkRequests, err := memo.GetLinkRequests(a.Ctx, linkRequestTxHashes)
+		if err != nil {
+			a.AddError(fmt.Errorf("error getting link requests for profile attach; %w", err))
+			return
+		}
+		for _, linkRequest := range linkRequests {
+			var found bool
+			for _, allLinkRequest := range allLinkRequests {
+				if linkRequest.TxHash == allLinkRequest.TxHash {
+					found = true
+					break
+				}
+			}
+			if !found {
+				allLinkRequests = append(allLinkRequests, linkRequest)
+			}
+		}
+		allAddresses = checkAddresses
+		checkAddresses = nil
+		for _, linkRequest := range linkRequests {
+			var childAddrFound, parentAddrFound bool
+			for _, addr := range allAddresses {
+				if linkRequest.ChildAddr == addr {
+					childAddrFound = true
+				} else if linkRequest.ParentAddr == addr {
+					parentAddrFound = true
+				}
+			}
+			if !childAddrFound {
+				checkAddresses = append(checkAddresses, linkRequest.ChildAddr)
+			} else if !parentAddrFound {
+				checkAddresses = append(checkAddresses, linkRequest.ParentAddr)
+			}
+		}
+	}
+	a.Mutex.Lock()
+	defer a.Mutex.Unlock()
+	for _, profile := range a.Profiles {
+		var foundLinkRequests []*memo.LinkRequest
+		for _, linkRequest := range allLinkRequests {
+			if linkRequest.ChildAddr == profile.Address || linkRequest.ParentAddr == profile.Address {
+				foundLinkRequests = append(foundLinkRequests, linkRequest)
+			}
+		}
+		for more := true; more; {
+			more = false
+			for _, linkRequest := range allLinkRequests {
+				var shouldBeIncluded, alreadyIncluded bool
+				for _, foundLinkRequest := range foundLinkRequests {
+					if foundLinkRequest.TxHash == linkRequest.TxHash {
+						alreadyIncluded = true
+						break
+					}
+					if linkRequest.ChildAddr == foundLinkRequest.ParentAddr ||
+						linkRequest.ParentAddr == foundLinkRequest.ChildAddr {
+						shouldBeIncluded = true
+					}
+				}
+				if alreadyIncluded {
+					continue
+				} else if shouldBeIncluded {
+					foundLinkRequests = append(foundLinkRequests, linkRequest)
+					more = true
+				}
+			}
+		}
+		for _, linkRequest := range foundLinkRequests {
+			profile.Links = append(profile.Links, &model.Link{
+				Request: &model.LinkRequest{
+					Child:   &model.Lock{Address: linkRequest.ChildAddr},
+					Parent:  &model.Lock{Address: linkRequest.ParentAddr},
+					Message: linkRequest.Message,
+					Tx:      &model.Tx{Hash: linkRequest.TxHash},
+				},
+			})
+		}
+	}
+}
