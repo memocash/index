@@ -113,17 +113,18 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Address     func(childComplexity int, address model.Address) int
-		Addresses   func(childComplexity int, addresses []model.Address) int
-		Block       func(childComplexity int, hash model.Hash) int
-		BlockNewest func(childComplexity int) int
-		Blocks      func(childComplexity int, newest *bool, start *uint32) int
-		Posts       func(childComplexity int, txHashes []model.Hash) int
-		PostsNewest func(childComplexity int, start *model.Date, tx *model.Hash, limit *uint32) int
-		Profiles    func(childComplexity int, addresses []model.Address) int
-		Room        func(childComplexity int, name string) int
-		Tx          func(childComplexity int, hash model.Hash) int
-		Txs         func(childComplexity int, hashes []model.Hash) int
+		Address       func(childComplexity int, address model.Address) int
+		Addresses     func(childComplexity int, addresses []model.Address) int
+		Block         func(childComplexity int, hash model.Hash) int
+		BlockByHeight func(childComplexity int, height int) int
+		BlockNewest   func(childComplexity int) int
+		Blocks        func(childComplexity int, newest *bool, start *uint32) int
+		Posts         func(childComplexity int, txHashes []model.Hash) int
+		PostsNewest   func(childComplexity int, start *model.Date, tx *model.Hash, limit *uint32) int
+		Profiles      func(childComplexity int, addresses []model.Address) int
+		Room          func(childComplexity int, name string) int
+		Tx            func(childComplexity int, hash model.Hash) int
+		Txs           func(childComplexity int, hashes []model.Hash) int
 	}
 
 	Room struct {
@@ -260,6 +261,7 @@ type QueryResolver interface {
 	Address(ctx context.Context, address model.Address) (*model.Lock, error)
 	Addresses(ctx context.Context, addresses []model.Address) ([]*model.Lock, error)
 	Block(ctx context.Context, hash model.Hash) (*model.Block, error)
+	BlockByHeight(ctx context.Context, height int) (*model.Block, error)
 	BlockNewest(ctx context.Context) (*model.Block, error)
 	Blocks(ctx context.Context, newest *bool, start *uint32) ([]*model.Block, error)
 	Profiles(ctx context.Context, addresses []model.Address) ([]*model.Profile, error)
@@ -668,6 +670,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Block(childComplexity, args["hash"].(model.Hash)), true
+
+	case "Query.block_by_height":
+		if e.complexity.Query.BlockByHeight == nil {
+			break
+		}
+
+		args, err := ec.field_Query_block_by_height_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BlockByHeight(childComplexity, args["height"].(int)), true
 
 	case "Query.block_newest":
 		if e.complexity.Query.BlockNewest == nil {
@@ -1616,6 +1630,7 @@ type Like {
     address(address: Address!): Lock
     addresses(addresses: [Address!]): [Lock]
     block(hash: Hash!): Block
+    block_by_height(height: Int!): Block
     block_newest: Block
     blocks(newest: Boolean, start: Uint32): [Block!]
     profiles(addresses: [Address!]): [Profile]
@@ -1946,6 +1961,21 @@ func (ec *executionContext) field_Query_block_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["hash"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_block_by_height_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["height"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["height"] = arg0
 	return args, nil
 }
 
@@ -4817,6 +4847,74 @@ func (ec *executionContext) fieldContext_Query_block(ctx context.Context, field 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_block_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_block_by_height(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_block_by_height(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().BlockByHeight(rctx, fc.Args["height"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Block)
+	fc.Result = res
+	return ec.marshalOBlock2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_block_by_height(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hash":
+				return ec.fieldContext_Block_hash(ctx, field)
+			case "raw":
+				return ec.fieldContext_Block_raw(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_Block_timestamp(ctx, field)
+			case "height":
+				return ec.fieldContext_Block_height(ctx, field)
+			case "size":
+				return ec.fieldContext_Block_size(ctx, field)
+			case "tx_count":
+				return ec.fieldContext_Block_tx_count(ctx, field)
+			case "txs":
+				return ec.fieldContext_Block_txs(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Block", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_block_by_height_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -12166,6 +12264,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "block_by_height":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_block_by_height(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "block_newest":
 			field := field
 
@@ -13517,6 +13634,21 @@ func (ec *executionContext) unmarshalNHash2githubᚗcomᚋmemocashᚋindexᚋgra
 
 func (ec *executionContext) marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx context.Context, sel ast.SelectionSet, v model.Hash) graphql.Marshaler {
 	res := model.MarshalHash(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")

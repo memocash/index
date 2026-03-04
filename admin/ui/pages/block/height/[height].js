@@ -1,11 +1,11 @@
-import Page from "../../components/page";
+import Page from "../../../components/page";
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
-import {GetErrorMessage} from "../../components/util/loading";
-import {graphQL} from "../../components/fetch";
-import BlockDetail from "../../components/block-detail";
+import {GetErrorMessage} from "../../../components/util/loading";
+import {graphQL} from "../../../components/fetch";
+import BlockDetail from "../../../components/block-detail";
 
-export default function LockHash() {
+export default function BlockHeight() {
     const router = useRouter()
     const [block, setBlock] = useState({
         hash: "",
@@ -13,13 +13,14 @@ export default function LockHash() {
         timestamp: "",
         txs: [],
     })
+    const [lastHeight, setLastHeight] = useState(undefined)
     const [lastOffset, setLastOffset] = useState(0)
     const [offset, setOffset] = useState(0)
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const query = `
-    query ($hash: Hash!, $start: Uint32) {
-        block(hash: $hash) {
+    query ($height: Int!, $start: Uint32) {
+        block_by_height(height: $height) {
             hash
             height
             timestamp
@@ -35,20 +36,25 @@ export default function LockHash() {
         }
     }
     `
-    let lastBlockHash = undefined
     useEffect(() => {
-        if (!router || !router.query || (router.query.hash === lastBlockHash && router.query.start === lastOffset)) {
+        if (!router || !router.query || !router.query.height) {
             return
         }
-        const {hash, start} = router.query
-        lastBlockHash = hash
+        const {height, start} = router.query
+        const heightInt = parseInt(height)
+        if (heightInt === lastHeight && start === lastOffset) {
+            return
+        }
+        setLastHeight(heightInt)
         if (start) {
             setLastOffset(parseInt(start))
         } else {
             setLastOffset(0)
         }
+        setLoading(true)
+        setErrorMessage("")
         graphQL(query, {
-            hash: hash,
+            height: heightInt,
             start: start ? start : undefined,
         }).then(res => {
             if (res.ok) {
@@ -62,9 +68,9 @@ export default function LockHash() {
                 return
             }
             setLoading(false)
-            setBlock(data.data.block)
-            if (data.data.block.txs && data.data.block.txs.length > 0) {
-                setOffset(data.data.block.txs[data.data.block.txs.length - 1].index + 1)
+            setBlock(data.data.block_by_height)
+            if (data.data.block_by_height.txs && data.data.block_by_height.txs.length > 0) {
+                setOffset(data.data.block_by_height.txs[data.data.block_by_height.txs.length - 1].index + 1)
             }
         }).catch(res => {
             setErrorMessage("error loading block")
@@ -75,7 +81,7 @@ export default function LockHash() {
     return (
         <Page>
             <BlockDetail block={block} lastOffset={lastOffset} offset={offset}
-                         hashLink={false} txPaginationPath={"/block/" + block.hash}
+                         hashLink={true} txPaginationPath={"/block/height/" + block.height}
                          loading={loading} errorMessage={errorMessage}/>
         </Page>
     )

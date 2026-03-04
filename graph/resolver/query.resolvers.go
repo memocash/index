@@ -76,6 +76,23 @@ func (r *queryResolver) Block(ctx context.Context, hash model.Hash) (*model.Bloc
 	return modelBlock, nil
 }
 
+// BlockByHeight is the resolver for the block_by_height field.
+func (r *queryResolver) BlockByHeight(ctx context.Context, height int) (*model.Block, error) {
+	SetEndPoint(ctx, metric.EndPointBlockByHeight)
+	heightBlock, err := chain.GetHeightBlockSingle(ctx, int64(height))
+	if err != nil {
+		return nil, fmt.Errorf("error getting block by height; %w", err)
+	}
+	var modelBlock = &model.Block{
+		Hash:   heightBlock.BlockHash,
+		Height: model.IntPtr(int(heightBlock.Height)),
+	}
+	if err := attach.ToBlocks(ctx, attach.GetFields(ctx), []*model.Block{modelBlock}); err != nil {
+		return nil, InternalError{fmt.Errorf("error attaching to block by height for query resolver; %w", err)}
+	}
+	return modelBlock, nil
+}
+
 // BlockNewest is the resolver for the block_newest field.
 func (r *queryResolver) BlockNewest(ctx context.Context) (*model.Block, error) {
 	SetEndPoint(ctx, metric.EndPointBlockNewest)

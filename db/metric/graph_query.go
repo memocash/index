@@ -1,16 +1,17 @@
 package metric
 
 const (
-	EndPointAddress     = "address"
-	EndPointAddresses   = "addresses"
-	EndPointBlock       = "block"
-	EndPointBlocks      = "blocks"
-	EndPointBlockNewest = "block_newest"
-	EndPointPosts       = "posts"
-	EndPointPostsNewest = "posts_newest"
-	EndPointProfiles    = "profiles"
-	EndPointRoom        = "room"
-	EndPointTx          = "tx"
+	EndPointAddress       = "address"
+	EndPointAddresses     = "addresses"
+	EndPointBlock         = "block"
+	EndPointBlockByHeight = "block_by_height"
+	EndPointBlocks        = "blocks"
+	EndPointBlockNewest   = "block_newest"
+	EndPointPosts         = "posts"
+	EndPointPostsNewest   = "posts_newest"
+	EndPointProfiles      = "profiles"
+	EndPointRoom          = "room"
+	EndPointTx            = "tx"
 )
 
 func AddGraphQuery(endpoint string) {

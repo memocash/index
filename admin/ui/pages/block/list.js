@@ -109,7 +109,11 @@ export default function Block() {
                     {blocks.map((block) => {
                         return (
                             <div key={block.hash} className={column.container}>
-                                <div className={column.width15}>{block.height}</div>
+                                <div className={column.width15}>
+                                    <Link href={"/block/height/" + block.height}>
+                                        {block.height}
+                                    </Link>
+                                </div>
                                 <div className={column.width40}>
                                     <Link href={"/block/" + block.hash}>
                                         <PreInline>{block.hash}</PreInline>

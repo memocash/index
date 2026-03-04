@@ -4,6 +4,7 @@ type Query {
     address(address: Address!): Lock
     addresses(addresses: [Address!]): [Lock]
     block(hash: Hash!): Block
+    block_by_height(height: Int!): Block
     block_newest: Block
     blocks(newest: Boolean, start: Uint32): [Block!]
     profiles(addresses: [Address!]): [Profile]
