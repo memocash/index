@@ -91,3 +91,12 @@ pre.pre {
     background-color: var(--color-pagination-hover);
     border-color: var(--color-accent);
 }
+
+.navButtonDisabled {
+    display: inline-block;
+    padding: 4px 12px;
+    border: 1px solid var(--color-border-input);
+    border-radius: 4px;
+    color: var(--color-border-input);
+    cursor: default;
+}

@@ -3,7 +3,10 @@ import column from '../styles/column.module.css'
 import Link from "next/link";
 import {Loading} from "./util/loading";
 
+const PAGE_SIZE = 25
+
 export default function BlockDetail({block, lastOffset, offset, hashLink, txPaginationPath, loading, errorMessage}) {
+    const prevOffset = Math.max(0, lastOffset - PAGE_SIZE)
     return (
         <div>
             <h2 className={styles.subTitle}>
@@ -51,8 +54,8 @@ export default function BlockDetail({block, lastOffset, offset, hashLink, txPagi
                     </Link>
                 </div>
                 <div className={column.container}>
-                    <div>{block.txs ? <>
-                        <h3>Txs ({lastOffset} - {lastOffset + block.txs.length - 1} of
+                    <div>{block.txs && block.txs.length > 0 ? <>
+                        <h3>Txs ({(lastOffset + 1).toLocaleString()}&ndash;{(lastOffset + block.txs.length).toLocaleString()} of
                             {" " + (block.tx_count ? block.tx_count.toLocaleString() : block.txs.length)})</h3>
                         <table className={column.container}>
                             <tbody>
@@ -73,20 +76,27 @@ export default function BlockDetail({block, lastOffset, offset, hashLink, txPagi
                     </> : <>No transactions</>}
                     </div>
                 </div>
-                <div className={column.navButtons}>
-                    <Link href={{pathname: txPaginationPath}}>
-                        <span className={column.navButton}>&laquo; First</span>
-                    </Link>
+                {block.txs && block.txs.length > 0 && <div className={column.navButtons}>
+                    {lastOffset > 0 ?
+                        <Link href={{
+                            pathname: txPaginationPath,
+                            query: prevOffset > 0 ? {start: prevOffset} : undefined,
+                        }}>
+                            <span className={column.navButton}>&laquo; Back</span>
+                        </Link>
+                        : <span className={column.navButtonDisabled}>&laquo; Back</span>
+                    }
                     {" "}
-                    <Link href={{
-                        pathname: txPaginationPath,
-                        query: {
-                            start: offset,
-                        }
-                    }}>
-                        <span className={column.navButton}>Next &raquo;</span>
-                    </Link>
-                </div>
+                    {offset < block.tx_count ?
+                        <Link href={{
+                            pathname: txPaginationPath,
+                            query: {start: offset},
+                        }}>
+                            <span className={column.navButton}>Next &raquo;</span>
+                        </Link>
+                        : <span className={column.navButtonDisabled}>Next &raquo;</span>
+                    }
+                </div>}
             </Loading>
         </div>
     )
