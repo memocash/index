@@ -23,6 +23,7 @@ func GetCommand() *cobra.Command {
 	backfillCmd.Flags().Int64(FlagEnd, 0, "End height (required)")
 	backfillCmd.MarkFlagRequired(FlagStart)
 	backfillCmd.MarkFlagRequired(FlagEnd)
+	checkOrphansCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
 	maintCommand.AddCommand(
 		queueProfileCmd,
 		checkFollowsCmd,
@@ -35,6 +36,7 @@ func GetCommand() *cobra.Command {
 		randomDoubleSpendCmd,
 		rescanHeadersCmd,
 		backfillCmd,
+		checkOrphansCmd,
 	)
 	return maintCommand
 }
