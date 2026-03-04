@@ -3,6 +3,7 @@ package attach
 import (
 	"context"
 	"fmt"
+
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/graph/model"

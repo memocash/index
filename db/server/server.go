@@ -152,6 +152,7 @@ func (s *Server) GetByPrefixes(ctx context.Context, req *queue_pb.RequestPrefixe
 		requestByPrefixes.Prefixes = append(requestByPrefixes.Prefixes, store.Prefix{
 			Prefix: prefix.Prefix,
 			Start:  prefix.Start,
+			Max:    int(prefix.Limit),
 		})
 	}
 	messages, err := store.GetByPrefixes(requestByPrefixes)
