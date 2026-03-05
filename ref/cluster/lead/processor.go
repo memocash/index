@@ -148,6 +148,15 @@ func (p *Processor) ProcessBlock(block *dbi.Block, loc string) bool {
 	if !p.SaveBlockShards(height, seen, shardBlocks) {
 		return false
 	}
+	if height > 0 {
+		if err := db.Save([]db.Object{&item.SyncStatus{
+			Name:   item.SyncStatusBlockHeight,
+			Height: height,
+		}}); err != nil {
+			log.Printf("error saving sync status block height; %v", err)
+			return false
+		}
+	}
 	if dbi.BlockHeaderSet(block.Header) {
 		log.Printf("Saved block (%s): %s %s, %7s txs, size: %14s\n", loc,
 			blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),

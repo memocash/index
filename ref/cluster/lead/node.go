@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/memocash/index/node/obj/saver"
+	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/node/peer"
+	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 	"log"
 	"time"
@@ -38,11 +41,23 @@ func (n *Node) GetBlock(heightBack int64) (*chainhash.Hash, error) {
 	if n.Off {
 		return nil, nil
 	}
-	hash, err := saver.NewBlock(context.TODO(), n.Verbose).GetBlock(heightBack + 1)
-	if err != nil {
-		return nil, fmt.Errorf("error getting block for lead node; %w", err)
+	ctx := context.TODO()
+	syncStatus, err := item.GetSyncStatus(ctx, item.SyncStatusBlockHeight)
+	if err != nil && !client.IsEntryNotFoundError(err) {
+		return nil, fmt.Errorf("error getting sync status block height; %w", err)
 	}
-	return hash, nil
+	var height int64
+	if syncStatus != nil {
+		height = syncStatus.Height - heightBack
+	} else {
+		height = int64(config.GetInitBlockHeight()) - 1
+	}
+	heightBlock, err := chain.GetHeightBlockSingle(ctx, height)
+	if err != nil {
+		return nil, fmt.Errorf("error getting height block for lead node (height: %d); %w", height, err)
+	}
+	blockHash := chainhash.Hash(heightBlock.BlockHash)
+	return &blockHash, nil
 }
 
 func (n *Node) Start(memPool, syncDone bool) {

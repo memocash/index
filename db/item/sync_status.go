@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	SyncStatusComplete = "complete"
+	SyncStatusComplete    = "complete"
+	SyncStatusBlockHeight = "block_height"
 )
 
 type SyncStatus struct {
