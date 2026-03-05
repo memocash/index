@@ -3,26 +3,25 @@ package maint
 import (
 	"context"
 	"fmt"
+	"log"
+	"math"
+	"sync"
+	"time"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/peer"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/node/conn"
 	"github.com/memocash/index/node/obj/saver"
-	nodePeer "github.com/memocash/index/node/peer"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/cluster/lead"
 	"github.com/memocash/index/ref/cluster/proto/cluster_pb"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 	"google.golang.org/grpc"
-	"log"
-	"math"
-	"net"
-	"sync"
-	"time"
 )
 
 type Backfill struct {
@@ -58,31 +57,20 @@ func (b *Backfill) Run() error {
 		}
 	}
 	// Connect to BCH node
-	nodePeer.SetBtcdLogLevel()
-	connectionString := config.GetNodeHost()
-	newPeer, err := peer.NewOutboundPeer(&peer.Config{
-		UserAgentName:    "memo-index",
-		UserAgentVersion: "0.3.0",
-		ChainParams:      wallet.GetMainNetParams(),
-		Listeners: peer.MessageListeners{
-			OnVerAck:  b.OnVerAck,
-			OnHeaders: b.OnHeaders,
-			OnBlock:   b.OnBlock,
-			OnVersion: b.OnVersion,
-		},
-	}, connectionString)
+	connection, err := conn.NewConnection(peer.MessageListeners{
+		OnVerAck:  b.OnVerAck,
+		OnHeaders: b.OnHeaders,
+		OnBlock:   b.OnBlock,
+		OnVersion: b.OnVersion,
+	})
 	if err != nil {
 		return fmt.Errorf("error getting new outbound peer; %w", err)
 	}
-	b.peer = newPeer
+	b.peer = connection.Peer
 	log.Printf("Starting backfill from height %s to %s, connecting to: %s\n",
-		jfmt.AddCommas(b.Start), jfmt.AddCommas(b.End), connectionString)
-	conn, err := net.Dial("tcp", connectionString)
-	if err != nil {
-		return fmt.Errorf("error getting network connection; %w", err)
-	}
-	newPeer.AssociateConnection(conn)
-	newPeer.WaitForDisconnect()
+		jfmt.AddCommas(b.Start), jfmt.AddCommas(b.End), connection.Address)
+	connection.Peer.WaitForDisconnect()
+	_ = connection.Net.Close()
 	return nil
 }
 
@@ -199,7 +187,7 @@ func (b *Backfill) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 }
 
 func (b *Backfill) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
-	log.Printf("Connected to peer: %s (last block: %d)\n", msg.UserAgent, msg.LastBlock)
+	log.Printf("Backfill connected to peer: %s (last block: %d)\n", msg.UserAgent, msg.LastBlock)
 }
 
 func NewBackfill(start, end int64) *Backfill {

@@ -3,6 +3,11 @@ package shard
 import (
 	"context"
 	"fmt"
+	"log"
+	"net"
+	"strings"
+	"time"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/memocash/index/db/client"
@@ -15,10 +20,6 @@ import (
 	"github.com/memocash/index/ref/dbi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"log"
-	"net"
-	"strings"
-	"time"
 )
 
 type ProcessBlock struct {
@@ -55,7 +56,7 @@ func (s *Shard) Start() error {
 	s.Error = make(chan error)
 	var err error
 	clusterConfig := config.GetShardConfig(uint32(s.Id), config.GetClusterShards())
-	log.Printf("Starting cluster server shard %d on port %d...\n", s.Id, clusterConfig.Port)
+	log.Printf("ClusterServer starting on port: %d (shard %d)\n", clusterConfig.Port, s.Id)
 	if s.listener, err = net.Listen("tcp", server.GetListenHost(clusterConfig.Port)); err != nil {
 		return fmt.Errorf("failed to listen cluster shard; %w", err)
 	}
@@ -71,7 +72,7 @@ func (s *Shard) Start() error {
 	}
 	queueServer := server.NewServer(queueShards[s.Id].Port, uint(s.Id))
 	go func() {
-		log.Printf("Starting cluster queue server shard %d on port %d...\n", queueServer.Shard, queueServer.Port)
+		log.Printf("ClusterQueueServer starting on port: %d (shard %d)\n", queueServer.Port, queueServer.Shard)
 		s.Error <- fmt.Errorf("error running queue server for shard: %d; %w", s.Id, queueServer.Run())
 	}()
 	return nil

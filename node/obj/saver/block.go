@@ -101,28 +101,6 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 	return nil
 }
 
-func (b *Block) GetBlock(heightBack int64) (*chainhash.Hash, error) {
-	heightBlock, err := chain.GetRecentHeightBlock(b.Context)
-	if err != nil {
-		return nil, fmt.Errorf("error getting recent height block from queue; %w", err)
-	}
-	if heightBlock == nil {
-		return nil, nil
-	}
-	if heightBack > 0 {
-		height := heightBlock.Height - heightBack
-		heightBlock, err = chain.GetHeightBlockSingle(b.Context, height)
-		if err != nil {
-			return nil, fmt.Errorf("error getting height back height block (height: %d, back: %d); %w",
-				height, heightBack, err)
-		}
-	}
-	b.PrevBlockHash = heightBlock.BlockHash
-	b.PrevBlockHeight = heightBlock.Height
-	blockHash := chainhash.Hash(heightBlock.BlockHash)
-	return &blockHash, nil
-}
-
 func NewBlock(ctx context.Context, verbose bool) *Block {
 	return &Block{
 		Context: ctx,
