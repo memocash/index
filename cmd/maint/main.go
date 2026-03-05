@@ -37,6 +37,7 @@ func GetCommand() *cobra.Command {
 		rescanHeadersCmd,
 		backfillCmd,
 		checkOrphansCmd,
+		listHeightDuplicatesCmd,
 	)
 	return maintCommand
 }
