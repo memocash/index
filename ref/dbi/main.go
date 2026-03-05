@@ -2,20 +2,16 @@ package dbi
 
 import (
 	"context"
+	"time"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"time"
 )
 
 type TxSave interface {
 	SaveTxs(context.Context, *Block) error
-}
-
-type BlockSave interface {
-	SaveBlock(BlockInfo) error
-	GetBlock(int64) (*chainhash.Hash, error)
 }
 
 type BlockHeightSave interface {

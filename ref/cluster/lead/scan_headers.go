@@ -3,18 +3,17 @@ package lead
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/peer"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jfmt"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
-	nodePeer "github.com/memocash/index/node/peer"
+	"github.com/memocash/index/node/conn"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
-	"github.com/memocash/index/ref/config"
-	"log"
-	"net"
 )
 
 type ScanHeaders struct {
@@ -25,7 +24,6 @@ type ScanHeaders struct {
 }
 
 func (s *ScanHeaders) Run() error {
-	nodePeer.SetBtcdLogLevel()
 	if !s.Rescan {
 		recentBlock, err := chain.GetRecentHeightBlock(context.Background())
 		if err != nil {
@@ -35,32 +33,22 @@ func (s *ScanHeaders) Run() error {
 			s.height = recentBlock.Height
 			blockHash := chainhash.Hash(recentBlock.BlockHash)
 			s.startHash = &blockHash
-			log.Printf("Resuming header scan from height %s\n", jfmt.AddCommas(s.height))
+			log.Printf("ScanHeaders resuming from height: %s\n", jfmt.AddCommas(s.height))
 		}
 	}
-	connectionString := config.GetNodeHost()
-	newPeer, err := peer.NewOutboundPeer(&peer.Config{
-		UserAgentName:    "memo-index",
-		UserAgentVersion: "0.3.0",
-		ChainParams:      wallet.GetMainNetParams(),
-		Listeners: peer.MessageListeners{
-			OnVerAck:  s.OnVerAck,
-			OnHeaders: s.OnHeaders,
-			OnVersion: s.OnVersion,
-		},
-	}, connectionString)
+	connection, err := conn.NewConnection(peer.MessageListeners{
+		OnVerAck:  s.OnVerAck,
+		OnHeaders: s.OnHeaders,
+		OnVersion: s.OnVersion,
+	})
 	if err != nil {
 		return fmt.Errorf("error getting new outbound peer; %w", err)
 	}
-	s.peer = newPeer
-	log.Printf("Starting header scan, connecting to: %s\n", connectionString)
-	conn, err := net.Dial("tcp", connectionString)
-	if err != nil {
-		return fmt.Errorf("error getting network connection; %w", err)
-	}
-	newPeer.AssociateConnection(conn)
-	newPeer.WaitForDisconnect()
-	log.Printf("Header scan complete, saved %s headers\n", jfmt.AddCommas(s.height))
+	s.peer = connection.Peer
+	log.Printf("ScanHeaders connecting to: %s\n", connection.Address)
+	connection.Peer.WaitForDisconnect()
+	_ = connection.Net.Close()
+	log.Printf("ScanHeaders complete at height: %s\n", jfmt.AddCommas(s.height))
 	return nil
 }
 
@@ -78,7 +66,6 @@ func (s *ScanHeaders) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 
 func (s *ScanHeaders) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 	if len(msg.Headers) == 0 {
-		log.Printf("No more headers, scan complete at height %s\n", jfmt.AddCommas(s.height))
 		s.peer.Disconnect()
 		return
 	}
@@ -116,7 +103,7 @@ func (s *ScanHeaders) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 }
 
 func (s *ScanHeaders) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
-	log.Printf("Connected to peer: %s (last block: %d)\n", msg.UserAgent, msg.LastBlock)
+	log.Printf("ScanHeaders connected to peer: %s (last block: %d)\n", msg.UserAgent, msg.LastBlock)
 }
 
 func NewScanHeaders() *ScanHeaders {

@@ -9,6 +9,7 @@ const (
 	FlagDelete  = "delete"
 	FlagRestart = "restart"
 	FlagDryRun  = "dry-run"
+	FlagHeight  = "height"
 )
 
 var maintCommand = &cobra.Command{
@@ -29,6 +30,8 @@ func GetCommand() *cobra.Command {
 	deleteBlocksCmd.MarkFlagRequired(FlagStart)
 	deleteBlocksCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
 	deleteBlocksCmd.Flags().Bool(FlagDryRun, false, "Show what would be deleted without deleting")
+	setBlockHeightCmd.Flags().Int64(FlagHeight, 0, "Block height to set (required)")
+	setBlockHeightCmd.MarkFlagRequired(FlagHeight)
 	maintCommand.AddCommand(
 		queueProfileCmd,
 		checkFollowsCmd,
@@ -44,6 +47,7 @@ func GetCommand() *cobra.Command {
 		checkOrphansCmd,
 		listHeightDuplicatesCmd,
 		deleteBlocksCmd,
+		setBlockHeightCmd,
 	)
 	return maintCommand
 }

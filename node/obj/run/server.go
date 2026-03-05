@@ -3,6 +3,8 @@ package run
 import (
 	"context"
 	"fmt"
+	"log"
+
 	admin "github.com/memocash/index/admin/server"
 	graph "github.com/memocash/index/graph/server"
 	"github.com/memocash/index/node"
@@ -12,7 +14,6 @@ import (
 	"github.com/memocash/index/ref/cluster/shard"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/network/network_server"
-	"log"
 )
 
 type Server struct {
@@ -28,7 +29,7 @@ func (s *Server) Run() error {
 	if err := adminServer.Start(); err != nil {
 		return fmt.Errorf("fatal error starting admin server; %w", err)
 	}
-	log.Printf("Admin server started on port: %d...\n", adminServer.Port)
+	log.Printf("AdminServer starting on port: %d\n", adminServer.Port)
 	go func() {
 		errorHandler <- fmt.Errorf("error running admin server; %w", adminServer.Serve())
 	}()
@@ -37,7 +38,7 @@ func (s *Server) Run() error {
 	if err := graphServer.Start(); err != nil {
 		return fmt.Errorf("fatal error starting graph server; %w", err)
 	}
-	log.Printf("GraphQL server started at: %s...\n", graphServer.GetHost())
+	log.Printf("GraphQLServer starting on port: %d\n", graphServer.Port)
 	go func() {
 		errorHandler <- fmt.Errorf("error running GraphQL server; %w", graphServer.Serve())
 	}()
@@ -47,7 +48,6 @@ func (s *Server) Run() error {
 		if err := clusterShard.Start(); err != nil {
 			return fmt.Errorf("error starting cluster shard %d; %w", shardConfig.Shard, err)
 		}
-		log.Printf("Cluster shard started on port: %d...\n", shardConfig.Port)
 		go func(s *shard.Shard) {
 			errorHandler <- fmt.Errorf("error running cluster shard %d; %w", s.Id, clusterShard.Serve())
 		}(clusterShard)
@@ -57,29 +57,31 @@ func (s *Server) Run() error {
 	if err := networkServer.Start(); err != nil {
 		return fmt.Errorf("fatal error starting network server; %w", err)
 	}
-	log.Printf("Starting network server on port: %d\n", networkServer.Port)
+	log.Printf("NetworkServer starting on port: %d\n", networkServer.Port)
 	go func() {
 		errorHandler <- fmt.Errorf("error running network server; %w", networkServer.Serve())
 	}()
 	if !s.Dev {
 		processor := lead.NewProcessor(s.Context, s.Verbose)
-		log.Printf("Cluster lead processor starting...\n")
 		go func() {
 			errorHandler <- fmt.Errorf("error running cluster lead processor; %w", processor.Run())
 		}()
 		broadcastServer := broadcast_server.NewServer(config.GetBroadcastRpc().Port, func(ctx context.Context, raw []byte) error {
+			if processor.MempoolNode == nil {
+				return fmt.Errorf("error node still syncing, cannot broadcast yet")
+			}
 			txMsg, err := memo.GetMsgFromRaw(raw)
 			if err != nil {
 				return fmt.Errorf("error parsing raw tx; %w", err)
 			}
 			log.Printf("Broadcasting transaction: %s\n", txMsg.TxHash())
-			if err := processor.BlockNode.Peer.BroadcastTx(ctx, txMsg); err != nil {
+			if err := processor.MempoolNode.BroadcastTx(ctx, txMsg); err != nil {
 				return fmt.Errorf("error broadcasting tx to connection peer; %w", err)
 			}
 			return nil
 		})
 		go func() {
-			log.Printf("Running broadcast server on port: %d\n", broadcastServer.Port)
+			log.Printf("BroadcastServer starting on port: %d\n", broadcastServer.Port)
 			errorHandler <- fmt.Errorf("fatal error running broadcast server; %w", broadcastServer.Run())
 		}()
 	}

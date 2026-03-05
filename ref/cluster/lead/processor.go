@@ -3,10 +3,13 @@ package lead
 import (
 	"context"
 	"fmt"
+	"log"
+	"math"
+	"sync"
+	"time"
+
 	"github.com/jchavannes/jgo/jfmt"
-	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
-	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
@@ -14,28 +17,21 @@ import (
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 	"google.golang.org/grpc"
-	"log"
-	"math"
-	"sync"
-	"time"
 )
 
 type Processor struct {
 	Context     context.Context
 	Clients     map[int]*Client
 	ErrorChan   chan error
-	BlockNode   *Node
-	MemPoolNode *Node
+	BlockNode   *BlockNode
+	MempoolNode *MempoolNode
 	Verbose     bool
 	Synced      bool
 }
 
 func (p *Processor) Run() error {
-	if p.BlockNode == nil {
-		log.Println("Scanning block headers...")
-		if err := NewScanHeaders().Run(); err != nil {
-			return fmt.Errorf("error scanning block headers; %w", err)
-		}
+	if err := NewScanHeaders().Run(); err != nil {
+		return fmt.Errorf("error scanning block headers; %w", err)
 	}
 	p.Clients = make(map[int]*Client)
 	clusterShards := config.GetClusterShards()
@@ -48,64 +44,37 @@ func (p *Processor) Run() error {
 			Config: clusterShard,
 			Client: cluster_pb.NewClusterClient(conn)}
 	}
-	var syncStatusComplete *item.SyncStatus
-	if err := ExecWithRetry(func() error {
-		var err error
-		syncStatusComplete, err = item.GetSyncStatus(p.Context, item.SyncStatusComplete)
-		if err != nil && !client.IsEntryNotFoundError(err) {
-			return fmt.Errorf("error getting sync status complete; %w", err)
-		}
-		return nil
-	}); err != nil {
-		return fmt.Errorf("error getting sync status complete exec with retry; %w", err)
-	}
-	if syncStatusComplete != nil {
-		p.Synced = true
-		go func() {
-			p.MemPoolNode = NewNode()
-			p.MemPoolNode.Start(true, p.Synced)
-			log.Printf("Started mempool node...\n")
-			for p.ProcessBlock(<-p.MemPoolNode.NewBlock, "mempool") {
+	p.BlockNode = NewBlockNode()
+	p.BlockNode.Start()
+	for {
+		select {
+		case block := <-p.BlockNode.NewBlock:
+			var loc string
+			if p.Synced {
+				loc = "block node"
+			} else {
+				loc = "block sync"
 			}
-			log.Println("Stopping mempool node")
-		}()
-	}
-	p.BlockNode = NewNode()
-	p.BlockNode.Start(false, p.Synced)
-	go func() {
-		log.Printf("Started block node...\n")
-		for {
-			select {
-			case block := <-p.BlockNode.NewBlock:
-				if p.ProcessBlock(block, "block node") {
-					continue
-				}
-				p.ErrorChan <- fmt.Errorf("error processing block")
-			case <-p.BlockNode.SyncDone:
-				log.Printf("Node sync done\n")
-				p.Synced = true
-				recentBlock, err := chain.GetRecentHeightBlock(p.Context)
-				if err != nil {
-					p.ErrorChan <- fmt.Errorf("error getting recent height block; %w", err)
-					break
-				}
-				if err := db.Save([]db.Object{&item.SyncStatus{
-					Name:   item.SyncStatusComplete,
-					Height: recentBlock.Height,
-				}}); err != nil {
-					p.ErrorChan <- fmt.Errorf("error setting sync status complete; %w", err)
-					break
-				}
-				if err := p.Run(); err != nil {
-					p.ErrorChan <- fmt.Errorf("error starting lead processor after block sync complete; %w", err)
-					break
-				}
+			if !p.ProcessBlock(block, loc) {
+				return fmt.Errorf("error processing block during sync")
 			}
-			log.Println("Stopping block node")
-			return
+		case <-p.BlockNode.SyncDone:
+			p.Synced = true
+			p.MempoolNode = NewMempoolNode()
+			p.MempoolNode.Start()
+			go func() {
+				for {
+					block := <-p.MempoolNode.NewBlock
+					if !p.ProcessBlock(block, "mempool") {
+						p.ErrorChan <- fmt.Errorf("error processing mempool block")
+						return
+					}
+				}
+			}()
+		case err := <-p.ErrorChan:
+			return fmt.Errorf("error lead processing run; %w", err)
 		}
-	}()
-	return fmt.Errorf("error lead processing run; %w", <-p.ErrorChan)
+	}
 }
 
 func (p *Processor) ProcessBlock(block *dbi.Block, loc string) bool {
@@ -178,7 +147,7 @@ func (p *Processor) SaveBlockShards(height int64, seen time.Time, shardBlocks ma
 			if err := ExecWithRetry(func() error {
 				if _, err := c.Client.SaveTxs(p.Context, &cluster_pb.SaveReq{
 					Block:     shardBlocks[c.Config.Shard],
-					IsInitial: !p.Synced,
+					IsInitial: !p.Synced, // Used to optimize some queries
 					Height:    height,
 					Seen:      seen.UnixNano(),
 				}, grpc.MaxCallSendMsgSize(8*math.MaxInt32)); err != nil {
@@ -186,6 +155,7 @@ func (p *Processor) SaveBlockShards(height int64, seen time.Time, shardBlocks ma
 				}
 				return nil
 			}); err != nil {
+				hadError = true
 				p.ErrorChan <- fmt.Errorf("error client exec with retry save txs: %d; %w", c.Config.Shard, err)
 			}
 		}(c)

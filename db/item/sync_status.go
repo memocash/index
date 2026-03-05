@@ -3,13 +3,13 @@ package item
 import (
 	"context"
 	"fmt"
+
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 )
 
 const (
-	SyncStatusComplete    = "complete"
 	SyncStatusBlockHeight = "block_height"
 )
 
