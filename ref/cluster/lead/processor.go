@@ -26,6 +26,7 @@ type Processor struct {
 	ErrorChan   chan error
 	BlockNode   *Node
 	MemPoolNode *Node
+	BlockSaver  *saver.Block
 	Verbose     bool
 	Synced      bool
 }
@@ -36,6 +37,10 @@ func (p *Processor) Run() error {
 		if err := NewScanHeaders().Run(); err != nil {
 			return fmt.Errorf("error scanning block headers; %w", err)
 		}
+	}
+	p.BlockSaver = saver.NewBlock(p.Context, p.Verbose)
+	if _, err := p.BlockSaver.GetBlock(1); err != nil {
+		return fmt.Errorf("error initializing block saver; %w", err)
 	}
 	p.Clients = make(map[int]*Client)
 	clusterShards := config.GetClusterShards()
@@ -134,16 +139,15 @@ func (p *Processor) ProcessBlock(block *dbi.Block, loc string) bool {
 	}
 	var height int64
 	if dbi.BlockHeaderSet(block.Header) {
-		blockSaver := saver.NewBlock(p.Context, p.Verbose)
-		if err := blockSaver.SaveBlock(blockInfo); err != nil {
+		if err := p.BlockSaver.SaveBlock(blockInfo); err != nil {
 			log.Printf("error saving block for lead node; %v", err)
 			return false
 		}
-		if blockSaver.NewHeight == 0 {
+		if p.BlockSaver.NewHeight == 0 {
 			// A block without a height can happen if you receive a new block while syncing, ignore it, don't save TXs.
 			return true
 		}
-		height = blockSaver.NewHeight
+		height = p.BlockSaver.NewHeight
 	}
 	if !p.SaveBlockShards(height, seen, shardBlocks) {
 		return false
