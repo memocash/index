@@ -3,6 +3,8 @@ package saver
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
@@ -10,7 +12,6 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
 	"github.com/memocash/index/ref/dbi"
-	"log"
 )
 
 type Block struct {
@@ -54,10 +55,23 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 			parentHeight = parentBlockHeight.Height
 			hasParent = true
 			if b.PrevBlockHash != [32]byte{} {
+				log.Printf("Height duplicate at %d: %s\n", parentHeight+1, b.BlockHash)
 				objects = append(objects, &chain.HeightDuplicate{
 					Height:    parentHeight + 1,
 					BlockHash: b.BlockHash,
 				})
+			} else {
+				heightBlock, err := chain.GetHeightBlockSingle(b.Context, parentHeight+1)
+				if err != nil && !client.IsEntryNotFoundError(err) {
+					return fmt.Errorf("error getting height block for potential orphan; %w", err)
+				}
+				if heightBlock != nil && heightBlock.BlockHash != b.BlockHash {
+					log.Printf("Height duplicate at %d: %s\n", heightBlock.Height, heightBlock.BlockHash)
+					objects = append(objects, &chain.HeightDuplicate{
+						Height:    heightBlock.Height,
+						BlockHash: heightBlock.BlockHash,
+					})
+				}
 			}
 		}
 	}
