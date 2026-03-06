@@ -144,7 +144,7 @@ func GetHeightBlocksAllDefault(ctx context.Context, startHeight int64, newest bo
 func GetHeightBlocksAllLimit(ctx context.Context, startHeight int64, limit int, newest bool) ([]*HeightBlock, error) {
 	var heightBlocks []*HeightBlock
 	shardConfigs := config.GetQueueShards()
-	shardLimit := limit / len(shardConfigs)
+	shardLimit := (limit + len(shardConfigs) - 1) / len(shardConfigs)
 	for _, shardConfig := range shardConfigs {
 		dbClient := client.NewClient(shardConfig.GetHost())
 		var start []byte
@@ -170,5 +170,8 @@ func GetHeightBlocksAllLimit(ctx context.Context, startHeight int64, limit int, 
 			return heightBlocks[i].Height < heightBlocks[j].Height
 		}
 	})
+	if len(heightBlocks) > limit {
+		heightBlocks = heightBlocks[:limit]
+	}
 	return heightBlocks, nil
 }

@@ -3,9 +3,58 @@
     min-width: 0;
 }
 
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.monospace {
+    font-family: monospace;
+}
+
 .container > * {
     overflow-wrap: anywhere;
     min-width: 0;
+}
+
+.singleLine {
+    flex-wrap: nowrap;
+    align-items: baseline;
+}
+
+.singleLine > * {
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
+
+.flexFit {
+    flex: 0 1 auto;
+    padding-right: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.fixedHeight {
+    flex: 0 0 70px;
+    padding-right: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.flexFill {
+    flex: 1 1 0;
+    min-width: 60px;
+    padding-right: 12px;
+}
+
+.fixedSize {
+    flex: 0 0 100px;
+    padding-right: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.fixedTxCount {
+    flex: 0 0 50px;
+    font-variant-numeric: tabular-nums;
 }
 
 .width15 {

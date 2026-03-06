@@ -63,7 +63,7 @@ export default function BlockDetail({block, lastOffset, offset, hashLink, txPagi
                                 return (
                                     <tr key={txBlock.index}>
                                         <td>{txBlock.index}.</td>
-                                        <td>
+                                        <td className={column.monospace}>
                                             <Link href={"/tx/" + txBlock.tx.hash}>
                                                 {txBlock.tx.hash}
                                             </Link>

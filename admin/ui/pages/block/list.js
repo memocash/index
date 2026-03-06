@@ -4,7 +4,6 @@ import Page from "../../components/page";
 import {useEffect, useState} from "react";
 import {GetErrorMessage, Loading} from "../../components/util/loading";
 import Link from "next/link";
-import {PreInline} from "../../components/util/pre";
 import {useRouter} from "next/router";
 import {graphQL} from "../../components/fetch";
 
@@ -12,10 +11,11 @@ export default function Block() {
     const [blocks, setBlocks] = useState([])
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
-    const [next, setNext] = useState(4)
-    const [prev, setPrev] = useState(0)
-    const [lastStart, setLastStart] = useState(0)
-    const [lastNewest, setLastNewest] = useState(true)
+    const [older, setOlder] = useState(0)
+    const [newer, setNewer] = useState(0)
+    const [hasNewer, setHasNewer] = useState(false)
+    const [hasOlder, setHasOlder] = useState(false)
+    const [lastStart, setLastStart] = useState(null)
     const router = useRouter()
     const query = `
     query ($newest: Boolean, $start: Uint32) {
@@ -29,20 +29,19 @@ export default function Block() {
     }
     `
     useEffect(() => {
-        if (!router || !router.query ||
-            (router.query.start === lastStart.toString() && router.query.newest === lastNewest.toString())) {
+        if (!router || !router.query) {
             return
         }
-        let {start, newest} = router.query
-        if (!start) {
-            start = 0
+        let {start} = router.query
+        const startKey = start || ""
+        if (startKey === lastStart) {
+            return
         }
-        newest = newest !== "false"
-        setLastStart(start)
-        setLastNewest(newest)
+        const startInt = parseInt(start) || 0
+        setLastStart(startKey)
         graphQL(query, {
-            start: start,
-            newest: newest,
+            start: startInt,
+            newest: true,
         }).then(res => {
             if (res.ok) {
                 return res.json()
@@ -57,21 +56,13 @@ export default function Block() {
             setLoading(false)
             setBlocks(data.data.blocks)
             if (data.data.blocks.length > 0) {
-                if (newest) {
-                    setNext(data.data.blocks[data.data.blocks.length - 1].height)
-                    let previous = data.data.blocks[0].height + data.data.blocks.length + 1;
-                    if (previous < 0) {
-                        previous = 0
-                    }
-                    setPrev(previous)
-                } else {
-                    setNext(data.data.blocks[data.data.blocks.length - 1].height + 1)
-                    let previous = data.data.blocks[0].height - data.data.blocks.length;
-                    if (previous < 0) {
-                        previous = 0
-                    }
-                    setPrev(previous)
-                }
+                const firstHeight = data.data.blocks[0].height
+                const lastHeight = data.data.blocks[data.data.blocks.length - 1].height
+                const pageSize = data.data.blocks.length
+                setOlder(lastHeight)
+                setNewer(firstHeight + pageSize + 1)
+                setHasOlder(lastHeight >= pageSize)
+                setHasNewer(startInt > 0 && firstHeight + 1 >= startInt)
             }
         }).catch(res => {
             setErrorMessage("error loading blocks")
@@ -85,72 +76,67 @@ export default function Block() {
                 <h2 className={styles.subTitle}>
                     Blocks ({blocks.length})
                 </h2>
-                <p>
-                    <Link href={{
-                        pathname: "/block/list",
-                        query: {
-                            newest: true,
-                        }
-                    }}>
-                        <span className={lastNewest ? styles.underline : null}>Newest</span>
-                    </Link>
-                    &nbsp;&middot;&nbsp;
-                    <Link href={{
-                        pathname: "/block/list",
-                        query: {
-                            newest: false,
-                        }
-                    }}>
-                        <span className={lastNewest ? null : styles.underline}>Oldest</span>
-                    </Link>
-                </p>
                 <Loading loading={loading} error={errorMessage}>
-                    <h3>Blocks </h3>
+                    <div className={[column.container, column.singleLine, column.bold].join(" ")}>
+                        <div className={column.fixedHeight}>Height</div>
+                        <div className={column.flexFill}>Hash</div>
+                        <div className={[column.flexFit, column.truncate].join(" ")}>Timestamp</div>
+                        <div className={[column.fixedSize, column.right].join(" ")}>Size (bytes)</div>
+                        <div className={[column.fixedTxCount, column.right].join(" ")}>Txs</div>
+                    </div>
                     {blocks.map((block) => {
                         return (
-                            <div key={block.hash} className={column.container}>
-                                <div className={column.width15}>
+                            <div key={block.hash} className={[column.container, column.singleLine].join(" ")}>
+                                <div className={column.fixedHeight}>
                                     <Link href={"/block/height/" + block.height}>
                                         {block.height}
                                     </Link>
                                 </div>
-                                <div className={column.width40}>
+                                <div className={[column.flexFill, column.truncate, column.monospace].join(" ")}>
                                     <Link href={"/block/" + block.hash}>
-                                        <PreInline>{block.hash}</PreInline>
+                                        {block.hash}
                                     </Link>
                                 </div>
-                                <div className={[column.width15].join(" ")}>
-                                    {block.timestamp}
+                                <div className={[column.flexFit, column.truncate].join(" ")}>
+                                    {block.timestamp.replace(/[-+]\d{2}:\d{2}$/, "")}
                                 </div>
-                                <div className={[column.width15, column.right].join(" ")}>
-                                    {block.size ? block.size.toLocaleString() : 0} bytes
+                                <div className={[column.fixedSize, column.right].join(" ")}>
+                                    {block.size ? block.size.toLocaleString() : 0}
                                 </div>
-                                <div className={[column.width15, column.right].join(" ")}>
-                                    {block.tx_count ? block.tx_count.toLocaleString() : 0} txs
+                                <div className={[column.fixedTxCount, column.right].join(" ")}>
+                                    {block.tx_count ? block.tx_count.toLocaleString() : 0}
                                 </div>
                             </div>
                         )
                     })}
-                    <div>
-                        <Link href={{
-                            pathname: "/block/list",
-                            query: {
-                                newest: lastNewest,
-                                start: prev,
-                            }
-                        }}>
-                            Prev
-                        </Link>
-                        &nbsp;&middot;&nbsp;
-                        <Link href={{
-                            pathname: "/block/list",
-                            query: {
-                                newest: lastNewest,
-                                start: next,
-                            }
-                        }}>
-                            Next
-                        </Link>
+                    <div className={column.navButtons}>
+                        {hasNewer ?
+                            <Link href={{pathname: "/block/list"}}>
+                                <span className={column.navButton}>Newest</span>
+                            </Link>
+                            : <span className={column.navButtonDisabled}>Newest</span>
+                        }
+                        {" "}
+                        {hasNewer ?
+                            <Link href={{pathname: "/block/list", query: {start: newer}}}>
+                                <span className={column.navButton}>&laquo; Newer</span>
+                            </Link>
+                            : <span className={column.navButtonDisabled}>&laquo; Newer</span>
+                        }
+                        {" "}
+                        {hasOlder ?
+                            <Link href={{pathname: "/block/list", query: {start: older}}}>
+                                <span className={column.navButton}>Older &raquo;</span>
+                            </Link>
+                            : <span className={column.navButtonDisabled}>Older &raquo;</span>
+                        }
+                        {" "}
+                        {hasOlder ?
+                            <Link href={{pathname: "/block/list", query: {start: 26}}}>
+                                <span className={column.navButton}>Oldest</span>
+                            </Link>
+                            : <span className={column.navButtonDisabled}>Oldest</span>
+                        }
                     </div>
                 </Loading>
             </div>

@@ -208,7 +208,8 @@ function BlockInfo({tx}) {
                             <br/>
                             Timestamp: {txBlock.block.timestamp.length ? txBlock.block.timestamp : "Not set"}
                             <br/>
-                            Height: {txBlock.block.height}
+                            Height: <Link href={"/block/height/" + txBlock.block.height}>
+                            {txBlock.block.height}</Link>
                         </div>
                     )
                 }) : null}
