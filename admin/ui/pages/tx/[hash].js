@@ -164,7 +164,7 @@ export default function Hash() {
                     <div className={column.container}>
                         <div className={column.width15}>Fee</div>
                         <div className={column.width85}>
-                            {hasCoinbase(tx) ? "Coinbase" : (<>{fee} Satoshis ({feeRate} sats/B)</>)}
+                            {hasCoinbase(tx) ? "Coinbase" : (<>{fee.toLocaleString()} Satoshis ({feeRate} sats/B)</>)}
                         </div>
                     </div>
                     <div className={column.container}>
@@ -233,7 +233,7 @@ function Inputs({tx}) {
                             </Link>
                             : <>Not found</>}
                             <br/>
-                            Amount: {input.output.amount}
+                            Amount: {input.output.amount.toLocaleString()}
                             <br/>
                             UnlockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{input.script}</pre>
@@ -345,7 +345,7 @@ function Outputs({tx}) {
                                 {output.lock.address}
                             </Link></>}
                             <br/>
-                            Amount: {output.amount}
+                            Amount: {output.amount.toLocaleString()}
                             <br/>
                             LockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
