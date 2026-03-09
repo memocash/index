@@ -11,11 +11,12 @@ import (
 )
 
 type CheckOrphans struct {
-	Ctx     context.Context
-	Verbose bool
-	Total   int
-	Orphans int
-	Breaks  int
+	Ctx            context.Context
+	Verbose        bool
+	Total          int
+	Orphans        int
+	Breaks         int
+	FalsePositives int
 }
 
 func NewCheckOrphans(ctx context.Context, verbose bool) *CheckOrphans {
@@ -37,10 +38,34 @@ func (c *CheckOrphans) Check() error {
 			break
 		}
 		for _, hb := range heightBlocks {
+			c.Total++
 			if prevHB != nil && hb.Height != nextHeight {
-				log.Printf("Found duplicate:\n - %d: %s\n - %d: %s\n",
-					hb.Height, chainhash.Hash(hb.BlockHash),
-					prevHB.Height, chainhash.Hash(prevHB.BlockHash))
+				if hb.Height == prevHB.Height {
+					c.Orphans++
+					log.Printf("Height duplicate at %d:\n - %s\n - %s\n",
+						hb.Height, chainhash.Hash(hb.BlockHash), chainhash.Hash(prevHB.BlockHash))
+				} else {
+					// Gap detected — verify if missing heights actually exist
+					for missingHeight := nextHeight; missingHeight < hb.Height; missingHeight++ {
+						heightBlocksAtHeight, err := chain.GetHeightBlock(c.Ctx, missingHeight)
+						if err != nil {
+							log.Printf("Error checking height %d: %v", missingHeight, err)
+							c.Breaks++
+							continue
+						}
+						if len(heightBlocksAtHeight) == 0 {
+							c.Breaks++
+							log.Printf("Missing height %d (between %d and %d)",
+								missingHeight, prevHB.Height, hb.Height)
+						} else {
+							c.FalsePositives++
+							if c.Verbose {
+								log.Printf("False positive gap at height %d (exists on shard, %d blocks)",
+									missingHeight, len(heightBlocksAtHeight))
+							}
+						}
+					}
+				}
 			}
 			nextHeight = hb.Height + 1
 			prevHB = hb
