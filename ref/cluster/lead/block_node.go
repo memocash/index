@@ -9,6 +9,7 @@ import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/peer"
 	"github.com/jchavannes/btcd/wire"
+	"github.com/jchavannes/jgo/jfmt"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
@@ -43,7 +44,7 @@ func (n *BlockNode) connect() error {
 		return fmt.Errorf("error getting new outbound peer; %w", err)
 	}
 	n.peer = connection.Peer
-	log.Printf("BlockNode connecting to: %s\n", connection.Address)
+	log.Printf("%s connecting to: %s\n", NameBlockNode, connection.Address)
 	connection.Peer.WaitForDisconnect()
 	_ = connection.Net.Close()
 	return nil
@@ -57,9 +58,9 @@ func (n *BlockNode) Start() {
 			if err := n.connect(); err != nil {
 				log.Fatalf("fatal error connecting block node peer; %v", err)
 			}
-			log.Printf("BlockNode peer disconnected\n")
+			log.Printf("%s peer disconnected\n", NameBlockNode)
 			const sleepSeconds = 5
-			log.Printf("BlockNode reconnecting to peer after %d seconds\n", sleepSeconds)
+			log.Printf("%s reconnecting to peer after %d seconds\n", NameBlockNode, sleepSeconds)
 			time.Sleep(time.Second * sleepSeconds)
 		}
 	}()
@@ -95,13 +96,14 @@ func (n *BlockNode) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 		blockHash = heightBlock.BlockHash
 	}
 	msgGetHeaders.BlockLocatorHashes = append(msgGetHeaders.BlockLocatorHashes, &blockHash)
+	log.Printf("%s resuming form height: %s\n", NameBlockNodeSync, jfmt.AddCommas(height))
 	n.peer.QueueMessage(msgGetHeaders, nil)
 }
 
 func (n *BlockNode) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 	if len(msg.Headers) == 0 {
 		if !n.synced {
-			log.Printf("BlockNode sync caught up\n")
+			log.Printf("%s completed\n", NameBlockNodeSync)
 			n.synced = true
 			n.SyncDone <- struct{}{}
 		}
@@ -180,7 +182,7 @@ func (n *BlockNode) OnBlock(_ *peer.Peer, msg *wire.MsgBlock, _ []byte) {
 }
 
 func (n *BlockNode) OnReject(_ *peer.Peer, msg *wire.MsgReject) {
-	log.Printf("BlockNode OnReject: %#v\n", msg)
+	log.Printf("%s OnReject: %#v\n", NameBlockNode, msg)
 }
 
 func (n *BlockNode) OnPing(_ *peer.Peer, msg *wire.MsgPing) {
@@ -189,7 +191,7 @@ func (n *BlockNode) OnPing(_ *peer.Peer, msg *wire.MsgPing) {
 }
 
 func (n *BlockNode) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
-	log.Printf("BlockNode connected to peer: %s (last block: %d)\n", msg.UserAgent, msg.LastBlock)
+	log.Printf("%s connected to peer: %s (last block: %d)\n", NameBlockNode, msg.UserAgent, msg.LastBlock)
 }
 
 func NewBlockNode() *BlockNode {

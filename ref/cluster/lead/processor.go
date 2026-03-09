@@ -53,9 +53,9 @@ func (p *Processor) Run() error {
 		case block := <-p.BlockNode.NewBlock:
 			var loc string
 			if p.Synced {
-				loc = "block node"
+				loc = NameBlockNode
 			} else {
-				loc = "block sync"
+				loc = NameBlockNodeSync
 			}
 			if !p.ProcessBlock(block, loc) {
 				return fmt.Errorf("error processing block during sync")
@@ -67,7 +67,7 @@ func (p *Processor) Run() error {
 			go func() {
 				for {
 					block := <-p.MempoolNode.NewBlock
-					if !p.ProcessBlock(block, "mempool") {
+					if !p.ProcessBlock(block, NameMempoolNode) {
 						p.ErrorChan <- fmt.Errorf("error processing mempool block")
 						return
 					}
@@ -128,8 +128,8 @@ func (p *Processor) ProcessBlock(block *dbi.Block, loc string) bool {
 		}
 	}
 	if dbi.BlockHeaderSet(block.Header) {
-		log.Printf("Saved block (%s): %s %s, %7s txs, size: %14s\n", loc,
-			blockHash, block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
+		log.Printf("%s OnBlock: %d %s %s, %7s txs, size: %14s\n", loc, height, blockHash,
+			block.Header.Timestamp.Format("2006-01-02 15:04:05"), jfmt.AddCommasInt(blockInfo.TxCount),
 			jfmt.AddCommasInt(int(blockInfo.Size)))
 	}
 	return true

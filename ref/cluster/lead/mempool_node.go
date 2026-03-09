@@ -32,7 +32,7 @@ func (n *MempoolNode) connect() error {
 		return fmt.Errorf("error getting new outbound peer; %w", err)
 	}
 	n.peer = connection.Peer
-	log.Printf("MempoolNode connecting to: %s\n", connection.Address)
+	log.Printf("%s connecting to: %s\n", NameMempoolNode, connection.Address)
 	connection.Peer.WaitForDisconnect()
 	_ = connection.Net.Close()
 	return nil
@@ -44,9 +44,9 @@ func (n *MempoolNode) Start() {
 			if err := n.connect(); err != nil {
 				log.Fatalf("fatal error connecting mempool node peer; %v", err)
 			}
-			log.Printf("MempoolNode peer disconnected\n")
+			log.Printf("%s peer disconnected\n", NameMempoolNode)
 			const sleepSeconds = 5
-			log.Printf("MempoolNode reconnecting to peer after %d seconds\n", sleepSeconds)
+			log.Printf("%s reconnecting to peer after %d seconds\n", NameMempoolNode, sleepSeconds)
 			time.Sleep(time.Second * sleepSeconds)
 		}
 	}()
@@ -75,13 +75,13 @@ func (n *MempoolNode) OnInv(_ *peer.Peer, msg *wire.MsgInv) {
 }
 
 func (n *MempoolNode) OnTx(_ *peer.Peer, msg *wire.MsgTx) {
-	log.Printf("MempoolNode OnTx: %s, in: %s, out: %s, size: %s\n", msg.TxHash().String(),
+	log.Printf("%s OnTx: %s, in: %s, out: %s, size: %s\n", NameMempoolNode, msg.TxHash().String(),
 		jfmt.AddCommasInt(len(msg.TxIn)), jfmt.AddCommasInt(len(msg.TxOut)), jfmt.AddCommasInt(msg.SerializeSize()))
 	n.NewBlock <- dbi.WireBlockToBlock(memo.GetBlockFromTxs([]*wire.MsgTx{msg}, nil))
 }
 
 func (n *MempoolNode) OnReject(_ *peer.Peer, msg *wire.MsgReject) {
-	log.Printf("MempoolNode OnReject: %#v\n", msg)
+	log.Printf("%s OnReject: %#v\n", NameMempoolNode, msg)
 }
 
 func (n *MempoolNode) OnPing(_ *peer.Peer, msg *wire.MsgPing) {
@@ -90,7 +90,7 @@ func (n *MempoolNode) OnPing(_ *peer.Peer, msg *wire.MsgPing) {
 }
 
 func (n *MempoolNode) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
-	log.Printf("MempoolNode connected to peer: %s (last block: %d)\n", msg.UserAgent, msg.LastBlock)
+	log.Printf("%s connected to peer: %s (last block: %d)\n", NameMempoolNode, msg.UserAgent, msg.LastBlock)
 }
 
 func (n *MempoolNode) BroadcastTx(ctx context.Context, msgTx *wire.MsgTx) error {
