@@ -67,15 +67,15 @@ func (s *Server) Run() error {
 			errorHandler <- fmt.Errorf("error running cluster lead processor; %w", processor.Run())
 		}()
 		broadcastServer := broadcast_server.NewServer(config.GetBroadcastRpc().Port, func(ctx context.Context, raw []byte) error {
-			if processor.MempoolNode == nil {
-				return fmt.Errorf("error node still syncing, cannot broadcast yet")
+			if processor.BlockNode == nil {
+				return fmt.Errorf("error BlockNode is nil, cannot setup broadcast server")
 			}
 			txMsg, err := memo.GetMsgFromRaw(raw)
 			if err != nil {
 				return fmt.Errorf("error parsing raw tx; %w", err)
 			}
 			log.Printf("Broadcasting transaction: %s\n", txMsg.TxHash())
-			if err := processor.MempoolNode.BroadcastTx(ctx, txMsg); err != nil {
+			if err := processor.BlockNode.BroadcastTx(ctx, txMsg); err != nil {
 				return fmt.Errorf("error broadcasting tx to connection peer; %w", err)
 			}
 			return nil

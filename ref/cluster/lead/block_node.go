@@ -194,6 +194,19 @@ func (n *BlockNode) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
 	log.Printf("%s connected to peer: %s (last block: %d)\n", NameBlockNode, msg.UserAgent, msg.LastBlock)
 }
 
+func (n *BlockNode) BroadcastTx(ctx context.Context, msgTx *wire.MsgTx) error {
+	var done = make(chan struct{})
+	n.peer.QueueMessage(msgTx, done)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("error context timeout")
+	}
+}
+
 func NewBlockNode() *BlockNode {
 	return &BlockNode{
 		NewBlock: make(chan *dbi.Block),
