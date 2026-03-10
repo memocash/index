@@ -38,12 +38,17 @@ func (l *ListHeightDuplicates) List(ctx context.Context) error {
 			for _, msg := range dbClient.Messages {
 				var heightDuplicate chain.HeightDuplicate
 				heightDuplicate.SetUid(msg.Uid)
-				log.Printf("Height: %d, Block: %s\n", heightDuplicate.Height, chainhash.Hash(heightDuplicate.BlockHash).String())
 				l.Total++
 				if l.CheckDoubleSpends {
-					if err := l.checkBlockDoubleSpends(ctx, heightDuplicate.Height, heightDuplicate.BlockHash); err != nil {
+					result, err := l.checkBlockDoubleSpends(ctx, heightDuplicate.Height, heightDuplicate.BlockHash)
+					if err != nil {
 						return fmt.Errorf("error checking double spends for height %d; %w", heightDuplicate.Height, err)
 					}
+					log.Printf("Height: %d, Block: %s: %d txs, %d inputs, %d outs checked, max spend count: %d\n",
+						heightDuplicate.Height, chainhash.Hash(heightDuplicate.BlockHash).String(),
+						result.Txs, result.Inputs, result.Outs, result.MaxSpendCount)
+				} else {
+					log.Printf("Height: %d, Block: %s\n", heightDuplicate.Height, chainhash.Hash(heightDuplicate.BlockHash).String())
 				}
 			}
 			if len(dbClient.Messages) < client.HugeLimit {
@@ -55,7 +60,14 @@ func (l *ListHeightDuplicates) List(ctx context.Context) error {
 	return nil
 }
 
-func (l *ListHeightDuplicates) checkBlockDoubleSpends(ctx context.Context, height int64, blockHash [32]byte) error {
+type blockDoubleSpendResult struct {
+	Txs           int
+	Inputs        int
+	Outs          int
+	MaxSpendCount int
+}
+
+func (l *ListHeightDuplicates) checkBlockDoubleSpends(ctx context.Context, height int64, blockHash [32]byte) (blockDoubleSpendResult, error) {
 	var allTxHashes [][32]byte
 	var startIndex uint32
 	for {
@@ -65,7 +77,7 @@ func (l *ListHeightDuplicates) checkBlockDoubleSpends(ctx context.Context, heigh
 			StartIndex: startIndex,
 		})
 		if err != nil {
-			return fmt.Errorf("error getting block txs; %w", err)
+			return blockDoubleSpendResult{}, fmt.Errorf("error getting block txs; %w", err)
 		}
 		for _, blockTx := range blockTxs {
 			allTxHashes = append(allTxHashes, blockTx.TxHash)
@@ -77,6 +89,7 @@ func (l *ListHeightDuplicates) checkBlockDoubleSpends(ctx context.Context, heigh
 	}
 	const batchSize = client.LargeLimit
 	var outs []memo.Out
+	var totalInputs int
 	for i := 0; i < len(allTxHashes); i += batchSize {
 		end := i + batchSize
 		if end > len(allTxHashes) {
@@ -84,8 +97,9 @@ func (l *ListHeightDuplicates) checkBlockDoubleSpends(ctx context.Context, heigh
 		}
 		txInputs, err := chain.GetTxInputsByHashes(ctx, allTxHashes[i:end])
 		if err != nil {
-			return fmt.Errorf("error getting tx inputs; %w", err)
+			return blockDoubleSpendResult{}, fmt.Errorf("error getting tx inputs; %w", err)
 		}
+		totalInputs += len(txInputs)
 		for _, txInput := range txInputs {
 			if memo.IsCoinbase(txInput.PrevHash[:], txInput.PrevIndex) {
 				continue
@@ -97,7 +111,7 @@ func (l *ListHeightDuplicates) checkBlockDoubleSpends(ctx context.Context, heigh
 		}
 	}
 	if len(outs) == 0 {
-		return nil
+		return blockDoubleSpendResult{Txs: len(allTxHashes), Inputs: totalInputs}, nil
 	}
 	type outKey struct {
 		Hash  [32]byte
@@ -111,19 +125,28 @@ func (l *ListHeightDuplicates) checkBlockDoubleSpends(ctx context.Context, heigh
 		}
 		outputInputs, err := chain.GetOutputInputs(ctx, outs[i:end])
 		if err != nil {
-			return fmt.Errorf("error getting output inputs; %w", err)
+			return blockDoubleSpendResult{}, fmt.Errorf("error getting output inputs; %w", err)
 		}
 		for _, oi := range outputInputs {
 			key := outKey{Hash: oi.PrevHash, Index: oi.PrevIndex}
 			spendCounts[key]++
 		}
 	}
+	var maxSpendCount int
 	for key, count := range spendCounts {
+		if count > maxSpendCount {
+			maxSpendCount = count
+		}
 		if count > 1 {
 			l.DoubleSpends++
 			log.Printf("  Double spend at height %d: output %s:%d spent %d times\n",
 				height, chainhash.Hash(key.Hash).String(), key.Index, count)
 		}
 	}
-	return nil
+	return blockDoubleSpendResult{
+		Txs:           len(allTxHashes),
+		Inputs:        totalInputs,
+		Outs:          len(outs),
+		MaxSpendCount: maxSpendCount,
+	}, nil
 }
