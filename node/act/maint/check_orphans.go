@@ -8,21 +8,25 @@ import (
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
+	"github.com/memocash/index/db/item/db"
 )
 
 type CheckOrphans struct {
 	Ctx            context.Context
 	Verbose        bool
+	Save           bool
 	Total          int
 	Orphans        int
 	Breaks         int
 	FalsePositives int
+	Saved          int
 }
 
-func NewCheckOrphans(ctx context.Context, verbose bool) *CheckOrphans {
+func NewCheckOrphans(ctx context.Context, verbose bool, save bool) *CheckOrphans {
 	return &CheckOrphans{
 		Ctx:     ctx,
 		Verbose: verbose,
+		Save:    save,
 	}
 }
 
@@ -44,6 +48,15 @@ func (c *CheckOrphans) Check() error {
 					c.Orphans++
 					log.Printf("Height duplicate at %d:\n - %s\n - %s\n",
 						hb.Height, chainhash.Hash(hb.BlockHash), chainhash.Hash(prevHB.BlockHash))
+					if c.Save {
+						if err := db.Save([]db.Object{
+							&chain.HeightDuplicate{Height: hb.Height, BlockHash: hb.BlockHash},
+							&chain.HeightDuplicate{Height: prevHB.Height, BlockHash: prevHB.BlockHash},
+						}); err != nil {
+							return fmt.Errorf("error saving height duplicates at %d; %w", hb.Height, err)
+						}
+						c.Saved += 2
+					}
 				} else {
 					// Gap detected — verify if missing heights actually exist
 					for missingHeight := nextHeight; missingHeight < hb.Height; missingHeight++ {

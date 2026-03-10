@@ -10,6 +10,7 @@ const (
 	FlagRestart = "restart"
 	FlagDryRun  = "dry-run"
 	FlagHeight  = "height"
+	FlagSave    = "save"
 )
 
 var maintCommand = &cobra.Command{
@@ -26,6 +27,7 @@ func GetCommand() *cobra.Command {
 	backfillCmd.MarkFlagRequired(FlagStart)
 	backfillCmd.MarkFlagRequired(FlagEnd)
 	checkOrphansCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
+	checkOrphansCmd.Flags().Bool(FlagSave, false, "Save height duplicate records to database")
 	deleteBlocksCmd.Flags().Int64(FlagStart, 0, "Start height (required)")
 	deleteBlocksCmd.MarkFlagRequired(FlagStart)
 	deleteBlocksCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
