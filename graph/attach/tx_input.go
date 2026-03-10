@@ -94,6 +94,9 @@ func (i *Inputs) AttachTxOutputs() {
 	var allOutputs []*model.TxOutput
 	i.Mutex.Lock()
 	for j := range i.Inputs {
+		if memo.IsCoinbase(i.Inputs[j].PrevHash[:], i.Inputs[j].PrevIndex) {
+			continue
+		}
 		i.Inputs[j].Output = &model.TxOutput{Hash: i.Inputs[j].PrevHash, Index: i.Inputs[j].PrevIndex}
 		allOutputs = append(allOutputs, i.Inputs[j].Output)
 	}

@@ -250,7 +250,7 @@ function Inputs({tx}) {
                                     {input.output.slp_baton.genesis.ticker}
                                 </Link> : null}
                             </div> : null}
-                            {input.output.spends && input.output.spends.length >= 2 ?
+                            {!isCoinbase(input) && input.output.spends && input.output.spends.length >= 2 ?
                                 <div className={[column.red, column.bold].join(" ")}>
                                     DOUBLE SPEND
                                 </div>

@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/memocash/index/db/client"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
 
@@ -32,9 +34,13 @@ func (d *DoubleSpends) Check(ctx context.Context) error {
 			for _, msg := range dbClient.Messages {
 				var prefix [36]byte
 				copy(prefix[:], msg.Uid[:36])
+				var outputInput = new(chain.OutputInput)
+				db.Set(outputInput, msg)
+				if memo.IsCoinbase(outputInput.PrevHash[:], outputInput.PrevIndex) {
+					continue
+				}
 				if prefix == prevPrefix {
-					/*var outputInput = new(chain.OutputInput)
-					db.Set(outputInput, msg)
+					/**
 					log.Printf("Found double spend: %s:%d (spending: %s:%d)\n",
 						chainhash.Hash(outputInput.Hash), outputInput.Index,
 						chainhash.Hash(outputInput.PrevHash), outputInput.PrevIndex)*/
