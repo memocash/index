@@ -75,35 +75,48 @@ func (l *ListHeightDuplicates) checkBlockDoubleSpends(ctx context.Context, heigh
 		}
 		startIndex = blockTxs[len(blockTxs)-1].Index + 1
 	}
-	txInputs, err := chain.GetTxInputsByHashes(ctx, allTxHashes)
-	if err != nil {
-		return fmt.Errorf("error getting tx inputs; %w", err)
-	}
+	const batchSize = client.LargeLimit
 	var outs []memo.Out
-	for _, txInput := range txInputs {
-		if memo.IsCoinbase(txInput.PrevHash[:], txInput.PrevIndex) {
-			continue
+	for i := 0; i < len(allTxHashes); i += batchSize {
+		end := i + batchSize
+		if end > len(allTxHashes) {
+			end = len(allTxHashes)
 		}
-		outs = append(outs, memo.Out{
-			TxHash: txInput.PrevHash[:],
-			Index:  txInput.PrevIndex,
-		})
+		txInputs, err := chain.GetTxInputsByHashes(ctx, allTxHashes[i:end])
+		if err != nil {
+			return fmt.Errorf("error getting tx inputs; %w", err)
+		}
+		for _, txInput := range txInputs {
+			if memo.IsCoinbase(txInput.PrevHash[:], txInput.PrevIndex) {
+				continue
+			}
+			outs = append(outs, memo.Out{
+				TxHash: txInput.PrevHash[:],
+				Index:  txInput.PrevIndex,
+			})
+		}
 	}
 	if len(outs) == 0 {
 		return nil
-	}
-	outputInputs, err := chain.GetOutputInputs(ctx, outs)
-	if err != nil {
-		return fmt.Errorf("error getting output inputs; %w", err)
 	}
 	type outKey struct {
 		Hash  [32]byte
 		Index uint32
 	}
 	spendCounts := make(map[outKey]int)
-	for _, oi := range outputInputs {
-		key := outKey{Hash: oi.PrevHash, Index: oi.PrevIndex}
-		spendCounts[key]++
+	for i := 0; i < len(outs); i += batchSize {
+		end := i + batchSize
+		if end > len(outs) {
+			end = len(outs)
+		}
+		outputInputs, err := chain.GetOutputInputs(ctx, outs[i:end])
+		if err != nil {
+			return fmt.Errorf("error getting output inputs; %w", err)
+		}
+		for _, oi := range outputInputs {
+			key := outKey{Hash: oi.PrevHash, Index: oi.PrevIndex}
+			spendCounts[key]++
+		}
 	}
 	for key, count := range spendCounts {
 		if count > 1 {
