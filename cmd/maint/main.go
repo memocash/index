@@ -5,12 +5,13 @@ import (
 )
 
 const (
-	FlagVerbose = "verbose"
-	FlagDelete  = "delete"
-	FlagRestart = "restart"
-	FlagDryRun  = "dry-run"
-	FlagHeight  = "height"
-	FlagSave    = "save"
+	FlagVerbose      = "verbose"
+	FlagDelete       = "delete"
+	FlagRestart      = "restart"
+	FlagDryRun       = "dry-run"
+	FlagHeight       = "height"
+	FlagSave         = "save"
+	FlagDoubleSpends = "double-spends"
 )
 
 var maintCommand = &cobra.Command{
@@ -28,6 +29,7 @@ func GetCommand() *cobra.Command {
 	backfillCmd.MarkFlagRequired(FlagEnd)
 	checkOrphansCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
 	checkOrphansCmd.Flags().Bool(FlagSave, false, "Save height duplicate records to database")
+	listHeightDuplicatesCmd.Flags().Bool(FlagDoubleSpends, false, "Check for double spends in duplicate blocks")
 	deleteBlocksCmd.Flags().Int64(FlagStart, 0, "Start height (required)")
 	deleteBlocksCmd.MarkFlagRequired(FlagStart)
 	deleteBlocksCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")

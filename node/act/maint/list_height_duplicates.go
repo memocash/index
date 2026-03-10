@@ -9,11 +9,20 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
+	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/config"
 )
 
 type ListHeightDuplicates struct {
-	Total int
+	CheckDoubleSpends bool
+	Total             int
+	DoubleSpends      int
+}
+
+func NewListHeightDuplicates(checkDoubleSpends bool) *ListHeightDuplicates {
+	return &ListHeightDuplicates{
+		CheckDoubleSpends: checkDoubleSpends,
+	}
 }
 
 func (l *ListHeightDuplicates) List(ctx context.Context) error {
@@ -31,11 +40,76 @@ func (l *ListHeightDuplicates) List(ctx context.Context) error {
 				heightDuplicate.SetUid(msg.Uid)
 				log.Printf("Height: %d, Block: %s\n", heightDuplicate.Height, chainhash.Hash(heightDuplicate.BlockHash).String())
 				l.Total++
+				if l.CheckDoubleSpends {
+					if err := l.checkBlockDoubleSpends(ctx, heightDuplicate.Height, heightDuplicate.BlockHash); err != nil {
+						return fmt.Errorf("error checking double spends for height %d; %w", heightDuplicate.Height, err)
+					}
+				}
 			}
 			if len(dbClient.Messages) < client.HugeLimit {
 				break
 			}
 			startUid = dbClient.Messages[len(dbClient.Messages)-1].Uid
+		}
+	}
+	return nil
+}
+
+func (l *ListHeightDuplicates) checkBlockDoubleSpends(ctx context.Context, height int64, blockHash [32]byte) error {
+	var allTxHashes [][32]byte
+	var startIndex uint32
+	for {
+		blockTxs, err := chain.GetBlockTxs(chain.BlockTxsRequest{
+			Context:    ctx,
+			BlockHash:  blockHash,
+			StartIndex: startIndex,
+		})
+		if err != nil {
+			return fmt.Errorf("error getting block txs; %w", err)
+		}
+		for _, blockTx := range blockTxs {
+			allTxHashes = append(allTxHashes, blockTx.TxHash)
+		}
+		if len(blockTxs) < client.LargeLimit {
+			break
+		}
+		startIndex = blockTxs[len(blockTxs)-1].Index + 1
+	}
+	txInputs, err := chain.GetTxInputsByHashes(ctx, allTxHashes)
+	if err != nil {
+		return fmt.Errorf("error getting tx inputs; %w", err)
+	}
+	var outs []memo.Out
+	for _, txInput := range txInputs {
+		if memo.IsCoinbase(txInput.PrevHash[:], txInput.PrevIndex) {
+			continue
+		}
+		outs = append(outs, memo.Out{
+			TxHash: txInput.PrevHash[:],
+			Index:  txInput.PrevIndex,
+		})
+	}
+	if len(outs) == 0 {
+		return nil
+	}
+	outputInputs, err := chain.GetOutputInputs(ctx, outs)
+	if err != nil {
+		return fmt.Errorf("error getting output inputs; %w", err)
+	}
+	type outKey struct {
+		Hash  [32]byte
+		Index uint32
+	}
+	spendCounts := make(map[outKey]int)
+	for _, oi := range outputInputs {
+		key := outKey{Hash: oi.PrevHash, Index: oi.PrevIndex}
+		spendCounts[key]++
+	}
+	for key, count := range spendCounts {
+		if count > 1 {
+			l.DoubleSpends++
+			log.Printf("  Double spend at height %d: output %s:%d spent %d times\n",
+				height, chainhash.Hash(key.Hash).String(), key.Index, count)
 		}
 	}
 	return nil
