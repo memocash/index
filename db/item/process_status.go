@@ -9,9 +9,10 @@ import (
 )
 
 const (
-	ProcessStatusPopulateP2sh       = "populate-p2sh"
-	ProcessStatusPopulateAddr       = "populate-addr"
-	ProcessStatusPopulateAddrInputs = "populate-addr-inputs"
+	ProcessStatusPopulateP2sh              = "populate-p2sh"
+	ProcessStatusPopulateAddr              = "populate-addr"
+	ProcessStatusPopulateAddrInputs        = "populate-addr-inputs"
+	ProcessStatusPopulateOutputInputSingle = "populate-output-input-single"
 )
 
 type ProcessStatus struct {
