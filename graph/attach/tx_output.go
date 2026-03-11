@@ -91,9 +91,9 @@ func (o *Outputs) AttachSpends() {
 		return
 	}
 	outs := o.GetOuts(false)
-	spends, err := chain.GetOutputInputs(o.Ctx, outs)
+	spends, err := chain.GetOutputInputSingles(o.Ctx, outs)
 	if err != nil {
-		o.AddError(fmt.Errorf("error getting tx inputs spends for model tx outputs; %w", err))
+		o.AddError(fmt.Errorf("error getting output input singles for model tx outputs; %w", err))
 		return
 	}
 	var allSpends []*model.TxInput
@@ -109,12 +109,13 @@ func (o *Outputs) AttachSpends() {
 				PrevHash:  spends[j].PrevHash,
 				PrevIndex: spends[j].PrevIndex,
 			})
+			break
 		}
 		allSpends = append(allSpends, o.Outputs[i].Spends...)
 	}
 	o.Mutex.Unlock()
 	if err := ToInputs(o.Ctx, GetPrefixFields(o.Fields, "spends."), allSpends); err != nil {
-		o.AddError(fmt.Errorf("error attaching to tx inputs spends for model tx outputs; %w", err))
+		o.AddError(fmt.Errorf("error attaching to output input single spends for model tx outputs; %w", err))
 		return
 	}
 }
