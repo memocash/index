@@ -69,6 +69,12 @@ func (t *TxMinimal) QueueTxs(block *dbi.Block) error {
 				Hash:      txHash,
 				Index:     uint32(j),
 			})
+			objects = append(objects, &chain.OutputInputSingle{
+				PrevHash:  tx.TxIn[j].PreviousOutPoint.Hash,
+				PrevIndex: tx.TxIn[j].PreviousOutPoint.Index,
+				Hash:      txHash,
+				Index:     uint32(j),
+			})
 		}
 		for k := range tx.TxOut {
 			objects = append(objects, &chain.TxOutput{

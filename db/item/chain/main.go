@@ -11,6 +11,7 @@ func GetTopics() []db.Object {
 		&HeightBlock{},
 		&HeightDuplicate{},
 		&OutputInput{},
+		&OutputInputSingle{},
 		&Tx{},
 		&TxBlock{},
 		&TxInput{},
