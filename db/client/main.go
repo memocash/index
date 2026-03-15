@@ -4,9 +4,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/jchavannes/jgo/db_util"
 	"github.com/jchavannes/jgo/jutil"
-	"time"
 )
 
 const (
@@ -24,7 +25,8 @@ const (
 )
 
 const (
-	MaxMessageSize = 32 * 10e7
+	MaxMessages    = 10 * 1e6   // 10 million
+	MaxMessageSize = 3200 * 1e6 // 3.2gb
 )
 
 const (

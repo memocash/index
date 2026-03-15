@@ -27,7 +27,7 @@ func ToLocks(ctx context.Context, fields []Field, locks []*model.Lock) error {
 	go t.AttachTxs()
 	t.Wait.Wait()
 	if len(t.Errors) > 0 {
-		return fmt.Errorf("error attaching details to txs; %w", t.Errors[0])
+		return fmt.Errorf("error attaching details to locks; %w", t.Errors[0])
 	}
 	return nil
 }
