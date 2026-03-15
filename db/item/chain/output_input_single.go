@@ -55,17 +55,17 @@ func (t *OutputInputSingle) Deserialize(data []byte) {
 }
 
 func GetOutputInputSingles(ctx context.Context, outs []memo.Out) ([]*OutputInputSingle, error) {
-	var shardPrefixes = make(map[uint32][]client.Prefix)
+	var shardUids = make(map[uint32][][]byte)
 	for _, out := range outs {
 		shard := db.GetShardIdFromByte32(out.TxHash)
-		shardPrefixes[shard] = append(shardPrefixes[shard], client.NewPrefix(jutil.CombineBytes(
+		shardUids[shard] = append(shardUids[shard], jutil.CombineBytes(
 			jutil.ByteReverse(out.TxHash),
 			jutil.GetUint32DataBig(out.Index),
-		)))
+		))
 	}
-	messages, err := db.GetByPrefixes(ctx, db.TopicChainOutputInputSingle, shardPrefixes)
+	messages, err := db.GetSpecific(ctx, db.TopicChainOutputInputSingle, shardUids)
 	if err != nil {
-		return nil, fmt.Errorf("error getting by prefixes for chain output input singles; %w", err)
+		return nil, fmt.Errorf("error getting specific for chain output input singles; %w", err)
 	}
 	var outputInputSingles []*OutputInputSingle
 	for i := range messages {
