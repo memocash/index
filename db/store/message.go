@@ -3,6 +3,7 @@ package store
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/metric"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -104,7 +105,7 @@ func GetByPrefixes(request RequestByPrefixes) ([]*Message, error) {
 
 	var maxResults = request.Limit
 	if maxResults == 0 {
-		maxResults = client.HugeLimit
+		maxResults = client.MaxMessages
 	}
 
 	var prefixes = request.Prefixes
