@@ -84,7 +84,7 @@ func (s *Client) GetByPrefixes(ctx context.Context, topic string, prefixes []Pre
 		return fmt.Errorf("error setting connection; %w", err)
 	}
 	c := queue_pb.NewQueueClient(s.conn)
-	ctxNew, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctxNew, cancel := context.WithTimeout(ctx, DefaultGetTimeout)
 	defer cancel()
 	s.Messages = nil
 	var reqPrefixes = make([]*queue_pb.RequestPrefix, len(prefixes))
