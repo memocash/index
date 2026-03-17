@@ -29,6 +29,17 @@ func ToInputs(ctx context.Context, fields []Field, inputs []*model.TxInput) erro
 	return nil
 }
 
+func (i *Inputs) getInputIndexMap() map[outKey][]int {
+	i.Mutex.Lock()
+	defer i.Mutex.Unlock()
+	m := make(map[outKey][]int, len(i.Inputs))
+	for j := range i.Inputs {
+		k := outKey{i.Inputs[j].Hash, i.Inputs[j].Index}
+		m[k] = append(m[k], j)
+	}
+	return m
+}
+
 func (i *Inputs) AttachScriptSequence() {
 	defer i.Wait.Done()
 	if !i.HasField([]string{"script", "sequence"}) {
@@ -54,16 +65,17 @@ func (i *Inputs) AttachScriptSequence() {
 		i.AddError(fmt.Errorf("error getting tx inputs for model tx inputs script sequence; %w", err))
 		return
 	}
+	inputIndexMap := i.getInputIndexMap()
 	i.Mutex.Lock()
 	defer i.Mutex.Unlock()
-	for j := range i.Inputs {
-		for k := range txInputs {
-			if i.Inputs[j].Hash != txInputs[k].TxHash || i.Inputs[j].Index != txInputs[k].Index {
-				continue
-			}
+	for k := range txInputs {
+		indices, ok := inputIndexMap[outKey{txInputs[k].TxHash, txInputs[k].Index}]
+		if !ok {
+			continue
+		}
+		for _, j := range indices {
 			i.Inputs[j].Script = txInputs[k].UnlockScript
 			i.Inputs[j].Sequence = txInputs[k].Sequence
-			break
 		}
 	}
 }

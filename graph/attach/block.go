@@ -45,6 +45,16 @@ func (b *Blocks) GetBlockHashes() [][32]byte {
 	return blockHashes
 }
 
+func (b *Blocks) getBlockIndexMap() map[[32]byte][]int {
+	b.Mutex.Lock()
+	defer b.Mutex.Unlock()
+	m := make(map[[32]byte][]int, len(b.Blocks))
+	for i := range b.Blocks {
+		m[b.Blocks[i].Hash] = append(m[b.Blocks[i].Hash], i)
+	}
+	return m
+}
+
 func (b *Blocks) AttachRaws() {
 	defer b.Wait.Done()
 	if !b.HasField([]string{"raw", "timestamp"}) {
@@ -56,21 +66,22 @@ func (b *Blocks) AttachRaws() {
 		b.AddError(fmt.Errorf("error getting blocks for block loader; %w", err))
 		return
 	}
+	blockIndexMap := b.getBlockIndexMap()
 	b.Mutex.Lock()
 	defer b.Mutex.Unlock()
-	for i := range b.Blocks {
-		for j := range blocks {
-			if b.Blocks[i].Hash != blocks[j].Hash {
-				continue
-			}
-			blockHeader, err := memo.GetBlockHeaderFromRaw(blocks[j].Raw)
-			if err != nil {
-				b.AddError(fmt.Errorf("error getting block header from raw for block loader; %w", err))
-				return
-			}
+	for j := range blocks {
+		indices, ok := blockIndexMap[blocks[j].Hash]
+		if !ok {
+			continue
+		}
+		blockHeader, err := memo.GetBlockHeaderFromRaw(blocks[j].Raw)
+		if err != nil {
+			b.AddError(fmt.Errorf("error getting block header from raw for block loader; %w", err))
+			return
+		}
+		for _, i := range indices {
 			b.Blocks[i].Timestamp = model.Date(blockHeader.Timestamp)
 			b.Blocks[i].Raw = blocks[j].Raw
-			break
 		}
 	}
 }
@@ -86,15 +97,16 @@ func (b *Blocks) AttachHeights() {
 		b.AddError(fmt.Errorf("error getting block heights for block loader; %w", err))
 		return
 	}
+	blockIndexMap := b.getBlockIndexMap()
 	b.Mutex.Lock()
 	defer b.Mutex.Unlock()
-	for i := range b.Blocks {
-		for j := range blockHeights {
-			if b.Blocks[i].Hash != blockHeights[j].BlockHash {
-				continue
-			}
+	for j := range blockHeights {
+		indices, ok := blockIndexMap[blockHeights[j].BlockHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			b.Blocks[i].Height = model.IntPtr(int(blockHeights[j].Height))
-			break
 		}
 	}
 }
@@ -110,16 +122,17 @@ func (b *Blocks) AttachInfos() {
 		b.AddError(fmt.Errorf("error getting block infos for block loader; %w", err))
 		return
 	}
+	blockIndexMap := b.getBlockIndexMap()
 	b.Mutex.Lock()
 	defer b.Mutex.Unlock()
-	for i := range b.Blocks {
-		for j := range blockInfos {
-			if b.Blocks[i].Hash != blockInfos[j].BlockHash {
-				continue
-			}
+	for j := range blockInfos {
+		indices, ok := blockIndexMap[blockInfos[j].BlockHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			b.Blocks[i].Size = blockInfos[j].Size
 			b.Blocks[i].TxCount = blockInfos[j].TxCount
-			break
 		}
 	}
 }

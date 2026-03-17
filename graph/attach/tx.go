@@ -3,15 +3,16 @@ package attach
 import (
 	"context"
 	"fmt"
+	"sort"
+	"sync"
+	"time"
+
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"sort"
-	"sync"
-	"time"
 )
 
 type Tx struct {
@@ -67,13 +68,15 @@ func (t *Tx) AttachInputs() {
 		t.AddError(fmt.Errorf("error getting tx inputs for model tx; %w", err))
 		return
 	}
+	txIndexMap := t.getTxIndexMap()
 	var allInputs []*model.TxInput
 	t.Mutex.Lock()
-	for i := range t.Txs {
-		for j := range txInputs {
-			if t.Txs[i].Hash != txInputs[j].TxHash {
-				continue
-			}
+	for j := range txInputs {
+		indices, ok := txIndexMap[txInputs[j].TxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			t.Txs[i].Inputs = append(t.Txs[i].Inputs, &model.TxInput{
 				Hash:      txInputs[j].TxHash,
 				Index:     txInputs[j].Index,
@@ -83,6 +86,8 @@ func (t *Tx) AttachInputs() {
 				Script:    txInputs[j].UnlockScript,
 			})
 		}
+	}
+	for i := range t.Txs {
 		allInputs = append(allInputs, t.Txs[i].Inputs...)
 		sort.Slice(t.Txs[i].Inputs, func(a, b int) bool {
 			return t.Txs[i].Inputs[a].Index < t.Txs[i].Inputs[b].Index
@@ -109,13 +114,15 @@ func (t *Tx) AttachOutputs() {
 		t.AddError(fmt.Errorf("error getting tx outputs for model tx; %w", err))
 		return
 	}
+	txIndexMap := t.getTxIndexMap()
 	t.Mutex.Lock()
 	defer t.Mutex.Unlock()
-	for i := range t.Txs {
-		for j := range txOutputs {
-			if t.Txs[i].Hash != txOutputs[j].TxHash {
-				continue
-			}
+	for j := range txOutputs {
+		indices, ok := txIndexMap[txOutputs[j].TxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			t.Txs[i].Outputs = append(t.Txs[i].Outputs, &model.TxOutput{
 				Hash:   txOutputs[j].TxHash,
 				Index:  txOutputs[j].Index,
@@ -123,6 +130,8 @@ func (t *Tx) AttachOutputs() {
 				Script: txOutputs[j].LockScript,
 			})
 		}
+	}
+	for i := range t.Txs {
 		sort.Slice(t.Txs[i].Outputs, func(a, b int) bool {
 			return t.Txs[i].Outputs[a].Index < t.Txs[i].Outputs[b].Index
 		})
@@ -143,6 +152,16 @@ func (t *Tx) AttachToOutputs() {
 	}
 }
 
+func (t *Tx) getTxIndexMap() map[[32]byte][]int {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+	txIndexMap := make(map[[32]byte][]int, len(t.Txs))
+	for i := range t.Txs {
+		txIndexMap[t.Txs[i].Hash] = append(txIndexMap[t.Txs[i].Hash], i)
+	}
+	return txIndexMap
+}
+
 func (t *Tx) AttachInfo() {
 	defer t.DetailsWait.Done()
 	if !t.HasField([]string{"version", "locktime", "raw"}) {
@@ -157,16 +176,17 @@ func (t *Tx) AttachInfo() {
 		t.AddError(fmt.Errorf("error getting chain txs for raw; %w", err))
 		return
 	}
+	txIndexMap := t.getTxIndexMap()
 	t.Mutex.Lock()
 	defer t.Mutex.Unlock()
-	for i := range t.Txs {
-		for j := range chainTxs {
-			if t.Txs[i].Hash != chainTxs[j].TxHash {
-				continue
-			}
+	for j := range chainTxs {
+		indices, ok := txIndexMap[chainTxs[j].TxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			t.Txs[i].Version = chainTxs[j].Version
 			t.Txs[i].LockTime = chainTxs[j].LockTime
-			break
 		}
 	}
 }
@@ -227,15 +247,16 @@ func (t *Tx) AttachSeens() {
 		t.AddError(fmt.Errorf("error getting chain txs for raw; %w", err))
 		return
 	}
+	txIndexMap := t.getTxIndexMap()
 	t.Mutex.Lock()
 	defer t.Mutex.Unlock()
-	for i := range t.Txs {
-		for j := range txSeens {
-			if t.Txs[i].Hash != txSeens[j].TxHash {
-				continue
-			}
+	for j := range txSeens {
+		indices, ok := txIndexMap[txSeens[j].TxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			t.Txs[i].Seen = model.Date(txSeens[j].Timestamp)
-			break
 		}
 	}
 }
@@ -251,13 +272,15 @@ func (t *Tx) AttachBlocks() {
 		t.AddError(fmt.Errorf("error getting blocks for tx for block loader; %w", err))
 		return
 	}
+	txIndexMap := t.getTxIndexMap()
 	var allBlocks []*model.Block
 	t.Mutex.Lock()
-	for i := range t.Txs {
-		for j := range txBlocks {
-			if t.Txs[i].Hash != txBlocks[j].TxHash {
-				continue
-			}
+	for j := range txBlocks {
+		indices, ok := txIndexMap[txBlocks[j].TxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			var block = &model.TxBlock{
 				TxHash:    t.Txs[i].Hash,
 				Tx:        t.Txs[i],
@@ -268,9 +291,6 @@ func (t *Tx) AttachBlocks() {
 			t.Txs[i].Blocks = append(t.Txs[i].Blocks, block)
 			allBlocks = append(allBlocks, block.Block)
 		}
-		sort.Slice(t.Txs[i].Outputs, func(a, b int) bool {
-			return t.Txs[i].Outputs[a].Index < t.Txs[i].Outputs[b].Index
-		})
 	}
 	t.Mutex.Unlock()
 	if err := ToBlocks(t.Ctx, GetPrefixFields(t.Fields, "blocks.block."), allBlocks); err != nil {

@@ -3,13 +3,19 @@ package attach
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/slp"
 	"github.com/memocash/index/graph/model"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/wallet"
-	"sync"
 )
+
+type outKey struct {
+	Hash  [32]byte
+	Index uint32
+}
 
 type Outputs struct {
 	base
@@ -57,6 +63,17 @@ func (o *Outputs) GetOuts(checkScript bool) []memo.Out {
 	return outs
 }
 
+func (o *Outputs) getOutputIndexMap() map[outKey][]int {
+	o.Mutex.Lock()
+	defer o.Mutex.Unlock()
+	m := make(map[outKey][]int, len(o.Outputs))
+	for i := range o.Outputs {
+		k := outKey{o.Outputs[i].Hash, o.Outputs[i].Index}
+		m[k] = append(m[k], i)
+	}
+	return m
+}
+
 func (o *Outputs) AttachInfo() {
 	defer o.DetailsWait.Done()
 	if !o.HasField([]string{"amount", "script", "lock"}) {
@@ -71,16 +88,17 @@ func (o *Outputs) AttachInfo() {
 		o.AddError(fmt.Errorf("error getting tx outputs for model tx; %w", err))
 		return
 	}
+	outputIndexMap := o.getOutputIndexMap()
 	o.Mutex.Lock()
 	defer o.Mutex.Unlock()
-	for i := range o.Outputs {
-		for j := range txOutputs {
-			if o.Outputs[i].Hash != txOutputs[j].TxHash || o.Outputs[i].Index != txOutputs[j].Index {
-				continue
-			}
+	for j := range txOutputs {
+		indices, ok := outputIndexMap[outKey{txOutputs[j].TxHash, txOutputs[j].Index}]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			o.Outputs[i].Amount = txOutputs[j].Value
 			o.Outputs[i].Script = txOutputs[j].LockScript
-			break
 		}
 	}
 }
@@ -96,13 +114,15 @@ func (o *Outputs) AttachSpends() {
 		o.AddError(fmt.Errorf("error getting tx inputs spends for model tx outputs; %w", err))
 		return
 	}
+	outputIndexMap := o.getOutputIndexMap()
 	var allSpends []*model.TxInput
 	o.Mutex.Lock()
-	for i := range o.Outputs {
-		for j := range spends {
-			if o.Outputs[i].Hash != spends[j].PrevHash || o.Outputs[i].Index != spends[j].PrevIndex {
-				continue
-			}
+	for j := range spends {
+		indices, ok := outputIndexMap[outKey{spends[j].PrevHash, spends[j].PrevIndex}]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			o.Outputs[i].Spends = append(o.Outputs[i].Spends, &model.TxInput{
 				Hash:      spends[j].Hash,
 				Index:     spends[j].Index,
@@ -110,6 +130,8 @@ func (o *Outputs) AttachSpends() {
 				PrevIndex: spends[j].PrevIndex,
 			})
 		}
+	}
+	for i := range o.Outputs {
 		allSpends = append(allSpends, o.Outputs[i].Spends...)
 	}
 	o.Mutex.Unlock()
@@ -130,13 +152,15 @@ func (o *Outputs) AttachSlps() {
 		o.AddError(fmt.Errorf("error getting slp outputs for model tx outputs; %w", err))
 		return
 	}
+	outputIndexMap := o.getOutputIndexMap()
 	var allSlpOutputs []*model.SlpOutput
 	o.Mutex.Lock()
-	for i := range o.Outputs {
-		for j := range slpOutputs {
-			if o.Outputs[i].Hash != slpOutputs[j].TxHash || o.Outputs[i].Index != slpOutputs[j].Index {
-				continue
-			}
+	for j := range slpOutputs {
+		indices, ok := outputIndexMap[outKey{slpOutputs[j].TxHash, slpOutputs[j].Index}]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			o.Outputs[i].Slp = &model.SlpOutput{
 				Hash:      slpOutputs[j].TxHash,
 				Index:     slpOutputs[j].Index,
@@ -164,13 +188,15 @@ func (o *Outputs) AttachSlpBatons() {
 		o.AddError(fmt.Errorf("error getting slp batons for model tx outputs; %w", err))
 		return
 	}
+	outputIndexMap := o.getOutputIndexMap()
 	var allSlpBatons []*model.SlpBaton
 	o.Mutex.Lock()
-	for i := range o.Outputs {
-		for j := range slpBatons {
-			if o.Outputs[i].Hash != slpBatons[j].TxHash || o.Outputs[i].Index != slpBatons[j].Index {
-				continue
-			}
+	for j := range slpBatons {
+		indices, ok := outputIndexMap[outKey{slpBatons[j].TxHash, slpBatons[j].Index}]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			o.Outputs[i].SlpBaton = &model.SlpBaton{
 				Hash:      slpBatons[j].TxHash,
 				Index:     slpBatons[j].Index,
