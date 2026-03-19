@@ -40,12 +40,23 @@ func (o *MemoRoom) GetRoomNames() []string {
 	return roomNames
 }
 
+func (o *MemoRoom) getRoomIndexMap() map[string][]int {
+	o.Mutex.Lock()
+	defer o.Mutex.Unlock()
+	m := make(map[string][]int, len(o.Rooms))
+	for i := range o.Rooms {
+		m[o.Rooms[i].Name] = append(m[o.Rooms[i].Name], i)
+	}
+	return m
+}
+
 func (o *MemoRoom) AttachPosts() {
 	defer o.Wait.Done()
 	if !o.HasField([]string{"posts"}) {
 		return
 	}
 	// TODO: Implement "start" field support
+	roomIndexMap := o.getRoomIndexMap()
 	var allPosts []*model.Post
 	for _, roomName := range o.GetRoomNames() {
 		roomPosts, err := memo.GetRoomPosts(o.Ctx, roomName)
@@ -59,12 +70,8 @@ func (o *MemoRoom) AttachPosts() {
 			allPosts = append(allPosts, posts[i])
 		}
 		o.Mutex.Lock()
-		for i := range o.Rooms {
-			if o.Rooms[i].Name != roomName {
-				continue
-			}
+		for _, i := range roomIndexMap[roomName] {
 			o.Rooms[i].Posts = posts
-			break
 		}
 		o.Mutex.Unlock()
 	}
@@ -80,6 +87,7 @@ func (o *MemoRoom) AttachFollowers() {
 		return
 	}
 	// TODO: Implement "start" field support
+	roomIndexMap := o.getRoomIndexMap()
 	var allRoomFollows []*model.RoomFollow
 	for _, roomName := range o.GetRoomNames() {
 		dbRoomFollows, err := memo.GetRoomFollows(o.Ctx, roomName)
@@ -98,12 +106,8 @@ func (o *MemoRoom) AttachFollowers() {
 			allRoomFollows = append(allRoomFollows, modelRoomFollows[i])
 		}
 		o.Mutex.Lock()
-		for i := range o.Rooms {
-			if o.Rooms[i].Name != roomName {
-				continue
-			}
+		for _, i := range roomIndexMap[roomName] {
 			o.Rooms[i].Followers = modelRoomFollows
-			break
 		}
 		o.Mutex.Unlock()
 	}

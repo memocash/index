@@ -45,6 +45,16 @@ func (a *MemoSetPic) getAddresses() [][25]byte {
 	return addresses
 }
 
+func (a *MemoSetPic) getSetPicIndexMap() map[[25]byte][]int {
+	a.Mutex.Lock()
+	defer a.Mutex.Unlock()
+	m := make(map[[25]byte][]int, len(a.SetPics))
+	for i := range a.SetPics {
+		m[a.SetPics[i].Address] = append(m[a.SetPics[i].Address], i)
+	}
+	return m
+}
+
 func (a *MemoSetPic) AttachInfo() {
 	defer a.DetailsWait.Done()
 	if !a.HasField([]string{"tx", "tx_hash", "pic"}) {
@@ -55,13 +65,12 @@ func (a *MemoSetPic) AttachInfo() {
 		a.AddError(fmt.Errorf("error getting addr profile pics for set pic attach; %w", err))
 		return
 	}
+	setPicIndexMap := a.getSetPicIndexMap()
 	a.Mutex.Lock()
 	for _, addrProfilePic := range addrProfilePics {
-		for _, setPic := range a.SetPics {
-			if addrProfilePic.Addr == setPic.Address {
-				setPic.TxHash = addrProfilePic.TxHash
-				setPic.Pic = addrProfilePic.Pic
-			}
+		for _, i := range setPicIndexMap[addrProfilePic.Addr] {
+			a.SetPics[i].TxHash = addrProfilePic.TxHash
+			a.SetPics[i].Pic = addrProfilePic.Pic
 		}
 	}
 	a.Mutex.Unlock()

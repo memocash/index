@@ -3,10 +3,11 @@ package attach
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
-	"sync"
 )
 
 type MemoLike struct {
@@ -67,6 +68,16 @@ func (a *MemoLike) AttachInfo() {
 	}
 }
 
+func (a *MemoLike) getLikeTxHashMap() map[[32]byte][]int {
+	a.Mutex.Lock()
+	defer a.Mutex.Unlock()
+	m := make(map[[32]byte][]int, len(a.Likes))
+	for i := range a.Likes {
+		m[a.Likes[i].TxHash] = append(m[a.Likes[i].TxHash], i)
+	}
+	return m
+}
+
 func (a *MemoLike) AttachTips() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"tip"}) {
@@ -77,12 +88,15 @@ func (a *MemoLike) AttachTips() {
 		a.AddError(fmt.Errorf("error getting memo like tips for post resolver; %w", err))
 		return
 	}
+	likeTxHashMap := a.getLikeTxHashMap()
 	a.Mutex.Lock()
 	for _, memoLikeTip := range memoLikeTips {
-		for _, like := range a.Likes {
-			if memoLikeTip.LikeTxHash == like.PostTxHash {
-				like.Tip = memoLikeTip.Tip
-			}
+		indices, ok := likeTxHashMap[memoLikeTip.LikeTxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
+			a.Likes[i].Tip = memoLikeTip.Tip
 		}
 	}
 	a.Mutex.Unlock()

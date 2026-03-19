@@ -49,6 +49,16 @@ func (a *MemoProfile) getAddresses() [][25]byte {
 	return addresses
 }
 
+func (a *MemoProfile) getProfileIndexMap() map[[25]byte][]int {
+	a.Mutex.Lock()
+	defer a.Mutex.Unlock()
+	m := make(map[[25]byte][]int, len(a.Profiles))
+	for i := range a.Profiles {
+		m[a.Profiles[i].Address] = append(m[a.Profiles[i].Address], i)
+	}
+	return m
+}
+
 func (a *MemoProfile) AttachLocks() {
 	defer a.Wait.Done()
 	var allLocks []*model.Lock
@@ -75,6 +85,7 @@ func (a *MemoProfile) AttachPosts() {
 	postsField := a.Fields.GetField("posts")
 	startDate, _ := model.UnmarshalDate(postsField.Arguments["start"])
 	newest, _ := graphql.UnmarshalBoolean(postsField.Arguments["newest"])
+	profileIndexMap := a.getProfileIndexMap()
 	var allProfilePosts []*model.Post
 	for _, addr := range a.getAddresses() {
 		addrPosts, err := memo.GetSingleAddrPosts(a.Ctx, addr, newest, time.Time(startDate))
@@ -83,15 +94,13 @@ func (a *MemoProfile) AttachPosts() {
 			return
 		}
 		a.Mutex.Lock()
-		for _, profile := range a.Profiles {
-			if profile.Address == addr {
-				for _, addrPost := range addrPosts {
-					post := &model.Post{
-						TxHash: addrPost.TxHash,
-					}
-					profile.Posts = append(profile.Posts, post)
-					allProfilePosts = append(allProfilePosts, post)
+		for _, i := range profileIndexMap[addr] {
+			for _, addrPost := range addrPosts {
+				post := &model.Post{
+					TxHash: addrPost.TxHash,
 				}
+				a.Profiles[i].Posts = append(a.Profiles[i].Posts, post)
+				allProfilePosts = append(allProfilePosts, post)
 			}
 		}
 		a.Mutex.Unlock()
@@ -109,6 +118,7 @@ func (a *MemoProfile) AttachFollowing() {
 	}
 	followingField := a.Fields.GetField("following")
 	startDate, _ := model.UnmarshalDate(followingField.Arguments["start"])
+	profileIndexMap := a.getProfileIndexMap()
 	var allFollows []*model.Follow
 	for _, addr := range a.getAddresses() {
 		addrMemoFollows, err := memo.GetAddrFollowsSingle(a.Ctx, addr, time.Time(startDate))
@@ -117,18 +127,16 @@ func (a *MemoProfile) AttachFollowing() {
 			return
 		}
 		a.Mutex.Lock()
-		for _, profile := range a.Profiles {
-			if profile.Address == addr {
-				for _, addrMemoFollow := range addrMemoFollows {
-					follow := &model.Follow{
-						Address:       addrMemoFollow.Addr,
-						TxHash:        addrMemoFollow.TxHash,
-						Unfollow:      addrMemoFollow.Unfollow,
-						FollowAddress: addrMemoFollow.FollowAddr,
-					}
-					profile.Following = append(profile.Following, follow)
-					allFollows = append(allFollows, follow)
+		for _, i := range profileIndexMap[addr] {
+			for _, addrMemoFollow := range addrMemoFollows {
+				follow := &model.Follow{
+					Address:       addrMemoFollow.Addr,
+					TxHash:        addrMemoFollow.TxHash,
+					Unfollow:      addrMemoFollow.Unfollow,
+					FollowAddress: addrMemoFollow.FollowAddr,
 				}
+				a.Profiles[i].Following = append(a.Profiles[i].Following, follow)
+				allFollows = append(allFollows, follow)
 			}
 		}
 		a.Mutex.Unlock()
@@ -146,6 +154,7 @@ func (a *MemoProfile) AttachFollowers() {
 	}
 	followersField := a.Fields.GetField("followers")
 	startDate, _ := model.UnmarshalDate(followersField.Arguments["start"])
+	profileIndexMap := a.getProfileIndexMap()
 	var allFollows []*model.Follow
 	for _, addr := range a.getAddresses() {
 		addrMemoFollows, err := memo.GetAddrFollowedsSingle(a.Ctx, addr, time.Time(startDate))
@@ -154,18 +163,16 @@ func (a *MemoProfile) AttachFollowers() {
 			return
 		}
 		a.Mutex.Lock()
-		for _, profile := range a.Profiles {
-			if profile.Address == addr {
-				for _, addrMemoFollow := range addrMemoFollows {
-					follow := &model.Follow{
-						Address:       addrMemoFollow.Addr,
-						TxHash:        addrMemoFollow.TxHash,
-						Unfollow:      addrMemoFollow.Unfollow,
-						FollowAddress: addrMemoFollow.FollowAddr,
-					}
-					profile.Followers = append(profile.Followers, follow)
-					allFollows = append(allFollows, follow)
+		for _, i := range profileIndexMap[addr] {
+			for _, addrMemoFollow := range addrMemoFollows {
+				follow := &model.Follow{
+					Address:       addrMemoFollow.Addr,
+					TxHash:        addrMemoFollow.TxHash,
+					Unfollow:      addrMemoFollow.Unfollow,
+					FollowAddress: addrMemoFollow.FollowAddr,
 				}
+				a.Profiles[i].Followers = append(a.Profiles[i].Followers, follow)
+				allFollows = append(allFollows, follow)
 			}
 		}
 		a.Mutex.Unlock()
@@ -186,23 +193,26 @@ func (a *MemoProfile) AttachRooms() {
 		a.AddError(fmt.Errorf("error getting addr room follows for profile attach; %w", err))
 		return
 	}
+	profileIndexMap := a.getProfileIndexMap()
 	var allRoomFollows []*model.RoomFollow
 	a.Mutex.Lock()
 	for _, lockRoomFollow := range lockRoomFollows {
 		if lockRoomFollow.Unfollow {
 			continue
 		}
-		for _, profile := range a.Profiles {
-			if profile.Address == lockRoomFollow.Addr {
-				roomFollow := &model.RoomFollow{
-					Name:     lockRoomFollow.Room,
-					Address:  lockRoomFollow.Addr,
-					TxHash:   lockRoomFollow.TxHash,
-					Unfollow: lockRoomFollow.Unfollow,
-				}
-				profile.Rooms = append(profile.Rooms, roomFollow)
-				allRoomFollows = append(allRoomFollows, roomFollow)
+		indices, ok := profileIndexMap[lockRoomFollow.Addr]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
+			roomFollow := &model.RoomFollow{
+				Name:     lockRoomFollow.Room,
+				Address:  lockRoomFollow.Addr,
+				TxHash:   lockRoomFollow.TxHash,
+				Unfollow: lockRoomFollow.Unfollow,
 			}
+			a.Profiles[i].Rooms = append(a.Profiles[i].Rooms, roomFollow)
+			allRoomFollows = append(allRoomFollows, roomFollow)
 		}
 	}
 	a.Mutex.Unlock()
@@ -225,16 +235,15 @@ func (a *MemoProfile) AttachNames() {
 		a.AddError(fmt.Errorf("error attaching to names for memo profiles; %w", err))
 		return
 	}
+	profileIndexMap := a.getProfileIndexMap()
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 	for _, setName := range allSetNames {
 		if !SetNameExists(setName) {
 			continue
 		}
-		for _, profile := range a.Profiles {
-			if profile.Address == setName.Address {
-				profile.Name = setName
-			}
+		for _, i := range profileIndexMap[setName.Address] {
+			a.Profiles[i].Name = setName
 		}
 	}
 }
@@ -252,16 +261,15 @@ func (a *MemoProfile) AttachProfiles() {
 		a.AddError(fmt.Errorf("error attaching to profiles for memo profiles; %w", err))
 		return
 	}
+	profileIndexMap := a.getProfileIndexMap()
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 	for _, setProfile := range allSetProfiles {
 		if !SetProfileExists(setProfile) {
 			continue
 		}
-		for _, profile := range a.Profiles {
-			if profile.Address == setProfile.Address {
-				profile.Profile = setProfile
-			}
+		for _, i := range profileIndexMap[setProfile.Address] {
+			a.Profiles[i].Profile = setProfile
 		}
 	}
 }
@@ -279,16 +287,15 @@ func (a *MemoProfile) AttachPics() {
 		a.AddError(fmt.Errorf("error attaching to pics for memo profiles; %w", err))
 		return
 	}
+	profileIndexMap := a.getProfileIndexMap()
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 	for _, setPic := range allSetPics {
 		if !SetPicExists(setPic) {
 			continue
 		}
-		for _, profile := range a.Profiles {
-			if profile.Address == setPic.Address {
-				profile.Pic = setPic
-			}
+		for _, i := range profileIndexMap[setPic.Address] {
+			a.Profiles[i].Pic = setPic
 		}
 	}
 }

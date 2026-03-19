@@ -45,6 +45,16 @@ func (a *MemoSetName) getAddresses() [][25]byte {
 	return addresses
 }
 
+func (a *MemoSetName) getSetNameIndexMap() map[[25]byte][]int {
+	a.Mutex.Lock()
+	defer a.Mutex.Unlock()
+	m := make(map[[25]byte][]int, len(a.SetNames))
+	for i := range a.SetNames {
+		m[a.SetNames[i].Address] = append(m[a.SetNames[i].Address], i)
+	}
+	return m
+}
+
 func (a *MemoSetName) AttachInfo() {
 	defer a.DetailsWait.Done()
 	if !a.HasField([]string{"tx", "tx_hash", "name"}) {
@@ -55,13 +65,12 @@ func (a *MemoSetName) AttachInfo() {
 		a.AddError(fmt.Errorf("error getting addr profile names for set name attach; %w", err))
 		return
 	}
+	setNameIndexMap := a.getSetNameIndexMap()
 	a.Mutex.Lock()
 	for _, addrProfileName := range addrProfileNames {
-		for _, setName := range a.SetNames {
-			if addrProfileName.Addr == setName.Address {
-				setName.TxHash = addrProfileName.TxHash
-				setName.Name = addrProfileName.Name
-			}
+		for _, i := range setNameIndexMap[addrProfileName.Addr] {
+			a.SetNames[i].TxHash = addrProfileName.TxHash
+			a.SetNames[i].Name = addrProfileName.Name
 		}
 	}
 	a.Mutex.Unlock()

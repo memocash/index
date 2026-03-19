@@ -56,6 +56,16 @@ func (a *MemoPost) getTxHashes(checkTextAddress bool) [][32]byte {
 	return txHashes
 }
 
+func (a *MemoPost) getPostIndexMap() map[[32]byte][]int {
+	a.Mutex.Lock()
+	defer a.Mutex.Unlock()
+	m := make(map[[32]byte][]int, len(a.Posts))
+	for i := range a.Posts {
+		m[a.Posts[i].TxHash] = append(m[a.Posts[i].TxHash], i)
+	}
+	return m
+}
+
 func (a *MemoPost) AttachInfo() {
 	defer a.DetailsWait.Done()
 	if !a.HasField([]string{"address", "text", "lock"}) {
@@ -66,13 +76,16 @@ func (a *MemoPost) AttachInfo() {
 		a.AddError(fmt.Errorf("error getting memo posts for attach info; %w", err))
 		return
 	}
+	postIndexMap := a.getPostIndexMap()
 	a.Mutex.Lock()
 	for _, memoPost := range memoPosts {
-		for i := range a.Posts {
-			if a.Posts[i].TxHash == memoPost.TxHash {
-				a.Posts[i].Address = memoPost.Addr
-				a.Posts[i].Text = memoPost.Post
-			}
+		indices, ok := postIndexMap[memoPost.TxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
+			a.Posts[i].Address = memoPost.Addr
+			a.Posts[i].Text = memoPost.Post
 		}
 	}
 	a.Mutex.Unlock()
@@ -134,22 +147,28 @@ func (a *MemoPost) AttachParents() {
 		a.AddError(fmt.Errorf("error getting memo parent posts for post attach; %w", err))
 		return
 	}
+	postIndexMap := a.getPostIndexMap()
+	verifyMap := make(map[[32]byte]*memo.Post, len(verifyParentPosts))
+	for j := range verifyParentPosts {
+		verifyMap[verifyParentPosts[j].TxHash] = verifyParentPosts[j]
+	}
 	a.Mutex.Lock()
 	var allPosts []*model.Post
 	for _, postParent := range postParents {
-		for i := range a.Posts {
-			if a.Posts[i].TxHash == postParent.PostTxHash {
-				for _, verifyParentPost := range verifyParentPosts {
-					if verifyParentPost.TxHash == postParent.ParentTxHash {
-						a.Posts[i].Parent = &model.Post{
-							TxHash: verifyParentPost.TxHash,
-							Text:   verifyParentPost.Post,
-						}
-						allPosts = append(allPosts, a.Posts[i].Parent)
-						break
-					}
-				}
+		verifyParentPost, ok := verifyMap[postParent.ParentTxHash]
+		if !ok {
+			continue
+		}
+		indices, ok := postIndexMap[postParent.PostTxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
+			a.Posts[i].Parent = &model.Post{
+				TxHash: verifyParentPost.TxHash,
+				Text:   verifyParentPost.Post,
 			}
+			allPosts = append(allPosts, a.Posts[i].Parent)
 		}
 	}
 	a.Mutex.Unlock()
@@ -169,19 +188,22 @@ func (a *MemoPost) AttachLikes() {
 		a.AddError(fmt.Errorf("error getting memo post likes for post attach; %w", err))
 		return
 	}
+	postIndexMap := a.getPostIndexMap()
 	var allLikes []*model.Like
 	a.Mutex.Lock()
 	for _, memoPostLike := range memoPostLikes {
-		for _, post := range a.Posts {
-			if post.TxHash == memoPostLike.PostTxHash {
-				like := &model.Like{
-					TxHash:     memoPostLike.LikeTxHash,
-					PostTxHash: memoPostLike.PostTxHash,
-					Address:    memoPostLike.Addr,
-				}
-				post.Likes = append(post.Likes, like)
-				allLikes = append(allLikes, like)
+		indices, ok := postIndexMap[memoPostLike.PostTxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
+			like := &model.Like{
+				TxHash:     memoPostLike.LikeTxHash,
+				PostTxHash: memoPostLike.PostTxHash,
+				Address:    memoPostLike.Addr,
 			}
+			a.Posts[i].Likes = append(a.Posts[i].Likes, like)
+			allLikes = append(allLikes, like)
 		}
 	}
 	a.Mutex.Unlock()
@@ -201,18 +223,21 @@ func (a *MemoPost) AttachReplies() {
 		a.AddError(fmt.Errorf("error getting memo post replies for post attach; %w", err))
 		return
 	}
+	postIndexMap := a.getPostIndexMap()
 	var allReplies []*model.Post
 	a.Mutex.Lock()
 	for _, memoPostChild := range memoPostsChildren {
-		for _, post := range a.Posts {
-			if post.TxHash == memoPostChild.PostTxHash {
-				reply := &model.Post{
-					TxHash: memoPostChild.ChildTxHash,
-					Parent: post,
-				}
-				post.Replies = append(post.Replies, reply)
-				allReplies = append(allReplies, reply)
+		indices, ok := postIndexMap[memoPostChild.PostTxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
+			reply := &model.Post{
+				TxHash: memoPostChild.ChildTxHash,
+				Parent: a.Posts[i],
 			}
+			a.Posts[i].Replies = append(a.Posts[i].Replies, reply)
+			allReplies = append(allReplies, reply)
 		}
 	}
 	a.Mutex.Unlock()
@@ -232,14 +257,17 @@ func (a *MemoPost) AttachRooms() {
 		a.AddError(fmt.Errorf("error getting memo post rooms for post attach; %w", err))
 		return
 	}
+	postIndexMap := a.getPostIndexMap()
 	var allRooms []*model.Room
 	a.Mutex.Lock()
 	for _, postRoom := range postRooms {
-		for i := range a.Posts {
-			if a.Posts[i].TxHash == postRoom.TxHash {
-				a.Posts[i].Room = &model.Room{Name: postRoom.Room}
-				allRooms = append(allRooms, a.Posts[i].Room)
-			}
+		indices, ok := postIndexMap[postRoom.TxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
+			a.Posts[i].Room = &model.Room{Name: postRoom.Room}
+			allRooms = append(allRooms, a.Posts[i].Room)
 		}
 	}
 	a.Mutex.Unlock()

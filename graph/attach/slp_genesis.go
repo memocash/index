@@ -58,6 +58,16 @@ func (o *SlpGeneses) GetBatonOuts() []memo.Out {
 	return txOuts
 }
 
+func (o *SlpGeneses) getGenesisHashIndexMap() map[[32]byte][]int {
+	o.Mutex.Lock()
+	defer o.Mutex.Unlock()
+	m := make(map[[32]byte][]int, len(o.SlpGeneses))
+	for i := range o.SlpGeneses {
+		m[o.SlpGeneses[i].Hash] = append(m[o.SlpGeneses[i].Hash], i)
+	}
+	return m
+}
+
 func (o *SlpGeneses) AttachSlpOutputs() {
 	defer o.Wait.Done()
 	if !o.HasField([]string{"output"}) {
@@ -68,13 +78,18 @@ func (o *SlpGeneses) AttachSlpOutputs() {
 		o.AddError(fmt.Errorf("error getting tx outputs for model slp geneses; %w", err))
 		return
 	}
+	genesisHashMap := o.getGenesisHashIndexMap()
 	var allSlpOutputs []*model.SlpOutput
 	o.Mutex.Lock()
-	for i := range o.SlpGeneses {
-		for j := range slpOutputs {
-			if o.SlpGeneses[i].Hash != slpOutputs[j].TxHash || memo.SlpMintTokenIndex != slpOutputs[j].Index {
-				continue
-			}
+	for j := range slpOutputs {
+		if memo.SlpMintTokenIndex != slpOutputs[j].Index {
+			continue
+		}
+		indices, ok := genesisHashMap[slpOutputs[j].TxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
 			o.SlpGeneses[i].Output = &model.SlpOutput{
 				Hash:      slpOutputs[j].TxHash,
 				Index:     slpOutputs[j].Index,
@@ -82,7 +97,6 @@ func (o *SlpGeneses) AttachSlpOutputs() {
 				Amount:    slpOutputs[j].Quantity,
 			}
 			allSlpOutputs = append(allSlpOutputs, o.SlpGeneses[i].Output)
-			break
 		}
 	}
 	o.Mutex.Unlock()
@@ -102,11 +116,16 @@ func (o *SlpGeneses) AttachSlpBatons() {
 		o.AddError(fmt.Errorf("error getting tx outputs for model slp geneses; %w", err))
 		return
 	}
+	genesisHashMap := o.getGenesisHashIndexMap()
 	var allBatons []*model.SlpBaton
 	o.Mutex.Lock()
-	for i := range o.SlpGeneses {
-		for j := range batonOutputs {
-			if o.SlpGeneses[i].Hash != batonOutputs[j].TxHash || o.SlpGeneses[i].BatonIndex != batonOutputs[j].Index {
+	for j := range batonOutputs {
+		indices, ok := genesisHashMap[batonOutputs[j].TxHash]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
+			if o.SlpGeneses[i].BatonIndex != batonOutputs[j].Index {
 				continue
 			}
 			o.SlpGeneses[i].Baton = &model.SlpBaton{
@@ -115,7 +134,6 @@ func (o *SlpGeneses) AttachSlpBatons() {
 				TokenHash: batonOutputs[j].TokenHash,
 			}
 			allBatons = append(allBatons, o.SlpGeneses[i].Baton)
-			break
 		}
 	}
 	o.Mutex.Unlock()
