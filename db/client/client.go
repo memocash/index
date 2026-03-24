@@ -292,6 +292,21 @@ func (s *Client) DeleteMessages(topic string, uids [][]byte) error {
 	return nil
 }
 
+func (s *Client) CompactAll() error {
+	if err := s.SetConn(); err != nil {
+		return fmt.Errorf("error setting connection; %w", err)
+	}
+	c := queue_pb.NewQueueClient(s.conn)
+	reply, err := c.CompactAll(context.Background(), &queue_pb.EmptyRequest{})
+	if err != nil {
+		return fmt.Errorf("error calling compact all; %w", err)
+	}
+	if reply.GetError() != "" {
+		return fmt.Errorf("error from shard compaction: %s", reply.GetError())
+	}
+	return nil
+}
+
 func NewClient(host string) *Client {
 	return &Client{
 		host: host,

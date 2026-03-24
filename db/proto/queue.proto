@@ -21,6 +21,8 @@ service Queue {
   }
   rpc GetMessageCount (CountRequest) returns (TopicCount) {
   }
+  rpc CompactAll (EmptyRequest) returns (ErrorReply) {
+  }
 }
 
 message Messages {

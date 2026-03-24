@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/metric"
 	"github.com/memocash/index/db/proto/queue_pb"
@@ -200,6 +202,18 @@ func (s *Server) GetMessageCount(ctx context.Context, request *queue_pb.CountReq
 	return &queue_pb.TopicCount{
 		Count: count,
 	}, nil
+}
+
+func (s *Server) CompactAll(_ context.Context, _ *queue_pb.EmptyRequest) (*queue_pb.ErrorReply, error) {
+	log.Printf("Starting compaction for shard %d...\n", s.Shard)
+	go func() {
+		if err := store.CompactAll(log.Printf); err != nil {
+			log.Printf("Error during compaction for shard %d: %v\n", s.Shard, err)
+			return
+		}
+		log.Printf("Compaction complete for shard %d\n", s.Shard)
+	}()
+	return &queue_pb.ErrorReply{}, nil
 }
 
 func (s *Server) Run() error {

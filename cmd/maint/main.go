@@ -37,6 +37,7 @@ func GetCommand() *cobra.Command {
 	setBlockHeightCmd.Flags().Int64(FlagHeight, 0, "Block height to set (required)")
 	setBlockHeightCmd.MarkFlagRequired(FlagHeight)
 	maintCommand.AddCommand(
+		compactCmd,
 		queueProfileCmd,
 		checkFollowsCmd,
 		populateP2shCmd,

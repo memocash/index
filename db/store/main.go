@@ -29,6 +29,31 @@ func CloseAll() {
 	}
 }
 
+func CompactAll(logFunc func(string, ...interface{})) error {
+	connsMutex.RLock()
+	var connIds []string
+	for k := range conns {
+		connIds = append(connIds, k)
+	}
+	connsMutex.RUnlock()
+	for i, connId := range connIds {
+		connsMutex.RLock()
+		db := conns[connId]
+		connsMutex.RUnlock()
+		if db == nil {
+			continue
+		}
+		statsBefore, _ := db.GetProperty("leveldb.stats")
+		logFunc("Compacting %s (%d/%d)...\n%s", connId, i+1, len(connIds), statsBefore)
+		if err := db.CompactRange(util.Range{}); err != nil {
+			return fmt.Errorf("error compacting %s; %w", connId, err)
+		}
+		statsAfter, _ := db.GetProperty("leveldb.stats")
+		logFunc("Compacted %s (%d/%d)\n%s", connId, i+1, len(connIds), statsAfter)
+	}
+	return nil
+}
+
 func SetConn(connId string, db *leveldb.DB) {
 	connsMutex.Lock()
 	defer connsMutex.Unlock()
