@@ -1,3 +1,3 @@
 package graph
 
-const DefaultUrl = "http://localhost:26770/graphql"
+const DefaultUrl = "https://graph.cash/graphql"
