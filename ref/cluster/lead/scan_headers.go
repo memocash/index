@@ -69,10 +69,15 @@ func (s *ScanHeaders) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 		s.peer.Disconnect()
 		return
 	}
+	expectedPrevHash := s.expectedPrevHash()
 	var objects []db.Object
 	for _, blockHeader := range msg.Headers {
-		s.height++
 		blockHash := blockHeader.BlockHash()
+		if blockHeader.PrevBlock != expectedPrevHash {
+			log.Fatalf("ScanHeaders aborting at height %s: header %s builds on %s, not the expected %s",
+				jfmt.AddCommas(s.height+1), blockHash, blockHeader.PrevBlock, expectedPrevHash)
+		}
+		s.height++
 		headerRaw := memo.GetRawBlockHeader(*blockHeader)
 		objects = append(objects,
 			&chain.Block{
@@ -88,6 +93,7 @@ func (s *ScanHeaders) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 				BlockHash: blockHash,
 			},
 		)
+		expectedPrevHash = blockHash
 	}
 	if err := db.Save(objects); err != nil {
 		log.Fatalf("error saving header objects; %v", err)
@@ -95,11 +101,18 @@ func (s *ScanHeaders) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 	if s.height%2000 == 0 {
 		log.Printf("Scanned headers to height %s\n", jfmt.AddCommas(s.height))
 	}
-	lastHeader := msg.Headers[len(msg.Headers)-1]
-	lastHash := lastHeader.BlockHash()
+	lastHash := expectedPrevHash
+	s.startHash = &lastHash
 	msgGetHeaders := wire.NewMsgGetHeaders()
 	msgGetHeaders.BlockLocatorHashes = append(msgGetHeaders.BlockLocatorHashes, &lastHash)
 	s.peer.QueueMessage(msgGetHeaders, nil)
+}
+
+func (s *ScanHeaders) expectedPrevHash() chainhash.Hash {
+	if s.startHash != nil {
+		return *s.startHash
+	}
+	return *wallet.GetGenesisBlock().Hash
 }
 
 func (s *ScanHeaders) OnVersion(_ *peer.Peer, msg *wire.MsgVersion) {
