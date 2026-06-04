@@ -12,6 +12,7 @@ const (
 	FlagHeight       = "height"
 	FlagSave         = "save"
 	FlagDoubleSpends = "double-spends"
+	FlagVerify       = "verify"
 )
 
 var maintCommand = &cobra.Command{
@@ -36,6 +37,11 @@ func GetCommand() *cobra.Command {
 	deleteBlocksCmd.Flags().Bool(FlagDryRun, false, "Show what would be deleted without deleting")
 	setBlockHeightCmd.Flags().Int64(FlagHeight, 0, "Block height to set (required)")
 	setBlockHeightCmd.MarkFlagRequired(FlagHeight)
+	purgeHeightIndexCmd.Flags().Int64(FlagStart, 0, "Start height (required)")
+	purgeHeightIndexCmd.MarkFlagRequired(FlagStart)
+	purgeHeightIndexCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
+	purgeHeightIndexCmd.Flags().Bool(FlagDryRun, false, "Show what would be deleted without deleting")
+	purgeHeightIndexCmd.Flags().Bool(FlagVerify, true, "Only delete a mapping when the block also exists at a lower height (safe; disable with --verify=false)")
 	maintCommand.AddCommand(
 		compactCmd,
 		queueProfileCmd,
@@ -53,6 +59,7 @@ func GetCommand() *cobra.Command {
 		listHeightDuplicatesCmd,
 		deleteBlocksCmd,
 		setBlockHeightCmd,
+		purgeHeightIndexCmd,
 	)
 	return maintCommand
 }
