@@ -66,7 +66,7 @@ func (b *Block) saveBlockObjects(info dbi.BlockInfo) error {
 					return fmt.Errorf("error getting height block for potential orphan; %w", err)
 				}
 				if heightBlock != nil && heightBlock.BlockHash != b.BlockHash {
-					log.Printf("Height duplicate at %d: %s\n", heightBlock.Height, heightBlock.BlockHash)
+					log.Printf("Height duplicate at %d: %s\n", heightBlock.Height, chainhash.Hash(heightBlock.BlockHash))
 					objects = append(objects, &chain.HeightDuplicate{
 						Height:    heightBlock.Height,
 						BlockHash: heightBlock.BlockHash,

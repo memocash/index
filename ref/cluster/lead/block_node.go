@@ -85,19 +85,35 @@ func (n *BlockNode) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 	} else {
 		height = int64(config.GetInitBlockHeight())
 	}
-	var blockHash chainhash.Hash
-	heightBlock, err := chain.GetHeightBlockSingle(ctx, height)
+	locatorHashes, err := getBlockLocator(ctx, height)
 	if err != nil {
-		if height != 0 || !client.IsEntryNotFoundError(err) {
-			log.Fatalf("error getting height block for block node (height: %d); %v", height, err)
-		}
-		blockHash = *wallet.GetGenesisBlock().Hash
-	} else {
-		blockHash = heightBlock.BlockHash
+		log.Fatalf("error building block locator for block node (height: %d); %v", height, err)
 	}
-	msgGetHeaders.BlockLocatorHashes = append(msgGetHeaders.BlockLocatorHashes, &blockHash)
-	log.Printf("%s resuming form height: %s\n", NameBlockNodeSync, jfmt.AddCommas(height))
+	msgGetHeaders.BlockLocatorHashes = locatorHashes
+	log.Printf("%s resuming from height: %s\n", NameBlockNodeSync, jfmt.AddCommas(height))
 	n.peer.QueueMessage(msgGetHeaders, nil)
+}
+
+func getBlockLocator(ctx context.Context, height int64) ([]*chainhash.Hash, error) {
+	var locatorHashes []*chainhash.Hash
+	var step int64 = 1
+	for h, steps := height, 0; h > 0; steps++ {
+		heightBlocks, err := chain.GetHeightBlock(ctx, h)
+		if err != nil {
+			return nil, fmt.Errorf("error getting height block for locator (height: %d); %w", h, err)
+		}
+		for _, heightBlock := range heightBlocks {
+			blockHash := chainhash.Hash(heightBlock.BlockHash)
+			locatorHashes = append(locatorHashes, &blockHash)
+		}
+		if steps >= 10 {
+			step *= 2
+		}
+		h -= step
+	}
+	genesisHash := *wallet.GetGenesisBlock().Hash
+	locatorHashes = append(locatorHashes, &genesisHash)
+	return locatorHashes, nil
 }
 
 func (n *BlockNode) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
