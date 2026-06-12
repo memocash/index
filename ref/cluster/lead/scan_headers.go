@@ -19,11 +19,11 @@ import (
 )
 
 type ScanHeaders struct {
-	height    int64
-	startHash *chainhash.Hash
-	lastHash  *chainhash.Hash
-	peer      *peer.Peer
-	Rescan    bool
+	height   int64
+	lastHash *chainhash.Hash
+	synced   bool
+	peer     *peer.Peer
+	Rescan   bool
 }
 
 func (s *ScanHeaders) Run() error {
@@ -35,7 +35,6 @@ func (s *ScanHeaders) Run() error {
 		if recentBlock != nil {
 			s.height = recentBlock.Height
 			blockHash := chainhash.Hash(recentBlock.BlockHash)
-			s.startHash = &blockHash
 			s.lastHash = &blockHash
 			log.Printf("ScanHeaders resuming from height: %s\n", jfmt.AddCommas(s.height))
 		}
@@ -52,12 +51,15 @@ func (s *ScanHeaders) Run() error {
 	log.Printf("ScanHeaders connecting to: %s\n", connection.Address)
 	connection.Peer.WaitForDisconnect()
 	_ = connection.Net.Close()
+	if !s.synced {
+		return fmt.Errorf("error scan headers peer disconnected before sync complete (height: %d)", s.height)
+	}
 	log.Printf("ScanHeaders complete at height: %s\n", jfmt.AddCommas(s.height))
 	return nil
 }
 
 func (s *ScanHeaders) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
-	if s.startHash == nil {
+	if s.lastHash == nil {
 		s.requestHeadersFrom(wallet.GetGenesisBlock().Hash)
 		return
 	}
@@ -66,6 +68,7 @@ func (s *ScanHeaders) OnVerAck(_ *peer.Peer, _ *wire.MsgVerAck) {
 
 func (s *ScanHeaders) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 	if len(msg.Headers) == 0 {
+		s.synced = true
 		s.peer.Disconnect()
 		return
 	}
