@@ -10,9 +10,10 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	_ "github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/gorilla/websocket"
+	coderws "github.com/coder/websocket"
 	"github.com/memocash/index/graph/generated"
 	"github.com/memocash/index/graph/resolver"
+	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"net"
 	"net/http"
@@ -23,9 +24,9 @@ func getGqlGenHandler() *handler.Server {
 	srv := handler.New(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{}}))
 	srv.AddTransport(transport.Websocket{
 		KeepAlivePingInterval: 10 * time.Second,
-		Upgrader: websocket.Upgrader{
-			CheckOrigin: func(r *http.Request) bool {
-				return true
+		Implementation: transport.CoderWebsocketImplementation{
+			AcceptOptions: coderws.AcceptOptions{
+				InsecureSkipVerify: true,
 			},
 		},
 	})
@@ -33,10 +34,10 @@ func getGqlGenHandler() *handler.Server {
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.MultipartForm{})
-	srv.SetQueryCache(lru.New(1000))
+	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 	srv.Use(extension.Introspection{})
 	srv.Use(extension.AutomaticPersistedQuery{
-		Cache: lru.New(100),
+		Cache: lru.New[string](100),
 	})
 	srv.SetErrorPresenter(func(ctx context.Context, e error) *gqlerror.Error {
 		pathStr := graphql.GetPath(ctx).String()
