@@ -1,0 +1,27 @@
+type LinkRequest {
+    tx: Tx!
+    tx_hash: Hash!
+    lock: Lock!
+    address: Address!
+    parent_lock: Lock!
+    parent_address: Address!
+    message: String!
+}
+
+type LinkAccept {
+    tx: Tx!
+    tx_hash: Hash!
+    lock: Lock!
+    address: Address!
+    request_tx_hash: Hash!
+    message: String!
+}
+
+type LinkRevoke {
+    tx: Tx!
+    tx_hash: Hash!
+    lock: Lock!
+    address: Address!
+    accept_tx_hash: Hash!
+    message: String!
+}

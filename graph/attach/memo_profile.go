@@ -23,7 +23,7 @@ func ToMemoProfiles(ctx context.Context, fields []Field, profiles []*model.Profi
 		base:     base{Ctx: ctx, Fields: fields},
 		Profiles: profiles,
 	}
-	o.Wait.Add(8)
+	o.Wait.Add(11)
 	go o.AttachLocks()
 	go o.AttachPosts()
 	go o.AttachFollowing()
@@ -32,6 +32,9 @@ func ToMemoProfiles(ctx context.Context, fields []Field, profiles []*model.Profi
 	go o.AttachNames()
 	go o.AttachProfiles()
 	go o.AttachPics()
+	go o.AttachLinkRequests()
+	go o.AttachLinkAccepts()
+	go o.AttachLinkRevokes()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to memo profiles; %w", o.Errors[0])
@@ -179,6 +182,114 @@ func (a *MemoProfile) AttachFollowers() {
 	}
 	if err := ToMemoFollows(a.Ctx, followersField.Fields, allFollows); err != nil {
 		a.AddError(fmt.Errorf("error attaching to followers for memo profiles; %w", err))
+		return
+	}
+}
+
+func (a *MemoProfile) AttachLinkRequests() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"link_requests"}) {
+		return
+	}
+	linkRequestsField := a.Fields.GetField("link_requests")
+	startDate, _ := model.UnmarshalDate(linkRequestsField.Arguments["start"])
+	profileIndexMap := a.getProfileIndexMap()
+	var allLinkRequests []*model.LinkRequest
+	for _, addr := range a.getAddresses() {
+		addrLinkRequests, err := memo.GetAddrLinkRequestsSingle(a.Ctx, addr, time.Time(startDate))
+		if err != nil {
+			a.AddError(fmt.Errorf("error getting address memo link requests for address; %w", err))
+			return
+		}
+		a.Mutex.Lock()
+		for _, i := range profileIndexMap[addr] {
+			for _, addrLinkRequest := range addrLinkRequests {
+				linkRequest := &model.LinkRequest{
+					Address:       addrLinkRequest.Addr,
+					TxHash:        addrLinkRequest.TxHash,
+					ParentAddress: addrLinkRequest.ParentAddr,
+					Message:       addrLinkRequest.Message,
+				}
+				a.Profiles[i].LinkRequests = append(a.Profiles[i].LinkRequests, linkRequest)
+				allLinkRequests = append(allLinkRequests, linkRequest)
+			}
+		}
+		a.Mutex.Unlock()
+	}
+	if err := ToMemoLinkRequests(a.Ctx, linkRequestsField.Fields, allLinkRequests); err != nil {
+		a.AddError(fmt.Errorf("error attaching to link requests for memo profiles; %w", err))
+		return
+	}
+}
+
+func (a *MemoProfile) AttachLinkAccepts() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"link_accepts"}) {
+		return
+	}
+	linkAcceptsField := a.Fields.GetField("link_accepts")
+	startDate, _ := model.UnmarshalDate(linkAcceptsField.Arguments["start"])
+	profileIndexMap := a.getProfileIndexMap()
+	var allLinkAccepts []*model.LinkAccept
+	for _, addr := range a.getAddresses() {
+		addrLinkAccepts, err := memo.GetAddrLinkAcceptsSingle(a.Ctx, addr, time.Time(startDate))
+		if err != nil {
+			a.AddError(fmt.Errorf("error getting address memo link accepts for address; %w", err))
+			return
+		}
+		a.Mutex.Lock()
+		for _, i := range profileIndexMap[addr] {
+			for _, addrLinkAccept := range addrLinkAccepts {
+				linkAccept := &model.LinkAccept{
+					Address:       addrLinkAccept.Addr,
+					TxHash:        addrLinkAccept.TxHash,
+					RequestTxHash: addrLinkAccept.RequestTxHash,
+					Message:       addrLinkAccept.Message,
+				}
+				a.Profiles[i].LinkAccepts = append(a.Profiles[i].LinkAccepts, linkAccept)
+				allLinkAccepts = append(allLinkAccepts, linkAccept)
+			}
+		}
+		a.Mutex.Unlock()
+	}
+	if err := ToMemoLinkAccepts(a.Ctx, linkAcceptsField.Fields, allLinkAccepts); err != nil {
+		a.AddError(fmt.Errorf("error attaching to link accepts for memo profiles; %w", err))
+		return
+	}
+}
+
+func (a *MemoProfile) AttachLinkRevokes() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"link_revokes"}) {
+		return
+	}
+	linkRevokesField := a.Fields.GetField("link_revokes")
+	startDate, _ := model.UnmarshalDate(linkRevokesField.Arguments["start"])
+	profileIndexMap := a.getProfileIndexMap()
+	var allLinkRevokes []*model.LinkRevoke
+	for _, addr := range a.getAddresses() {
+		addrLinkRevokes, err := memo.GetAddrLinkRevokesSingle(a.Ctx, addr, time.Time(startDate))
+		if err != nil {
+			a.AddError(fmt.Errorf("error getting address memo link revokes for address; %w", err))
+			return
+		}
+		a.Mutex.Lock()
+		for _, i := range profileIndexMap[addr] {
+			for _, addrLinkRevoke := range addrLinkRevokes {
+				linkRevoke := &model.LinkRevoke{
+					Address:      addrLinkRevoke.Addr,
+					TxHash:       addrLinkRevoke.TxHash,
+					AcceptTxHash: addrLinkRevoke.AcceptTxHash,
+					Message:      addrLinkRevoke.Message,
+				}
+				a.Profiles[i].LinkRevokes = append(a.Profiles[i].LinkRevokes, linkRevoke)
+				allLinkRevokes = append(allLinkRevokes, linkRevoke)
+			}
+		}
+		a.Mutex.Unlock()
+	}
+	if err := ToMemoLinkRevokes(a.Ctx, linkRevokesField.Fields, allLinkRevokes); err != nil {
+		a.AddError(fmt.Errorf("error attaching to link revokes for memo profiles; %w", err))
 		return
 	}
 }

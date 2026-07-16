@@ -70,3 +70,20 @@ func GetAddrLinkAccepts(ctx context.Context, addrs [][25]byte) ([]*AddrLinkAccep
 	}
 	return addrLinkAccepts, nil
 }
+
+func GetAddrLinkAcceptsSingle(ctx context.Context, addr [25]byte, start time.Time) ([]*AddrLinkAccept, error) {
+	dbClient := db.GetShardClient(client.GenShardSource32(addr[:]))
+	prefix := client.NewPrefix(addr[:])
+	if !jutil.IsTimeZero(start) {
+		prefix.Start = jutil.CombineBytes(addr[:], jutil.GetTimeByteNanoBig(start))
+	}
+	if err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrLinkAccept, prefix, client.OptionExLargeLimit()); err != nil {
+		return nil, fmt.Errorf("error getting db addr memo link accept by prefix; %w", err)
+	}
+	var addrLinkAccepts = make([]*AddrLinkAccept, len(dbClient.Messages))
+	for i := range dbClient.Messages {
+		addrLinkAccepts[i] = new(AddrLinkAccept)
+		db.Set(addrLinkAccepts[i], dbClient.Messages[i])
+	}
+	return addrLinkAccepts, nil
+}

@@ -70,3 +70,20 @@ func GetAddrLinkRevokes(ctx context.Context, addrs [][25]byte) ([]*AddrLinkRevok
 	}
 	return addrLinkRevokes, nil
 }
+
+func GetAddrLinkRevokesSingle(ctx context.Context, addr [25]byte, start time.Time) ([]*AddrLinkRevoke, error) {
+	dbClient := db.GetShardClient(client.GenShardSource32(addr[:]))
+	prefix := client.NewPrefix(addr[:])
+	if !jutil.IsTimeZero(start) {
+		prefix.Start = jutil.CombineBytes(addr[:], jutil.GetTimeByteNanoBig(start))
+	}
+	if err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrLinkRevoke, prefix, client.OptionExLargeLimit()); err != nil {
+		return nil, fmt.Errorf("error getting db addr memo link revoke by prefix; %w", err)
+	}
+	var addrLinkRevokes = make([]*AddrLinkRevoke, len(dbClient.Messages))
+	for i := range dbClient.Messages {
+		addrLinkRevokes[i] = new(AddrLinkRevoke)
+		db.Set(addrLinkRevokes[i], dbClient.Messages[i])
+	}
+	return addrLinkRevokes, nil
+}

@@ -67,6 +67,34 @@ type ComplexityRoot struct {
 		TxHash     func(childComplexity int) int
 	}
 
+	LinkAccept struct {
+		Address       func(childComplexity int) int
+		Lock          func(childComplexity int) int
+		Message       func(childComplexity int) int
+		RequestTxHash func(childComplexity int) int
+		Tx            func(childComplexity int) int
+		TxHash        func(childComplexity int) int
+	}
+
+	LinkRequest struct {
+		Address       func(childComplexity int) int
+		Lock          func(childComplexity int) int
+		Message       func(childComplexity int) int
+		ParentAddress func(childComplexity int) int
+		ParentLock    func(childComplexity int) int
+		Tx            func(childComplexity int) int
+		TxHash        func(childComplexity int) int
+	}
+
+	LinkRevoke struct {
+		AcceptTxHash func(childComplexity int) int
+		Address      func(childComplexity int) int
+		Lock         func(childComplexity int) int
+		Message      func(childComplexity int) int
+		Tx           func(childComplexity int) int
+		TxHash       func(childComplexity int) int
+	}
+
 	Lock struct {
 		Address func(childComplexity int) int
 		Profile func(childComplexity int) int
@@ -90,15 +118,18 @@ type ComplexityRoot struct {
 	}
 
 	Profile struct {
-		Address   func(childComplexity int) int
-		Followers func(childComplexity int, start *model.Date) int
-		Following func(childComplexity int, start *model.Date) int
-		Lock      func(childComplexity int) int
-		Name      func(childComplexity int) int
-		Pic       func(childComplexity int) int
-		Posts     func(childComplexity int, start *model.Date, newest *bool) int
-		Profile   func(childComplexity int) int
-		Rooms     func(childComplexity int, start *model.Date) int
+		Address      func(childComplexity int) int
+		Followers    func(childComplexity int, start *model.Date) int
+		Following    func(childComplexity int, start *model.Date) int
+		LinkAccepts  func(childComplexity int, start *model.Date) int
+		LinkRequests func(childComplexity int, start *model.Date) int
+		LinkRevokes  func(childComplexity int, start *model.Date) int
+		Lock         func(childComplexity int) int
+		Name         func(childComplexity int) int
+		Pic          func(childComplexity int) int
+		Posts        func(childComplexity int, start *model.Date, newest *bool) int
+		Profile      func(childComplexity int) int
+		Rooms        func(childComplexity int, start *model.Date) int
 	}
 
 	Query struct {
@@ -425,6 +456,123 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Like.TxHash(childComplexity), true
 
+	case "LinkAccept.address":
+		if e.ComplexityRoot.LinkAccept.Address == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkAccept.Address(childComplexity), true
+	case "LinkAccept.lock":
+		if e.ComplexityRoot.LinkAccept.Lock == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkAccept.Lock(childComplexity), true
+	case "LinkAccept.message":
+		if e.ComplexityRoot.LinkAccept.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkAccept.Message(childComplexity), true
+	case "LinkAccept.request_tx_hash":
+		if e.ComplexityRoot.LinkAccept.RequestTxHash == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkAccept.RequestTxHash(childComplexity), true
+	case "LinkAccept.tx":
+		if e.ComplexityRoot.LinkAccept.Tx == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkAccept.Tx(childComplexity), true
+	case "LinkAccept.tx_hash":
+		if e.ComplexityRoot.LinkAccept.TxHash == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkAccept.TxHash(childComplexity), true
+
+	case "LinkRequest.address":
+		if e.ComplexityRoot.LinkRequest.Address == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRequest.Address(childComplexity), true
+	case "LinkRequest.lock":
+		if e.ComplexityRoot.LinkRequest.Lock == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRequest.Lock(childComplexity), true
+	case "LinkRequest.message":
+		if e.ComplexityRoot.LinkRequest.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRequest.Message(childComplexity), true
+	case "LinkRequest.parent_address":
+		if e.ComplexityRoot.LinkRequest.ParentAddress == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRequest.ParentAddress(childComplexity), true
+	case "LinkRequest.parent_lock":
+		if e.ComplexityRoot.LinkRequest.ParentLock == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRequest.ParentLock(childComplexity), true
+	case "LinkRequest.tx":
+		if e.ComplexityRoot.LinkRequest.Tx == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRequest.Tx(childComplexity), true
+	case "LinkRequest.tx_hash":
+		if e.ComplexityRoot.LinkRequest.TxHash == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRequest.TxHash(childComplexity), true
+
+	case "LinkRevoke.accept_tx_hash":
+		if e.ComplexityRoot.LinkRevoke.AcceptTxHash == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRevoke.AcceptTxHash(childComplexity), true
+	case "LinkRevoke.address":
+		if e.ComplexityRoot.LinkRevoke.Address == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRevoke.Address(childComplexity), true
+	case "LinkRevoke.lock":
+		if e.ComplexityRoot.LinkRevoke.Lock == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRevoke.Lock(childComplexity), true
+	case "LinkRevoke.message":
+		if e.ComplexityRoot.LinkRevoke.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRevoke.Message(childComplexity), true
+	case "LinkRevoke.tx":
+		if e.ComplexityRoot.LinkRevoke.Tx == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRevoke.Tx(childComplexity), true
+	case "LinkRevoke.tx_hash":
+		if e.ComplexityRoot.LinkRevoke.TxHash == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LinkRevoke.TxHash(childComplexity), true
+
 	case "Lock.address":
 		if e.ComplexityRoot.Lock.Address == nil {
 			break
@@ -544,6 +692,39 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Profile.Following(childComplexity, args["start"].(*model.Date)), true
+	case "Profile.link_accepts":
+		if e.ComplexityRoot.Profile.LinkAccepts == nil {
+			break
+		}
+
+		args, err := ec.field_Profile_link_accepts_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Profile.LinkAccepts(childComplexity, args["start"].(*model.Date)), true
+	case "Profile.link_requests":
+		if e.ComplexityRoot.Profile.LinkRequests == nil {
+			break
+		}
+
+		args, err := ec.field_Profile_link_requests_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Profile.LinkRequests(childComplexity, args["start"].(*model.Date)), true
+	case "Profile.link_revokes":
+		if e.ComplexityRoot.Profile.LinkRevokes == nil {
+			break
+		}
+
+		args, err := ec.field_Profile_link_revokes_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Profile.LinkRevokes(childComplexity, args["start"].(*model.Date)), true
 	case "Profile.lock":
 		if e.ComplexityRoot.Profile.Lock == nil {
 			break
@@ -1397,6 +1578,34 @@ var sources = []*ast.Source{
     txs(start: Uint32): [TxBlock!]
 }
 `, BuiltIn: false},
+	{Name: "../schema/link.graphqls", Input: `type LinkRequest {
+    tx: Tx!
+    tx_hash: Hash!
+    lock: Lock!
+    address: Address!
+    parent_lock: Lock!
+    parent_address: Address!
+    message: String!
+}
+
+type LinkAccept {
+    tx: Tx!
+    tx_hash: Hash!
+    lock: Lock!
+    address: Address!
+    request_tx_hash: Hash!
+    message: String!
+}
+
+type LinkRevoke {
+    tx: Tx!
+    tx_hash: Hash!
+    lock: Lock!
+    address: Address!
+    accept_tx_hash: Hash!
+    message: String!
+}
+`, BuiltIn: false},
 	{Name: "../schema/lock.graphqls", Input: `type Lock {
     address: Address
     profile: Profile
@@ -1417,6 +1626,9 @@ var sources = []*ast.Source{
     followers(start: Date): [Follow]
     posts(start: Date, newest: Boolean): [Post]
     rooms(start: Date): [RoomFollow!]
+    link_requests(start: Date): [LinkRequest]
+    link_accepts(start: Date): [LinkAccept]
+    link_revokes(start: Date): [LinkRevoke]
 }
 
 type SetName {
@@ -1684,6 +1896,62 @@ func (ec *executionContext) childFields_Like(ctx context.Context, field graphql.
 	return nil, fmt.Errorf("no field named %q was found under type Like", field.Name)
 }
 
+func (ec *executionContext) childFields_LinkAccept(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "tx":
+		return ec.fieldContext_LinkAccept_tx(ctx, field)
+	case "tx_hash":
+		return ec.fieldContext_LinkAccept_tx_hash(ctx, field)
+	case "lock":
+		return ec.fieldContext_LinkAccept_lock(ctx, field)
+	case "address":
+		return ec.fieldContext_LinkAccept_address(ctx, field)
+	case "request_tx_hash":
+		return ec.fieldContext_LinkAccept_request_tx_hash(ctx, field)
+	case "message":
+		return ec.fieldContext_LinkAccept_message(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LinkAccept", field.Name)
+}
+
+func (ec *executionContext) childFields_LinkRequest(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "tx":
+		return ec.fieldContext_LinkRequest_tx(ctx, field)
+	case "tx_hash":
+		return ec.fieldContext_LinkRequest_tx_hash(ctx, field)
+	case "lock":
+		return ec.fieldContext_LinkRequest_lock(ctx, field)
+	case "address":
+		return ec.fieldContext_LinkRequest_address(ctx, field)
+	case "parent_lock":
+		return ec.fieldContext_LinkRequest_parent_lock(ctx, field)
+	case "parent_address":
+		return ec.fieldContext_LinkRequest_parent_address(ctx, field)
+	case "message":
+		return ec.fieldContext_LinkRequest_message(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LinkRequest", field.Name)
+}
+
+func (ec *executionContext) childFields_LinkRevoke(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "tx":
+		return ec.fieldContext_LinkRevoke_tx(ctx, field)
+	case "tx_hash":
+		return ec.fieldContext_LinkRevoke_tx_hash(ctx, field)
+	case "lock":
+		return ec.fieldContext_LinkRevoke_lock(ctx, field)
+	case "address":
+		return ec.fieldContext_LinkRevoke_address(ctx, field)
+	case "accept_tx_hash":
+		return ec.fieldContext_LinkRevoke_accept_tx_hash(ctx, field)
+	case "message":
+		return ec.fieldContext_LinkRevoke_message(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LinkRevoke", field.Name)
+}
+
 func (ec *executionContext) childFields_Lock(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "address":
@@ -1740,6 +2008,12 @@ func (ec *executionContext) childFields_Profile(ctx context.Context, field graph
 		return ec.fieldContext_Profile_posts(ctx, field)
 	case "rooms":
 		return ec.fieldContext_Profile_rooms(ctx, field)
+	case "link_requests":
+		return ec.fieldContext_Profile_link_requests(ctx, field)
+	case "link_accepts":
+		return ec.fieldContext_Profile_link_accepts(ctx, field)
+	case "link_revokes":
+		return ec.fieldContext_Profile_link_revokes(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
 }
@@ -2159,6 +2433,48 @@ func (ec *executionContext) field_Profile_followers_args(ctx context.Context, ra
 }
 
 func (ec *executionContext) field_Profile_following_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "start",
+		func(ctx context.Context, v any) (*model.Date, error) {
+			return ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐDate(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["start"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Profile_link_accepts_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "start",
+		func(ctx context.Context, v any) (*model.Date, error) {
+			return ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐDate(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["start"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Profile_link_requests_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "start",
+		func(ctx context.Context, v any) (*model.Date, error) {
+			return ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐDate(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["start"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Profile_link_revokes_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "start",
@@ -3143,6 +3459,506 @@ func (ec *executionContext) fieldContext_Like_tip(_ context.Context, field graph
 	return graphql.NewScalarFieldContext("Like", field, false, false, errors.New("field of type Int64 does not have child fields"))
 }
 
+func (ec *executionContext) _LinkAccept_tx(ctx context.Context, field graphql.CollectedField, obj *model.LinkAccept) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkAccept_tx(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Tx, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Tx) graphql.Marshaler {
+			return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTx(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkAccept_tx(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LinkAccept",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Tx(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LinkAccept_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.LinkAccept) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkAccept_tx_hash(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TxHash, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Hash) graphql.Marshaler {
+			return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkAccept_tx_hash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkAccept", field, false, false, errors.New("field of type Hash does not have child fields"))
+}
+
+func (ec *executionContext) _LinkAccept_lock(ctx context.Context, field graphql.CollectedField, obj *model.LinkAccept) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkAccept_lock(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Lock, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Lock) graphql.Marshaler {
+			return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLock(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkAccept_lock(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LinkAccept",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Lock(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LinkAccept_address(ctx context.Context, field graphql.CollectedField, obj *model.LinkAccept) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkAccept_address(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Address, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Address) graphql.Marshaler {
+			return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkAccept_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkAccept", field, false, false, errors.New("field of type Address does not have child fields"))
+}
+
+func (ec *executionContext) _LinkAccept_request_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.LinkAccept) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkAccept_request_tx_hash(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RequestTxHash, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Hash) graphql.Marshaler {
+			return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkAccept_request_tx_hash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkAccept", field, false, false, errors.New("field of type Hash does not have child fields"))
+}
+
+func (ec *executionContext) _LinkAccept_message(ctx context.Context, field graphql.CollectedField, obj *model.LinkAccept) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkAccept_message(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkAccept_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkAccept", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _LinkRequest_tx(ctx context.Context, field graphql.CollectedField, obj *model.LinkRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRequest_tx(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Tx, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Tx) graphql.Marshaler {
+			return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTx(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRequest_tx(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LinkRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Tx(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LinkRequest_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.LinkRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRequest_tx_hash(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TxHash, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Hash) graphql.Marshaler {
+			return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRequest_tx_hash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkRequest", field, false, false, errors.New("field of type Hash does not have child fields"))
+}
+
+func (ec *executionContext) _LinkRequest_lock(ctx context.Context, field graphql.CollectedField, obj *model.LinkRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRequest_lock(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Lock, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Lock) graphql.Marshaler {
+			return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLock(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRequest_lock(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LinkRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Lock(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LinkRequest_address(ctx context.Context, field graphql.CollectedField, obj *model.LinkRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRequest_address(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Address, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Address) graphql.Marshaler {
+			return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRequest_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkRequest", field, false, false, errors.New("field of type Address does not have child fields"))
+}
+
+func (ec *executionContext) _LinkRequest_parent_lock(ctx context.Context, field graphql.CollectedField, obj *model.LinkRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRequest_parent_lock(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ParentLock, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Lock) graphql.Marshaler {
+			return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLock(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRequest_parent_lock(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LinkRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Lock(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LinkRequest_parent_address(ctx context.Context, field graphql.CollectedField, obj *model.LinkRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRequest_parent_address(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ParentAddress, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Address) graphql.Marshaler {
+			return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRequest_parent_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkRequest", field, false, false, errors.New("field of type Address does not have child fields"))
+}
+
+func (ec *executionContext) _LinkRequest_message(ctx context.Context, field graphql.CollectedField, obj *model.LinkRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRequest_message(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRequest_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkRequest", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _LinkRevoke_tx(ctx context.Context, field graphql.CollectedField, obj *model.LinkRevoke) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRevoke_tx(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Tx, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Tx) graphql.Marshaler {
+			return ec.marshalNTx2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTx(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRevoke_tx(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LinkRevoke",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Tx(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LinkRevoke_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.LinkRevoke) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRevoke_tx_hash(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TxHash, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Hash) graphql.Marshaler {
+			return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRevoke_tx_hash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkRevoke", field, false, false, errors.New("field of type Hash does not have child fields"))
+}
+
+func (ec *executionContext) _LinkRevoke_lock(ctx context.Context, field graphql.CollectedField, obj *model.LinkRevoke) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRevoke_lock(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Lock, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Lock) graphql.Marshaler {
+			return ec.marshalNLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLock(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRevoke_lock(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LinkRevoke",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Lock(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LinkRevoke_address(ctx context.Context, field graphql.CollectedField, obj *model.LinkRevoke) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRevoke_address(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Address, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Address) graphql.Marshaler {
+			return ec.marshalNAddress2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRevoke_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkRevoke", field, false, false, errors.New("field of type Address does not have child fields"))
+}
+
+func (ec *executionContext) _LinkRevoke_accept_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.LinkRevoke) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRevoke_accept_tx_hash(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AcceptTxHash, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Hash) graphql.Marshaler {
+			return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRevoke_accept_tx_hash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkRevoke", field, false, false, errors.New("field of type Hash does not have child fields"))
+}
+
+func (ec *executionContext) _LinkRevoke_message(ctx context.Context, field graphql.CollectedField, obj *model.LinkRevoke) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LinkRevoke_message(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LinkRevoke_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LinkRevoke", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
 func (ec *executionContext) _Lock_address(ctx context.Context, field graphql.CollectedField, obj *model.Lock) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3863,6 +4679,135 @@ func (ec *executionContext) fieldContext_Profile_rooms(ctx context.Context, fiel
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Profile_rooms_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_link_requests(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Profile_link_requests(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.LinkRequests, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.LinkRequest) graphql.Marshaler {
+			return ec.marshalOLinkRequest2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkRequest(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Profile_link_requests(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LinkRequest(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Profile_link_requests_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_link_accepts(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Profile_link_accepts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.LinkAccepts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.LinkAccept) graphql.Marshaler {
+			return ec.marshalOLinkAccept2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkAccept(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Profile_link_accepts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LinkAccept(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Profile_link_accepts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_link_revokes(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Profile_link_revokes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.LinkRevokes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.LinkRevoke) graphql.Marshaler {
+			return ec.marshalOLinkRevoke2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkRevoke(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Profile_link_revokes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LinkRevoke(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Profile_link_revokes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -8135,6 +9080,200 @@ func (ec *executionContext) _Like(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var linkAcceptImplementors = []string{"LinkAccept"}
+
+func (ec *executionContext) _LinkAccept(ctx context.Context, sel ast.SelectionSet, obj *model.LinkAccept) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, linkAcceptImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LinkAccept")
+		case "tx":
+			out.Values[i] = ec._LinkAccept_tx(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "tx_hash":
+			out.Values[i] = ec._LinkAccept_tx_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lock":
+			out.Values[i] = ec._LinkAccept_lock(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "address":
+			out.Values[i] = ec._LinkAccept_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "request_tx_hash":
+			out.Values[i] = ec._LinkAccept_request_tx_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._LinkAccept_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var linkRequestImplementors = []string{"LinkRequest"}
+
+func (ec *executionContext) _LinkRequest(ctx context.Context, sel ast.SelectionSet, obj *model.LinkRequest) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, linkRequestImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LinkRequest")
+		case "tx":
+			out.Values[i] = ec._LinkRequest_tx(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "tx_hash":
+			out.Values[i] = ec._LinkRequest_tx_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lock":
+			out.Values[i] = ec._LinkRequest_lock(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "address":
+			out.Values[i] = ec._LinkRequest_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "parent_lock":
+			out.Values[i] = ec._LinkRequest_parent_lock(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "parent_address":
+			out.Values[i] = ec._LinkRequest_parent_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._LinkRequest_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var linkRevokeImplementors = []string{"LinkRevoke"}
+
+func (ec *executionContext) _LinkRevoke(ctx context.Context, sel ast.SelectionSet, obj *model.LinkRevoke) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, linkRevokeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LinkRevoke")
+		case "tx":
+			out.Values[i] = ec._LinkRevoke_tx(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "tx_hash":
+			out.Values[i] = ec._LinkRevoke_tx_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lock":
+			out.Values[i] = ec._LinkRevoke_lock(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "address":
+			out.Values[i] = ec._LinkRevoke_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "accept_tx_hash":
+			out.Values[i] = ec._LinkRevoke_accept_tx_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._LinkRevoke_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var lockImplementors = []string{"Lock"}
 
 func (ec *executionContext) _Lock(ctx context.Context, sel ast.SelectionSet, obj *model.Lock) graphql.Marshaler {
@@ -8363,6 +9502,21 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "rooms":
 			out.Values[i] = ec._Profile_rooms(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "link_requests":
+			out.Values[i] = ec._Profile_link_requests(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "link_accepts":
+			out.Values[i] = ec._Profile_link_accepts(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "link_revokes":
+			out.Values[i] = ec._Profile_link_revokes(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
@@ -10672,6 +11826,66 @@ func (ec *executionContext) marshalOLike2ᚕᚖgithubᚗcomᚋmemocashᚋindex�
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalOLinkAccept2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkAccept(ctx context.Context, sel ast.SelectionSet, v []*model.LinkAccept) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalOLinkAccept2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkAccept(ctx, sel, v[i])
+	})
+
+	return ret
+}
+
+func (ec *executionContext) marshalOLinkAccept2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkAccept(ctx context.Context, sel ast.SelectionSet, v *model.LinkAccept) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._LinkAccept(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOLinkRequest2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkRequest(ctx context.Context, sel ast.SelectionSet, v []*model.LinkRequest) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalOLinkRequest2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkRequest(ctx, sel, v[i])
+	})
+
+	return ret
+}
+
+func (ec *executionContext) marshalOLinkRequest2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkRequest(ctx context.Context, sel ast.SelectionSet, v *model.LinkRequest) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._LinkRequest(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOLinkRevoke2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkRevoke(ctx context.Context, sel ast.SelectionSet, v []*model.LinkRevoke) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalOLinkRevoke2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkRevoke(ctx, sel, v[i])
+	})
+
+	return ret
+}
+
+func (ec *executionContext) marshalOLinkRevoke2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLinkRevoke(ctx context.Context, sel ast.SelectionSet, v *model.LinkRevoke) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._LinkRevoke(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOLock2ᚕᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLock(ctx context.Context, sel ast.SelectionSet, v []*model.Lock) graphql.Marshaler {
