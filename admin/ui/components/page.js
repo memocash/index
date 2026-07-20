@@ -90,6 +90,11 @@ export default function Page(props) {
                                 Blocks
                             </Link>
                         </li>
+                        <li>
+                            <Link href="/graphql">
+                                GraphQL
+                            </Link>
+                        </li>
                     </ul>
                     <h3>Peer</h3>
                     <ul>

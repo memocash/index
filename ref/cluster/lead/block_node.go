@@ -126,9 +126,13 @@ func (n *BlockNode) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 		return
 	}
 	msgGetData := wire.NewMsgGetData()
+	// prevHash is the hash the next header must build on. It starts at our current
+	// tip and advances to each accepted header, so headers past the first in a
+	// batch are validated against their real parent rather than the fixed tip.
+	prevHash := n.lastBlock
 	for _, blockHeader := range msg.Headers {
-		if n.lastBlock != nil && blockHeader.PrevBlock != *n.lastBlock {
-			if blockHeader.BlockHash() == *n.lastBlock {
+		if prevHash != nil && blockHeader.PrevBlock != *prevHash {
+			if blockHeader.BlockHash() == *prevHash {
 				continue
 			}
 			go func() {
@@ -155,13 +159,15 @@ func (n *BlockNode) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 			return
 		}
 		n.heightBack = 0
+		blockHash := blockHeader.BlockHash()
 		err := msgGetData.AddInvVect(&wire.InvVect{
 			Type: wire.InvTypeBlock,
-			Hash: blockHeader.BlockHash(),
+			Hash: blockHash,
 		})
 		if err != nil {
 			log.Fatalf("error adding block inventory vector from header; %v", err)
 		}
+		prevHash = &blockHash
 	}
 	if len(msgGetData.InvList) > 0 {
 		n.lastBlock = &msgGetData.InvList[len(msgGetData.InvList)-1].Hash

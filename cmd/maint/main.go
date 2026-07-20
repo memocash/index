@@ -42,8 +42,10 @@ func GetCommand() *cobra.Command {
 	purgeHeightIndexCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
 	purgeHeightIndexCmd.Flags().Bool(FlagDryRun, false, "Show what would be deleted without deleting")
 	purgeHeightIndexCmd.Flags().Bool(FlagVerify, true, "Only delete a mapping when the block also exists at a lower height (safe; disable with --verify=false)")
+	populateOpReturnsCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
 	maintCommand.AddCommand(
 		compactCmd,
+		populateOpReturnsCmd,
 		queueProfileCmd,
 		checkFollowsCmd,
 		populateP2shCmd,
