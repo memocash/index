@@ -11,6 +11,7 @@ func GetTopics() []db.Object {
 		&AddrLike{},
 		&AddrLinkAccept{},
 		&AddrLinkRequest{},
+		&AddrLinkRequestParent{},
 		&AddrLinkRevoke{},
 		&AddrName{},
 		&AddrPost{},

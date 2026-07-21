@@ -199,14 +199,35 @@ func (a *MemoProfile) AttachLinks() {
 			a.AddError(fmt.Errorf("error getting address memo link requests for address; %w", err))
 			return
 		}
+		addrLinkRequestParents, err := memo.GetAddrLinkRequestParentsSingle(a.Ctx, addr, time.Time(startDate))
+		if err != nil {
+			a.AddError(fmt.Errorf("error getting address memo link request parents for address; %w", err))
+			return
+		}
 		a.Mutex.Lock()
 		for _, i := range profileIndexMap[addr] {
+			var seenTxHashes = make(map[[32]byte]struct{})
 			for _, addrLinkRequest := range addrLinkRequests {
+				seenTxHashes[addrLinkRequest.TxHash] = struct{}{}
 				linkRequest := &model.LinkRequest{
 					Address:       addrLinkRequest.Addr,
 					TxHash:        addrLinkRequest.TxHash,
 					ParentAddress: addrLinkRequest.ParentAddr,
 					Message:       addrLinkRequest.Message,
+				}
+				a.Profiles[i].Links = append(a.Profiles[i].Links, linkRequest)
+				allLinkRequests = append(allLinkRequests, linkRequest)
+			}
+			for _, addrLinkRequestParent := range addrLinkRequestParents {
+				// Skip self link requests, already added above
+				if _, ok := seenTxHashes[addrLinkRequestParent.TxHash]; ok {
+					continue
+				}
+				linkRequest := &model.LinkRequest{
+					Address:       addrLinkRequestParent.Addr,
+					TxHash:        addrLinkRequestParent.TxHash,
+					ParentAddress: addrLinkRequestParent.ParentAddr,
+					Message:       addrLinkRequestParent.Message,
 				}
 				a.Profiles[i].Links = append(a.Profiles[i].Links, linkRequest)
 				allLinkRequests = append(allLinkRequests, linkRequest)

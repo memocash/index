@@ -53,6 +53,7 @@ func GetCommand() *cobra.Command {
 		populateAddrOutputsCmd,
 		populateAddrInputsCmd,
 		populateSeenPostsCmd,
+		populateLinkRequestParentsCmd,
 		doubleSpendCmd,
 		randomDoubleSpendCmd,
 		rescanHeadersCmd,

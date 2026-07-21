@@ -45,7 +45,14 @@ var memoLinkRequestHandler = &Handler{
 			ParentAddr: parentAddress.GetAddr(),
 			Message:    message,
 		}
-		if err := db.Save([]db.Object{addrLinkRequest}); err != nil {
+		var addrLinkRequestParent = &dbMemo.AddrLinkRequestParent{
+			ParentAddr: parentAddress.GetAddr(),
+			Seen:       info.Seen,
+			TxHash:     info.TxHash,
+			Addr:       info.Addr,
+			Message:    message,
+		}
+		if err := db.Save([]db.Object{addrLinkRequest, addrLinkRequestParent}); err != nil {
 			return fmt.Errorf("error saving db memo link request object; %w", err)
 		}
 		return nil
