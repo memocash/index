@@ -1,6 +1,6 @@
 type Room {
     name: String!
-    posts(start: Int): [Post!]
+    posts(start: Date, tx: Hash, limit: Uint32, newest: Boolean): [Post!]
     followers(start: Int): [RoomFollow!]
 }
 

@@ -54,10 +54,13 @@ func GetRoomHash(room string) []byte {
 	return sum[:]
 }
 
-func GetRoomPosts(ctx context.Context, room string) ([]*RoomPost, error) {
+const RoomPostsPageSize = client.MediumLimit
+
+func GetRoomPosts(ctx context.Context, room string, start time.Time, startTxHash [32]byte, limit uint32, newest bool) ([]*RoomPost, error) {
 	roomHash := GetRoomHash(room)
 	dbClient := db.GetShardClient(client.GenShardSource32(roomHash))
-	if err := dbClient.GetByPrefix(ctx, db.TopicMemoRoomPost, client.NewPrefix(roomHash)); err != nil {
+	prefix := getRoomPostsPrefix(roomHash, start, startTxHash, limit, newest)
+	if err := dbClient.GetByPrefix(ctx, db.TopicMemoRoomPost, prefix, client.NewOptionOrder(newest)); err != nil {
 		return nil, fmt.Errorf("error getting db memo room posts; %w", err)
 	}
 	var roomPosts = make([]*RoomPost, len(dbClient.Messages))
@@ -66,6 +69,25 @@ func GetRoomPosts(ctx context.Context, room string) ([]*RoomPost, error) {
 		db.Set(roomPosts[i], dbClient.Messages[i])
 	}
 	return roomPosts, nil
+}
+
+func getRoomPostsPrefix(roomHash []byte, start time.Time, startTxHash [32]byte, limit uint32, newest bool) client.Prefix {
+	if limit == 0 || limit > RoomPostsPageSize {
+		limit = RoomPostsPageSize
+	}
+	prefix := client.NewPrefix(roomHash)
+	if !jutil.IsTimeZero(start) {
+		prefix.Start = jutil.CombineBytes(
+			roomHash,
+			jutil.GetTimeByteNanoBig(start),
+			jutil.ByteReverse(startTxHash[:]),
+		)
+		if !newest {
+			prefix.Start = append(prefix.Start, 0)
+		}
+	}
+	prefix.Limit = limit
+	return prefix
 }
 
 func ListenRoomPosts(ctx context.Context, rooms []string) (chan *RoomPost, error) {

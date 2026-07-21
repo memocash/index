@@ -146,7 +146,7 @@ type ComplexityRoot struct {
 	Room struct {
 		Followers func(childComplexity int, start *int) int
 		Name      func(childComplexity int) int
-		Posts     func(childComplexity int, start *int) int
+		Posts     func(childComplexity int, start *model.Date, tx *model.Hash, limit *uint32, newest *bool) int
 	}
 
 	RoomFollow struct {
@@ -890,7 +890,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Room.Posts(childComplexity, args["start"].(*int)), true
+		return e.ComplexityRoot.Room.Posts(childComplexity, args["start"].(*model.Date), args["tx"].(*model.Hash), args["limit"].(*uint32), args["newest"].(*bool)), true
 
 	case "RoomFollow.address":
 		if e.ComplexityRoot.RoomFollow.Address == nil {
@@ -1675,7 +1675,7 @@ type Subscription {
 `, BuiltIn: false},
 	{Name: "../schema/room.graphqls", Input: `type Room {
     name: String!
-    posts(start: Int): [Post!]
+    posts(start: Date, tx: Hash, limit: Uint32, newest: Boolean): [Post!]
     followers(start: Int): [RoomFollow!]
 }
 
@@ -2656,13 +2656,37 @@ func (ec *executionContext) field_Room_posts_args(ctx context.Context, rawArgs m
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "start",
-		func(ctx context.Context, v any) (*int, error) {
-			return ec.unmarshalOInt2ᚖint(ctx, v)
+		func(ctx context.Context, v any) (*model.Date, error) {
+			return ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐDate(ctx, v)
 		})
 	if err != nil {
 		return nil, err
 	}
 	args["start"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "tx",
+		func(ctx context.Context, v any) (*model.Hash, error) {
+			return ec.unmarshalOHash2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["tx"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*uint32, error) {
+			return ec.unmarshalOUint322ᚖuint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "newest",
+		func(ctx context.Context, v any) (*bool, error) {
+			return ec.unmarshalOBoolean2ᚖbool(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["newest"] = arg3
 	return args, nil
 }
 

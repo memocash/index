@@ -3,6 +3,9 @@ package attach
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
 )
@@ -55,11 +58,18 @@ func (o *MemoRoom) AttachPosts() {
 	if !o.HasField([]string{"posts"}) {
 		return
 	}
-	// TODO: Implement "start" field support
+	postsField := o.Fields.GetField("posts")
+	startDate, _ := model.UnmarshalDate(postsField.Arguments["start"])
+	startTxHash, _ := model.UnmarshalHash(postsField.Arguments["tx"])
+	limit, _ := model.UnmarshalUint32(postsField.Arguments["limit"])
+	newest, err := graphql.UnmarshalBoolean(postsField.Arguments["newest"])
+	if err != nil {
+		newest = true
+	}
 	roomIndexMap := o.getRoomIndexMap()
 	var allPosts []*model.Post
 	for _, roomName := range o.GetRoomNames() {
-		roomPosts, err := memo.GetRoomPosts(o.Ctx, roomName)
+		roomPosts, err := memo.GetRoomPosts(o.Ctx, roomName, time.Time(startDate), startTxHash, uint32(limit), newest)
 		if err != nil {
 			o.AddError(fmt.Errorf("error getting room height posts for room resolver; %w", err))
 			return
@@ -75,7 +85,7 @@ func (o *MemoRoom) AttachPosts() {
 		}
 		o.Mutex.Unlock()
 	}
-	if err := ToMemoPosts(o.Ctx, GetPrefixFields(o.Fields, "posts."), allPosts); err != nil {
+	if err := ToMemoPosts(o.Ctx, postsField.Fields, allPosts); err != nil {
 		o.AddError(fmt.Errorf("error attaching to posts for memo rooms; %w", err))
 		return
 	}
