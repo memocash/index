@@ -59,18 +59,16 @@ type Block struct {
 }
 
 type Profile struct {
-	Address      Address        `json:"address"`
-	Name         *SetName       `json:"name"`
-	Profile      *SetProfile    `json:"profile"`
-	Pic          *SetPic        `json:"pic"`
-	Lock         *Lock          `json:"lock"`
-	Posts        []*Post        `json:"posts"`
-	Following    []*Follow      `json:"following"`
-	Followers    []*Follow      `json:"followers"`
-	Rooms        []*RoomFollow  `json:"rooms"`
-	LinkRequests []*LinkRequest `json:"link_requests"`
-	LinkAccepts  []*LinkAccept  `json:"link_accepts"`
-	LinkRevokes  []*LinkRevoke  `json:"link_revokes"`
+	Address   Address        `json:"address"`
+	Name      *SetName       `json:"name"`
+	Profile   *SetProfile    `json:"profile"`
+	Pic       *SetPic        `json:"pic"`
+	Lock      *Lock          `json:"lock"`
+	Posts     []*Post        `json:"posts"`
+	Following []*Follow      `json:"following"`
+	Followers []*Follow      `json:"followers"`
+	Rooms     []*RoomFollow  `json:"rooms"`
+	Links     []*LinkRequest `json:"links"`
 }
 
 type Follow struct {
@@ -84,22 +82,25 @@ type Follow struct {
 }
 
 type LinkRequest struct {
-	TxHash        Hash    `json:"tx_hash"`
-	Address       Address `json:"address"`
-	ParentAddress Address `json:"parent_address"`
-	Message       string  `json:"message"`
-	Lock          *Lock   `json:"lock"`
-	ParentLock    *Lock   `json:"parent_lock"`
-	Tx            *Tx     `json:"tx"`
+	TxHash        Hash          `json:"tx_hash"`
+	Address       Address       `json:"address"`
+	ParentAddress Address       `json:"parent_address"`
+	Message       string        `json:"message"`
+	Lock          *Lock         `json:"lock"`
+	ParentLock    *Lock         `json:"parent_lock"`
+	Tx            *Tx           `json:"tx"`
+	Accepts       []*LinkAccept `json:"accepts"`
 }
 
 type LinkAccept struct {
-	TxHash        Hash    `json:"tx_hash"`
-	Address       Address `json:"address"`
-	RequestTxHash Hash    `json:"request_tx_hash"`
-	Message       string  `json:"message"`
-	Lock          *Lock   `json:"lock"`
-	Tx            *Tx     `json:"tx"`
+	TxHash         Hash          `json:"tx_hash"`
+	Address        Address       `json:"address"`
+	RequestTxHash  Hash          `json:"request_tx_hash"`
+	Message        string        `json:"message"`
+	Lock           *Lock         `json:"lock"`
+	Tx             *Tx           `json:"tx"`
+	RequestAddress Address       `json:"-"`
+	Revokes        []*LinkRevoke `json:"revokes"`
 }
 
 type LinkRevoke struct {

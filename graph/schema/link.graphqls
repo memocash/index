@@ -14,7 +14,6 @@ type LinkAccept {
     tx_hash: Hash!
     request_tx_hash: Hash!
     message: String!
-    request: LinkRequest
     revokes: [LinkRevoke]
 }
 
@@ -23,5 +22,4 @@ type LinkRevoke {
     tx_hash: Hash!
     accept_tx_hash: Hash!
     message: String!
-    accept: LinkAccept
 }
