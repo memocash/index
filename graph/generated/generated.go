@@ -1675,7 +1675,7 @@ type Subscription {
 `, BuiltIn: false},
 	{Name: "../schema/room.graphqls", Input: `type Room {
     name: String!
-    posts(start: Date, tx: Hash, limit: Uint32, newest: Boolean): [Post!]
+    posts(start: Date, tx: Hash, limit: Uint32, newest: Boolean = true): [Post!]
     followers(start: Int): [RoomFollow!]
 }
 

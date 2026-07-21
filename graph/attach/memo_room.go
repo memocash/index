@@ -62,9 +62,11 @@ func (o *MemoRoom) AttachPosts() {
 	startDate, _ := model.UnmarshalDate(postsField.Arguments["start"])
 	startTxHash, _ := model.UnmarshalHash(postsField.Arguments["tx"])
 	limit, _ := model.UnmarshalUint32(postsField.Arguments["limit"])
-	newest, err := graphql.UnmarshalBoolean(postsField.Arguments["newest"])
-	if err != nil {
-		newest = true
+	newest := true
+	if newestArg, ok := postsField.Arguments["newest"]; ok {
+		if parsedNewest, err := graphql.UnmarshalBoolean(newestArg); err == nil {
+			newest = parsedNewest
+		}
 	}
 	roomIndexMap := o.getRoomIndexMap()
 	var allPosts []*model.Post
