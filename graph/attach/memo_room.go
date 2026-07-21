@@ -75,10 +75,10 @@ func (o *MemoRoom) AttachPosts() {
 		}
 		o.Mutex.Unlock()
 	}
-	/*if err := AttachToPosts(o.Ctx, GetPrefixFields(o.Fields, "posts."), allOutputs); err != nil {
+	if err := ToMemoPosts(o.Ctx, GetPrefixFields(o.Fields, "posts."), allPosts); err != nil {
 		o.AddError(fmt.Errorf("error attaching to posts for memo rooms; %w", err))
 		return
-	}*/
+	}
 }
 
 func (o *MemoRoom) AttachFollowers() {
