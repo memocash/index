@@ -55,7 +55,7 @@ func (f *RoomFollow) Serialize() []byte {
 }
 
 func (f *RoomFollow) Deserialize(data []byte) {
-	if len(data) < 1+memo.AddressLength+1 {
+	if len(data) < 1+memo.AddressLength {
 		return
 	}
 	f.Unfollow = data[0] == 1
