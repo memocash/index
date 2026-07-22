@@ -1,12 +1,13 @@
 package attach
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"github.com/99designs/gqlgen/graphql"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
+	"sort"
 	"time"
 )
 
@@ -85,11 +86,16 @@ func (a *MemoProfile) AttachPosts() {
 	}
 	postsField := a.Fields.GetField("posts")
 	startDate, _ := model.UnmarshalDate(postsField.Arguments["start"])
-	newest, _ := graphql.UnmarshalBoolean(postsField.Arguments["newest"])
+	limit, err := unmarshalPageLimit(postsField.Arguments, "profile posts", memo.MaxPageSize)
+	if err != nil {
+		a.AddError(err)
+		return
+	}
+	newest := unmarshalBooleanDefault(postsField.Arguments, "newest", true)
 	profileIndexMap := a.getProfileIndexMap()
 	var allProfilePosts []*model.Post
 	for _, addr := range a.getAddresses() {
-		addrPosts, err := memo.GetSingleAddrPosts(a.Ctx, addr, newest, time.Time(startDate))
+		addrPosts, err := memo.GetSingleAddrPosts(a.Ctx, addr, newest, time.Time(startDate), limit)
 		if err != nil && !client.IsEntryNotFoundError(err) {
 			a.AddError(fmt.Errorf("error getting memo profile posts for profile attach; %w", err))
 			return
@@ -119,10 +125,15 @@ func (a *MemoProfile) AttachFollowing() {
 	}
 	followingField := a.Fields.GetField("following")
 	startDate, _ := model.UnmarshalDate(followingField.Arguments["start"])
+	limit, err := unmarshalPageLimit(followingField.Arguments, "profile following", memo.MaxPageSize)
+	if err != nil {
+		a.AddError(err)
+		return
+	}
 	profileIndexMap := a.getProfileIndexMap()
 	var allFollows []*model.Follow
 	for _, addr := range a.getAddresses() {
-		addrMemoFollows, err := memo.GetAddrFollowsSingle(a.Ctx, addr, time.Time(startDate))
+		addrMemoFollows, err := memo.GetAddrFollowsSingle(a.Ctx, addr, time.Time(startDate), limit)
 		if err != nil {
 			a.AddError(fmt.Errorf("error getting address memo follows for address; %w", err))
 			return
@@ -155,10 +166,15 @@ func (a *MemoProfile) AttachFollowers() {
 	}
 	followersField := a.Fields.GetField("followers")
 	startDate, _ := model.UnmarshalDate(followersField.Arguments["start"])
+	limit, err := unmarshalPageLimit(followersField.Arguments, "profile followers", memo.MaxPageSize)
+	if err != nil {
+		a.AddError(err)
+		return
+	}
 	profileIndexMap := a.getProfileIndexMap()
 	var allFollows []*model.Follow
 	for _, addr := range a.getAddresses() {
-		addrMemoFollows, err := memo.GetAddrFollowedsSingle(a.Ctx, addr, time.Time(startDate))
+		addrMemoFollows, err := memo.GetAddrFollowedsSingle(a.Ctx, addr, time.Time(startDate), limit)
 		if err != nil {
 			a.AddError(fmt.Errorf("error getting address memo followeds for address; %w", err))
 			return
@@ -191,47 +207,30 @@ func (a *MemoProfile) AttachLinks() {
 	}
 	linkRequestsField := a.Fields.GetField("links")
 	startDate, _ := model.UnmarshalDate(linkRequestsField.Arguments["start"])
+	limit, err := unmarshalPageLimit(linkRequestsField.Arguments, "profile links", memo.MaxPageSize)
+	if err != nil {
+		a.AddError(err)
+		return
+	}
+	limit = memo.NormalizePageLimit(limit)
 	profileIndexMap := a.getProfileIndexMap()
 	var allLinkRequests []*model.LinkRequest
 	for _, addr := range a.getAddresses() {
-		addrLinkRequests, err := memo.GetAddrLinkRequestsSingle(a.Ctx, addr, time.Time(startDate))
+		addrLinkRequests, err := memo.GetAddrLinkRequestsSingle(a.Ctx, addr, time.Time(startDate), limit)
 		if err != nil {
 			a.AddError(fmt.Errorf("error getting address memo link requests for address; %w", err))
 			return
 		}
-		addrLinkRequestParents, err := memo.GetAddrLinkRequestParentsSingle(a.Ctx, addr, time.Time(startDate))
+		addrLinkRequestParents, err := memo.GetAddrLinkRequestParentsSingle(a.Ctx, addr, time.Time(startDate), limit)
 		if err != nil {
 			a.AddError(fmt.Errorf("error getting address memo link request parents for address; %w", err))
 			return
 		}
 		a.Mutex.Lock()
 		for _, i := range profileIndexMap[addr] {
-			var seenTxHashes = make(map[[32]byte]struct{})
-			for _, addrLinkRequest := range addrLinkRequests {
-				seenTxHashes[addrLinkRequest.TxHash] = struct{}{}
-				linkRequest := &model.LinkRequest{
-					Address:       addrLinkRequest.Addr,
-					TxHash:        addrLinkRequest.TxHash,
-					ParentAddress: addrLinkRequest.ParentAddr,
-					Message:       addrLinkRequest.Message,
-				}
-				a.Profiles[i].Links = append(a.Profiles[i].Links, linkRequest)
-				allLinkRequests = append(allLinkRequests, linkRequest)
-			}
-			for _, addrLinkRequestParent := range addrLinkRequestParents {
-				// Skip self link requests, already added above
-				if _, ok := seenTxHashes[addrLinkRequestParent.TxHash]; ok {
-					continue
-				}
-				linkRequest := &model.LinkRequest{
-					Address:       addrLinkRequestParent.Addr,
-					TxHash:        addrLinkRequestParent.TxHash,
-					ParentAddress: addrLinkRequestParent.ParentAddr,
-					Message:       addrLinkRequestParent.Message,
-				}
-				a.Profiles[i].Links = append(a.Profiles[i].Links, linkRequest)
-				allLinkRequests = append(allLinkRequests, linkRequest)
-			}
+			linkRequests := mergeLinkRequests(addrLinkRequests, addrLinkRequestParents, limit)
+			a.Profiles[i].Links = append(a.Profiles[i].Links, linkRequests...)
+			allLinkRequests = append(allLinkRequests, linkRequests...)
 		}
 		a.Mutex.Unlock()
 	}
@@ -241,12 +240,69 @@ func (a *MemoProfile) AttachLinks() {
 	}
 }
 
+type linkRequestPageItem struct {
+	seen    time.Time
+	request *model.LinkRequest
+}
+
+func mergeLinkRequests(addrRequests []*memo.AddrLinkRequest, parentRequests []*memo.AddrLinkRequestParent, limit uint32) []*model.LinkRequest {
+	items := make([]linkRequestPageItem, 0, len(addrRequests)+len(parentRequests))
+	seenTxHashes := make(map[[32]byte]struct{}, len(addrRequests)+len(parentRequests))
+	for _, request := range addrRequests {
+		seenTxHashes[request.TxHash] = struct{}{}
+		items = append(items, linkRequestPageItem{
+			seen: request.Seen,
+			request: &model.LinkRequest{
+				Address:       request.Addr,
+				TxHash:        request.TxHash,
+				ParentAddress: request.ParentAddr,
+				Message:       request.Message,
+			},
+		})
+	}
+	for _, request := range parentRequests {
+		if _, ok := seenTxHashes[request.TxHash]; ok {
+			continue
+		}
+		seenTxHashes[request.TxHash] = struct{}{}
+		items = append(items, linkRequestPageItem{
+			seen: request.Seen,
+			request: &model.LinkRequest{
+				Address:       request.Addr,
+				TxHash:        request.TxHash,
+				ParentAddress: request.ParentAddr,
+				Message:       request.Message,
+			},
+		})
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].seen.Equal(items[j].seen) {
+			return bytes.Compare(items[i].request.TxHash[:], items[j].request.TxHash[:]) > 0
+		}
+		return items[i].seen.After(items[j].seen)
+	})
+	if len(items) > int(limit) {
+		items = items[:limit]
+	}
+	requests := make([]*model.LinkRequest, len(items))
+	for i := range items {
+		requests[i] = items[i].request
+	}
+	return requests
+}
+
 func (a *MemoProfile) AttachRooms() {
 	defer a.Wait.Done()
 	if !a.HasField([]string{"rooms"}) {
 		return
 	}
-	lockRoomFollows, err := memo.GetAddrRoomFollows(a.Ctx, a.getAddresses())
+	roomsField := a.Fields.GetField("rooms")
+	limit, err := unmarshalPageLimit(roomsField.Arguments, "profile rooms", memo.MaxPageSize)
+	if err != nil {
+		a.AddError(err)
+		return
+	}
+	lockRoomFollows, err := memo.GetAddrRoomFollows(a.Ctx, a.getAddresses(), limit)
 	if err != nil {
 		a.AddError(fmt.Errorf("error getting addr room follows for profile attach; %w", err))
 		return
@@ -274,7 +330,7 @@ func (a *MemoProfile) AttachRooms() {
 		}
 	}
 	a.Mutex.Unlock()
-	if err := ToMemoRoomFollows(a.Ctx, GetPrefixFields(a.Fields, "rooms"), allRoomFollows); err != nil {
+	if err := ToMemoRoomFollows(a.Ctx, roomsField.Fields, allRoomFollows); err != nil {
 		a.AddError(fmt.Errorf("error attaching to rooms for memo profiles; %w", err))
 		return
 	}

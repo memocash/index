@@ -62,10 +62,11 @@ func (f *RoomFollow) Deserialize(data []byte) {
 	copy(f.Addr[:], data[1:1+memo.AddressLength])
 }
 
-func GetRoomFollows(ctx context.Context, room string) ([]*RoomFollow, error) {
+func GetRoomFollows(ctx context.Context, room string, start time.Time, startTxHash [32]byte, limit uint32) ([]*RoomFollow, error) {
 	roomHash := GetRoomHash(room)
 	dbClient := db.GetShardClient(client.GenShardSource32(roomHash))
-	if err := dbClient.GetByPrefix(ctx, db.TopicMemoRoomFollow, client.NewPrefix(roomHash)); err != nil {
+	prefix := getRoomFollowsPrefix(roomHash, start, startTxHash, limit)
+	if err := dbClient.GetByPrefix(ctx, db.TopicMemoRoomFollow, prefix, client.NewOptionOrder(true)); err != nil {
 		return nil, fmt.Errorf("error getting db memo room follows; %w", err)
 	}
 	var roomFollows = make([]*RoomFollow, len(dbClient.Messages))
@@ -74,4 +75,17 @@ func GetRoomFollows(ctx context.Context, room string) ([]*RoomFollow, error) {
 		db.Set(roomFollows[i], dbClient.Messages[i])
 	}
 	return roomFollows, nil
+}
+
+func getRoomFollowsPrefix(roomHash []byte, start time.Time, startTxHash [32]byte, limit uint32) client.Prefix {
+	prefix := client.NewPrefix(roomHash)
+	if !jutil.IsTimeZero(start) {
+		prefix.Start = jutil.CombineBytes(
+			roomHash,
+			jutil.GetTimeByteNanoBig(start),
+			jutil.ByteReverse(startTxHash[:]),
+		)
+	}
+	prefix.Limit = NormalizePageLimit(limit)
+	return prefix
 }

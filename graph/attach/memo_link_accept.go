@@ -13,6 +13,13 @@ type MemoLinkAccept struct {
 	RequestAddresses map[*model.LinkAccept]model.Address
 }
 
+type linkTxAddressKey struct {
+	hash [32]byte
+	addr [25]byte
+}
+
+var getAddrLinkRevokes = memo.GetAddrLinkRevokes
+
 func ToMemoLinkAccepts(ctx context.Context, fields []Field, linkAccepts []*model.LinkAccept, requestAddresses map[*model.LinkAccept]model.Address) error {
 	if len(linkAccepts) == 0 {
 		return nil
@@ -56,18 +63,14 @@ func (a *MemoLinkAccept) AttachRevokes() {
 			addresses = append(addresses, address)
 		}
 	}
-	addrRevokes, err := memo.GetAddrLinkRevokes(a.Ctx, addresses)
+	addrRevokes, err := getAddrLinkRevokes(a.Ctx, addresses)
 	if err != nil {
 		a.AddError(fmt.Errorf("error getting revokes for memo link accepts; %w", err))
 		return
 	}
-	type acceptKey struct {
-		hash [32]byte
-		addr [25]byte
-	}
-	revokesByAccept := make(map[acceptKey][]*memo.AddrLinkRevoke)
+	revokesByAccept := make(map[linkTxAddressKey][]*memo.AddrLinkRevoke)
 	for _, addrRevoke := range addrRevokes {
-		key := acceptKey{hash: addrRevoke.AcceptTxHash, addr: addrRevoke.Addr}
+		key := linkTxAddressKey{hash: addrRevoke.AcceptTxHash, addr: addrRevoke.Addr}
 		revokesByAccept[key] = append(revokesByAccept[key], addrRevoke)
 	}
 
@@ -76,7 +79,7 @@ func (a *MemoLinkAccept) AttachRevokes() {
 	for i, linkAccept := range a.LinkAccepts {
 		requestAddress := requestAddresses[i]
 		// Either party to a link accept may revoke it.
-		keys := [...]acceptKey{
+		keys := [...]linkTxAddressKey{
 			{hash: linkAccept.TxHash, addr: linkAccept.Address},
 			{hash: linkAccept.TxHash, addr: requestAddress},
 		}

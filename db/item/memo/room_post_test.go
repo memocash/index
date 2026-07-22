@@ -2,10 +2,10 @@ package memo
 
 import (
 	"bytes"
+	"github.com/jchavannes/jgo/jutil"
+	"github.com/memocash/index/db/client"
 	"testing"
 	"time"
-
-	"github.com/jchavannes/jgo/jutil"
 )
 
 func TestGetRoomPostsPrefix(t *testing.T) {
@@ -41,16 +41,24 @@ func TestGetRoomPostsPrefixExcludesAscendingCursor(t *testing.T) {
 	}
 }
 
-func TestGetRoomPostsPrefixUsesBoundedDefault(t *testing.T) {
+func TestGetRoomPostsPrefixUsesDefaultAndMaximum(t *testing.T) {
 	roomHash := GetRoomHash("memo")
 
-	for _, limit := range []uint32{0, RoomPostsPageSize + 1} {
-		prefix := getRoomPostsPrefix(roomHash, time.Time{}, [32]byte{}, limit, true)
+	tests := []struct {
+		limit uint32
+		want  uint32
+	}{
+		{limit: 0, want: DefaultPageSize},
+		{limit: client.MediumLimit + 1, want: client.MediumLimit + 1},
+		{limit: MaxPageSize + 1, want: MaxPageSize},
+	}
+	for _, test := range tests {
+		prefix := getRoomPostsPrefix(roomHash, time.Time{}, [32]byte{}, test.limit, true)
 		if len(prefix.Start) != 0 {
 			t.Fatalf("start = %x, want empty", prefix.Start)
 		}
-		if prefix.Limit != RoomPostsPageSize {
-			t.Fatalf("limit = %d, want %d", prefix.Limit, RoomPostsPageSize)
+		if prefix.Limit != test.want {
+			t.Fatalf("limit = %d, want %d", prefix.Limit, test.want)
 		}
 	}
 }

@@ -71,13 +71,14 @@ func GetAddrLinkRequestParents(ctx context.Context, parentAddrs [][25]byte) ([]*
 	return addrLinkRequestParents, nil
 }
 
-func GetAddrLinkRequestParentsSingle(ctx context.Context, parentAddr [25]byte, start time.Time) ([]*AddrLinkRequestParent, error) {
+func GetAddrLinkRequestParentsSingle(ctx context.Context, parentAddr [25]byte, start time.Time, limit uint32) ([]*AddrLinkRequestParent, error) {
 	dbClient := db.GetShardClient(client.GenShardSource32(parentAddr[:]))
 	prefix := client.NewPrefix(parentAddr[:])
 	if !jutil.IsTimeZero(start) {
 		prefix.Start = jutil.CombineBytes(parentAddr[:], jutil.GetTimeByteNanoBig(start))
 	}
-	if err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrLinkRequestParent, prefix, client.OptionExLargeLimit()); err != nil {
+	if err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrLinkRequestParent, prefix,
+		client.NewOptionLimit(int(NormalizePageLimit(limit))), client.NewOptionOrder(true)); err != nil {
 		return nil, fmt.Errorf("error getting db addr memo link request parent by prefix; %w", err)
 	}
 	var addrLinkRequestParents = make([]*AddrLinkRequestParent, len(dbClient.Messages))

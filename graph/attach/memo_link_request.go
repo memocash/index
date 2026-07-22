@@ -12,6 +12,8 @@ type MemoLinkRequest struct {
 	LinkRequests []*model.LinkRequest
 }
 
+var getAddrLinkAccepts = memo.GetAddrLinkAccepts
+
 func ToMemoLinkRequests(ctx context.Context, fields []Field, linkRequests []*model.LinkRequest) error {
 	if len(linkRequests) == 0 {
 		return nil
@@ -47,18 +49,14 @@ func (a *MemoLinkRequest) AttachAccepts() {
 		seenAddresses[linkRequest.ParentAddress] = struct{}{}
 		addresses = append(addresses, linkRequest.ParentAddress)
 	}
-	addrAccepts, err := memo.GetAddrLinkAccepts(a.Ctx, addresses)
+	addrAccepts, err := getAddrLinkAccepts(a.Ctx, addresses)
 	if err != nil {
 		a.AddError(fmt.Errorf("error getting accepts for memo link requests; %w", err))
 		return
 	}
-	type requestKey struct {
-		hash [32]byte
-		addr [25]byte
-	}
-	acceptsByRequest := make(map[requestKey][]*memo.AddrLinkAccept)
+	acceptsByRequest := make(map[linkTxAddressKey][]*memo.AddrLinkAccept)
 	for _, addrAccept := range addrAccepts {
-		key := requestKey{hash: addrAccept.RequestTxHash, addr: addrAccept.Addr}
+		key := linkTxAddressKey{hash: addrAccept.RequestTxHash, addr: addrAccept.Addr}
 		acceptsByRequest[key] = append(acceptsByRequest[key], addrAccept)
 	}
 
@@ -67,7 +65,7 @@ func (a *MemoLinkRequest) AttachAccepts() {
 	a.Mutex.Lock()
 	for _, linkRequest := range a.LinkRequests {
 		// A link accept is valid only when broadcast by the request's parent.
-		key := requestKey{hash: linkRequest.TxHash, addr: linkRequest.ParentAddress}
+		key := linkTxAddressKey{hash: linkRequest.TxHash, addr: linkRequest.ParentAddress}
 		for _, addrAccept := range acceptsByRequest[key] {
 			accept := &model.LinkAccept{
 				TxHash:        addrAccept.TxHash,

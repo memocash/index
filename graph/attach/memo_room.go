@@ -3,11 +3,9 @@ package attach
 import (
 	"context"
 	"fmt"
-	"time"
-
-	"github.com/99designs/gqlgen/graphql"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
+	"time"
 )
 
 type MemoRoom struct {
@@ -59,19 +57,28 @@ func (o *MemoRoom) AttachPosts() {
 		return
 	}
 	postsField := o.Fields.GetField("posts")
-	startDate, _ := model.UnmarshalDate(postsField.Arguments["start"])
-	startTxHash, _ := model.UnmarshalHash(postsField.Arguments["tx"])
-	limit, _ := model.UnmarshalUint32(postsField.Arguments["limit"])
-	newest := true
-	if newestArg, ok := postsField.Arguments["newest"]; ok {
-		if parsedNewest, err := graphql.UnmarshalBoolean(newestArg); err == nil {
-			newest = parsedNewest
+	if txArg, hasTx := postsField.Arguments["tx"]; hasTx && txArg != nil {
+		if startArg, hasStart := postsField.Arguments["start"]; !hasStart || startArg == nil {
+			o.AddError(fmt.Errorf("room posts tx cursor requires start"))
+			return
 		}
 	}
+	startDate, _ := model.UnmarshalDate(postsField.Arguments["start"])
+	startTxHash, _ := model.UnmarshalHash(postsField.Arguments["tx"])
+	limit, err := unmarshalPageLimit(postsField.Arguments, "room posts", memo.MaxPageSize)
+	if err != nil {
+		o.AddError(err)
+		return
+	}
+	newest := unmarshalBooleanDefault(postsField.Arguments, "newest", true)
 	roomIndexMap := o.getRoomIndexMap()
+	if startArg, hasStart := postsField.Arguments["start"]; hasStart && startArg != nil && len(roomIndexMap) > 1 {
+		o.AddError(fmt.Errorf("room posts cursor cannot be used with multiple rooms"))
+		return
+	}
 	var allPosts []*model.Post
 	for _, roomName := range o.GetRoomNames() {
-		roomPosts, err := memo.GetRoomPosts(o.Ctx, roomName, time.Time(startDate), startTxHash, uint32(limit), newest)
+		roomPosts, err := memo.GetRoomPosts(o.Ctx, roomName, time.Time(startDate), startTxHash, limit, newest)
 		if err != nil {
 			o.AddError(fmt.Errorf("error getting room height posts for room resolver; %w", err))
 			return
@@ -98,11 +105,28 @@ func (o *MemoRoom) AttachFollowers() {
 	if !o.HasField([]string{"followers"}) {
 		return
 	}
-	// TODO: Implement "start" field support
+	followersField := o.Fields.GetField("followers")
+	if txArg, hasTx := followersField.Arguments["tx"]; hasTx && txArg != nil {
+		if startArg, hasStart := followersField.Arguments["start"]; !hasStart || startArg == nil {
+			o.AddError(fmt.Errorf("room followers tx cursor requires start"))
+			return
+		}
+	}
+	startDate, _ := model.UnmarshalDate(followersField.Arguments["start"])
+	startTxHash, _ := model.UnmarshalHash(followersField.Arguments["tx"])
+	limit, err := unmarshalPageLimit(followersField.Arguments, "room followers", memo.MaxPageSize)
+	if err != nil {
+		o.AddError(err)
+		return
+	}
 	roomIndexMap := o.getRoomIndexMap()
+	if startArg, hasStart := followersField.Arguments["start"]; hasStart && startArg != nil && len(roomIndexMap) > 1 {
+		o.AddError(fmt.Errorf("room followers cursor cannot be used with multiple rooms"))
+		return
+	}
 	var allRoomFollows []*model.RoomFollow
 	for _, roomName := range o.GetRoomNames() {
-		dbRoomFollows, err := memo.GetRoomFollows(o.Ctx, roomName)
+		dbRoomFollows, err := memo.GetRoomFollows(o.Ctx, roomName, time.Time(startDate), startTxHash, limit)
 		if err != nil {
 			o.AddError(fmt.Errorf("error getting room follows for room resolver; %w", err))
 			return
@@ -123,7 +147,7 @@ func (o *MemoRoom) AttachFollowers() {
 		}
 		o.Mutex.Unlock()
 	}
-	if err := ToMemoRoomFollows(o.Ctx, GetPrefixFields(o.Fields, "followers."), allRoomFollows); err != nil {
+	if err := ToMemoRoomFollows(o.Ctx, followersField.Fields, allRoomFollows); err != nil {
 		o.AddError(fmt.Errorf("error attaching to followers for memo rooms; %w", err))
 		return
 	}

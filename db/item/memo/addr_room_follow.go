@@ -63,8 +63,9 @@ func (f *AddrRoomFollow) Deserialize(data []byte) {
 	f.Room = string(data[1:])
 }
 
-func GetAddrRoomFollows(ctx context.Context, addrs [][25]byte) ([]*AddrRoomFollow, error) {
-	messages, err := db.GetByPrefixes(ctx, db.TopicMemoAddrRoomFollow, db.ShardPrefixesAddrs(addrs))
+func GetAddrRoomFollows(ctx context.Context, addrs [][25]byte, limit uint32) ([]*AddrRoomFollow, error) {
+	messages, err := db.GetByPrefixes(ctx, db.TopicMemoAddrRoomFollow, db.ShardPrefixesAddrs(addrs),
+		client.NewOptionPrefixLimit(int(NormalizePageLimit(limit))))
 	if err != nil {
 		return nil, fmt.Errorf("error getting db memo addr room follow by prefix; %w", err)
 	}

@@ -47,13 +47,11 @@ func (p *AddrPost) Serialize() []byte {
 
 func (p *AddrPost) Deserialize([]byte) {}
 
-func GetSingleAddrPosts(ctx context.Context, addr [25]byte, newest bool, start time.Time) ([]*AddrPost, error) {
+func GetSingleAddrPosts(ctx context.Context, addr [25]byte, newest bool, start time.Time, limit uint32) ([]*AddrPost, error) {
 	dbClient := db.GetShardClient(client.GenShardSource32(addr[:]))
-	prefix := client.NewPrefix(addr[:])
-	if !jutil.IsTimeZero(start) {
-		prefix.Start = jutil.CombineBytes(addr[:], jutil.GetTimeByteNanoBig(start))
-	}
-	var opts = []client.Option{client.OptionExLargeLimit(), client.NewOptionOrder(newest)}
+	prefix := getSingleAddrPostsPrefix(addr, start)
+	limit = NormalizePageLimit(limit)
+	var opts = []client.Option{client.NewOptionLimit(int(limit)), client.NewOptionOrder(newest)}
 	err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrPost, prefix, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting db addr memo post by prefix; %w", err)
@@ -64,6 +62,14 @@ func GetSingleAddrPosts(ctx context.Context, addr [25]byte, newest bool, start t
 		db.Set(addrPosts[i], dbClient.Messages[i])
 	}
 	return addrPosts, nil
+}
+
+func getSingleAddrPostsPrefix(addr [25]byte, start time.Time) client.Prefix {
+	prefix := client.NewPrefix(addr[:])
+	if !jutil.IsTimeZero(start) {
+		prefix.Start = jutil.CombineBytes(addr[:], jutil.GetTimeByteNanoBig(start))
+	}
+	return prefix
 }
 
 func GetAddrPosts(ctx context.Context, addrs [][25]byte, newest bool) ([]*AddrPost, error) {

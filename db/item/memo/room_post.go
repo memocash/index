@@ -54,8 +54,6 @@ func GetRoomHash(room string) []byte {
 	return sum[:]
 }
 
-const RoomPostsPageSize = client.MediumLimit
-
 func GetRoomPosts(ctx context.Context, room string, start time.Time, startTxHash [32]byte, limit uint32, newest bool) ([]*RoomPost, error) {
 	roomHash := GetRoomHash(room)
 	dbClient := db.GetShardClient(client.GenShardSource32(roomHash))
@@ -72,9 +70,6 @@ func GetRoomPosts(ctx context.Context, room string, start time.Time, startTxHash
 }
 
 func getRoomPostsPrefix(roomHash []byte, start time.Time, startTxHash [32]byte, limit uint32, newest bool) client.Prefix {
-	if limit == 0 || limit > RoomPostsPageSize {
-		limit = RoomPostsPageSize
-	}
 	prefix := client.NewPrefix(roomHash)
 	if !jutil.IsTimeZero(start) {
 		prefix.Start = jutil.CombineBytes(
@@ -86,7 +81,7 @@ func getRoomPostsPrefix(roomHash []byte, start time.Time, startTxHash [32]byte, 
 			prefix.Start = append(prefix.Start, 0)
 		}
 	}
-	prefix.Limit = limit
+	prefix.Limit = NormalizePageLimit(limit)
 	return prefix
 }
 

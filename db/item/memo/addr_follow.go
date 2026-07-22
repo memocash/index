@@ -75,13 +75,13 @@ func GetAddrFollows(ctx context.Context, addrs [][25]byte) ([]*AddrFollow, error
 	return addrFollows, nil
 }
 
-func GetAddrFollowsSingle(ctx context.Context, addr [25]byte, start time.Time) ([]*AddrFollow, error) {
+func GetAddrFollowsSingle(ctx context.Context, addr [25]byte, start time.Time, limit uint32) ([]*AddrFollow, error) {
 	dbClient := db.GetShardClient(client.GenShardSource32(addr[:]))
 	prefix := client.NewPrefix(addr[:])
 	if !jutil.IsTimeZero(start) {
 		prefix.Start = jutil.CombineBytes(addr[:], jutil.GetTimeByteNanoBig(start))
 	}
-	if err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrFollow, prefix, client.OptionExLargeLimit()); err != nil {
+	if err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrFollow, prefix, client.NewOptionLimit(int(NormalizePageLimit(limit)))); err != nil {
 		return nil, fmt.Errorf("error getting db addr memo follow by prefix; %w", err)
 	}
 	var addrFollows = make([]*AddrFollow, len(dbClient.Messages))

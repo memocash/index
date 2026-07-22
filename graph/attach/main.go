@@ -79,6 +79,33 @@ type Field struct {
 	Fields    Fields
 }
 
+func unmarshalBooleanDefault(arguments map[string]interface{}, name string, defaultValue bool) bool {
+	value, ok := arguments[name]
+	if !ok || value == nil {
+		return defaultValue
+	}
+	parsed, err := graphql.UnmarshalBoolean(value)
+	if err != nil {
+		return defaultValue
+	}
+	return parsed
+}
+
+func unmarshalPageLimit(arguments map[string]interface{}, field string, maximum uint32) (uint32, error) {
+	value, ok := arguments["limit"]
+	if !ok || value == nil {
+		return 0, nil
+	}
+	limit, err := model.UnmarshalUint32(value)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s limit; %w", field, err)
+	}
+	if uint32(limit) > maximum {
+		return 0, fmt.Errorf("%s limit %d exceeds maximum %d", field, limit, maximum)
+	}
+	return uint32(limit), nil
+}
+
 func GetFields(ctx context.Context) Fields {
 	return getFields(
 		graphql.GetOperationContext(ctx),

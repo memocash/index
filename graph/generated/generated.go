@@ -117,15 +117,15 @@ type ComplexityRoot struct {
 
 	Profile struct {
 		Address   func(childComplexity int) int
-		Followers func(childComplexity int, start *model.Date) int
-		Following func(childComplexity int, start *model.Date) int
-		Links     func(childComplexity int, start *model.Date) int
+		Followers func(childComplexity int, start *model.Date, limit *uint32) int
+		Following func(childComplexity int, start *model.Date, limit *uint32) int
+		Links     func(childComplexity int, start *model.Date, limit *uint32) int
 		Lock      func(childComplexity int) int
 		Name      func(childComplexity int) int
 		Pic       func(childComplexity int) int
-		Posts     func(childComplexity int, start *model.Date, newest *bool) int
+		Posts     func(childComplexity int, start *model.Date, limit *uint32, newest *bool) int
 		Profile   func(childComplexity int) int
-		Rooms     func(childComplexity int, start *model.Date) int
+		Rooms     func(childComplexity int, start *model.Date, limit *uint32) int
 	}
 
 	Query struct {
@@ -144,7 +144,7 @@ type ComplexityRoot struct {
 	}
 
 	Room struct {
-		Followers func(childComplexity int, start *int) int
+		Followers func(childComplexity int, start *model.Date, tx *model.Hash, limit *uint32) int
 		Name      func(childComplexity int) int
 		Posts     func(childComplexity int, start *model.Date, tx *model.Hash, limit *uint32, newest *bool) int
 	}
@@ -664,7 +664,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Profile.Followers(childComplexity, args["start"].(*model.Date)), true
+		return e.ComplexityRoot.Profile.Followers(childComplexity, args["start"].(*model.Date), args["limit"].(*uint32)), true
 	case "Profile.following":
 		if e.ComplexityRoot.Profile.Following == nil {
 			break
@@ -675,7 +675,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Profile.Following(childComplexity, args["start"].(*model.Date)), true
+		return e.ComplexityRoot.Profile.Following(childComplexity, args["start"].(*model.Date), args["limit"].(*uint32)), true
 	case "Profile.links":
 		if e.ComplexityRoot.Profile.Links == nil {
 			break
@@ -686,7 +686,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Profile.Links(childComplexity, args["start"].(*model.Date)), true
+		return e.ComplexityRoot.Profile.Links(childComplexity, args["start"].(*model.Date), args["limit"].(*uint32)), true
 	case "Profile.lock":
 		if e.ComplexityRoot.Profile.Lock == nil {
 			break
@@ -715,7 +715,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Profile.Posts(childComplexity, args["start"].(*model.Date), args["newest"].(*bool)), true
+		return e.ComplexityRoot.Profile.Posts(childComplexity, args["start"].(*model.Date), args["limit"].(*uint32), args["newest"].(*bool)), true
 	case "Profile.profile":
 		if e.ComplexityRoot.Profile.Profile == nil {
 			break
@@ -732,7 +732,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Profile.Rooms(childComplexity, args["start"].(*model.Date)), true
+		return e.ComplexityRoot.Profile.Rooms(childComplexity, args["start"].(*model.Date), args["limit"].(*uint32)), true
 
 	case "Query.address":
 		if e.ComplexityRoot.Query.Address == nil {
@@ -873,7 +873,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Room.Followers(childComplexity, args["start"].(*int)), true
+		return e.ComplexityRoot.Room.Followers(childComplexity, args["start"].(*model.Date), args["tx"].(*model.Hash), args["limit"].(*uint32)), true
 	case "Room.name":
 		if e.ComplexityRoot.Room.Name == nil {
 			break
@@ -1582,11 +1582,11 @@ type LinkRevoke {
     name: SetName
     profile: SetProfile
     pic: SetPic
-    following(start: Date): [Follow]
-    followers(start: Date): [Follow]
-    posts(start: Date, newest: Boolean): [Post]
-    rooms(start: Date): [RoomFollow!]
-    links(start: Date): [LinkRequest]
+    following(start: Date, limit: Uint32): [Follow]
+    followers(start: Date, limit: Uint32): [Follow]
+    posts(start: Date, limit: Uint32, newest: Boolean = true): [Post]
+    rooms(start: Date, limit: Uint32): [RoomFollow!]
+    links(start: Date, limit: Uint32): [LinkRequest]
 }
 
 type SetName {
@@ -1676,7 +1676,7 @@ type Subscription {
 	{Name: "../schema/room.graphqls", Input: `type Room {
     name: String!
     posts(start: Date, tx: Hash, limit: Uint32, newest: Boolean = true): [Post!]
-    followers(start: Int): [RoomFollow!]
+    followers(start: Date, tx: Hash, limit: Uint32): [RoomFollow!]
 }
 
 type RoomFollow {
@@ -2379,6 +2379,14 @@ func (ec *executionContext) field_Profile_followers_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["start"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*uint32, error) {
+			return ec.unmarshalOUint322ᚖuint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
 	return args, nil
 }
 
@@ -2393,6 +2401,14 @@ func (ec *executionContext) field_Profile_following_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["start"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*uint32, error) {
+			return ec.unmarshalOUint322ᚖuint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
 	return args, nil
 }
 
@@ -2407,6 +2423,14 @@ func (ec *executionContext) field_Profile_links_args(ctx context.Context, rawArg
 		return nil, err
 	}
 	args["start"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*uint32, error) {
+			return ec.unmarshalOUint322ᚖuint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
 	return args, nil
 }
 
@@ -2421,14 +2445,22 @@ func (ec *executionContext) field_Profile_posts_args(ctx context.Context, rawArg
 		return nil, err
 	}
 	args["start"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "newest",
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*uint32, error) {
+			return ec.unmarshalOUint322ᚖuint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "newest",
 		func(ctx context.Context, v any) (*bool, error) {
 			return ec.unmarshalOBoolean2ᚖbool(ctx, v)
 		})
 	if err != nil {
 		return nil, err
 	}
-	args["newest"] = arg1
+	args["newest"] = arg2
 	return args, nil
 }
 
@@ -2443,6 +2475,14 @@ func (ec *executionContext) field_Profile_rooms_args(ctx context.Context, rawArg
 		return nil, err
 	}
 	args["start"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*uint32, error) {
+			return ec.unmarshalOUint322ᚖuint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
 	return args, nil
 }
 
@@ -2642,13 +2682,29 @@ func (ec *executionContext) field_Room_followers_args(ctx context.Context, rawAr
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "start",
-		func(ctx context.Context, v any) (*int, error) {
-			return ec.unmarshalOInt2ᚖint(ctx, v)
+		func(ctx context.Context, v any) (*model.Date, error) {
+			return ec.unmarshalODate2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐDate(ctx, v)
 		})
 	if err != nil {
 		return nil, err
 	}
 	args["start"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "tx",
+		func(ctx context.Context, v any) (*model.Hash, error) {
+			return ec.unmarshalOHash2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["tx"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*uint32, error) {
+			return ec.unmarshalOUint322ᚖuint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg2
 	return args, nil
 }
 

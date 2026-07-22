@@ -3,7 +3,6 @@ package store
 import (
 	"bytes"
 	"fmt"
-
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/metric"
 	"github.com/syndtr/goleveldb/leveldb"
