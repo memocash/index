@@ -3,7 +3,9 @@ package attach
 import (
 	"context"
 	"fmt"
+	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
+	"time"
 )
 
 type MemoLinkRequest struct {
@@ -19,15 +21,51 @@ func ToMemoLinkRequests(ctx context.Context, fields []Field, linkRequests []*mod
 		base:         base{Ctx: ctx, Fields: fields},
 		LinkRequests: linkRequests,
 	}
-	o.Wait.Add(3)
+	o.Wait.Add(4)
 	go o.AttachLocks()
 	go o.AttachParentLocks()
 	go o.AttachTxs()
+	go o.AttachAccepts()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to memo link requests; %w", o.Errors[0])
 	}
 	return nil
+}
+
+func (a *MemoLinkRequest) AttachAccepts() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"accepts"}) {
+		return
+	}
+	acceptsField := a.Fields.GetField("accepts")
+	var allAccepts []*model.LinkAccept
+	for _, linkRequest := range a.LinkRequests {
+		addrAccepts, err := memo.GetAddrLinkAcceptsSingle(a.Ctx, linkRequest.ParentAddress, time.Time{})
+		if err != nil {
+			a.AddError(fmt.Errorf("error getting accepts for memo link request; %w", err))
+			return
+		}
+		a.Mutex.Lock()
+		for _, addrAccept := range addrAccepts {
+			if addrAccept.RequestTxHash != linkRequest.TxHash {
+				continue
+			}
+			accept := &model.LinkAccept{
+				TxHash:         addrAccept.TxHash,
+				Address:        addrAccept.Addr,
+				RequestAddress: linkRequest.Address,
+				RequestTxHash:  addrAccept.RequestTxHash,
+				Message:        addrAccept.Message,
+			}
+			linkRequest.Accepts = append(linkRequest.Accepts, accept)
+			allAccepts = append(allAccepts, accept)
+		}
+		a.Mutex.Unlock()
+	}
+	if err := ToMemoLinkAccepts(a.Ctx, acceptsField.Fields, allAccepts); err != nil {
+		a.AddError(fmt.Errorf("error attaching accepts to memo link requests; %w", err))
+	}
 }
 
 func (a *MemoLinkRequest) AttachLocks() {

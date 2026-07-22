@@ -9,23 +9,21 @@ const CommonQueries = [
         query: `query ($address: Address!) {
   profiles(addresses: [$address]) {
     address
-    link_requests {
+    links {
       tx_hash
       address
       parent_address
       message
-    }
-    link_accepts {
-      tx_hash
-      address
-      request_tx_hash
-      message
-    }
-    link_revokes {
-      tx_hash
-      address
-      accept_tx_hash
-      message
+      accepts {
+        tx_hash
+        request_tx_hash
+        message
+        revokes {
+          tx_hash
+          accept_tx_hash
+          message
+        }
+      }
     }
   }
 }`,

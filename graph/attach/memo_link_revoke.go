@@ -19,32 +19,13 @@ func ToMemoLinkRevokes(ctx context.Context, fields []Field, linkRevokes []*model
 		base:        base{Ctx: ctx, Fields: fields},
 		LinkRevokes: linkRevokes,
 	}
-	o.Wait.Add(2)
-	go o.AttachLocks()
+	o.Wait.Add(1)
 	go o.AttachTxs()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to memo link revokes; %w", o.Errors[0])
 	}
 	return nil
-}
-
-func (a *MemoLinkRevoke) AttachLocks() {
-	defer a.Wait.Done()
-	if !a.HasField([]string{"lock"}) {
-		return
-	}
-	var allLocks []*model.Lock
-	a.Mutex.Lock()
-	for _, linkRevoke := range a.LinkRevokes {
-		linkRevoke.Lock = &model.Lock{Address: linkRevoke.Address}
-		allLocks = append(allLocks, linkRevoke.Lock)
-	}
-	a.Mutex.Unlock()
-	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "lock."), allLocks); err != nil {
-		a.AddError(fmt.Errorf("error attaching to locks for memo link revokes; %w", err))
-		return
-	}
 }
 
 func (a *MemoLinkRevoke) AttachTxs() {

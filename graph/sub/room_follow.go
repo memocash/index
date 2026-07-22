@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/memocash/index/db/item/memo"
+	"github.com/memocash/index/graph/attach"
 	"github.com/memocash/index/graph/model"
+	"log"
 )
 
 type RoomFollow struct {
@@ -25,6 +27,7 @@ func (r *RoomFollow) Listen(ctx context.Context, addresses [][25]byte) (<-chan *
 			close(roomFollowChan)
 			r.Cancel()
 		}()
+		fields := attach.GetFields(ctx)
 		for {
 			select {
 			case <-ctx.Done():
@@ -33,12 +36,17 @@ func (r *RoomFollow) Listen(ctx context.Context, addresses [][25]byte) (<-chan *
 				if !ok {
 					return
 				}
-				roomFollowChan <- &model.RoomFollow{
+				var roomFollow = &model.RoomFollow{
 					Name:     lockRoomFollow.Room,
 					Address:  lockRoomFollow.Addr,
 					Unfollow: lockRoomFollow.Unfollow,
 					TxHash:   lockRoomFollow.TxHash,
 				}
+				if err := attach.ToMemoRoomFollows(ctx, fields, []*model.RoomFollow{roomFollow}); err != nil {
+					log.Printf("error attaching to memo room follows for room follow subscription; %v", err)
+					return
+				}
+				roomFollowChan <- roomFollow
 			}
 		}
 	}()
