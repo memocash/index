@@ -59,7 +59,7 @@ func (f *RoomFollow) Deserialize(data []byte) {
 		return
 	}
 	f.Unfollow = data[0] == 1
-	copy(f.Addr[:], data[1:26])
+	copy(f.Addr[:], data[1:1+memo.AddressLength])
 }
 
 func GetRoomFollows(ctx context.Context, room string) ([]*RoomFollow, error) {

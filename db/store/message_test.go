@@ -176,3 +176,73 @@ func TestGetByPrefixes(t *testing.T) {
 		}
 	}
 }
+
+func TestGetByPrefixesPaging(t *testing.T) {
+	if err := initTestDb(); err != nil {
+		t.Fatalf("error initializing test db; %v", err)
+	}
+	defer store.CloseAll()
+
+	tests := []struct {
+		name     string
+		prefix   string
+		desc     bool
+		start    []byte
+		expected []*store.Message
+	}{
+		{
+			name:     "Ascending",
+			start:    []byte("test-3\x00"),
+			expected: []*store.Message{testMessageTest4, testMessageTest5, testMessageTest6},
+		},
+		{
+			name:     "Descending",
+			desc:     true,
+			start:    testMessageTest7.Uid,
+			expected: []*store.Message{testMessageTest6, testMessageTest5, testMessageTest4},
+		},
+		{
+			name:     "Ascending foreign cursor after prefix",
+			prefix:   PrefixOther,
+			start:    testMessageTest5.Uid,
+			expected: []*store.Message{testMessageOther0, testMessageOther1, testMessageOther2},
+		},
+		{
+			name:     "Descending foreign cursor after prefix",
+			prefix:   PrefixOther,
+			desc:     true,
+			start:    testMessageTest5.Uid,
+			expected: []*store.Message{testMessageOther9, testMessageOther8, testMessageOther7},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			prefix := test.prefix
+			if prefix == "" {
+				prefix = PrefixTest
+			}
+			messages, err := store.GetByPrefixes(store.RequestByPrefixes{
+				Topic: TestTopic,
+				Shard: TestShard,
+				Prefixes: []store.Prefix{{
+					Prefix: []byte(prefix),
+					Start:  test.start,
+					Max:    3,
+				}},
+				Desc: test.desc,
+			})
+			if err != nil {
+				t.Fatalf("error getting messages: %v", err)
+			}
+			if len(messages) != len(test.expected) {
+				t.Fatalf("message count = %d, want %d", len(messages), len(test.expected))
+			}
+			for i, message := range messages {
+				if !bytes.Equal(message.Uid, test.expected[i].Uid) {
+					t.Errorf("message %d uid = %s, want %s", i, message.Uid, test.expected[i].Uid)
+				}
+			}
+		})
+	}
+}

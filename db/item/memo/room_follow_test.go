@@ -23,3 +23,20 @@ func TestRoomFollowSerializeDeserialize(t *testing.T) {
 		t.Fatalf("decoded unfollow = %t, want %t", decoded.Unfollow, original.Unfollow)
 	}
 }
+
+func TestRoomFollowDeserializeLengthBoundary(t *testing.T) {
+	valid := make([]byte, 26)
+	valid[0] = 1
+	valid[25] = 42
+	var decoded RoomFollow
+	decoded.Deserialize(valid)
+	if !decoded.Unfollow || decoded.Addr[24] != 42 {
+		t.Fatalf("exact-length payload was not decoded: %+v", decoded)
+	}
+
+	var short RoomFollow
+	short.Deserialize(valid[:25])
+	if short.Unfollow || short.Addr != [25]byte{} {
+		t.Fatalf("short payload changed receiver: %+v", short)
+	}
+}

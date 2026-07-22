@@ -147,10 +147,10 @@ func getPrefixMessages(db *leveldb.DB, prefix Prefix, newest bool, totalMaxLeft 
 	}
 
 	iterRange := util.BytesPrefix(prefix.Prefix)
-	if len(prefix.Start) > 0 {
-		if newest && (len(prefix.Prefix) == 0 || bytes.Compare(prefix.Start, prefix.Prefix) != 1) {
+	if len(prefix.Start) > 0 && bytes.HasPrefix(prefix.Start, prefix.Prefix) {
+		if newest {
 			iterRange.Limit = prefix.Start
-		} else if !newest && (len(prefix.Prefix) == 0 || bytes.Compare(prefix.Start, prefix.Prefix) != -1) {
+		} else {
 			iterRange.Start = prefix.Start
 		}
 	}

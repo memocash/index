@@ -93,14 +93,12 @@ type LinkRequest struct {
 }
 
 type LinkAccept struct {
-	TxHash         Hash          `json:"tx_hash"`
-	Address        Address       `json:"address"`
-	RequestTxHash  Hash          `json:"request_tx_hash"`
-	Message        string        `json:"message"`
-	Lock           *Lock         `json:"lock"`
-	Tx             *Tx           `json:"tx"`
-	RequestAddress Address       `json:"-"`
-	Revokes        []*LinkRevoke `json:"revokes"`
+	TxHash        Hash          `json:"tx_hash"`
+	Address       Address       `json:"address"`
+	RequestTxHash Hash          `json:"request_tx_hash"`
+	Message       string        `json:"message"`
+	Tx            *Tx           `json:"tx"`
+	Revokes       []*LinkRevoke `json:"revokes"`
 }
 
 type LinkRevoke struct {
@@ -108,7 +106,6 @@ type LinkRevoke struct {
 	Address      Address `json:"address"`
 	AcceptTxHash Hash    `json:"accept_tx_hash"`
 	Message      string  `json:"message"`
-	Lock         *Lock   `json:"lock"`
 	Tx           *Tx     `json:"tx"`
 }
 

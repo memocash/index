@@ -59,7 +59,8 @@ func (r *AddrLinkRevoke) Deserialize(data []byte) {
 }
 
 func GetAddrLinkRevokes(ctx context.Context, addrs [][25]byte) ([]*AddrLinkRevoke, error) {
-	messages, err := db.GetByPrefixes(ctx, db.TopicMemoAddrLinkRevoke, db.ShardPrefixesAddrs(addrs))
+	messages, err := db.GetByPrefixes(ctx, db.TopicMemoAddrLinkRevoke, db.ShardPrefixesAddrs(addrs),
+		client.NewOptionPrefixLimit(client.ExLargeLimit))
 	if err != nil {
 		return nil, fmt.Errorf("error getting db addr memo link revokes by prefixes; %w", err)
 	}
@@ -67,23 +68,6 @@ func GetAddrLinkRevokes(ctx context.Context, addrs [][25]byte) ([]*AddrLinkRevok
 	for i := range messages {
 		addrLinkRevokes[i] = new(AddrLinkRevoke)
 		db.Set(addrLinkRevokes[i], messages[i])
-	}
-	return addrLinkRevokes, nil
-}
-
-func GetAddrLinkRevokesSingle(ctx context.Context, addr [25]byte, start time.Time) ([]*AddrLinkRevoke, error) {
-	dbClient := db.GetShardClient(client.GenShardSource32(addr[:]))
-	prefix := client.NewPrefix(addr[:])
-	if !jutil.IsTimeZero(start) {
-		prefix.Start = jutil.CombineBytes(addr[:], jutil.GetTimeByteNanoBig(start))
-	}
-	if err := dbClient.GetByPrefix(ctx, db.TopicMemoAddrLinkRevoke, prefix, client.OptionExLargeLimit()); err != nil {
-		return nil, fmt.Errorf("error getting db addr memo link revoke by prefix; %w", err)
-	}
-	var addrLinkRevokes = make([]*AddrLinkRevoke, len(dbClient.Messages))
-	for i := range dbClient.Messages {
-		addrLinkRevokes[i] = new(AddrLinkRevoke)
-		db.Set(addrLinkRevokes[i], dbClient.Messages[i])
 	}
 	return addrLinkRevokes, nil
 }

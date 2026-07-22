@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/model"
-	"time"
 )
 
 type MemoLinkRequest struct {
@@ -39,31 +38,50 @@ func (a *MemoLinkRequest) AttachAccepts() {
 		return
 	}
 	acceptsField := a.Fields.GetField("accepts")
-	var allAccepts []*model.LinkAccept
+	addresses := make([][25]byte, 0, len(a.LinkRequests))
+	seenAddresses := make(map[[25]byte]struct{}, len(a.LinkRequests))
 	for _, linkRequest := range a.LinkRequests {
-		addrAccepts, err := memo.GetAddrLinkAcceptsSingle(a.Ctx, linkRequest.ParentAddress, time.Time{})
-		if err != nil {
-			a.AddError(fmt.Errorf("error getting accepts for memo link request; %w", err))
-			return
+		if _, ok := seenAddresses[linkRequest.ParentAddress]; ok {
+			continue
 		}
-		a.Mutex.Lock()
-		for _, addrAccept := range addrAccepts {
-			if addrAccept.RequestTxHash != linkRequest.TxHash {
-				continue
-			}
+		seenAddresses[linkRequest.ParentAddress] = struct{}{}
+		addresses = append(addresses, linkRequest.ParentAddress)
+	}
+	addrAccepts, err := memo.GetAddrLinkAccepts(a.Ctx, addresses)
+	if err != nil {
+		a.AddError(fmt.Errorf("error getting accepts for memo link requests; %w", err))
+		return
+	}
+	type requestKey struct {
+		hash [32]byte
+		addr [25]byte
+	}
+	acceptsByRequest := make(map[requestKey][]*memo.AddrLinkAccept)
+	for _, addrAccept := range addrAccepts {
+		key := requestKey{hash: addrAccept.RequestTxHash, addr: addrAccept.Addr}
+		acceptsByRequest[key] = append(acceptsByRequest[key], addrAccept)
+	}
+
+	var allAccepts []*model.LinkAccept
+	requestAddresses := make(map[*model.LinkAccept]model.Address)
+	a.Mutex.Lock()
+	for _, linkRequest := range a.LinkRequests {
+		// A link accept is valid only when broadcast by the request's parent.
+		key := requestKey{hash: linkRequest.TxHash, addr: linkRequest.ParentAddress}
+		for _, addrAccept := range acceptsByRequest[key] {
 			accept := &model.LinkAccept{
-				TxHash:         addrAccept.TxHash,
-				Address:        addrAccept.Addr,
-				RequestAddress: linkRequest.Address,
-				RequestTxHash:  addrAccept.RequestTxHash,
-				Message:        addrAccept.Message,
+				TxHash:        addrAccept.TxHash,
+				Address:       addrAccept.Addr,
+				RequestTxHash: addrAccept.RequestTxHash,
+				Message:       addrAccept.Message,
 			}
 			linkRequest.Accepts = append(linkRequest.Accepts, accept)
 			allAccepts = append(allAccepts, accept)
+			requestAddresses[accept] = linkRequest.Address
 		}
-		a.Mutex.Unlock()
 	}
-	if err := ToMemoLinkAccepts(a.Ctx, acceptsField.Fields, allAccepts); err != nil {
+	a.Mutex.Unlock()
+	if err := ToMemoLinkAccepts(a.Ctx, acceptsField.Fields, allAccepts, requestAddresses); err != nil {
 		a.AddError(fmt.Errorf("error attaching accepts to memo link requests; %w", err))
 	}
 }
