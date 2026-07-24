@@ -37,6 +37,7 @@ func GetHandlers() ([]*Handler, error) {
 		memoFollowHandler,
 		memoUnfollowHandler,
 		memoPostHandler,
+		memoSendHandler,
 		memoLikeHandler,
 		memoReplyHandler,
 		memoRoomPostHandler,

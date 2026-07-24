@@ -50,6 +50,7 @@ type Post {
     tx: Tx!
     tx_hash: Hash!
     lock: Lock!
+    recipient: Lock
     address: Address!
     text: String!
     likes: [Like!]

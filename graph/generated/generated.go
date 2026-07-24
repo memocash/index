@@ -104,15 +104,16 @@ type ComplexityRoot struct {
 	}
 
 	Post struct {
-		Address func(childComplexity int) int
-		Likes   func(childComplexity int) int
-		Lock    func(childComplexity int) int
-		Parent  func(childComplexity int) int
-		Replies func(childComplexity int) int
-		Room    func(childComplexity int) int
-		Text    func(childComplexity int) int
-		Tx      func(childComplexity int) int
-		TxHash  func(childComplexity int) int
+		Address   func(childComplexity int) int
+		Likes     func(childComplexity int) int
+		Lock      func(childComplexity int) int
+		Parent    func(childComplexity int) int
+		Recipient func(childComplexity int) int
+		Replies   func(childComplexity int) int
+		Room      func(childComplexity int) int
+		Text      func(childComplexity int) int
+		Tx        func(childComplexity int) int
+		TxHash    func(childComplexity int) int
 	}
 
 	Profile struct {
@@ -617,6 +618,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Post.Parent(childComplexity), true
+	case "Post.recipient":
+		if e.ComplexityRoot.Post.Recipient == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Post.Recipient(childComplexity), true
 	case "Post.replies":
 		if e.ComplexityRoot.Post.Replies == nil {
 			break
@@ -1628,6 +1635,7 @@ type Post {
     tx: Tx!
     tx_hash: Hash!
     lock: Lock!
+    recipient: Lock
     address: Address!
     text: String!
     likes: [Like!]
@@ -1926,6 +1934,8 @@ func (ec *executionContext) childFields_Post(ctx context.Context, field graphql.
 		return ec.fieldContext_Post_tx_hash(ctx, field)
 	case "lock":
 		return ec.fieldContext_Post_lock(ctx, field)
+	case "recipient":
+		return ec.fieldContext_Post_recipient(ctx, field)
 	case "address":
 		return ec.fieldContext_Post_address(ctx, field)
 	case "text":
@@ -4132,6 +4142,38 @@ func (ec *executionContext) _Post_lock(ctx context.Context, field graphql.Collec
 	)
 }
 func (ec *executionContext) fieldContext_Post_lock(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Lock(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Post_recipient(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Post_recipient(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Recipient, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Lock) graphql.Marshaler {
+			return ec.marshalOLock2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐLock(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Post_recipient(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Post",
 		Field:      field,
@@ -9255,6 +9297,11 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 		case "lock":
 			out.Values[i] = ec._Post_lock(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "recipient":
+			out.Values[i] = ec._Post_recipient(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
 		case "address":

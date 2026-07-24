@@ -43,6 +43,7 @@ const (
 	TopicMemoPostRoom              = "memo_post_room"
 	TopicMemoRoomFollow            = "memo_room_follow"
 	TopicMemoRoomPost              = "memo_room_post"
+	TopicMemoSend                  = "memo_send"
 	TopicMemoSeenPost              = "memo_seen_post"
 
 	TopicChainBlock           = "chain_block"

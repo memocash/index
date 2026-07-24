@@ -176,9 +176,27 @@ func (r *queryResolver) Profiles(ctx context.Context, addresses []model.Address)
 // Posts is the resolver for the posts field.
 func (r *queryResolver) Posts(ctx context.Context, txHashes []model.Hash) ([]*model.Post, error) {
 	SetEndPoint(ctx, metric.EndPointPosts)
-	var posts []*model.Post
+	postHashes := make([][32]byte, len(txHashes))
+	for i := range txHashes {
+		postHashes[i] = txHashes[i]
+	}
+	storedPosts, err := memo_db.GetPosts(ctx, postHashes)
+	if err != nil {
+		return nil, InternalError{fmt.Errorf("error getting posts for query resolver posts; %w", err)}
+	}
+	storedByHash := make(map[[32]byte]*memo_db.Post, len(storedPosts))
+	for _, post := range storedPosts {
+		storedByHash[post.TxHash] = post
+	}
+	posts := make([]*model.Post, 0, len(txHashes))
 	for _, txHash := range txHashes {
-		posts = append(posts, &model.Post{TxHash: txHash})
+		if post := storedByHash[txHash]; post != nil {
+			posts = append(posts, &model.Post{
+				TxHash:  post.TxHash,
+				Address: post.Addr,
+				Text:    post.Post,
+			})
+		}
 	}
 	if err := attach.ToMemoPosts(ctx, attach.GetFields(ctx), posts); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to posts for query resolver posts; %w", err)}

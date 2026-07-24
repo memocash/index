@@ -26,12 +26,13 @@ func ToMemoPosts(ctx context.Context, fields []Field, posts []*model.Post) error
 	}
 	o.DetailsWait.Add(1)
 	go o.AttachInfo()
-	o.Wait.Add(6)
+	o.Wait.Add(7)
 	go o.AttachTxs()
 	go o.AttachParents()
 	go o.AttachLikes()
 	go o.AttachReplies()
 	go o.AttachRooms()
+	go o.AttachRecipients()
 	o.DetailsWait.Wait()
 	go o.AttachLocks()
 	o.Wait.Wait()
@@ -39,6 +40,31 @@ func ToMemoPosts(ctx context.Context, fields []Field, posts []*model.Post) error
 		return fmt.Errorf("error attaching to memo posts; %w", o.Errors[0])
 	}
 	return nil
+}
+
+func (a *MemoPost) AttachRecipients() {
+	defer a.Wait.Done()
+	if !a.HasField([]string{"recipient"}) {
+		return
+	}
+	sends, err := memo.GetSends(a.Ctx, a.getTxHashes(false))
+	if err != nil && !client.IsEntryNotFoundError(err) {
+		a.AddError(fmt.Errorf("error getting memo sends for post recipients; %w", err))
+		return
+	}
+	postIndexMap := a.getPostIndexMap()
+	var locks []*model.Lock
+	a.Mutex.Lock()
+	for _, send := range sends {
+		for _, i := range postIndexMap[send.TxHash] {
+			a.Posts[i].Recipient = &model.Lock{Address: send.Recipient}
+			locks = append(locks, a.Posts[i].Recipient)
+		}
+	}
+	a.Mutex.Unlock()
+	if err := ToLocks(a.Ctx, GetPrefixFields(a.Fields, "recipient."), locks); err != nil {
+		a.AddError(fmt.Errorf("error attaching recipient locks for memo posts; %w", err))
+	}
 }
 
 func (a *MemoPost) getTxHashes(checkTextAddress bool) [][32]byte {

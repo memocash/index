@@ -24,5 +24,6 @@ func GetTopics() []db.Object {
 		&PostRoom{},
 		&RoomFollow{},
 		&RoomPost{},
+		&Send{},
 	}
 }

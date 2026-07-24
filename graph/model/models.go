@@ -134,15 +134,16 @@ type SetProfile struct {
 }
 
 type Post struct {
-	TxHash  Hash    `json:"tx_hash"`
-	Address Address `json:"address"`
-	Text    string  `json:"text"`
-	Lock    *Lock   `json:"lock"`
-	Tx      *Tx     `json:"tx"`
-	Parent  *Post   `json:"parent"`
-	Likes   []*Like `json:"likes"`
-	Replies []*Post `json:"replies"`
-	Room    *Room   `json:"room"`
+	TxHash    Hash    `json:"tx_hash"`
+	Address   Address `json:"address"`
+	Text      string  `json:"text"`
+	Lock      *Lock   `json:"lock"`
+	Recipient *Lock   `json:"recipient"`
+	Tx        *Tx     `json:"tx"`
+	Parent    *Post   `json:"parent"`
+	Likes     []*Like `json:"likes"`
+	Replies   []*Post `json:"replies"`
+	Room      *Room   `json:"room"`
 }
 
 type Like struct {
