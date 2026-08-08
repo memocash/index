@@ -19,6 +19,7 @@ type SlpOutput {
     amount: Uint64!
     token_hash: Hash!
     genesis: SlpGenesis
+    validity: SlpValidity!
 }
 
 type SlpBaton {
@@ -27,6 +28,17 @@ type SlpBaton {
     index: Uint32!
     token_hash: Hash!
     genesis: SlpGenesis
+    validity: SlpValidity!
+}
+
+"""
+SLP validity of the tx that created an output or baton. PENDING means the
+index has not yet decided; consumers must treat only VALID as spendable.
+"""
+enum SlpValidity {
+    VALID
+    INVALID
+    PENDING
 }
 
 #type SlpMint {

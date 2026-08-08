@@ -6,7 +6,9 @@ func GetTopics() []db.Object {
 	return []db.Object{
 		&Genesis{},
 		&Mint{},
+		&Send{},
 		&Output{},
 		&Baton{},
+		&Validity{},
 	}
 }

@@ -10,6 +10,7 @@ import (
 type Mint struct {
 	TxHash     [32]byte
 	TokenHash  [32]byte
+	TokenType  uint8
 	BatonIndex uint32
 	Quantity   uint64
 }
@@ -38,6 +39,7 @@ func (m *Mint) Serialize() []byte {
 		jutil.ByteReverse(m.TokenHash[:]),
 		jutil.GetUint32Data(m.BatonIndex),
 		jutil.GetUint64Data(m.Quantity),
+		[]byte{m.TokenType},
 	)
 }
 
@@ -47,5 +49,8 @@ func (m *Mint) Deserialize(data []byte) {
 	}
 	copy(m.TokenHash[:], jutil.ByteReverse(data[:memo.TxHashLength]))
 	m.BatonIndex = jutil.GetUint32(data[memo.TxHashLength : memo.TxHashLength+4])
-	m.Quantity = jutil.GetUint64(data[memo.TxHashLength+4:])
+	m.Quantity = jutil.GetUint64(data[memo.TxHashLength+4 : memo.TxHashLength+12])
+	if len(data) > memo.TxHashLength+12 {
+		m.TokenType = data[memo.TxHashLength+12]
+	}
 }

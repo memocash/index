@@ -72,6 +72,7 @@ func SlpMint(info parse.OpReturn) error {
 	var mint = &slp.Mint{
 		TxHash:     info.TxHash,
 		TokenHash:  *tokenHash,
+		TokenType:  uint8(jutil.GetUint64(info.PushData[1])),
 		BatonIndex: uint32(jutil.GetUint64(info.PushData[4])),
 		Quantity:   jutil.GetUint64(info.PushData[5]),
 	}
@@ -111,6 +112,7 @@ func SlpSend(info parse.OpReturn) error {
 	var send = &slp.Send{
 		TxHash:    info.TxHash,
 		TokenHash: *tokenHash,
+		TokenType: uint8(jutil.GetUint64(info.PushData[1])),
 	}
 	if err := db.Save([]db.Object{send}); err != nil {
 		return fmt.Errorf("error saving send op return to db; %w", err)

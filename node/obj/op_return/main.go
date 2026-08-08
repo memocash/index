@@ -11,10 +11,22 @@ import (
 type Handler struct {
 	prefix       []byte
 	prefixScript []byte
+	noAddr       bool
+	canHandle    func(pkScript []byte) bool
 	handle       func(context.Context, parse.OpReturn) error
 }
 
+// NeedsAddr reports whether the handler requires an input address to be resolved.
+// SLP transcription/validation is address-independent, so SLP txs are indexed
+// even when no input unlock script yields an address (e.g. P2SH inputs).
+func (h *Handler) NeedsAddr() bool {
+	return !h.noAddr
+}
+
 func (h *Handler) CanHandle(pkScript []byte) bool {
+	if h.canHandle != nil {
+		return h.canHandle(pkScript)
+	}
 	return len(pkScript) >= len(h.prefixScript) &&
 		bytes.Equal(pkScript[:len(h.prefixScript)], h.prefixScript)
 }

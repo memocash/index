@@ -141,6 +141,68 @@ func GetHeightBlocksAllDefault(ctx context.Context, startHeight int64, newest bo
 	return heightBlocks, nil
 }
 
+// GetHeightBlocksRange returns every height block record with
+// startHeight <= Height < endHeight, exhaustively. Unlike
+// GetHeightBlocksAllLimit, whose independent per-shard caps mean a combined
+// result can silently omit records from a capped shard, this paginates each
+// shard by its full compound uid until the shard itself proves exhaustion
+// (a short page from a single-shard query) or passes endHeight.
+func GetHeightBlocksRange(ctx context.Context, startHeight, endHeight int64) ([]*HeightBlock, error) {
+	var heightBlocks []*HeightBlock
+	for _, shardConfig := range config.GetQueueShards() {
+		dbClient := client.NewClient(shardConfig.GetHost())
+		shardBlocks, err := paginateHeightBlocks(func(start []byte, limit int) ([]client.Message, error) {
+			if err := dbClient.GetAll(ctx, db.TopicChainHeightBlock, start,
+				client.NewOptionLimit(limit),
+			); err != nil {
+				return nil, fmt.Errorf("error getting height block range page; %w", err)
+			}
+			return dbClient.Messages, nil
+		}, startHeight, endHeight)
+		if err != nil {
+			return nil, fmt.Errorf("error paginating height blocks for shard; %w", err)
+		}
+		heightBlocks = append(heightBlocks, shardBlocks...)
+	}
+	sort.Slice(heightBlocks, func(i, j int) bool {
+		return heightBlocks[i].Height < heightBlocks[j].Height
+	})
+	return heightBlocks, nil
+}
+
+// paginateHeightBlocks exhausts a single shard's height block records in
+// [startHeight, endHeight). Each page starts strictly after the previous
+// page's last uid (start bounds are inclusive, so the last uid is extended by
+// a zero byte), and only a page shorter than its requested limit - which for
+// a single-shard query proves the iterator ran out - or a record at or beyond
+// endHeight ends the loop. No completeness inference is ever made from a
+// combined multi-shard result.
+func paginateHeightBlocks(fetch func(start []byte, limit int) ([]client.Message, error),
+	startHeight, endHeight int64) ([]*HeightBlock, error) {
+	var heightBlocks []*HeightBlock
+	var start = jutil.GetInt64DataBig(startHeight)
+	for {
+		messages, err := fetch(start, client.HugeLimit)
+		if err != nil {
+			return nil, err
+		}
+		var lastUid []byte
+		for _, message := range messages {
+			var heightBlock = new(HeightBlock)
+			db.Set(heightBlock, message)
+			lastUid = message.Uid
+			if heightBlock.Height >= endHeight {
+				return heightBlocks, nil
+			}
+			heightBlocks = append(heightBlocks, heightBlock)
+		}
+		if len(messages) < client.HugeLimit {
+			return heightBlocks, nil
+		}
+		start = append(append([]byte{}, lastUid...), 0x00)
+	}
+}
+
 func GetHeightBlocksAllLimit(ctx context.Context, startHeight int64, limit int, newest bool) ([]*HeightBlock, error) {
 	var heightBlocks []*HeightBlock
 	shardConfigs := config.GetQueueShards()
