@@ -1,8 +1,9 @@
 // Package slp_validate resolves the inputs of SLP transactions against the
 // index and applies the pure validator (ref/bitcoin/tx/slp), writing
 // slp.Validity verdicts. Verdicts are only written on affirmative evidence;
-// anything unresolved stays pending (no row) and is retried later by the
-// confirmation pass and the height-ordered sweeper.
+// anything unresolved stays pending (no row) and is resolved later by the
+// cascade when an ancestor's verdict lands, or by the slp-validity-sweep
+// maintenance command.
 package slp_validate
 
 import (
@@ -26,14 +27,13 @@ type Result struct {
 	Valid   int
 	Invalid int
 	Pending int
-	Skipped int // already decided, or out of scope (COMMIT)
 	// NewVerdicts holds the tx hashes decided by this call, the seeds for
 	// cascading validation to their pending spenders
 	NewVerdicts [][32]byte
 }
 
 // Decided returns the number of new verdicts written this call, used by the
-// sweeper to iterate blocks to a fixpoint.
+// sweeper's fixpoint loop.
 func (r *Result) Decided() int {
 	return r.Valid + r.Invalid
 }
@@ -42,7 +42,6 @@ func (r *Result) add(other *Result) {
 	r.Valid += other.Valid
 	r.Invalid += other.Invalid
 	r.Pending += other.Pending
-	r.Skipped += other.Skipped
 	r.NewVerdicts = append(r.NewVerdicts, other.NewVerdicts...)
 }
 
@@ -77,7 +76,6 @@ func ValidateTxs(ctx context.Context, txs []Tx) (*Result, error) {
 	var works []*work
 	for _, tx := range txs {
 		if existing[tx.TxHash] {
-			result.Skipped++
 			continue
 		}
 		if len(tx.Outputs) == 0 || !slp.HasSlpLokad(tx.Outputs[0].PkScript) {
@@ -91,7 +89,6 @@ func ValidateTxs(ctx context.Context, txs []Tx) (*Result, error) {
 			continue
 		}
 		if msg.TxType == memo.SlpTxTypeCommit {
-			result.Skipped++
 			continue
 		}
 		works = append(works, &work{tx: tx, msg: msg})
