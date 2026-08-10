@@ -26,7 +26,7 @@ var slpTokenHandler = &Handler{
 		if info.OutputIndex != 0 && len(info.Outputs) > 0 && slp.HasSlpLokad(info.Outputs[0].PkScript) {
 			return nil
 		}
-		if _, err := slp_validate.ValidateTxs(ctx, []slp_validate.Tx{{
+		if _, err := slp_validate.ValidateTxsCascade(ctx, []slp_validate.Tx{{
 			TxHash:  info.TxHash,
 			Inputs:  info.Inputs,
 			Outputs: info.Outputs,

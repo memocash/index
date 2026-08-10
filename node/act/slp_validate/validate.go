@@ -27,12 +27,23 @@ type Result struct {
 	Invalid int
 	Pending int
 	Skipped int // already decided, or out of scope (COMMIT)
+	// NewVerdicts holds the tx hashes decided by this call, the seeds for
+	// cascading validation to their pending spenders
+	NewVerdicts [][32]byte
 }
 
 // Decided returns the number of new verdicts written this call, used by the
 // sweeper to iterate blocks to a fixpoint.
 func (r *Result) Decided() int {
 	return r.Valid + r.Invalid
+}
+
+func (r *Result) add(other *Result) {
+	r.Valid += other.Valid
+	r.Invalid += other.Invalid
+	r.Pending += other.Pending
+	r.Skipped += other.Skipped
+	r.NewVerdicts = append(r.NewVerdicts, other.NewVerdicts...)
 }
 
 type outPoint struct {
@@ -104,6 +115,7 @@ func ValidateTxs(ctx context.Context, txs []Tx) (*Result, error) {
 			Status: uint8(verdict.Status),
 			Reason: uint8(verdict.Reason),
 		})
+		result.NewVerdicts = append(result.NewVerdicts, txHash)
 	}
 	if len(objects) > 0 {
 		if err := db.Save(objects); err != nil {

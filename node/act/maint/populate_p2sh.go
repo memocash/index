@@ -41,6 +41,7 @@ func (p *PopulateP2sh) Populate(startHeight int64) error {
 			var totalTxs int
 			for {
 				blockTxs, err := chain.GetBlockTxs(chain.BlockTxsRequest{
+					Context:    p.Ctx,
 					BlockHash:  heightBlock.BlockHash,
 					StartIndex: startIndex,
 					Limit:      client.LargeLimit,

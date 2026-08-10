@@ -13,6 +13,7 @@ const (
 	FlagSave         = "save"
 	FlagDoubleSpends = "double-spends"
 	FlagVerify       = "verify"
+	FlagAudit        = "audit"
 )
 
 var maintCommand = &cobra.Command{
@@ -44,8 +45,8 @@ func GetCommand() *cobra.Command {
 	purgeHeightIndexCmd.Flags().Bool(FlagVerify, true, "Only delete a mapping when the block also exists at a lower height (safe; disable with --verify=false)")
 	populateOpReturnsCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
 	slpValiditySweepCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
-	slpValiditySweepCmd.Flags().Int64(FlagStart, 0, "Start height (default: resume from saved cursor)")
-	slpValiditySweepCmd.Flags().Int64(FlagEnd, 0, "End height (default: run to tip)")
+	slpValiditySweepCmd.Flags().Bool(FlagAudit, false,
+		"Scan all chain tx outputs for missed SLP txs (historical backfill / deep audit)")
 	maintCommand.AddCommand(
 		compactCmd,
 		populateOpReturnsCmd,
