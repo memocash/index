@@ -566,6 +566,54 @@ func (s *slpValidityState) run() error {
 	}
 	log.Printf("✓ missing genesis left send pending until repopulated\n")
 
+	// Cascade transcription: the cascade writes verdicts for spenders the
+	// sweep never enumerated (their slp rows are missing, e.g. mid-backfill),
+	// and it must transcribe them as it decides them. A decided parent's
+	// missing output rows read as definitively contributing nothing, so an
+	// untranscribed middle generation would falsely invalidate every deeper
+	// descendant. Wipe the whole chain's verdicts plus generations 1-3's
+	// transcription rows, leaving only the ancestor enumerable by the index
+	// sweep; its verdict must cascade down with rows restored at every step.
+	var cascadeWipe = []db.Object{&item_slp.Validity{TxHash: txHash32(chainTxs[0])}}
+	for i := 1; i < 4; i++ {
+		chainHash := txHash32(chainTxs[i])
+		cascadeWipe = append(cascadeWipe,
+			&item_slp.Validity{TxHash: chainHash},
+			&item_slp.Send{TxHash: chainHash},
+			&item_slp.Output{TxHash: chainHash, Index: 1},
+			&item_slp.Output{TxHash: chainHash, Index: 2},
+		)
+	}
+	if err := db.Remove(cascadeWipe); err != nil {
+		return fmt.Errorf("error removing chain rows for cascade transcription phase; %w", err)
+	}
+	for i := 0; i < 4; i++ {
+		if err := s.checkStatus(fmt.Sprintf("chain generation %d wiped for cascade transcription", i),
+			chainTxs[i], slp_tx.StatusPending, slp_tx.ReasonNone); err != nil {
+			return err
+		}
+	}
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false, false).Run(); err != nil {
+		return fmt.Errorf("error running slp validity sweep for cascade transcription phase; %w", err)
+	}
+	for i := 0; i < 4; i++ {
+		if err := s.checkStatus(fmt.Sprintf("chain generation %d after sweep-driven cascade", i),
+			chainTxs[i], slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+			return err
+		}
+	}
+	for i := 1; i < 4; i++ {
+		chainHash := txHash32(chainTxs[i])
+		outputs, err := item_slp.GetOutputs(s.ctx, []memo.Out{{TxHash: chainHash[:], Index: 1}})
+		if err != nil {
+			return fmt.Errorf("error getting chain generation %d output row; %w", i, err)
+		}
+		if len(outputs) == 0 {
+			return fmt.Errorf("error chain generation %d output row not restored by cascade", i)
+		}
+	}
+	log.Printf("✓ sweep-driven cascade transcribed and validated unenumerated spenders\n")
+
 	// Secondary-message poison: a tx with a valid token-A SEND at vout 0 and
 	// a second OP_RETURN carrying a SEND of a different token B at a later
 	// output. Per spec (Consideration A) only vout 0 is an SLP action: the

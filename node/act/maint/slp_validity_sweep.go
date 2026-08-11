@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/jchavannes/btcd/txscript"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
@@ -12,9 +11,7 @@ import (
 	"github.com/memocash/index/db/item/db"
 	item_slp "github.com/memocash/index/db/item/slp"
 	"github.com/memocash/index/node/act/slp_validate"
-	"github.com/memocash/index/node/obj/op_return"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/slp"
 	"github.com/memocash/index/ref/config"
 	"log"
@@ -217,7 +214,7 @@ func (s *SlpValiditySweep) validateUndecided(txHashes [][32]byte) error {
 			continue
 		}
 		s.SlpTxs += int64(len(slpTxs))
-		if err := s.transcribe(slpTxs); err != nil {
+		if err := slp_validate.TranscribeTxs(slpTxs); err != nil {
 			return err
 		}
 		for {
@@ -236,27 +233,3 @@ func (s *SlpValiditySweep) validateUndecided(txHashes [][32]byte) error {
 	return nil
 }
 
-func (s *SlpValiditySweep) transcribe(slpTxs []slp_validate.Tx) error {
-	for _, tx := range slpTxs {
-		// Only the vout-0 message is an SLP action; later-output lokads are
-		// not transcribed (spec Consideration A)
-		if len(tx.Outputs) == 0 || !slp.HasSlpLokad(tx.Outputs[0].PkScript) {
-			continue
-		}
-		pushData, err := txscript.PushedData(tx.Outputs[0].PkScript)
-		if err != nil {
-			continue
-		}
-		if err := op_return.TranscribeSlp(parse.OpReturn{
-			Saved:       true,
-			TxHash:      tx.TxHash,
-			PushData:    pushData,
-			Outputs:     tx.Outputs,
-			Inputs:      tx.Inputs,
-			OutputIndex: 0,
-		}); err != nil {
-			return fmt.Errorf("error transcribing slp tx for validity sweep; %w", err)
-		}
-	}
-	return nil
-}

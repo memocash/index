@@ -11,6 +11,50 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 )
 
+// TranscribeSlp runs the lenient SLP transcription for one SLP op_return
+// output. Lives in the save package (rather than op_return) so the validity
+// cascade can transcribe reconstructed spenders without an import cycle;
+// every path that writes a verdict must transcribe first, since validation
+// treats a decided parent's missing output rows as definitive.
+func TranscribeSlp(info parse.OpReturn) error {
+	if len(info.PushData) < 5 {
+		if err := item.LogProcessError(&item.ProcessError{
+			TxHash: info.TxHash,
+			Error:  fmt.Sprintf("invalid slp, incorrect push data (%d) op return handler", len(info.PushData)),
+		}); err != nil {
+			return fmt.Errorf("error saving process error for slp incorrect push data; %w", err)
+		}
+		return nil
+	}
+	switch memo.SlpType(info.PushData[2]) {
+	case memo.SlpTxTypeGenesis:
+		if err := SlpGenesis(info); err != nil {
+			return fmt.Errorf("error saving slp genesis op return handler; %w", err)
+		}
+	case memo.SlpTxTypeMint:
+		if err := SlpMint(info); err != nil {
+			return fmt.Errorf("error saving slp mint op return handler; %w", err)
+		}
+	case memo.SlpTxTypeSend:
+		if err := SlpSend(info); err != nil {
+			return fmt.Errorf("error saving slp send op return handler; %w", err)
+		}
+	case memo.SlpTxTypeCommit:
+		if err := SlpCommit(info); err != nil {
+			return fmt.Errorf("error saving slp commit op return handler; %w", err)
+		}
+	default:
+		if err := item.LogProcessError(&item.ProcessError{
+			TxHash: info.TxHash,
+			Error:  fmt.Sprintf("unknown slp tx type op return handler: %s", info.PushData[2]),
+		}); err != nil {
+			return fmt.Errorf("error saving process error for slp unknown tx type; %w", err)
+		}
+		return nil
+	}
+	return nil
+}
+
 func SlpGenesis(info parse.OpReturn) error {
 	const ExpectedPushDataCount = 10
 	if len(info.PushData) < ExpectedPushDataCount {
