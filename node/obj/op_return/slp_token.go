@@ -16,16 +16,21 @@ var slpTokenHandler = &Handler{
 	noAddr:    true,
 	canHandle: slp.HasSlpLokad,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		// An SLP action is defined entirely by the vout-0 message; lokad
+		// bytes in any later output are not an SLP action (spec Consideration
+		// A) and must neither be transcribed nor validated. Ignoring them
+		// (rather than transcribing or marking invalid) keeps a tx's SLP
+		// standing a function of its own vout 0 alone: a later-output lokad
+		// can never write token rows, and can never flip its verdict based on
+		// whether vout 0 happens to be SLP.
+		if info.OutputIndex != 0 {
+			return nil
+		}
 		if err := TranscribeSlp(info); err != nil {
 			return err
 		}
-		// Validity is a property of the vout-0 message; when the handled
-		// output isn't vout 0 and vout 0 is itself SLP, that invocation
-		// decides. Otherwise validate here (strict parsing works from the
-		// raw script, independent of the lenient transcription above).
-		if info.OutputIndex != 0 && len(info.Outputs) > 0 && slp.HasSlpLokad(info.Outputs[0].PkScript) {
-			return nil
-		}
+		// Strict parsing works from the raw vout-0 script, independent of the
+		// lenient transcription above.
 		if _, err := slp_validate.ValidateTxsCascade(ctx, []slp_validate.Tx{{
 			TxHash:  info.TxHash,
 			Inputs:  info.Inputs,

@@ -3,7 +3,9 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
+	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/db"
 	item_slp "github.com/memocash/index/db/item/slp"
@@ -12,6 +14,7 @@ import (
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/build"
 	"github.com/memocash/index/ref/bitcoin/tx/gen"
+	"github.com/memocash/index/ref/bitcoin/tx/script"
 	slp_tx "github.com/memocash/index/ref/bitcoin/tx/slp"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/index/ref/bitcoin/wallet"
@@ -562,6 +565,189 @@ func (s *slpValidityState) run() error {
 		return err
 	}
 	log.Printf("✓ missing genesis left send pending until repopulated\n")
+
+	// Secondary-message poison: a tx with a valid token-A SEND at vout 0 and
+	// a second OP_RETURN carrying a SEND of a different token B at a later
+	// output. Per spec (Consideration A) only vout 0 is an SLP action: the
+	// vout-1 message must not be transcribed (no token-B rows, no overwrite of
+	// the vout-0 Send row) and must not affect the verdict. Before the vout-0
+	// gate, the later message's rows (keyed by txhash) overwrote the vout-0
+	// rows, enabling a false-valid child spend of a real token B.
+	_, poisonBchUtxo, err := s.fund(8e5)
+	if err != nil {
+		return err
+	}
+	poisonTx, err := build.TokenSend(build.TokenSendRequest{
+		Wallet:    s.wallet(tokenUtxoAt(mintTx, 1, tokenHash, 500), poisonBchUtxo),
+		TokenHash: tokenHash,
+		Recipient: test_tx.Address2,
+		Quantity:  200,
+		TokenType: memo.SlpDefaultTokenType,
+	})
+	if err != nil {
+		return fmt.Errorf("error building poison tx; %w", err)
+	}
+	var tokenB [32]byte
+	for i := range tokenB {
+		tokenB[i] = 0xbb
+	}
+	secondaryScript, err := script.TokenSend{
+		TokenHash:  tokenB[:],
+		SlpType:    memo.SlpDefaultTokenType,
+		Quantities: []uint64{0, 0, 999999}, // assign token B to a later vout
+	}.Get()
+	if err != nil {
+		return fmt.Errorf("error building secondary slp script; %w", err)
+	}
+	poisonTx.MsgTx.AddTxOut(wire.NewTxOut(0, secondaryScript))
+	if err := s.save(poisonTx); err != nil {
+		return err
+	}
+	if err := s.checkStatus("poison tx (valid token-A send)", poisonTx,
+		slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	var poisonSend = &item_slp.Send{TxHash: txHash32(poisonTx)}
+	if err := db.GetItem(s.ctx, poisonSend); err != nil {
+		return fmt.Errorf("error getting poison tx send row; %w", err)
+	}
+	var tokenAHash [32]byte
+	copy(tokenAHash[:], tokenHash)
+	if poisonSend.TokenHash != tokenAHash {
+		return fmt.Errorf("error poison tx send row token hash %x, expected token A %x (secondary message overwrote it)",
+			poisonSend.TokenHash, tokenHash)
+	}
+	poisonOuts, err := item_slp.GetOutputs(s.ctx, []memo.Out{
+		{TxHash: poisonTx.GetHash(), Index: 1},
+		{TxHash: poisonTx.GetHash(), Index: 2},
+		{TxHash: poisonTx.GetHash(), Index: 3},
+	})
+	if err != nil {
+		return fmt.Errorf("error getting poison tx outputs; %w", err)
+	}
+	for _, out := range poisonOuts {
+		if out.TokenHash == tokenB {
+			return fmt.Errorf("error poison tx output %d carries token B row (secondary message was transcribed)", out.Index)
+		}
+	}
+	log.Printf("✓ secondary op_return message left no token-B rows\n")
+
+	// Audit re-poison guard: strip the poison tx's derived rows + verdict and
+	// run the audit backfill. The tx carries a token-A message at vout 0 and a
+	// token-B message at a later output; the audit must re-transcribe only the
+	// vout-0 message (the transcribe() vout-0 gate), restoring token-A rows
+	// and never re-poisoning token-B rows. This exercises the recovery path,
+	// which the live-handler poison assertion above does not.
+	poisonHash := txHash32(poisonTx)
+	if err := db.Remove([]db.Object{
+		&item_slp.Send{TxHash: poisonHash},
+		&item_slp.Output{TxHash: poisonHash, Index: 1},
+		&item_slp.Output{TxHash: poisonHash, Index: 2},
+		&item_slp.Validity{TxHash: poisonHash},
+	}); err != nil {
+		return fmt.Errorf("error removing poison tx rows for audit guard; %w", err)
+	}
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).Run(); err != nil {
+		return fmt.Errorf("error running audit for poison guard; %w", err)
+	}
+	if err := s.checkStatus("poison tx re-validated by audit", poisonTx,
+		slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	var poisonSendAudit = &item_slp.Send{TxHash: poisonHash}
+	if err := db.GetItem(s.ctx, poisonSendAudit); err != nil {
+		return fmt.Errorf("error getting poison tx send row after audit; %w", err)
+	}
+	if poisonSendAudit.TokenHash != tokenAHash {
+		return fmt.Errorf("error audit restored poison send row as token %x, expected token A (audit re-transcribed a later message)",
+			poisonSendAudit.TokenHash)
+	}
+	poisonOutsAudit, err := item_slp.GetOutputs(s.ctx, []memo.Out{
+		{TxHash: poisonTx.GetHash(), Index: 1},
+		{TxHash: poisonTx.GetHash(), Index: 2},
+		{TxHash: poisonTx.GetHash(), Index: 3},
+	})
+	if err != nil {
+		return fmt.Errorf("error getting poison tx outputs after audit; %w", err)
+	}
+	var tokenAOuts int
+	for _, out := range poisonOutsAudit {
+		if out.TokenHash == tokenB {
+			return fmt.Errorf("error audit re-poisoned output %d with token B", out.Index)
+		}
+		if out.TokenHash == tokenAHash {
+			tokenAOuts++
+		}
+	}
+	if tokenAOuts != 2 {
+		return fmt.Errorf("error audit restored %d token-A outputs, expected 2", tokenAOuts)
+	}
+	log.Printf("✓ audit re-transcribed only the vout-0 message\n")
+
+	// Cascade later-lokad spender guard: a tx with a plain (non-SLP) vout 0
+	// and an SLP lokad only in a later output is not an SLP action. When it is
+	// discovered as a spender during cascading validation, ReconstructSlpTxs's
+	// vout-0 check must drop it: no verdict, no rows. Without that check it
+	// would reconstruct off the later lokad and receive a spurious verdict.
+	// Built through the cascade (spender saved first, parent second) rather
+	// than the live handler, so it exercises ReconstructSlpTxs specifically.
+	_, cascadeBchUtxo, err := s.fund(8e5)
+	if err != nil {
+		return err
+	}
+	cascadeParent, err := build.TokenSend(build.TokenSendRequest{
+		Wallet:    s.wallet(tokenUtxoAt(poisonTx, 2, tokenHash, 300), cascadeBchUtxo),
+		TokenHash: tokenHash,
+		Recipient: test_tx.Address2,
+		Quantity:  100,
+		TokenType: memo.SlpDefaultTokenType,
+	})
+	if err != nil {
+		return fmt.Errorf("error building cascade parent; %w", err)
+	}
+	laterLokadScript, err := script.TokenSend{
+		TokenHash:  tokenB[:],
+		SlpType:    memo.SlpDefaultTokenType,
+		Quantities: []uint64{999999},
+	}.Get()
+	if err != nil {
+		return fmt.Errorf("error building later lokad script; %w", err)
+	}
+	cascadeParentHash := chainhash.Hash(txHash32(cascadeParent))
+	changeIndex := uint32(len(cascadeParent.MsgTx.TxOut) - 1)
+	spenderMsgTx := wire.NewMsgTx(1)
+	spenderMsgTx.AddTxIn(wire.NewTxIn(wire.NewOutPoint(&cascadeParentHash, changeIndex), nil))
+	// vout 0 is a plain (non-OP_RETURN) output reusing the parent's change
+	// lock; the SLP lokad lives only at vout 1
+	spenderMsgTx.AddTxOut(wire.NewTxOut(1000, cascadeParent.MsgTx.TxOut[changeIndex].PkScript))
+	spenderMsgTx.AddTxOut(wire.NewTxOut(0, laterLokadScript))
+	cascadeSpender := &memo.Tx{MsgTx: spenderMsgTx}
+	if err := s.save(cascadeSpender); err != nil {
+		return err
+	}
+	if err := s.checkStatus("cascade spender before parent (ignored)", cascadeSpender,
+		slp_tx.StatusPending, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	if err := s.save(cascadeParent); err != nil {
+		return err
+	}
+	if err := s.checkStatus("cascade parent valid", cascadeParent,
+		slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	if err := s.checkStatus("cascade later-lokad spender still ignored", cascadeSpender,
+		slp_tx.StatusPending, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	// Absence must be the not-found sentinel specifically; any other error
+	// means the lookup itself failed and absence was never established
+	if err := db.GetItem(s.ctx, &item_slp.Send{TxHash: txHash32(cascadeSpender)}); err == nil {
+		return fmt.Errorf("error cascade spender has an slp send row (later message was transcribed)")
+	} else if !client.IsEntryNotFoundError(err) {
+		return fmt.Errorf("error checking cascade spender send row absence; %w", err)
+	}
+	log.Printf("✓ cascade dropped later-lokad spender (no verdict, no rows)\n")
 
 	// NFT1: group genesis, child genesis spending the group token at input
 	// 0, and a fake child whose input 0 is a plain BCH output

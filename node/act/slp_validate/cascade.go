@@ -116,14 +116,18 @@ func ReconstructSlpTxs(ctx context.Context, txHashes [][32]byte) ([]Tx, [][32]by
 			missing = append(missing, txHash)
 			continue
 		}
-		var anySlp bool
+		// An SLP action is defined only by the vout-0 message; a tx whose
+		// vout 0 carries no lokad is not SLP even if a later output does
+		// (spec Consideration A), so it contributes nothing as a spender and
+		// needs no verdict to drop out of the cascade
+		var voutZero *chain.TxOutput
 		for _, output := range outMap[txHash] {
-			if slp.HasSlpLokad(output.LockScript) {
-				anySlp = true
+			if output.Index == 0 {
+				voutZero = output
 				break
 			}
 		}
-		if !anySlp {
+		if voutZero == nil || !slp.HasSlpLokad(voutZero.LockScript) {
 			continue
 		}
 		msgTx := buildTxMsg(tx, inMap[txHash], outMap[txHash])

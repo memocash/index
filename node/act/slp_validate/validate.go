@@ -79,7 +79,9 @@ func ValidateTxs(ctx context.Context, txs []Tx) (*Result, error) {
 			continue
 		}
 		if len(tx.Outputs) == 0 || !slp.HasSlpLokad(tx.Outputs[0].PkScript) {
-			// The SLP message that triggered handling is not at vout 0
+			// Defensive: callers only pass txs whose vout 0 is SLP (a tx with
+			// lokad bytes only in later outputs is ignored upstream, never
+			// reconstructed or handled here), so this should not be reached
 			verdicts[tx.TxHash] = slp.Verdict{Status: slp.StatusInvalid, Reason: slp.ReasonNotVoutZero}
 			continue
 		}

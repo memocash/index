@@ -138,7 +138,10 @@ func (s *SlpValiditySweep) auditShard(shard uint32) error {
 				startUid = uid
 			}
 			s.Checked++
-			if !slp.HasSlpLokad(txOutput.LockScript) {
+			// An SLP action lives only at vout 0; lokad bytes in any later
+			// output are not SLP (spec Consideration A), so only vout 0 makes
+			// a tx an audit candidate
+			if txOutput.Index != 0 || !slp.HasSlpLokad(txOutput.LockScript) {
 				continue
 			}
 			if _, ok := seen[txOutput.TxHash]; ok {
@@ -235,24 +238,24 @@ func (s *SlpValiditySweep) validateUndecided(txHashes [][32]byte) error {
 
 func (s *SlpValiditySweep) transcribe(slpTxs []slp_validate.Tx) error {
 	for _, tx := range slpTxs {
-		for index, output := range tx.Outputs {
-			if !slp.HasSlpLokad(output.PkScript) {
-				continue
-			}
-			pushData, err := txscript.PushedData(output.PkScript)
-			if err != nil {
-				continue
-			}
-			if err := op_return.TranscribeSlp(parse.OpReturn{
-				Saved:       true,
-				TxHash:      tx.TxHash,
-				PushData:    pushData,
-				Outputs:     tx.Outputs,
-				Inputs:      tx.Inputs,
-				OutputIndex: index,
-			}); err != nil {
-				return fmt.Errorf("error transcribing slp tx for validity sweep; %w", err)
-			}
+		// Only the vout-0 message is an SLP action; later-output lokads are
+		// not transcribed (spec Consideration A)
+		if len(tx.Outputs) == 0 || !slp.HasSlpLokad(tx.Outputs[0].PkScript) {
+			continue
+		}
+		pushData, err := txscript.PushedData(tx.Outputs[0].PkScript)
+		if err != nil {
+			continue
+		}
+		if err := op_return.TranscribeSlp(parse.OpReturn{
+			Saved:       true,
+			TxHash:      tx.TxHash,
+			PushData:    pushData,
+			Outputs:     tx.Outputs,
+			Inputs:      tx.Inputs,
+			OutputIndex: 0,
+		}); err != nil {
+			return fmt.Errorf("error transcribing slp tx for validity sweep; %w", err)
 		}
 	}
 	return nil
