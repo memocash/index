@@ -16,6 +16,27 @@ type scriptTest struct {
 	Code   *int   `json:"code"`
 }
 
+// TestHasSlpLokad covers scripts too short or malformed to hold a lokad push,
+// including a bare OP_RETURN, which must not panic.
+func TestHasSlpLokad(t *testing.T) {
+	var lokadScript = append([]byte{0x6a, byte(len(memo.PrefixSlp))}, memo.PrefixSlp...)
+	for _, test := range []struct {
+		name     string
+		pkScript []byte
+		want     bool
+	}{
+		{"empty", nil, false},
+		{"bare op_return", []byte{0x6a}, false},
+		{"op_return truncated push", []byte{0x6a, 0x04, 0x53}, false},
+		{"not op_return", []byte{0x76}, false},
+		{"slp lokad", lokadScript, true},
+	} {
+		if got := slp.HasSlpLokad(test.pkScript); got != test.want {
+			t.Errorf("%s: HasSlpLokad = %v, want %v", test.name, got, test.want)
+		}
+	}
+}
+
 // TestScriptVectors runs the strict parser against the canonical
 // slp-unit-test-data script vectors (github.com/simpleledger/slp-unit-test-data).
 // A nil code means the script must parse; code 255 means it must parse but

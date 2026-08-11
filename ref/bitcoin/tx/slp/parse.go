@@ -243,6 +243,9 @@ func parsePushOnly(pkScript []byte) ([][]byte, error) {
 }
 
 func readPush(pkScript []byte, pos int) ([]byte, int, error) {
+	if pos >= len(pkScript) {
+		return nil, 0, fmt.Errorf("slp parse: missing push at position %d", pos)
+	}
 	var op = pkScript[pos]
 	var size int
 	var lenBytes int
