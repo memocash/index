@@ -10,6 +10,7 @@ import (
 type Send struct {
 	TxHash    [32]byte
 	TokenHash [32]byte
+	TokenType uint8
 }
 
 func (s *Send) GetTopic() string {
@@ -32,12 +33,16 @@ func (s *Send) SetUid(uid []byte) {
 }
 
 func (s *Send) Serialize() []byte {
-	return jutil.ByteReverse(s.TokenHash[:])
+	return jutil.CombineBytes(
+		jutil.ByteReverse(s.TokenHash[:]),
+		[]byte{s.TokenType},
+	)
 }
 
 func (s *Send) Deserialize(data []byte) {
-	if len(data) != memo.TxHashLength {
+	if len(data) != memo.TxHashLength+1 {
 		return
 	}
-	copy(s.TokenHash[:], jutil.ByteReverse(data))
+	copy(s.TokenHash[:], jutil.ByteReverse(data[:memo.TxHashLength]))
+	s.TokenType = data[memo.TxHashLength]
 }

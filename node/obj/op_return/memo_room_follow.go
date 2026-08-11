@@ -15,6 +15,12 @@ import (
 var memoRoomFollowHandler = &Handler{
 	prefix: memo.PrefixTopicFollow,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		addr, err := getSenderAddr(info)
+		if err != nil {
+			return err
+		} else if addr == nil {
+			return nil
+		}
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -28,7 +34,7 @@ var memoRoomFollowHandler = &Handler{
 		var room = jutil.GetUtf8String(info.PushData[1])
 		roomHash := dbMemo.GetRoomHash(room)
 		var lockRoomFollow = &dbMemo.AddrRoomFollow{
-			Addr:     info.Addr,
+			Addr:     *addr,
 			Seen:     info.Seen,
 			TxHash:   info.TxHash,
 			Room:     room,
@@ -38,7 +44,7 @@ var memoRoomFollowHandler = &Handler{
 			RoomHash: roomHash,
 			Seen:     info.Seen,
 			TxHash:   info.TxHash,
-			Addr:     info.Addr,
+			Addr:     *addr,
 			Unfollow: unfollow,
 		}
 		if err := db.Save([]db.Object{lockRoomFollow, roomFollow}); err != nil {

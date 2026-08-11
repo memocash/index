@@ -16,6 +16,12 @@ import (
 var memoReplyHandler = &Handler{
 	prefix: memo.PrefixReply,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		addr, err := getSenderAddr(info)
+		if err != nil {
+			return err
+		} else if addr == nil {
+			return nil
+		}
 		if len(info.PushData) != 3 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -47,7 +53,7 @@ var memoReplyHandler = &Handler{
 			return fmt.Errorf("error saving memo post parent and child for memo reply handler; %w", err)
 		}
 		var post = jutil.GetUtf8String(info.PushData[2])
-		if err := save.MemoPost(ctx, info, post); err != nil {
+		if err := save.MemoPost(ctx, info, *addr, post); err != nil {
 			return fmt.Errorf("error saving memo post for memo reply handler; %w", err)
 		}
 		return nil

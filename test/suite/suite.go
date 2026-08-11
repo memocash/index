@@ -31,10 +31,12 @@ func (s *Suite) Start() error {
 	}
 	s.Queue0 = run.NewQueue(shards[0].Port, 0)
 	if err := s.Queue0.Start(); err != nil {
+		s.EndPrint() // unwind so a same-process caller can start a fresh suite
 		return fmt.Errorf("error starting queue 0 server; %w", err)
 	}
 	s.Queue1 = run.NewQueue(shards[1].Port, 1)
 	if err := s.Queue1.Start(); err != nil {
+		s.EndPrint() // queue 0 is already running; release it and the store cache
 		return fmt.Errorf("error starting queue 1 server; %w", err)
 	}
 	return nil
@@ -70,6 +72,11 @@ func (s *Suite) End() error {
 			return fmt.Errorf("server test suite queue1 error; %w", s.Queue1.Error)
 		}
 	}
+	// The store's leveldb connection cache is process-global; close and
+	// clear it once the servers have stopped (grpc Stop is synchronous) so
+	// a later suite run against a fresh data directory can't see this
+	// run's handles or data
+	store.CloseAll()
 	return nil
 }
 

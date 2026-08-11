@@ -11,9 +11,9 @@ import (
 	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
-func MemoPost(ctx context.Context, info parse.OpReturn, post string) error {
+func MemoPost(ctx context.Context, info parse.OpReturn, addr wallet.Addr, post string) error {
 	var lockMemoPost = &memo.AddrPost{
-		Addr:   info.Addr,
+		Addr:   addr,
 		Seen:   info.Seen,
 		TxHash: info.TxHash,
 	}
@@ -29,7 +29,7 @@ func MemoPost(ctx context.Context, info parse.OpReturn, post string) error {
 	if existingMemoPost == nil {
 		var memoPost = &memo.Post{
 			TxHash: info.TxHash,
-			Addr:   info.Addr,
+			Addr:   addr,
 			Post:   post,
 		}
 		objects = append(objects, memoPost)

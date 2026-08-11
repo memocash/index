@@ -23,14 +23,49 @@ func ToSlpOutputs(ctx context.Context, fields []Field, slpOutputs []*model.SlpOu
 		base:       base{Ctx: ctx, Fields: fields},
 		SlpOutputs: slpOutputs,
 	}
-	o.Wait.Add(2)
+	o.Wait.Add(3)
 	go o.AttachGeneses()
 	go o.AttachOutputs()
+	go o.AttachValidities()
 	o.Wait.Wait()
 	if len(o.Errors) > 0 {
 		return fmt.Errorf("error attaching to slp outputs; %w", o.Errors[0])
 	}
 	return nil
+}
+
+func (o *SlpOutputs) AttachValidities() {
+	defer o.Wait.Done()
+	if !o.HasField([]string{"validity"}) {
+		return
+	}
+	o.Mutex.Lock()
+	var txHashes = make([][32]byte, 0, len(o.SlpOutputs))
+	for i := range o.SlpOutputs {
+		o.SlpOutputs[i].Validity = model.SlpValidityPending
+		txHashes = append(txHashes, o.SlpOutputs[i].Hash)
+	}
+	o.Mutex.Unlock()
+	validities, err := slp.GetValidities(o.Ctx, txHashes)
+	if err != nil {
+		o.AddError(fmt.Errorf("error getting slp validities for attach to slp outputs; %w", err))
+		return
+	}
+	var validityMap = make(map[[32]byte]*slp.Validity, len(validities))
+	for _, validity := range validities {
+		validityMap[validity.TxHash] = validity
+	}
+	o.Mutex.Lock()
+	defer o.Mutex.Unlock()
+	for i := range o.SlpOutputs {
+		if validity, ok := validityMap[[32]byte(o.SlpOutputs[i].Hash)]; ok {
+			if validity.IsValid() {
+				o.SlpOutputs[i].Validity = model.SlpValidityValid
+			} else {
+				o.SlpOutputs[i].Validity = model.SlpValidityInvalid
+			}
+		}
+	}
 }
 
 func (o *SlpOutputs) GetTokenHashes() [][32]byte {

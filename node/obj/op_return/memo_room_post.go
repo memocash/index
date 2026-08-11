@@ -15,6 +15,12 @@ import (
 var memoRoomPostHandler = &Handler{
 	prefix: memo.PrefixTopicMessage,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		addr, err := getSenderAddr(info)
+		if err != nil {
+			return err
+		} else if addr == nil {
+			return nil
+		}
 		if len(info.PushData) != 3 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -26,7 +32,7 @@ var memoRoomPostHandler = &Handler{
 		}
 		var room = jutil.GetUtf8String(info.PushData[1])
 		var post = jutil.GetUtf8String(info.PushData[2])
-		if err := save.MemoPost(ctx, info, post); err != nil {
+		if err := save.MemoPost(ctx, info, *addr, post); err != nil {
 			return fmt.Errorf("error saving memo post for memo chat room post handler; %w", err)
 		}
 		var memoPostRoom = &dbMemo.PostRoom{

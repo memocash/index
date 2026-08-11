@@ -12,6 +12,7 @@ const (
 	ProcessStatusPopulateP2sh       = "populate-p2sh"
 	ProcessStatusPopulateAddr       = "populate-addr"
 	ProcessStatusPopulateAddrInputs = "populate-addr-inputs"
+	ProcessStatusSlpValiditySweep   = "slp-validity-sweep"
 )
 
 type ProcessStatus struct {

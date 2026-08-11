@@ -178,6 +178,7 @@ type SlpBaton struct {
 	TokenHash Hash        `json:"token_hash"`
 	Genesis   *SlpGenesis `json:"genesis"`
 	Output    *TxOutput   `json:"output"`
+	Validity  SlpValidity `json:"validity"`
 }
 
 type SlpGenesis struct {
@@ -201,4 +202,15 @@ type SlpOutput struct {
 	Amount    uint64      `json:"amount"`
 	Genesis   *SlpGenesis `json:"genesis"`
 	Output    *TxOutput   `json:"output"`
+	Validity  SlpValidity `json:"validity"`
 }
+
+// SlpValidity is the per-tx SLP verdict; PENDING is the zero-ish default for
+// txs with no stored verdict and must never be treated as spendable.
+type SlpValidity string
+
+const (
+	SlpValidityValid   SlpValidity = "VALID"
+	SlpValidityInvalid SlpValidity = "INVALID"
+	SlpValidityPending SlpValidity = "PENDING"
+)

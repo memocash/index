@@ -15,6 +15,12 @@ import (
 var memoFollowHandler = &Handler{
 	prefix: memo.PrefixFollow,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		addr, err := getSenderAddr(info)
+		if err != nil {
+			return err
+		} else if addr == nil {
+			return nil
+		}
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -37,7 +43,7 @@ var memoFollowHandler = &Handler{
 		}
 		followAddr := followAddress.GetAddr()
 		var addrMemoFollow = &dbMemo.AddrFollow{
-			Addr:       info.Addr,
+			Addr:       *addr,
 			Seen:       info.Seen,
 			TxHash:     info.TxHash,
 			FollowAddr: followAddr,
@@ -47,7 +53,7 @@ var memoFollowHandler = &Handler{
 			FollowAddr: followAddr,
 			Seen:       info.Seen,
 			TxHash:     info.TxHash,
-			Addr:       info.Addr,
+			Addr:       *addr,
 			Unfollow:   unfollow,
 		}
 		if err := db.Save([]db.Object{addrMemoFollow, addrMemoFollowed}); err != nil {

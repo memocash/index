@@ -19,6 +19,12 @@ import (
 var memoSendHandler = &Handler{
 	prefix: memo.PrefixSendMoney,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		addr, err := getSenderAddr(info)
+		if err != nil {
+			return err
+		} else if addr == nil {
+			return nil
+		}
 		message, err := getMemoSendMessage(info.PushData)
 		if err != nil {
 			if logErr := item.LogProcessError(&item.ProcessError{
@@ -31,7 +37,7 @@ var memoSendHandler = &Handler{
 		}
 		// Persist the primary post before optional recipient enrichment. A valid
 		// Send remains a post even when its payment output cannot be resolved.
-		if err := save.MemoPost(ctx, info, message); err != nil {
+		if err := save.MemoPost(ctx, info, *addr, message); err != nil {
 			return fmt.Errorf("error saving memo post for memo send handler; %w", err)
 		}
 		recipient, err := getMemoSendRecipient(info.PushData[1], info.Outputs)

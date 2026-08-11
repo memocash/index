@@ -14,6 +14,12 @@ import (
 var memoLikeHandler = &Handler{
 	prefix: memo.PrefixLike,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		addr, err := getSenderAddr(info)
+		if err != nil {
+			return err
+		} else if addr == nil {
+			return nil
+		}
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -35,7 +41,7 @@ var memoLikeHandler = &Handler{
 		var postTxHash [32]byte
 		copy(postTxHash[:], info.PushData[1])
 		var memoLike = &dbMemo.AddrLike{
-			Addr:       info.Addr,
+			Addr:       *addr,
 			Seen:       info.Seen,
 			LikeTxHash: info.TxHash,
 			PostTxHash: postTxHash,
@@ -44,7 +50,7 @@ var memoLikeHandler = &Handler{
 			PostTxHash: postTxHash,
 			Seen:       info.Seen,
 			LikeTxHash: info.TxHash,
-			Addr:       info.Addr,
+			Addr:       *addr,
 		}
 		memoPost, err := dbMemo.GetPost(ctx, postTxHash)
 		if err != nil {

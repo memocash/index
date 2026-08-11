@@ -248,6 +248,12 @@ func (s *Server) Stop() {
 	if s.Grpc != nil && !s.Stopped {
 		s.Stopped = true
 		s.Grpc.Stop()
+		if s.listener != nil {
+			// Grpc.Stop only closes listeners Serve has registered; if Stop
+			// wins the race with a backgrounded Serve, close the listener
+			// directly so the port is released (double close is harmless)
+			s.listener.Close()
+		}
 	}
 }
 

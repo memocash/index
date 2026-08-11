@@ -1,44 +1,70 @@
 package slp_test
 
 import (
-	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/memocash/index/db/item/slp"
-	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
 	"testing"
 )
 
-func TestGenesis(t *testing.T) {
-	txHash, _ := chainhash.NewHash(test_tx.GenericTxHash0)
-	var genesis = &slp.Genesis{
-		TxHash:     *txHash,
-		TokenType:  memo.SlpDefaultTokenType,
-		Decimals:   8,
-		BatonIndex: 2,
-		DocHash:    [32]byte{},
-		Ticker:     "TEST",
-		Name:       "Test Token Name",
-		DocUrl:     "https://example.com",
+func TestGenesisSerializeRoundTrip(t *testing.T) {
+	tests := []struct {
+		name    string
+		genesis slp.Genesis
+	}{{
+		name: "all fields",
+		genesis: slp.Genesis{
+			TxHash:     [32]byte{0xab, 0xcd, 0xef, 0x01},
+			TokenType:  0x81,
+			Decimals:   8,
+			BatonIndex: 2,
+			Ticker:     "TEST",
+			Name:       "Test Token",
+			DocUrl:     "https://example.com",
+			DocHash:    [32]byte{0x01, 0x02},
+		},
+	}, {
+		name: "empty variable fields",
+		genesis: slp.Genesis{
+			TokenType: 0x01,
+			Decimals:  0,
+		},
+	}, {
+		name: "null bytes preserved",
+		genesis: slp.Genesis{
+			TokenType: 0x01,
+			Ticker:    string([]byte{'A', 0x00, 'B'}),
+			Name:      string([]byte{0x00, 0x00}),
+			DocUrl:    string([]byte{0x00, 'x'}),
+		},
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var read slp.Genesis
+			read.SetUid(tt.genesis.GetUid())
+			read.Deserialize(tt.genesis.Serialize())
+			if read != tt.genesis {
+				t.Errorf("round trip mismatch: got %+v, want %+v", read, tt.genesis)
+			}
+		})
 	}
-	data := genesis.Serialize()
-	var genesis2 slp.Genesis
-	genesis2.SetUid(genesis.GetUid())
-	genesis2.Deserialize(data)
-	if genesis2.TxHash != genesis.TxHash {
-		t.Error("TxHash not equal")
-	} else if genesis2.TokenType != genesis.TokenType {
-		t.Error("TokenType not equal")
-	} else if genesis2.Decimals != genesis.Decimals {
-		t.Error("Decimals not equal")
-	} else if genesis2.BatonIndex != genesis.BatonIndex {
-		t.Error("BatonIndex not equal")
-	} else if genesis2.DocHash != genesis.DocHash {
-		t.Error("DocHash not equal")
-	} else if genesis2.Ticker != genesis.Ticker {
-		t.Error("Ticker not equal")
-	} else if genesis2.Name != genesis.Name {
-		t.Error("Name not equal")
-	} else if genesis2.DocUrl != genesis.DocUrl {
-		t.Error("DocUrl not equal")
+}
+
+func TestGenesisDeserializeMalformed(t *testing.T) {
+	valid := (&slp.Genesis{Ticker: "TEST", Name: "Test"}).Serialize()
+	for _, tt := range []struct {
+		name string
+		data []byte
+	}{
+		{name: "empty", data: nil},
+		{name: "short fixed prefix", data: valid[:10]},
+		{name: "truncated field", data: valid[:len(valid)-1]},
+		{name: "trailing garbage", data: append(append([]byte{}, valid...), 0xff)},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var read slp.Genesis
+			read.Deserialize(tt.data)
+			if read != (slp.Genesis{}) {
+				t.Errorf("malformed data should leave genesis zero, got %+v", read)
+			}
+		})
 	}
 }

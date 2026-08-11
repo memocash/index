@@ -190,6 +190,7 @@ type ComplexityRoot struct {
 		Index     func(childComplexity int) int
 		Output    func(childComplexity int) int
 		TokenHash func(childComplexity int) int
+		Validity  func(childComplexity int) int
 	}
 
 	SlpGenesis struct {
@@ -213,6 +214,7 @@ type ComplexityRoot struct {
 		Index     func(childComplexity int) int
 		Output    func(childComplexity int) int
 		TokenHash func(childComplexity int) int
+		Validity  func(childComplexity int) int
 	}
 
 	Subscription struct {
@@ -1065,6 +1067,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.SlpBaton.TokenHash(childComplexity), true
+	case "SlpBaton.validity":
+		if e.ComplexityRoot.SlpBaton.Validity == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SlpBaton.Validity(childComplexity), true
 
 	case "SlpGenesis.baton":
 		if e.ComplexityRoot.SlpGenesis.Baton == nil {
@@ -1169,6 +1177,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.SlpOutput.TokenHash(childComplexity), true
+	case "SlpOutput.validity":
+		if e.ComplexityRoot.SlpOutput.Validity == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SlpOutput.Validity(childComplexity), true
 
 	case "Subscription.address":
 		if e.ComplexityRoot.Subscription.Address == nil {
@@ -1729,6 +1743,7 @@ type SlpOutput {
     amount: Uint64!
     token_hash: Hash!
     genesis: SlpGenesis
+    validity: SlpValidity!
 }
 
 type SlpBaton {
@@ -1737,6 +1752,17 @@ type SlpBaton {
     index: Uint32!
     token_hash: Hash!
     genesis: SlpGenesis
+    validity: SlpValidity!
+}
+
+"""
+SLP validity of the tx that created an output or baton. PENDING means the
+index has not yet decided; consumers must treat only VALID as spendable.
+"""
+enum SlpValidity {
+    VALID
+    INVALID
+    PENDING
 }
 
 #type SlpMint {
@@ -2070,6 +2096,8 @@ func (ec *executionContext) childFields_SlpBaton(ctx context.Context, field grap
 		return ec.fieldContext_SlpBaton_token_hash(ctx, field)
 	case "genesis":
 		return ec.fieldContext_SlpBaton_genesis(ctx, field)
+	case "validity":
+		return ec.fieldContext_SlpBaton_validity(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type SlpBaton", field.Name)
 }
@@ -2116,6 +2144,8 @@ func (ec *executionContext) childFields_SlpOutput(ctx context.Context, field gra
 		return ec.fieldContext_SlpOutput_token_hash(ctx, field)
 	case "genesis":
 		return ec.fieldContext_SlpOutput_genesis(ctx, field)
+	case "validity":
+		return ec.fieldContext_SlpOutput_validity(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type SlpOutput", field.Name)
 }
@@ -6147,6 +6177,29 @@ func (ec *executionContext) fieldContext_SlpBaton_genesis(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _SlpBaton_validity(ctx context.Context, field graphql.CollectedField, obj *model.SlpBaton) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SlpBaton_validity(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Validity, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.SlpValidity) graphql.Marshaler {
+			return ec.marshalNSlpValidity2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐSlpValidity(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SlpBaton_validity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SlpBaton", field, false, false, errors.New("field of type SlpValidity does not have child fields"))
+}
+
 func (ec *executionContext) _SlpGenesis_tx(ctx context.Context, field graphql.CollectedField, obj *model.SlpGenesis) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -6581,6 +6634,29 @@ func (ec *executionContext) fieldContext_SlpOutput_genesis(_ context.Context, fi
 		},
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _SlpOutput_validity(ctx context.Context, field graphql.CollectedField, obj *model.SlpOutput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SlpOutput_validity(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Validity, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.SlpValidity) graphql.Marshaler {
+			return ec.marshalNSlpValidity2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐSlpValidity(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SlpOutput_validity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SlpOutput", field, false, false, errors.New("field of type SlpValidity does not have child fields"))
 }
 
 func (ec *executionContext) _Subscription_tx(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
@@ -10084,6 +10160,11 @@ func (ec *executionContext) _SlpBaton(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
+		case "validity":
+			out.Values[i] = ec._SlpBaton_validity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10233,6 +10314,11 @@ func (ec *executionContext) _SlpOutput(ctx context.Context, sel ast.SelectionSet
 		case "genesis":
 			out.Values[i] = ec._SlpOutput_genesis(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "validity":
+			out.Values[i] = ec._SlpOutput_validity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		default:
@@ -11180,6 +11266,23 @@ func (ec *executionContext) marshalNSlpOutput2ᚖgithubᚗcomᚋmemocashᚋindex
 		return graphql.Null
 	}
 	return ec._SlpOutput(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNSlpValidity2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐSlpValidity(ctx context.Context, v any) (model.SlpValidity, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := model.SlpValidity(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSlpValidity2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐSlpValidity(ctx context.Context, sel ast.SelectionSet, v model.SlpValidity) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
