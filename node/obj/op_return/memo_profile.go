@@ -14,6 +14,12 @@ import (
 var memoProfileHandler = &Handler{
 	prefix: memo.PrefixSetProfile,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		addr, err := getSenderAddr(info)
+		if err != nil {
+			return err
+		} else if addr == nil {
+			return nil
+		}
 		if len(info.PushData) != 2 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -25,7 +31,7 @@ var memoProfileHandler = &Handler{
 		}
 		var profile = jutil.GetUtf8String(info.PushData[1])
 		var addrMemoProfile = &dbMemo.AddrProfile{
-			Addr:    info.Addr,
+			Addr:    *addr,
 			Seen:    info.Seen,
 			TxHash:  info.TxHash,
 			Profile: profile,

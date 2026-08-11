@@ -15,6 +15,12 @@ import (
 var memoLinkRequestHandler = &Handler{
 	prefix: memo.PrefixLinkRequest,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		addr, err := getSenderAddr(info)
+		if err != nil {
+			return err
+		} else if addr == nil {
+			return nil
+		}
 		if len(info.PushData) != 2 && len(info.PushData) != 3 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -39,7 +45,7 @@ var memoLinkRequestHandler = &Handler{
 			message = jutil.GetUtf8String(info.PushData[2])
 		}
 		var addrLinkRequest = &dbMemo.AddrLinkRequest{
-			Addr:       info.Addr,
+			Addr:       *addr,
 			Seen:       info.Seen,
 			TxHash:     info.TxHash,
 			ParentAddr: parentAddress.GetAddr(),
@@ -49,7 +55,7 @@ var memoLinkRequestHandler = &Handler{
 			ParentAddr: parentAddress.GetAddr(),
 			Seen:       info.Seen,
 			TxHash:     info.TxHash,
-			Addr:       info.Addr,
+			Addr:       *addr,
 			Message:    message,
 		}
 		if err := db.Save([]db.Object{addrLinkRequest, addrLinkRequestParent}); err != nil {
@@ -62,6 +68,12 @@ var memoLinkRequestHandler = &Handler{
 var memoLinkAcceptHandler = &Handler{
 	prefix: memo.PrefixLinkAccept,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		addr, err := getSenderAddr(info)
+		if err != nil {
+			return err
+		} else if addr == nil {
+			return nil
+		}
 		if len(info.PushData) != 2 && len(info.PushData) != 3 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -87,7 +99,7 @@ var memoLinkAcceptHandler = &Handler{
 			message = jutil.GetUtf8String(info.PushData[2])
 		}
 		var addrLinkAccept = &dbMemo.AddrLinkAccept{
-			Addr:          info.Addr,
+			Addr:          *addr,
 			Seen:          info.Seen,
 			TxHash:        info.TxHash,
 			RequestTxHash: requestTxHash,
@@ -103,6 +115,12 @@ var memoLinkAcceptHandler = &Handler{
 var memoLinkRevokeHandler = &Handler{
 	prefix: memo.PrefixLinkRevoke,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
+		addr, err := getSenderAddr(info)
+		if err != nil {
+			return err
+		} else if addr == nil {
+			return nil
+		}
 		if len(info.PushData) != 2 && len(info.PushData) != 3 {
 			if err := item.LogProcessError(&item.ProcessError{
 				TxHash: info.TxHash,
@@ -128,7 +146,7 @@ var memoLinkRevokeHandler = &Handler{
 			message = jutil.GetUtf8String(info.PushData[2])
 		}
 		var addrLinkRevoke = &dbMemo.AddrLinkRevoke{
-			Addr:         info.Addr,
+			Addr:         *addr,
 			Seen:         info.Seen,
 			TxHash:       info.TxHash,
 			AcceptTxHash: acceptTxHash,

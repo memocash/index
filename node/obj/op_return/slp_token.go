@@ -13,7 +13,6 @@ import (
 
 var slpTokenHandler = &Handler{
 	prefix:    memo.PrefixSlp,
-	noAddr:    true,
 	canHandle: slp.HasSlpLokad,
 	handle: func(ctx context.Context, info parse.OpReturn) error {
 		// An SLP action is defined entirely by the vout-0 message; lokad

@@ -813,5 +813,55 @@ func (s *slpValidityState) run() error {
 		slp_tx.StatusInvalid, slp_tx.ReasonNftChildGenesis); err != nil {
 		return err
 	}
+
+	// Address-less inputs: SLP dispatch must not depend on resolving a sender
+	// address from the unlock scripts (memo handlers skip such txs; the old
+	// saver skipped SLP txs too). Blank the send's sig scripts so no input
+	// parses as P2PKH/P2SH; the send must still be transcribed and validated
+	// against its parents. Blanking changes the txid, which is fine — the
+	// prevouts linking it to its parents are untouched and sigs are never
+	// verified by the pipeline.
+	_, noAddrFundUtxo, err := s.fund(7e5)
+	if err != nil {
+		return err
+	}
+	noAddrGenesisTx, err := build.TokenCreate(build.TokenCreateRequest{
+		Wallet:   s.wallet(noAddrFundUtxo),
+		SlpType:  memo.SlpDefaultTokenType,
+		Ticker:   "NOAD",
+		Name:     "No Addr Token",
+		Quantity: 25,
+	})
+	if err != nil {
+		return fmt.Errorf("error building no-addr genesis; %w", err)
+	}
+	noAddrTokenHash := noAddrGenesisTx.GetHash()
+	if err := s.save(noAddrGenesisTx); err != nil {
+		return err
+	}
+	noAddrSendTx, err := build.TokenSend(build.TokenSendRequest{
+		Wallet:    s.wallet(tokenUtxoAt(noAddrGenesisTx, 1, noAddrTokenHash, 25), bchChange(noAddrGenesisTx)),
+		TokenHash: noAddrTokenHash,
+		Recipient: test_tx.Address2,
+		Quantity:  10,
+		TokenType: memo.SlpDefaultTokenType,
+	})
+	if err != nil {
+		return fmt.Errorf("error building no-addr send; %w", err)
+	}
+	for _, txIn := range noAddrSendTx.MsgTx.TxIn {
+		txIn.SignatureScript = nil
+	}
+	if err := s.save(noAddrSendTx); err != nil {
+		return err
+	}
+	if err := s.checkStatus("send with address-less inputs", noAddrSendTx,
+		slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	var noAddrSend = &item_slp.Send{TxHash: txHash32(noAddrSendTx)}
+	if err := db.GetItem(s.ctx, noAddrSend); err != nil {
+		return fmt.Errorf("error getting no-addr send row (tx not transcribed); %w", err)
+	}
 	return nil
 }
