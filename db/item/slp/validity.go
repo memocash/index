@@ -46,7 +46,7 @@ func (v *Validity) Serialize() []byte {
 }
 
 func (v *Validity) Deserialize(data []byte) {
-	if len(data) < 2 {
+	if len(data) != 2 {
 		return
 	}
 	v.Status = data[0]

@@ -198,41 +198,47 @@ func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byt
 			genesisRows[genesis.TxHash] = genesis
 		}
 	}
-	// Anything still unresolved needs TxProcessed to distinguish
-	// "genuinely not SLP" from "not ingested yet"
-	var processedCheckSet = make(map[[32]byte]bool)
+	// Anything still unresolved is settled by the tx's vout-0 chain output:
+	// validity is a property of the vout-0 message, so a known vout-0 script
+	// without the SLP lokad definitively rules the tx out as SLP, while a
+	// lokad-carrying (or unknown) one stays pending until its transcription
+	// rows land. Chain rows are used rather than TxProcessed so conclusions
+	// stay sound when the slp topics are rebuilt: wiped rows read as pending,
+	// never as affirmatively not SLP.
+	var voutZeroCheckSet = make(map[[32]byte]bool)
 	for op := range outPointSet {
 		if outputRows[op] == nil && batonRows[op] == nil && parentValidities[op.hash] == nil {
-			processedCheckSet[op.hash] = true
+			voutZeroCheckSet[op.hash] = true
 		}
 	}
 	for hash := range tokenSet {
 		if genesisRows[hash] == nil {
-			processedCheckSet[hash] = true
+			voutZeroCheckSet[hash] = true
 		}
 	}
-	var processed = make(map[[32]byte]bool)
-	if len(processedCheckSet) > 0 {
-		var processedHashes = make([][32]byte, 0, len(processedCheckSet))
-		for hash := range processedCheckSet {
-			processedHashes = append(processedHashes, hash)
+	var notSlp = make(map[[32]byte]bool)
+	if len(voutZeroCheckSet) > 0 {
+		var voutZeroOuts = make([]memo.Out, 0, len(voutZeroCheckSet))
+		for checkHash := range voutZeroCheckSet {
+			hash := checkHash
+			voutZeroOuts = append(voutZeroOuts, memo.Out{TxHash: hash[:], Index: 0})
 		}
-		txProcesseds, err := chain.GetTxProcessed(ctx, processedHashes)
+		txOutputs, err := chain.GetTxOutputs(ctx, voutZeroOuts)
 		if err != nil {
-			return fmt.Errorf("error getting tx processed for slp validate; %w", err)
+			return fmt.Errorf("error getting vout-0 outputs for slp validate; %w", err)
 		}
-		for _, txProcessed := range txProcesseds {
-			var hash [32]byte
-			copy(hash[:], txProcessed.TxHash)
-			processed[hash] = true
+		for _, txOutput := range txOutputs {
+			if !slp.HasSlpLokad(txOutput.LockScript) {
+				notSlp[txOutput.TxHash] = true
+			}
 		}
 	}
 	var resolveTokenType = func(tokenHash [32]byte) (uint16, bool) {
 		if genesis, ok := genesisRows[tokenHash]; ok {
 			return uint16(genesis.TokenType), true
 		}
-		if processed[tokenHash] {
-			// Processed with no genesis row: affirmatively not a token, so
+		if notSlp[tokenHash] {
+			// Not an SLP tx at all: the referenced token can never exist, so
 			// the row can never match a handled type and contributes zero
 			return 0, true
 		}
@@ -272,9 +278,10 @@ func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byt
 				default:
 					input.State = slp.ParentInvalid
 				}
-			case validity != nil || processed[op.hash]:
+			case validity != nil || notSlp[op.hash]:
 				// A validity row implies the parent's transcription is
-				// complete, so a missing row here is definitive
+				// complete, so a missing row here is definitive; no SLP
+				// lokad at vout 0 means the rows can never exist
 				input.State = slp.ParentNotSlp
 			default:
 				input.State = slp.ParentUnknown

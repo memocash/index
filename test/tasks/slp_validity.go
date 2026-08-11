@@ -146,7 +146,8 @@ func (s *slpValidityState) fund(amount int64) (*memo.Tx, memo.UTXO, error) {
 
 func (s *slpValidityState) run() error {
 	// Plain BCH funding, ingested first so SLP txs' non-token parents
-	// resolve as processed-not-SLP rather than unknown
+	// resolve as definitively not SLP (no lokad at vout 0) rather than
+	// unknown
 	_, fundUtxo, err := s.fund(1e6)
 	if err != nil {
 		return err
@@ -525,6 +526,42 @@ func (s *slpValidityState) run() error {
 		}
 	}
 	log.Printf("✓ audit transcribed and validated the gap tx; cursors cleared\n")
+
+	// Repopulation window: the wipe-and-repopulate deploy leaves chain rows
+	// intact while slp rows are missing until the async repopulation reaches
+	// them. Simulate a send whose token's genesis is not yet repopulated: the
+	// genesis's transcription rows and the pair's verdicts are stripped, and
+	// the index sweep must leave the send pending - never invalid - until the
+	// genesis is re-transcribed (audit), whose verdict then cascades to it.
+	var genesisHash = txHash32(genesisTx)
+	if err := db.Remove([]db.Object{
+		&item_slp.Genesis{TxHash: genesisHash},
+		&item_slp.Output{TxHash: genesisHash, Index: 1},
+		&item_slp.Baton{TxHash: genesisHash, Index: 2},
+		&item_slp.Validity{TxHash: genesisHash},
+		&item_slp.Validity{TxHash: txHash32(send1)},
+	}); err != nil {
+		return fmt.Errorf("error removing genesis rows for repopulation simulation; %w", err)
+	}
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false, false).Run(); err != nil {
+		return fmt.Errorf("error running slp validity index sweep with missing genesis; %w", err)
+	}
+	if err := s.checkStatus("send with unrepopulated genesis stays pending", send1,
+		slp_tx.StatusPending, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).Run(); err != nil {
+		return fmt.Errorf("error running slp validity audit to repopulate genesis; %w", err)
+	}
+	if err := s.checkStatus("genesis repopulated by audit", genesisTx,
+		slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	if err := s.checkStatus("send resolved after genesis repopulated", send1,
+		slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	log.Printf("✓ missing genesis left send pending until repopulated\n")
 
 	// NFT1: group genesis, child genesis spending the group token at input
 	// 0, and a fake child whose input 0 is a plain BCH output

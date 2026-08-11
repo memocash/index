@@ -40,11 +40,9 @@ func (s *Send) Serialize() []byte {
 }
 
 func (s *Send) Deserialize(data []byte) {
-	if len(data) < memo.TxHashLength {
+	if len(data) != memo.TxHashLength+1 {
 		return
 	}
 	copy(s.TokenHash[:], jutil.ByteReverse(data[:memo.TxHashLength]))
-	if len(data) > memo.TxHashLength {
-		s.TokenType = data[memo.TxHashLength]
-	}
+	s.TokenType = data[memo.TxHashLength]
 }

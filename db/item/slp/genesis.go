@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"strings"
 )
 
 type Genesis struct {
@@ -40,32 +39,48 @@ func (g *Genesis) SetUid(uid []byte) {
 	copy(g.TxHash[:], jutil.ByteReverse(uid))
 }
 
+// genesisFixedLen is the fixed prefix of a serialized genesis: token type,
+// decimals, baton index, and doc hash. The ticker, name, and doc url follow,
+// each as a uint16 length prefix and the raw bytes (on-chain fields are
+// arbitrary bytes, so they are stored byte-faithfully).
+const genesisFixedLen = 2 + 4 + memo.TxHashLength
+
 func (g *Genesis) Serialize() []byte {
-	g.Ticker = strings.ReplaceAll(g.Ticker, string([]byte{0x00}), string([]byte{0x01}))
-	g.Name = strings.ReplaceAll(g.Name, string([]byte{0x00}), string([]byte{0x01}))
-	g.DocUrl = strings.ReplaceAll(g.DocUrl, string([]byte{0x00}), string([]byte{0x01}))
 	return jutil.CombineBytes(
 		[]byte{g.TokenType, g.Decimals},
 		jutil.GetUint32Data(g.BatonIndex),
 		g.DocHash[:],
-		[]byte(strings.Join([]string{g.Ticker, g.Name, g.DocUrl}, string([]byte{0x00}))),
+		jutil.GetUint16Data(uint16(len(g.Ticker))), []byte(g.Ticker),
+		jutil.GetUint16Data(uint16(len(g.Name))), []byte(g.Name),
+		jutil.GetUint16Data(uint16(len(g.DocUrl))), []byte(g.DocUrl),
 	)
 }
 
 func (g *Genesis) Deserialize(data []byte) {
-	if len(data) < 2+4+8+memo.TxHashLength+3 {
+	var fields [3]string
+	var offset = genesisFixedLen
+	for i := range fields {
+		if len(data) < offset+2 {
+			return
+		}
+		fieldLen := int(jutil.GetUint16(data[offset : offset+2]))
+		offset += 2
+		if len(data) < offset+fieldLen {
+			return
+		}
+		fields[i] = string(data[offset : offset+fieldLen])
+		offset += fieldLen
+	}
+	if offset != len(data) {
 		return
 	}
 	g.TokenType = data[0]
 	g.Decimals = data[1]
 	g.BatonIndex = jutil.GetUint32(data[2:6])
-	copy(g.DocHash[:], data[6:38])
-	split := strings.Split(string(data[38:]), string([]byte{0x00}))
-	if len(split) == 3 {
-		g.Ticker = split[0]
-		g.Name = split[1]
-		g.DocUrl = split[2]
-	}
+	copy(g.DocHash[:], data[6:genesisFixedLen])
+	g.Ticker = fields[0]
+	g.Name = fields[1]
+	g.DocUrl = fields[2]
 }
 
 func GetGeneses(ctx context.Context, txHashes [][32]byte) ([]*Genesis, error) {

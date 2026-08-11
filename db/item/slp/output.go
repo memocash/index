@@ -47,7 +47,7 @@ func (o *Output) Serialize() []byte {
 }
 
 func (o *Output) Deserialize(data []byte) {
-	if len(data) < memo.TxHashLength+8 {
+	if len(data) != memo.TxHashLength+8 {
 		return
 	}
 	copy(o.TokenHash[:], jutil.ByteReverse(data[:32]))

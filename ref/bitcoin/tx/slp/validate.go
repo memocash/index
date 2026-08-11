@@ -30,9 +30,12 @@ const (
 type ParentState uint8
 
 const (
-	// ParentUnknown: parent tx not yet ingested (no rows, no TxProcessed) - pending.
+	// ParentUnknown: parent's SLP standing not yet resolvable (tx not
+	// ingested, or SLP transcription rows not yet written) - pending.
 	ParentUnknown ParentState = iota
-	// ParentNotSlp: parent fully processed with no SLP row at this prevout - contributes nothing.
+	// ParentNotSlp: parent definitively has no SLP row at this prevout
+	// (vout 0 carries no SLP message, or transcription is complete without
+	// one) - contributes nothing.
 	ParentNotSlp
 	// ParentPending: SLP row exists but the parent has no validity verdict yet.
 	ParentPending
