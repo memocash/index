@@ -52,6 +52,49 @@ type outPoint struct {
 	index uint32
 }
 
+// resolveCache carries resolution data across the rounds of one cascade. A
+// fan-in spender is re-validated every round one of its parents decides, and
+// without a cache each round re-fetches the same parent rows, genesis rows,
+// and vout-0 chain outputs thousands of times (the dominant cost observed on
+// the 2026-08-11 production audit's multi-hour cascades). Everything cached
+// here is final once seen: verdicts are final, transcribed rows are
+// write-once, chain vout-0 scripts never change, and row absence is
+// permanent once the parent is decided (rows are written before verdicts
+// everywhere) or known not-SLP. Genuine unknowns (absent rows of undecided
+// parents, undecided verdicts) are re-queried every round.
+type resolveCache struct {
+	validities  map[[32]byte]*item_slp.Validity // decided parents (verdicts are final)
+	resolvedOps map[outPoint]bool               // prevouts whose row state below is final
+	outputs     map[outPoint]*item_slp.Output   // rows for resolved ops (absent = no entry)
+	batons      map[outPoint]*item_slp.Baton    // rows for resolved ops (absent = no entry)
+	geneses     map[[32]byte]*item_slp.Genesis  // found genesis rows (write-once)
+	voutLokad   map[[32]byte]bool               // known vout-0 chain rows: carries the SLP lokad
+}
+
+func newResolveCache() *resolveCache {
+	return &resolveCache{
+		validities:  make(map[[32]byte]*item_slp.Validity),
+		resolvedOps: make(map[outPoint]bool),
+		outputs:     make(map[outPoint]*item_slp.Output),
+		batons:      make(map[outPoint]*item_slp.Baton),
+		geneses:     make(map[[32]byte]*item_slp.Genesis),
+		voutLokad:   make(map[[32]byte]bool),
+	}
+}
+
+// Backing-read seams: package variables only so tests can stub and count
+// fetches, pinning the resolve cache's contract — final facts are read once
+// per cascade, genuine unknowns are re-read every round. Production never
+// replaces them.
+var (
+	getValidities  = item_slp.GetValidities
+	getSlpOutputs  = item_slp.GetOutputs
+	getSlpBatons   = item_slp.GetBatons
+	getSlpGeneses  = item_slp.GetGeneses
+	getVoutOutputs = chain.GetTxOutputs
+	saveObjects    = db.Save
+)
+
 type work struct {
 	tx  Tx
 	msg *slp.Msg
@@ -61,12 +104,18 @@ type work struct {
 // batched reads, and saves verdicts for txs that are decidable. Txs that
 // already have a verdict are skipped (verdicts are final).
 func ValidateTxs(ctx context.Context, txs []Tx) (*Result, error) {
+	return validateTxsCached(ctx, txs, newResolveCache())
+}
+
+// validateTxsCached is ValidateTxs with a caller-owned resolve cache; the
+// cascade passes one cache across all its rounds.
+func validateTxsCached(ctx context.Context, txs []Tx, cache *resolveCache) (*Result, error) {
 	var result = new(Result)
 	var txHashes = make([][32]byte, 0, len(txs))
 	for _, tx := range txs {
 		txHashes = append(txHashes, tx.TxHash)
 	}
-	existingValidities, err := item_slp.GetValidities(ctx, txHashes)
+	existingValidities, err := getValidities(ctx, txHashes)
 	if err != nil {
 		return nil, fmt.Errorf("error getting existing slp validities; %w", err)
 	}
@@ -97,7 +146,7 @@ func ValidateTxs(ctx context.Context, txs []Tx) (*Result, error) {
 		}
 		works = append(works, &work{tx: tx, msg: msg})
 	}
-	if err := resolveAndValidate(ctx, works, verdicts); err != nil {
+	if err := resolveAndValidate(ctx, works, verdicts, cache); err != nil {
 		return nil, err
 	}
 	var objects []db.Object
@@ -111,26 +160,28 @@ func ValidateTxs(ctx context.Context, txs []Tx) (*Result, error) {
 			result.Pending++
 			continue
 		}
-		objects = append(objects, &item_slp.Validity{
+		var validity = &item_slp.Validity{
 			TxHash: txHash,
 			Status: uint8(verdict.Status),
 			Reason: uint8(verdict.Reason),
-		})
+		}
+		objects = append(objects, validity)
+		// Later rounds resolve spenders of this tx against the cache
+		cache.validities[txHash] = validity
 		result.NewVerdicts = append(result.NewVerdicts, txHash)
 	}
 	if len(objects) > 0 {
-		if err := db.Save(objects); err != nil {
+		if err := saveObjects(objects); err != nil {
 			return nil, fmt.Errorf("error saving slp validities; %w", err)
 		}
 	}
 	return result, nil
 }
 
-func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byte]slp.Verdict) error {
+func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byte]slp.Verdict, cache *resolveCache) error {
 	if len(works) == 0 {
 		return nil
 	}
-	// Batch-read SLP output and baton rows for every prevout
 	var outPointSet = make(map[outPoint]bool)
 	var parentSet = make(map[[32]byte]bool)
 	for _, w := range works {
@@ -140,22 +191,56 @@ func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byt
 			parentSet[op.hash] = true
 		}
 	}
-	var outs = make([]memo.Out, 0, len(outPointSet))
-	for op := range outPointSet {
-		hash := op.hash
-		outs = append(outs, memo.Out{TxHash: hash[:], Index: op.index})
+	// Parent verdicts first: they are final (cache hits stay correct), and a
+	// decided parent makes its row absence below permanent, since rows are
+	// written before verdicts on every path
+	var parentValidities = make(map[[32]byte]*item_slp.Validity)
+	var validityFetch = make([][32]byte, 0, len(parentSet))
+	for hash := range parentSet {
+		if validity, ok := cache.validities[hash]; ok {
+			parentValidities[hash] = validity
+		} else {
+			validityFetch = append(validityFetch, hash)
+		}
 	}
+	if len(validityFetch) > 0 {
+		validities, err := getValidities(ctx, validityFetch)
+		if err != nil {
+			return fmt.Errorf("error getting parent slp validities; %w", err)
+		}
+		for _, validity := range validities {
+			parentValidities[validity.TxHash] = validity
+			cache.validities[validity.TxHash] = validity
+		}
+	}
+	// SLP output and baton rows for every prevout not already finally resolved
 	var outputRows = make(map[outPoint]*item_slp.Output)
 	var batonRows = make(map[outPoint]*item_slp.Baton)
+	var fetchOps = make([]outPoint, 0, len(outPointSet))
+	var outs = make([]memo.Out, 0, len(outPointSet))
+	for op := range outPointSet {
+		if cache.resolvedOps[op] {
+			if output := cache.outputs[op]; output != nil {
+				outputRows[op] = output
+			}
+			if baton := cache.batons[op]; baton != nil {
+				batonRows[op] = baton
+			}
+			continue
+		}
+		hash := op.hash
+		fetchOps = append(fetchOps, op)
+		outs = append(outs, memo.Out{TxHash: hash[:], Index: op.index})
+	}
 	if len(outs) > 0 {
-		outputs, err := item_slp.GetOutputs(ctx, outs)
+		outputs, err := getSlpOutputs(ctx, outs)
 		if err != nil {
 			return fmt.Errorf("error getting slp outputs for validate; %w", err)
 		}
 		for _, output := range outputs {
 			outputRows[outPoint{hash: output.TxHash, index: output.Index}] = output
 		}
-		batons, err := item_slp.GetBatons(ctx, outs)
+		batons, err := getSlpBatons(ctx, outs)
 		if err != nil {
 			return fmt.Errorf("error getting slp batons for validate; %w", err)
 		}
@@ -163,24 +248,10 @@ func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byt
 			batonRows[outPoint{hash: baton.TxHash, index: baton.Index}] = baton
 		}
 	}
-	// Batch-read parent verdicts
-	var parentHashes = make([][32]byte, 0, len(parentSet))
-	for hash := range parentSet {
-		parentHashes = append(parentHashes, hash)
-	}
-	var parentValidities = make(map[[32]byte]*item_slp.Validity)
-	if len(parentHashes) > 0 {
-		validities, err := item_slp.GetValidities(ctx, parentHashes)
-		if err != nil {
-			return fmt.Errorf("error getting parent slp validities; %w", err)
-		}
-		for _, validity := range validities {
-			parentValidities[validity.TxHash] = validity
-		}
-	}
 	// Each spent SLP row's token type comes from that token's genesis: for
 	// valid parent chains the genesis-declared type and the parent-declared
-	// type are always equal, and only valid parents contribute
+	// type are always equal, and only valid parents contribute. Found genesis
+	// rows are write-once (cacheable); absent ones may be transcribed later
 	var tokenSet = make(map[[32]byte]bool)
 	for _, output := range outputRows {
 		tokenSet[output.TokenHash] = true
@@ -189,17 +260,22 @@ func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byt
 		tokenSet[baton.TokenHash] = true
 	}
 	var genesisRows = make(map[[32]byte]*item_slp.Genesis)
-	if len(tokenSet) > 0 {
-		var tokenHashes = make([][32]byte, 0, len(tokenSet))
-		for hash := range tokenSet {
-			tokenHashes = append(tokenHashes, hash)
+	var genesisFetch = make([][32]byte, 0, len(tokenSet))
+	for hash := range tokenSet {
+		if genesis, ok := cache.geneses[hash]; ok {
+			genesisRows[hash] = genesis
+		} else {
+			genesisFetch = append(genesisFetch, hash)
 		}
-		geneses, err := item_slp.GetGeneses(ctx, tokenHashes)
+	}
+	if len(genesisFetch) > 0 {
+		geneses, err := getSlpGeneses(ctx, genesisFetch)
 		if err != nil {
 			return fmt.Errorf("error getting slp geneses for validate; %w", err)
 		}
 		for _, genesis := range geneses {
 			genesisRows[genesis.TxHash] = genesis
+			cache.geneses[genesis.TxHash] = genesis
 		}
 	}
 	// Anything still unresolved is settled by the tx's vout-0 chain output:
@@ -208,7 +284,8 @@ func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byt
 	// lokad-carrying (or unknown) one stays pending until its transcription
 	// rows land. Chain rows are used rather than TxProcessed so conclusions
 	// stay sound when the slp topics are rebuilt: wiped rows read as pending,
-	// never as affirmatively not SLP.
+	// never as affirmatively not SLP. Chain scripts never change, so known
+	// vout-0 answers are cached across rounds
 	var voutZeroCheckSet = make(map[[32]byte]bool)
 	for op := range outPointSet {
 		if outputRows[op] == nil && batonRows[op] == nil && parentValidities[op.hash] == nil {
@@ -221,20 +298,42 @@ func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byt
 		}
 	}
 	var notSlp = make(map[[32]byte]bool)
-	if len(voutZeroCheckSet) > 0 {
-		var voutZeroOuts = make([]memo.Out, 0, len(voutZeroCheckSet))
-		for checkHash := range voutZeroCheckSet {
-			hash := checkHash
-			voutZeroOuts = append(voutZeroOuts, memo.Out{TxHash: hash[:], Index: 0})
+	var voutZeroOuts = make([]memo.Out, 0, len(voutZeroCheckSet))
+	for checkHash := range voutZeroCheckSet {
+		if lokad, ok := cache.voutLokad[checkHash]; ok {
+			if !lokad {
+				notSlp[checkHash] = true
+			}
+			continue
 		}
-		txOutputs, err := chain.GetTxOutputs(ctx, voutZeroOuts)
+		hash := checkHash
+		voutZeroOuts = append(voutZeroOuts, memo.Out{TxHash: hash[:], Index: 0})
+	}
+	if len(voutZeroOuts) > 0 {
+		txOutputs, err := getVoutOutputs(ctx, voutZeroOuts)
 		if err != nil {
 			return fmt.Errorf("error getting vout-0 outputs for slp validate; %w", err)
 		}
 		for _, txOutput := range txOutputs {
-			if !slp.HasSlpLokad(txOutput.LockScript) {
+			lokad := slp.HasSlpLokad(txOutput.LockScript)
+			cache.voutLokad[txOutput.TxHash] = lokad
+			if !lokad {
 				notSlp[txOutput.TxHash] = true
 			}
+		}
+	}
+	// Permanence pass: a fetched prevout's row state is final once its parent
+	// is decided or definitively not SLP; later rounds skip re-fetching it
+	for _, op := range fetchOps {
+		if parentValidities[op.hash] == nil && !notSlp[op.hash] {
+			continue
+		}
+		cache.resolvedOps[op] = true
+		if output := outputRows[op]; output != nil {
+			cache.outputs[op] = output
+		}
+		if baton := batonRows[op]; baton != nil {
+			cache.batons[op] = baton
 		}
 	}
 	var resolveTokenType = func(tokenHash [32]byte) (uint16, bool) {

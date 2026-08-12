@@ -34,9 +34,13 @@ func ValidateTxsCascade(ctx context.Context, txs []Tx) (*Result, error) {
 	// in later rounds (another of its parents decided) skips straight to
 	// re-validation instead of redundantly rewriting its rows every round
 	var transcribed = make(map[[32]byte]bool)
+	// One resolve cache across all rounds: fan-in spenders are re-validated
+	// every round a parent decides, and without the cache each round re-reads
+	// the same final parent rows, geneses, and vout-0 scripts
+	var cache = newResolveCache()
 	var lastLog = time.Now()
 	for round := 1; len(current) > 0; round++ {
-		result, err := ValidateTxs(ctx, current)
+		result, err := validateTxsCached(ctx, current, cache)
 		if err != nil {
 			return nil, err
 		}
