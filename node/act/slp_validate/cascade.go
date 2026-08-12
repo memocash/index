@@ -8,7 +8,9 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	item_slp "github.com/memocash/index/db/item/slp"
 	"github.com/memocash/index/ref/bitcoin/tx/slp"
+	"log"
 	"sort"
+	"time"
 )
 
 // ValidateTxsCascade validates txs and then walks forward through the spend
@@ -19,10 +21,21 @@ import (
 // machinery: spender rows are written by the first saver, before validation,
 // so either a child's own validation sees the parent's verdict or the
 // parent's spender lookup sees the child.
+// cascadeLogInterval is how often a still-running cascade reports progress; a
+// big token graph can keep one cascade busy for hours, and without a heartbeat
+// that is indistinguishable from a hang.
+const cascadeLogInterval = time.Minute
+
 func ValidateTxsCascade(ctx context.Context, txs []Tx) (*Result, error) {
 	var total = new(Result)
 	var current = txs
-	for len(current) > 0 {
+	// Transcription depends only on the tx itself, so each spender is
+	// transcribed at most once per cascade; a pending spender that reappears
+	// in later rounds (another of its parents decided) skips straight to
+	// re-validation instead of redundantly rewriting its rows every round
+	var transcribed = make(map[[32]byte]bool)
+	var lastLog = time.Now()
+	for round := 1; len(current) > 0; round++ {
 		result, err := ValidateTxs(ctx, current)
 		if err != nil {
 			return nil, err
@@ -31,19 +44,24 @@ func ValidateTxsCascade(ctx context.Context, txs []Tx) (*Result, error) {
 		if len(result.NewVerdicts) == 0 {
 			break
 		}
-		current, err = getPendingSpenders(ctx, result.NewVerdicts)
+		current, err = getPendingSpenders(ctx, result.NewVerdicts, transcribed)
 		if err != nil {
 			return nil, err
+		}
+		if time.Since(lastLog) >= cascadeLogInterval {
+			log.Printf("slp validity cascade at round %d: frontier %d, valid %d, invalid %d, pending %d\n",
+				round, len(current), total.Valid, total.Invalid, total.Pending)
+			lastLog = time.Now()
 		}
 	}
 	return total, nil
 }
 
 // getPendingSpenders returns the reconstructed SLP txs spending outputs of
-// the given txs that do not have a verdict yet. Spenders whose chain rows are
-// incomplete (mid-save) are skipped; their own save-time validation covers
-// them.
-func getPendingSpenders(ctx context.Context, txHashes [][32]byte) ([]Tx, error) {
+// the given txs that do not have a verdict yet, transcribing any not already
+// transcribed this cascade. Spenders whose chain rows are incomplete
+// (mid-save) are skipped; their own save-time validation covers them.
+func getPendingSpenders(ctx context.Context, txHashes [][32]byte, transcribed map[[32]byte]bool) ([]Tx, error) {
 	outputInputs, err := chain.GetOutputInputsForTxHashes(ctx, txHashes)
 	if err != nil {
 		return nil, fmt.Errorf("error getting output inputs for slp cascade; %w", err)
@@ -81,7 +99,14 @@ func getPendingSpenders(ctx context.Context, txHashes [][32]byte) ([]Tx, error) 
 	// audit sweep or live path may simply not have reached them); their
 	// verdicts land now, so their rows must too, or descendants would read
 	// the missing rows as contributing nothing and go falsely invalid
-	if err := TranscribeTxs(slpTxs); err != nil {
+	var toTranscribe = make([]Tx, 0, len(slpTxs))
+	for _, slpTx := range slpTxs {
+		if !transcribed[slpTx.TxHash] {
+			transcribed[slpTx.TxHash] = true
+			toTranscribe = append(toTranscribe, slpTx)
+		}
+	}
+	if err := CascadeTranscribe(toTranscribe); err != nil {
 		return nil, fmt.Errorf("error transcribing spender txs for slp cascade; %w", err)
 	}
 	return slpTxs, nil

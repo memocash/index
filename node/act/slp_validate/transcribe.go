@@ -8,6 +8,13 @@ import (
 	"github.com/memocash/index/ref/bitcoin/tx/slp"
 )
 
+// CascadeTranscribe is the transcription entry the cascade uses for its
+// spenders. It is a package variable only so the e2e suite can instrument it
+// and pin the once-per-cascade transcription guarantee (per-round
+// re-transcription of fan-in spenders is the quadratic write churn that
+// stalled the 2026-08-11 production audit); production never replaces it.
+var CascadeTranscribe = TranscribeTxs
+
 // TranscribeTxs runs the lenient SLP transcription for the vout-0 message of
 // each tx. Validation treats a decided parent's missing output rows as
 // definitive (contributing nothing), so every path that writes verdicts must

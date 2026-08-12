@@ -38,11 +38,13 @@ func (r *Result) Decided() int {
 	return r.Valid + r.Invalid
 }
 
+// add accumulates counts only: NewVerdicts is per-call cascade seed data, and
+// accumulating it across a multi-million-verdict cascade is pure memory growth
+// (no caller reads the aggregate).
 func (r *Result) add(other *Result) {
 	r.Valid += other.Valid
 	r.Invalid += other.Invalid
 	r.Pending += other.Pending
-	r.NewVerdicts = append(r.NewVerdicts, other.NewVerdicts...)
 }
 
 type outPoint struct {

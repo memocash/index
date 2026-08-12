@@ -11,6 +11,7 @@ import (
 	"github.com/memocash/index/db/item/db"
 	item_slp "github.com/memocash/index/db/item/slp"
 	act_maint "github.com/memocash/index/node/act/maint"
+	"github.com/memocash/index/node/act/slp_validate"
 	"github.com/memocash/index/node/obj/saver"
 	"github.com/memocash/index/ref/bitcoin/memo"
 	"github.com/memocash/index/ref/bitcoin/tx/build"
@@ -687,6 +688,144 @@ func (s *slpValidityState) run() error {
 		}
 	}
 	log.Printf("✓ sweep-driven cascade transcribed and validated unenumerated spenders\n")
+
+	// Once-per-cascade transcription: a fan-in spender re-enters the cascade
+	// frontier once per round in which another of its parents decides, and
+	// must be re-validated each time (a new parent verdict can tip it) but
+	// transcribed at most once per cascade — per-round re-transcription is the
+	// quadratic write churn that stalled the production audit. Graph:
+	// gen2 -> f1 -> f2, with fanIn spending outputs of both f1 and f2. Seeded
+	// from gen2 alone, fanIn enters the frontier as f1's spender (parks
+	// pending, f2 undecided that round) and again as f2's spender (decides).
+	_, fanFundUtxo, err := s.fund(1e6)
+	if err != nil {
+		return err
+	}
+	gen2Tx, err := build.TokenCreate(build.TokenCreateRequest{
+		Wallet:   s.wallet(fanFundUtxo),
+		SlpType:  memo.SlpDefaultTokenType,
+		Ticker:   "FANIN",
+		Name:     "Fan In Token",
+		Quantity: 100,
+	})
+	if err != nil {
+		return fmt.Errorf("error building fan-in genesis; %w", err)
+	}
+	fanHash := gen2Tx.GetHash()
+	if err := s.save(gen2Tx); err != nil {
+		return err
+	}
+	f1, err := build.TokenSend(build.TokenSendRequest{
+		Wallet:    s.wallet(tokenUtxoAt(gen2Tx, 1, fanHash, 100), bchChange(gen2Tx)),
+		TokenHash: fanHash,
+		Recipient: test_tx.Address1,
+		Quantity:  40,
+		TokenType: memo.SlpDefaultTokenType,
+	})
+	if err != nil {
+		return fmt.Errorf("error building fan-in f1; %w", err)
+	}
+	f2, err := build.TokenSend(build.TokenSendRequest{
+		Wallet:    s.wallet(tokenUtxoAt(f1, 2, fanHash, 60), bchChange(f1)),
+		TokenHash: fanHash,
+		Recipient: test_tx.Address1,
+		Quantity:  15,
+		TokenType: memo.SlpDefaultTokenType,
+	})
+	if err != nil {
+		return fmt.Errorf("error building fan-in f2; %w", err)
+	}
+	fanIn, err := build.TokenSend(build.TokenSendRequest{
+		Wallet:    s.wallet(tokenUtxoAt(f1, 1, fanHash, 40), tokenUtxoAt(f2, 1, fanHash, 15), bchChange(f2)),
+		TokenHash: fanHash,
+		Recipient: test_tx.Address1,
+		Quantity:  55,
+		TokenType: memo.SlpDefaultTokenType,
+	})
+	if err != nil {
+		return fmt.Errorf("error building fan-in spender; %w", err)
+	}
+	// Saved parents-first: each tx must be decidable at save time
+	for _, fanTx := range []struct {
+		name string
+		tx   *memo.Tx
+	}{{"f1", f1}, {"f2", f2}, {"fan-in spender", fanIn}} {
+		if err := s.save(fanTx.tx); err != nil {
+			return err
+		}
+		if err := s.checkStatus("fan-in "+fanTx.name+" live", fanTx.tx, slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+			return err
+		}
+	}
+	// Strip the graph back to only gen2 being enumerable, undecided everywhere
+	var fanWipe = []db.Object{&item_slp.Validity{TxHash: txHash32(gen2Tx)}}
+	for _, tx := range []*memo.Tx{f1, f2, fanIn} {
+		fanTxHash := txHash32(tx)
+		fanWipe = append(fanWipe,
+			&item_slp.Validity{TxHash: fanTxHash},
+			&item_slp.Send{TxHash: fanTxHash},
+			&item_slp.Output{TxHash: fanTxHash, Index: 1},
+			&item_slp.Output{TxHash: fanTxHash, Index: 2},
+		)
+	}
+	if err := db.Remove(fanWipe); err != nil {
+		return fmt.Errorf("error removing fan-in rows; %w", err)
+	}
+	var transcribeCounts = make(map[[32]byte]int)
+	origCascadeTranscribe := slp_validate.CascadeTranscribe
+	slp_validate.CascadeTranscribe = func(txs []slp_validate.Tx) error {
+		for _, tx := range txs {
+			transcribeCounts[tx.TxHash]++
+		}
+		return origCascadeTranscribe(txs)
+	}
+	sweepErr := act_maint.NewSlpValiditySweep(s.ctx, false, false).Run()
+	if sweepErr != nil {
+		slp_validate.CascadeTranscribe = origCascadeTranscribe
+		return fmt.Errorf("error running sweep for fan-in phase; %w", sweepErr)
+	}
+	for _, fanTx := range []struct {
+		name string
+		tx   *memo.Tx
+	}{{"gen2", gen2Tx}, {"f1", f1}, {"f2", f2}, {"fan-in spender", fanIn}} {
+		if err := s.checkStatus("fan-in "+fanTx.name+" after cascade", fanTx.tx, slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+			slp_validate.CascadeTranscribe = origCascadeTranscribe
+			return err
+		}
+		if fanTx.tx == gen2Tx {
+			continue // gen2 is the sweep's own candidate, not a cascade spender
+		}
+		if got := transcribeCounts[txHash32(fanTx.tx)]; got != 1 {
+			slp_validate.CascadeTranscribe = origCascadeTranscribe
+			return fmt.Errorf("error fan-in %s transcribed %d times in one cascade, expected exactly 1", fanTx.name, got)
+		}
+	}
+	// Per-cascade lifetime: a NEW cascade must transcribe a wiped spender
+	// again — the memo is per invocation, not global
+	if err := db.Remove([]db.Object{
+		&item_slp.Validity{TxHash: txHash32(f2)},
+		&item_slp.Validity{TxHash: txHash32(fanIn)},
+		&item_slp.Send{TxHash: txHash32(fanIn)},
+		&item_slp.Output{TxHash: txHash32(fanIn), Index: 1},
+	}); err != nil {
+		slp_validate.CascadeTranscribe = origCascadeTranscribe
+		return fmt.Errorf("error removing fan-in spender rows for second cascade; %w", err)
+	}
+	sweepErr = act_maint.NewSlpValiditySweep(s.ctx, false, false).Run()
+	slp_validate.CascadeTranscribe = origCascadeTranscribe
+	if sweepErr != nil {
+		return fmt.Errorf("error running second sweep for fan-in phase; %w", sweepErr)
+	}
+	if err := s.checkStatus("fan-in spender after second cascade", fanIn, slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	if got := transcribeCounts[txHash32(fanIn)]; got != 2 {
+		return fmt.Errorf("error fan-in spender transcribed %d times across two cascades, expected exactly 2", got)
+	}
+	if got := transcribeCounts[txHash32(f1)]; got != 1 {
+		return fmt.Errorf("error fan-in f1 transcribed %d times, expected exactly 1 (decided txs must not re-transcribe)", got)
+	}
+	log.Printf("✓ fan-in spender transcribed once per cascade, revalidated to valid\n")
 
 	// Secondary-message poison: a tx with a valid token-A SEND at vout 0 and
 	// a second OP_RETURN carrying a SEND of a different token B at a later
