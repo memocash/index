@@ -8,10 +8,13 @@ import (
 	"github.com/memocash/index/db/proto/queue_pb"
 	"google.golang.org/grpc"
 	"log"
+	"sync"
 	"time"
 )
 
-var connHandler *ConnHandler
+var connHandler = new(ConnHandler)
+
+var statsOnce sync.Once
 
 type Client struct {
 	host     string
@@ -21,11 +24,7 @@ type Client struct {
 }
 
 func (s *Client) SetConn() error {
-	if connHandler == nil {
-		connHandler = new(ConnHandler)
-		connHandler.Start()
-		startStats()
-	}
+	statsOnce.Do(startStats)
 	conn := connHandler.Get(s.host)
 	if conn != nil {
 		s.conn = conn

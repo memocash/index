@@ -2,6 +2,7 @@ package suite
 
 import (
 	"fmt"
+	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/store"
 	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/test/run"
@@ -22,6 +23,10 @@ func (s *Suite) ClearData() error {
 }
 
 func (s *Suite) Start() error {
+	// A previous same-process suite's cached client connections point at its
+	// stopped servers; the first save of this suite would race gRPC's
+	// reconnect and can fail with Unavailable/EOF. Dial fresh instead.
+	client.ResetConnections()
 	if err := s.ClearData(); err != nil {
 		return fmt.Errorf("error clearing data when starting suite; %w", err)
 	}
