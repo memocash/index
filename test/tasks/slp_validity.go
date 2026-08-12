@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
@@ -529,6 +530,79 @@ func (s *slpValidityState) run() error {
 		}
 	}
 	log.Printf("✓ audit transcribed and validated the gap tx; cursors cleared\n")
+
+	// Stale cursor from a killed audit: a full-length cursor survives an
+	// slp-topic wipe (it lives in process_status) and silently skips
+	// everything before it. Seed a cursor sorting after every uid: a plain
+	// audit must skip the gap tx entirely, and a fresh audit must ignore the
+	// cursor and find it.
+	var seedStaleCursors = func() error {
+		for _, shardConfig := range config.GetQueueShards() {
+			stale := item.NewProcessStatus(uint(shardConfig.Shard), item.ProcessStatusSlpValiditySweep)
+			stale.Status = bytes.Repeat([]byte{0xff}, memo.TxHashLength+4)
+			if err := stale.Save(); err != nil {
+				return fmt.Errorf("error saving stale cursor for shard %d; %w", shardConfig.Shard, err)
+			}
+		}
+		return nil
+	}
+	if err := db.Remove([]db.Object{&item_slp.Validity{TxHash: gapHash}}); err != nil {
+		return fmt.Errorf("error removing gap tx verdict for stale cursor phase; %w", err)
+	}
+	if err := seedStaleCursors(); err != nil {
+		return err
+	}
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).Run(); err != nil {
+		return fmt.Errorf("error running slp validity audit with stale cursor; %w", err)
+	}
+	if err := s.checkStatus("gap tx skipped by stale-cursor audit", gapTx,
+		slp_tx.StatusPending, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	if err := seedStaleCursors(); err != nil {
+		return err
+	}
+	freshSweep := act_maint.NewSlpValiditySweep(s.ctx, false, true)
+	freshSweep.Fresh = true
+	if err := freshSweep.Run(); err != nil {
+		return fmt.Errorf("error running fresh slp validity audit; %w", err)
+	}
+	if err := s.checkStatus("gap tx found by fresh audit", gapTx, slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	log.Printf("✓ fresh audit ignored the stale cursor\n")
+
+	// A fresh audit interrupted before its first page checkpoint must not
+	// leave the stale cursor durable: the clear happens up front, so a plain
+	// retry (without fresh) starts from the beginning. Simulate the
+	// interruption by running only the fresh startup step, then retrying
+	// normally.
+	if err := db.Remove([]db.Object{&item_slp.Validity{TxHash: gapHash}}); err != nil {
+		return fmt.Errorf("error removing gap tx verdict for interrupted fresh phase; %w", err)
+	}
+	if err := seedStaleCursors(); err != nil {
+		return err
+	}
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).ClearAuditCursors(); err != nil {
+		return fmt.Errorf("error clearing audit cursors for interrupted fresh phase; %w", err)
+	}
+	for _, shardConfig := range config.GetQueueShards() {
+		status, err := item.GetProcessStatus(s.ctx, uint(shardConfig.Shard), item.ProcessStatusSlpValiditySweep)
+		if err != nil && !client.IsMessageNotSetError(err) {
+			return fmt.Errorf("error getting cleared cursor for shard %d; %w", shardConfig.Shard, err)
+		}
+		if err == nil && len(status.Status) != 0 {
+			return fmt.Errorf("error stale cursor for shard %d not durably cleared: %x", shardConfig.Shard, status.Status)
+		}
+	}
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).Run(); err != nil {
+		return fmt.Errorf("error running plain audit after interrupted fresh; %w", err)
+	}
+	if err := s.checkStatus("gap tx found by plain retry after interrupted fresh", gapTx,
+		slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	log.Printf("✓ interrupted fresh audit left no stale cursor for a plain retry\n")
 
 	// Repopulation window: the wipe-and-repopulate deploy leaves chain rows
 	// intact while slp rows are missing until the async repopulation reaches

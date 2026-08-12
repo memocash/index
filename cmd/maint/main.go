@@ -14,6 +14,7 @@ const (
 	FlagDoubleSpends = "double-spends"
 	FlagVerify       = "verify"
 	FlagAudit        = "audit"
+	FlagFresh        = "fresh"
 )
 
 var maintCommand = &cobra.Command{
@@ -47,6 +48,8 @@ func GetCommand() *cobra.Command {
 	slpValiditySweepCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
 	slpValiditySweepCmd.Flags().Bool(FlagAudit, false,
 		"Scan all chain tx outputs for missed SLP txs (historical backfill / deep audit)")
+	slpValiditySweepCmd.Flags().Bool(FlagFresh, false,
+		"Audit only: ignore any saved resume cursor and start from the beginning (required after a wipe-and-repopulate)")
 	maintCommand.AddCommand(
 		compactCmd,
 		populateOpReturnsCmd,

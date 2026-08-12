@@ -36,7 +36,10 @@ const (
 // checkpointed after each page so an interrupted run resumes where it left
 // off; the cursor is cleared when the shard completes, since new txs land
 // anywhere in uid order and a finished cursor must not carry into the next
-// audit.
+// audit. The cursor lives in the process_status topic, NOT the slp topics, so
+// it survives a wipe-and-repopulate: an audit meant to rebuild wiped slp data
+// must run with Fresh set, or it silently skips everything before the dead
+// run's cursor.
 //
 // Verdicts are final, so both modes are idempotent, and visit order does not
 // matter: a child visited before its parent parks pending and is resolved by
@@ -45,6 +48,7 @@ type SlpValiditySweep struct {
 	Ctx     context.Context
 	Verbose bool
 	Audit   bool
+	Fresh   bool // audit only: durably clear saved resume cursors up front, start from the beginning
 
 	Checked int64 // rows scanned: slp topic rows, or tx outputs in audit mode
 	SlpTxs  int64 // undecided slp txs validated
@@ -63,6 +67,15 @@ func NewSlpValiditySweep(ctx context.Context, verbose, audit bool) *SlpValidityS
 }
 
 func (s *SlpValiditySweep) Run() error {
+	if s.Audit && s.Fresh {
+		// Durably clear before any page work: if the cursors were only
+		// ignored in memory, a fresh run killed before its first checkpoint
+		// would leave the stale cursor in place, and a plain retry would
+		// resume from it and silently skip the wiped prefix again
+		if err := s.ClearAuditCursors(); err != nil {
+			return fmt.Errorf("error clearing audit cursors for fresh slp validity audit; %w", err)
+		}
+	}
 	for _, shardConfig := range config.GetQueueShards() {
 		if s.Audit {
 			if err := s.auditShard(shardConfig.Shard); err != nil {
@@ -98,6 +111,31 @@ func (s *SlpValiditySweep) sweepShard(shard uint32) error {
 		}
 		if s.Verbose {
 			log.Printf("slp validity sweep finished topic %s shard %d\n", topic, shard)
+		}
+	}
+	return nil
+}
+
+// ClearAuditCursors durably removes every shard's saved audit resume cursor,
+// so the next audit (this run or a retry after any interruption) starts from
+// the beginning. Run calls it before any page work when Fresh is set.
+func (s *SlpValiditySweep) ClearAuditCursors() error {
+	for _, shardConfig := range config.GetQueueShards() {
+		status, err := item.GetProcessStatus(s.Ctx, uint(shardConfig.Shard), item.ProcessStatusSlpValiditySweep)
+		if err != nil {
+			if client.IsMessageNotSetError(err) {
+				continue
+			}
+			return fmt.Errorf("error getting slp validity audit status for shard %d; %w", shardConfig.Shard, err)
+		}
+		if len(status.Status) == 0 {
+			continue
+		}
+		log.Printf("clearing saved slp validity cursor for shard %d (fresh audit): %x\n",
+			shardConfig.Shard, status.Status)
+		status.Status = nil
+		if err := status.Save(); err != nil {
+			return fmt.Errorf("error clearing slp validity cursor for shard %d; %w", shardConfig.Shard, err)
 		}
 	}
 	return nil
@@ -232,4 +270,3 @@ func (s *SlpValiditySweep) validateUndecided(txHashes [][32]byte) error {
 	}
 	return nil
 }
-
