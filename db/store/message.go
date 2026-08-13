@@ -3,7 +3,7 @@ package store
 import (
 	"bytes"
 	"fmt"
-	"github.com/memocash/index/db/client"
+	"github.com/jchavannes/jgo/db_util"
 	"github.com/memocash/index/db/metric"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -96,6 +96,9 @@ type Prefix struct {
 }
 
 // GetByPrefixes returns messages.
+//
+// Deprecated: Use Search instead; a prefix query is the pattern arm
+// {Uid: NewPatternPrefix(prefix)}.
 func GetByPrefixes(request RequestByPrefixes) ([]*Message, error) {
 	db, err := getDb(request.Topic, request.Shard)
 	if err != nil {
@@ -104,7 +107,7 @@ func GetByPrefixes(request RequestByPrefixes) ([]*Message, error) {
 
 	var maxResults = request.Limit
 	if maxResults == 0 {
-		maxResults = client.MaxMessages
+		maxResults = MaxMessages
 	}
 
 	var prefixes = request.Prefixes
@@ -139,7 +142,7 @@ func GetByPrefixes(request RequestByPrefixes) ([]*Message, error) {
 func getPrefixMessages(db *leveldb.DB, prefix Prefix, newest bool, totalMaxLeft int) ([]*Message, error) {
 	var maxPrefixResults = prefix.Max
 	if maxPrefixResults == 0 {
-		maxPrefixResults = client.HugeLimit
+		maxPrefixResults = db_util.HugeLimit
 	}
 	if maxPrefixResults > totalMaxLeft {
 		maxPrefixResults = totalMaxLeft

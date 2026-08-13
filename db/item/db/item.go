@@ -122,6 +122,8 @@ func ShardPrefixes(bytePrefixes [][]byte) map[uint32][]client.Prefix {
 	return shardPrefixes
 }
 
+// Deprecated: Use Search instead; a prefix query is the pattern arm
+// {Uid: client.NewPatternPrefix(prefix)}.
 func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][]client.Prefix, opts ...client.Option) ([]client.Message, error) {
 	wait := NewWait(len(shardPrefixes))
 	var messages []client.Message

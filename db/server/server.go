@@ -143,6 +143,7 @@ func getQueueMessagesFromStoreMessages(topic string, messages []*store.Message) 
 	}
 }
 
+// Deprecated: Use Search instead.
 func (s *Server) GetByPrefixes(ctx context.Context, req *queue_pb.RequestPrefixes) (*queue_pb.Messages, error) {
 	var requestByPrefixes = store.RequestByPrefixes{
 		Topic: req.Topic,
@@ -163,6 +164,40 @@ func (s *Server) GetByPrefixes(ctx context.Context, req *queue_pb.RequestPrefixe
 	}
 
 	return getQueueMessagesFromStoreMessages(req.Topic, messages), nil
+}
+
+func (s *Server) Search(ctx context.Context, req *queue_pb.SearchRequest) (*queue_pb.Messages, error) {
+	var searchRequest = store.SearchRequest{
+		Topic: req.Topic,
+		Shard: s.Shard,
+		Limit: int(req.Limit),
+		Desc:  req.Order == queue_pb.Order_DESC,
+	}
+	for _, pattern := range req.Patterns {
+		searchRequest.Patterns = append(searchRequest.Patterns, store.SearchPattern{
+			Uid:   getStorePattern(pattern.Uid),
+			Data:  getStorePattern(pattern.Data),
+			Start: pattern.Start,
+			Max:   int(pattern.Limit),
+		})
+	}
+	messages, err := store.Search(ctx, searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("error searching messages: %s (shard %d); %w", req.Topic, s.Shard, err)
+	}
+
+	return getQueueMessagesFromStoreMessages(req.Topic, messages), nil
+}
+
+func getStorePattern(pattern *queue_pb.Pattern) *store.Pattern {
+	if pattern == nil {
+		return nil
+	}
+	return &store.Pattern{
+		Parts:       pattern.Parts,
+		AnchorStart: pattern.AnchorStart,
+		AnchorEnd:   pattern.AnchorEnd,
+	}
 }
 
 func (s *Server) GetStreamMessages(request *queue_pb.RequestStream, server queue_pb.Queue_GetStreamMessagesServer) error {
