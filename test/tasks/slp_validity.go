@@ -8,6 +8,7 @@ import (
 	"github.com/jchavannes/btcd/wire"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item"
+	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	item_slp "github.com/memocash/index/db/item/slp"
 	act_maint "github.com/memocash/index/node/act/maint"
@@ -24,6 +25,7 @@ import (
 	"github.com/memocash/index/ref/dbi"
 	"github.com/memocash/index/test/suite"
 	"log"
+	"time"
 )
 
 // SlpValidity is an end-to-end test of SLP validity verdicts against real
@@ -1124,5 +1126,146 @@ func (s *slpValidityState) run() error {
 	if err := db.GetItem(s.ctx, noAddrSend); err != nil {
 		return fmt.Errorf("error getting no-addr send row (tx not transcribed); %w", err)
 	}
+
+	// Block-ordered backfill: a fresh token graph (genesis -> three chained
+	// sends) is mined across two blocks, the sends deliberately in reverse
+	// in-block order (CTOR orders by txid, not topologically), and every
+	// verdict and transcription row wiped. slp-validity-backfill must
+	// re-derive the whole graph in a single validation pass per chunk: the
+	// topo sort puts parents first and in-call verdict visibility resolves
+	// the chain without cascade rounds, so nothing may end up pending and
+	// nothing may fall to the mempool-tail cascade.
+	_, bfFundUtxo, err := s.fund(1e6)
+	if err != nil {
+		return err
+	}
+	bfGenesisTx, err := build.TokenCreate(build.TokenCreateRequest{
+		Wallet:   s.wallet(bfFundUtxo),
+		SlpType:  memo.SlpDefaultTokenType,
+		Ticker:   "BKFL",
+		Name:     "Backfill Token",
+		Quantity: 90,
+	})
+	if err != nil {
+		return fmt.Errorf("error building backfill genesis; %w", err)
+	}
+	bfTokenHash := bfGenesisTx.GetHash()
+	if err := s.save(bfGenesisTx); err != nil {
+		return err
+	}
+	var bfSends []*memo.Tx
+	var bfPrevToken = tokenUtxoAt(bfGenesisTx, 1, bfTokenHash, 90)
+	var bfPrevBch = bchChange(bfGenesisTx)
+	var bfPrevQuantity = uint64(90)
+	for i := 0; i < 3; i++ {
+		bfSend, err := build.TokenSend(build.TokenSendRequest{
+			Wallet:    s.wallet(bfPrevToken, bfPrevBch),
+			TokenHash: bfTokenHash,
+			Recipient: test_tx.Address2,
+			Quantity:  10,
+			TokenType: memo.SlpDefaultTokenType,
+		})
+		if err != nil {
+			return fmt.Errorf("error building backfill send %d; %w", i, err)
+		}
+		if err := s.save(bfSend); err != nil {
+			return err
+		}
+		bfSends = append(bfSends, bfSend)
+		bfPrevQuantity -= 10
+		bfPrevToken, err = tokenChange(bfSend, bfTokenHash, bfPrevQuantity)
+		if err != nil {
+			return err
+		}
+		bfPrevBch = bchChange(bfSend)
+	}
+	var bfTxs = append([]*memo.Tx{bfGenesisTx}, bfSends...)
+	bfGenesisHash := txHash32(bfGenesisTx)
+	var bfWipe = []db.Object{
+		&item_slp.Validity{TxHash: bfGenesisHash},
+		&item_slp.Genesis{TxHash: bfGenesisHash},
+		&item_slp.Output{TxHash: bfGenesisHash, Index: 1},
+		&item_slp.Baton{TxHash: bfGenesisHash, Index: 2},
+	}
+	for _, bfSend := range bfSends {
+		bfSendHash := txHash32(bfSend)
+		bfWipe = append(bfWipe,
+			&item_slp.Validity{TxHash: bfSendHash},
+			&item_slp.Send{TxHash: bfSendHash},
+			&item_slp.Output{TxHash: bfSendHash, Index: 1},
+			&item_slp.Output{TxHash: bfSendHash, Index: 2},
+		)
+	}
+	if err := db.Remove(bfWipe); err != nil {
+		return fmt.Errorf("error removing backfill graph rows; %w", err)
+	}
+	for _, bfTx := range bfTxs {
+		if err := s.checkStatus("backfill graph wiped", bfTx, slp_tx.StatusPending, slp_tx.ReasonNone); err != nil {
+			return err
+		}
+	}
+	// Mine: genesis alone at the lower height; the sends in one later block
+	// in child-first in-block order. TxMinimal writes the block associations
+	// without re-running the live SLP handler (which would re-validate here)
+	var bfHeader1 = wire.BlockHeader{Timestamp: time.Unix(1700000000, 0), Nonce: 1}
+	var bfHeader2 = wire.BlockHeader{Timestamp: time.Unix(1700000000, 0), Nonce: 2}
+	minimalSaver := saver.NewTxMinimal(false)
+	if err := minimalSaver.SaveTxs(s.ctx, dbi.WireBlockToBlock(
+		memo.GetBlockFromTxs([]*wire.MsgTx{bfGenesisTx.MsgTx}, &bfHeader1))); err != nil {
+		return fmt.Errorf("error saving backfill block 1; %w", err)
+	}
+	if err := minimalSaver.SaveTxs(s.ctx, dbi.WireBlockToBlock(
+		memo.GetBlockFromTxs([]*wire.MsgTx{
+			bfSends[2].MsgTx, bfSends[1].MsgTx, bfSends[0].MsgTx,
+		}, &bfHeader2))); err != nil {
+		return fmt.Errorf("error saving backfill block 2; %w", err)
+	}
+	var bfBlock1Hash = [32]byte(bfHeader1.BlockHash())
+	var bfBlock2Hash = [32]byte(bfHeader2.BlockHash())
+	if err := db.Save([]db.Object{
+		&chain.BlockHeight{BlockHash: bfBlock1Hash, Height: 700001},
+		&chain.BlockHeight{BlockHash: bfBlock2Hash, Height: 700002},
+	}); err != nil {
+		return fmt.Errorf("error saving backfill block heights; %w", err)
+	}
+	backfill := act_maint.NewSlpValidityBackfill(s.ctx, false)
+	if err := backfill.Run(); err != nil {
+		return fmt.Errorf("error running slp validity backfill; %w", err)
+	}
+	for _, bfTx := range bfTxs {
+		if err := s.checkStatus("backfill re-derived", bfTx, slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+			return err
+		}
+	}
+	// Single-pass proof: nothing parked pending (the CTOR-reversed chain
+	// resolved inside its chunk) and nothing fell to the mempool-tail cascade
+	if backfill.Pending != 0 {
+		return fmt.Errorf("error backfill left %d txs pending, expected single-pass resolution", backfill.Pending)
+	}
+	if backfill.MempoolTail != 0 {
+		return fmt.Errorf("error backfill sent %d txs to the mempool tail, expected all mined", backfill.MempoolTail)
+	}
+	if backfill.SlpTxs != int64(len(bfTxs)) {
+		return fmt.Errorf("error backfill validated %d txs, expected exactly the %d wiped ones", backfill.SlpTxs, len(bfTxs))
+	}
+	if backfill.Missing != 0 {
+		return fmt.Errorf("error backfill reported %d incomplete txs", backfill.Missing)
+	}
+	// Transcription rows must be restored by the backfill's batched pass
+	var bfGenesisRow = &item_slp.Genesis{TxHash: bfGenesisHash}
+	if err := db.GetItem(s.ctx, bfGenesisRow); err != nil {
+		return fmt.Errorf("error backfill genesis row not restored; %w", err)
+	}
+	for i, bfSend := range bfSends {
+		bfSendHash := txHash32(bfSend)
+		bfOutputs, err := item_slp.GetOutputs(s.ctx, []memo.Out{{TxHash: bfSendHash[:], Index: 1}})
+		if err != nil {
+			return fmt.Errorf("error getting backfill send %d output row; %w", i, err)
+		}
+		if len(bfOutputs) == 0 {
+			return fmt.Errorf("error backfill send %d output row not restored", i)
+		}
+	}
+	log.Printf("✓ block-ordered backfill re-derived the CTOR-reversed graph in one pass\n")
 	return nil
 }

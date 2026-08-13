@@ -50,6 +50,7 @@ func GetCommand() *cobra.Command {
 		"Scan all chain tx outputs for missed SLP txs (historical backfill / deep audit)")
 	slpValiditySweepCmd.Flags().Bool(FlagFresh, false,
 		"Audit only: ignore any saved resume cursor and start from the beginning (required after a wipe-and-repopulate)")
+	slpValidityBackfillCmd.Flags().BoolP(FlagVerbose, "v", false, "Print progress")
 	maintCommand.AddCommand(
 		compactCmd,
 		populateOpReturnsCmd,
@@ -71,6 +72,7 @@ func GetCommand() *cobra.Command {
 		setBlockHeightCmd,
 		purgeHeightIndexCmd,
 		slpValiditySweepCmd,
+		slpValidityBackfillCmd,
 	)
 	return maintCommand
 }
