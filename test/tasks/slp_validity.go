@@ -1,13 +1,11 @@
 package tasks
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
 	"github.com/memocash/index/db/client"
-	"github.com/memocash/index/db/item"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	item_slp "github.com/memocash/index/db/item/slp"
@@ -21,7 +19,6 @@ import (
 	slp_tx "github.com/memocash/index/ref/bitcoin/tx/slp"
 	"github.com/memocash/index/ref/bitcoin/util/testing/test_tx"
 	"github.com/memocash/index/ref/bitcoin/wallet"
-	"github.com/memocash/index/ref/config"
 	"github.com/memocash/index/ref/dbi"
 	"github.com/memocash/index/test/suite"
 	"log"
@@ -32,7 +29,8 @@ import (
 // queue shards: a token lifecycle (genesis, send, mint) is fed through the
 // full saver pipeline, alongside a fake send and fake mint with no valid
 // token inputs, out-of-order (child before parent) arrival, the
-// slp-validity-sweep index and audit backfills, and NFT1 group/child geneses.
+// slp-validity-sweep index sweep, the block-ordered slp-validity-backfill,
+// and NFT1 group/child geneses.
 var SlpValidity = suite.Test{
 	Name: TestSlpValidity,
 	Test: func(r *suite.TestRequest) error {
@@ -65,6 +63,27 @@ func txHash32(tx *memo.Tx) [32]byte {
 	var txHash [32]byte
 	copy(txHash[:], tx.GetHash())
 	return txHash
+}
+
+// mine writes block associations for txs at the given height (nonce makes the
+// block hash unique) via the minimal saver, which skips the live SLP handler,
+// so the block-ordered backfill can visit them without re-validating here.
+func (s *slpValidityState) mine(height int64, nonce uint32, txs ...*memo.Tx) error {
+	var msgTxs = make([]*wire.MsgTx, len(txs))
+	for i := range txs {
+		msgTxs[i] = txs[i].MsgTx
+	}
+	header := wire.BlockHeader{Timestamp: time.Unix(1700000000, 0), Nonce: nonce}
+	if err := saver.NewTxMinimal(false).SaveTxs(s.ctx, dbi.WireBlockToBlock(
+		memo.GetBlockFromTxs(msgTxs, &header))); err != nil {
+		return fmt.Errorf("error saving minimal block at height %d; %w", height, err)
+	}
+	if err := db.Save([]db.Object{
+		&chain.BlockHeight{BlockHash: [32]byte(header.BlockHash()), Height: height},
+	}); err != nil {
+		return fmt.Errorf("error saving block height %d; %w", height, err)
+	}
+	return nil
 }
 
 // checkStatus asserts a tx's stored verdict; status pending = no row.
@@ -461,7 +480,7 @@ func (s *slpValidityState) run() error {
 			return err
 		}
 	}
-	if err := act_maint.NewSlpValiditySweep(s.ctx, false, false).Run(); err != nil {
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false).Run(); err != nil {
 		return fmt.Errorf("error running slp validity index sweep; %w", err)
 	}
 	for _, tx := range backfillTxs {
@@ -471,9 +490,10 @@ func (s *slpValidityState) run() error {
 	}
 	log.Printf("✓ index sweep re-derived wiped verdicts\n")
 
-	// Audit backfill: strip a tx's verdict and transcription rows so the
+	// Deep backfill: strip a tx's verdict and transcription rows so the
 	// index sweep cannot enumerate it (simulating a tx the live path never
-	// transcribed), then verify only the tx-output audit finds it
+	// transcribed), then verify only the chain-tx-output backfill finds it.
+	// The backfill skips unmined txs, so the gap tx is mined first.
 	var gapTx = chainTxs[3] // last generation: nothing decided cascades to it
 	var gapHash = txHash32(gapTx)
 	if err := db.Remove([]db.Object{
@@ -482,35 +502,26 @@ func (s *slpValidityState) run() error {
 		&item_slp.Output{TxHash: gapHash, Index: 1},
 		&item_slp.Output{TxHash: gapHash, Index: 2},
 	}); err != nil {
-		return fmt.Errorf("error removing gap tx rows for audit simulation; %w", err)
+		return fmt.Errorf("error removing gap tx rows for backfill simulation; %w", err)
 	}
-	if err := act_maint.NewSlpValiditySweep(s.ctx, false, false).Run(); err != nil {
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false).Run(); err != nil {
 		return fmt.Errorf("error running slp validity index sweep with gap tx; %w", err)
 	}
 	if err := s.checkStatus("gap tx invisible to index sweep", gapTx, slp_tx.StatusPending, slp_tx.ReasonNone); err != nil {
 		return err
 	}
-	// Legacy cursor guard: the pre-dataset sweeper stored an 8-byte height
-	// under the same process status, which the audit must not resume from.
-	// A realistic legacy height (leading zero bytes) sorts before nearly
-	// every output uid, so seed the worst case instead: an 8-byte cursor
-	// sorting after every uid, which would skip the whole shard if resumed
-	for _, shardConfig := range config.GetQueueShards() {
-		legacy := item.NewProcessStatus(uint(shardConfig.Shard), item.ProcessStatusSlpValiditySweep)
-		legacy.Status = []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-		if err := legacy.Save(); err != nil {
-			return fmt.Errorf("error saving legacy cursor for shard %d; %w", shardConfig.Shard, err)
-		}
+	if err := s.mine(700011, 11, gapTx); err != nil {
+		return err
 	}
-	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).Run(); err != nil {
-		return fmt.Errorf("error running slp validity audit; %w", err)
+	if err := act_maint.NewSlpValidityBackfill(s.ctx, false).Run(); err != nil {
+		return fmt.Errorf("error running slp validity backfill for gap tx; %w", err)
 	}
-	if err := s.checkStatus("gap tx found by audit", gapTx, slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+	if err := s.checkStatus("gap tx found by backfill", gapTx, slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
 		return err
 	}
 	sendHashes, err := item_slp.GetTopicTxHashes(s.ctx, db.TopicSlpSend, db.GetShardIdFromByte32(gapHash[:]), nil)
 	if err != nil {
-		return fmt.Errorf("error getting slp send hashes after audit; %w", err)
+		return fmt.Errorf("error getting slp send hashes after backfill; %w", err)
 	}
 	var sendRestored bool
 	for _, sendHash := range sendHashes {
@@ -520,99 +531,16 @@ func (s *slpValidityState) run() error {
 		}
 	}
 	if !sendRestored {
-		return fmt.Errorf("error gap tx slp send row not restored by audit")
+		return fmt.Errorf("error gap tx slp send row not restored by backfill")
 	}
-	// A completed audit clears its per-shard resume cursors
-	for _, shardConfig := range config.GetQueueShards() {
-		status, err := item.GetProcessStatus(s.ctx, uint(shardConfig.Shard), item.ProcessStatusSlpValiditySweep)
-		if err != nil {
-			return fmt.Errorf("error getting audit cursor for shard %d; %w", shardConfig.Shard, err)
-		}
-		if len(status.Status) != 0 {
-			return fmt.Errorf("error audit cursor for shard %d not cleared: %x", shardConfig.Shard, status.Status)
-		}
-	}
-	log.Printf("✓ audit transcribed and validated the gap tx; cursors cleared\n")
-
-	// Stale cursor from a killed audit: a full-length cursor survives an
-	// slp-topic wipe (it lives in process_status) and silently skips
-	// everything before it. Seed a cursor sorting after every uid: a plain
-	// audit must skip the gap tx entirely, and a fresh audit must ignore the
-	// cursor and find it.
-	var seedStaleCursors = func() error {
-		for _, shardConfig := range config.GetQueueShards() {
-			stale := item.NewProcessStatus(uint(shardConfig.Shard), item.ProcessStatusSlpValiditySweep)
-			stale.Status = bytes.Repeat([]byte{0xff}, memo.TxHashLength+4)
-			if err := stale.Save(); err != nil {
-				return fmt.Errorf("error saving stale cursor for shard %d; %w", shardConfig.Shard, err)
-			}
-		}
-		return nil
-	}
-	if err := db.Remove([]db.Object{&item_slp.Validity{TxHash: gapHash}}); err != nil {
-		return fmt.Errorf("error removing gap tx verdict for stale cursor phase; %w", err)
-	}
-	if err := seedStaleCursors(); err != nil {
-		return err
-	}
-	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).Run(); err != nil {
-		return fmt.Errorf("error running slp validity audit with stale cursor; %w", err)
-	}
-	if err := s.checkStatus("gap tx skipped by stale-cursor audit", gapTx,
-		slp_tx.StatusPending, slp_tx.ReasonNone); err != nil {
-		return err
-	}
-	if err := seedStaleCursors(); err != nil {
-		return err
-	}
-	freshSweep := act_maint.NewSlpValiditySweep(s.ctx, false, true)
-	freshSweep.Fresh = true
-	if err := freshSweep.Run(); err != nil {
-		return fmt.Errorf("error running fresh slp validity audit; %w", err)
-	}
-	if err := s.checkStatus("gap tx found by fresh audit", gapTx, slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
-		return err
-	}
-	log.Printf("✓ fresh audit ignored the stale cursor\n")
-
-	// A fresh audit interrupted before its first page checkpoint must not
-	// leave the stale cursor durable: the clear happens up front, so a plain
-	// retry (without fresh) starts from the beginning. Simulate the
-	// interruption by running only the fresh startup step, then retrying
-	// normally.
-	if err := db.Remove([]db.Object{&item_slp.Validity{TxHash: gapHash}}); err != nil {
-		return fmt.Errorf("error removing gap tx verdict for interrupted fresh phase; %w", err)
-	}
-	if err := seedStaleCursors(); err != nil {
-		return err
-	}
-	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).ClearAuditCursors(); err != nil {
-		return fmt.Errorf("error clearing audit cursors for interrupted fresh phase; %w", err)
-	}
-	for _, shardConfig := range config.GetQueueShards() {
-		status, err := item.GetProcessStatus(s.ctx, uint(shardConfig.Shard), item.ProcessStatusSlpValiditySweep)
-		if err != nil && !client.IsMessageNotSetError(err) {
-			return fmt.Errorf("error getting cleared cursor for shard %d; %w", shardConfig.Shard, err)
-		}
-		if err == nil && len(status.Status) != 0 {
-			return fmt.Errorf("error stale cursor for shard %d not durably cleared: %x", shardConfig.Shard, status.Status)
-		}
-	}
-	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).Run(); err != nil {
-		return fmt.Errorf("error running plain audit after interrupted fresh; %w", err)
-	}
-	if err := s.checkStatus("gap tx found by plain retry after interrupted fresh", gapTx,
-		slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
-		return err
-	}
-	log.Printf("✓ interrupted fresh audit left no stale cursor for a plain retry\n")
+	log.Printf("✓ backfill transcribed and validated the gap tx\n")
 
 	// Repopulation window: the wipe-and-repopulate deploy leaves chain rows
 	// intact while slp rows are missing until the async repopulation reaches
 	// them. Simulate a send whose token's genesis is not yet repopulated: the
 	// genesis's transcription rows and the pair's verdicts are stripped, and
 	// the index sweep must leave the send pending - never invalid - until the
-	// genesis is re-transcribed (audit), whose verdict then cascades to it.
+	// genesis is re-transcribed (backfill), whose verdict then resolves it.
 	var genesisHash = txHash32(genesisTx)
 	if err := db.Remove([]db.Object{
 		&item_slp.Genesis{TxHash: genesisHash},
@@ -623,17 +551,22 @@ func (s *slpValidityState) run() error {
 	}); err != nil {
 		return fmt.Errorf("error removing genesis rows for repopulation simulation; %w", err)
 	}
-	if err := act_maint.NewSlpValiditySweep(s.ctx, false, false).Run(); err != nil {
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false).Run(); err != nil {
 		return fmt.Errorf("error running slp validity index sweep with missing genesis; %w", err)
 	}
 	if err := s.checkStatus("send with unrepopulated genesis stays pending", send1,
 		slp_tx.StatusPending, slp_tx.ReasonNone); err != nil {
 		return err
 	}
-	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).Run(); err != nil {
-		return fmt.Errorf("error running slp validity audit to repopulate genesis; %w", err)
+	// One block holding parent and child: the in-chunk topo sort must put the
+	// genesis first and the send resolves in the same validation call
+	if err := s.mine(700012, 12, genesisTx, send1); err != nil {
+		return err
 	}
-	if err := s.checkStatus("genesis repopulated by audit", genesisTx,
+	if err := act_maint.NewSlpValidityBackfill(s.ctx, false).Run(); err != nil {
+		return fmt.Errorf("error running slp validity backfill to repopulate genesis; %w", err)
+	}
+	if err := s.checkStatus("genesis repopulated by backfill", genesisTx,
 		slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
 		return err
 	}
@@ -670,7 +603,7 @@ func (s *slpValidityState) run() error {
 			return err
 		}
 	}
-	if err := act_maint.NewSlpValiditySweep(s.ctx, false, false).Run(); err != nil {
+	if err := act_maint.NewSlpValiditySweep(s.ctx, false).Run(); err != nil {
 		return fmt.Errorf("error running slp validity sweep for cascade transcription phase; %w", err)
 	}
 	for i := 0; i < 4; i++ {
@@ -781,7 +714,7 @@ func (s *slpValidityState) run() error {
 		}
 		return origCascadeTranscribe(txs)
 	}
-	sweepErr := act_maint.NewSlpValiditySweep(s.ctx, false, false).Run()
+	sweepErr := act_maint.NewSlpValiditySweep(s.ctx, false).Run()
 	if sweepErr != nil {
 		slp_validate.CascadeTranscribe = origCascadeTranscribe
 		return fmt.Errorf("error running sweep for fan-in phase; %w", sweepErr)
@@ -813,7 +746,7 @@ func (s *slpValidityState) run() error {
 		slp_validate.CascadeTranscribe = origCascadeTranscribe
 		return fmt.Errorf("error removing fan-in spender rows for second cascade; %w", err)
 	}
-	sweepErr = act_maint.NewSlpValiditySweep(s.ctx, false, false).Run()
+	sweepErr = act_maint.NewSlpValiditySweep(s.ctx, false).Run()
 	slp_validate.CascadeTranscribe = origCascadeTranscribe
 	if sweepErr != nil {
 		return fmt.Errorf("error running second sweep for fan-in phase; %w", sweepErr)
@@ -895,12 +828,13 @@ func (s *slpValidityState) run() error {
 	}
 	log.Printf("✓ secondary op_return message left no token-B rows\n")
 
-	// Audit re-poison guard: strip the poison tx's derived rows + verdict and
-	// run the audit backfill. The tx carries a token-A message at vout 0 and a
-	// token-B message at a later output; the audit must re-transcribe only the
-	// vout-0 message (the transcribe() vout-0 gate), restoring token-A rows
-	// and never re-poisoning token-B rows. This exercises the recovery path,
-	// which the live-handler poison assertion above does not.
+	// Backfill re-poison guard: strip the poison tx's derived rows + verdict,
+	// mine it, and run the backfill. The tx carries a token-A message at vout
+	// 0 and a token-B message at a later output; the backfill must
+	// re-transcribe only the vout-0 message (the transcribe() vout-0 gate),
+	// restoring token-A rows and never re-poisoning token-B rows. This
+	// exercises the recovery path, which the live-handler poison assertion
+	// above does not.
 	poisonHash := txHash32(poisonTx)
 	if err := db.Remove([]db.Object{
 		&item_slp.Send{TxHash: poisonHash},
@@ -908,44 +842,47 @@ func (s *slpValidityState) run() error {
 		&item_slp.Output{TxHash: poisonHash, Index: 2},
 		&item_slp.Validity{TxHash: poisonHash},
 	}); err != nil {
-		return fmt.Errorf("error removing poison tx rows for audit guard; %w", err)
+		return fmt.Errorf("error removing poison tx rows for backfill guard; %w", err)
 	}
-	if err := act_maint.NewSlpValiditySweep(s.ctx, false, true).Run(); err != nil {
-		return fmt.Errorf("error running audit for poison guard; %w", err)
+	if err := s.mine(700013, 13, poisonTx); err != nil {
+		return err
 	}
-	if err := s.checkStatus("poison tx re-validated by audit", poisonTx,
+	if err := act_maint.NewSlpValidityBackfill(s.ctx, false).Run(); err != nil {
+		return fmt.Errorf("error running backfill for poison guard; %w", err)
+	}
+	if err := s.checkStatus("poison tx re-validated by backfill", poisonTx,
 		slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
 		return err
 	}
-	var poisonSendAudit = &item_slp.Send{TxHash: poisonHash}
-	if err := db.GetItem(s.ctx, poisonSendAudit); err != nil {
-		return fmt.Errorf("error getting poison tx send row after audit; %w", err)
+	var poisonSendBackfill = &item_slp.Send{TxHash: poisonHash}
+	if err := db.GetItem(s.ctx, poisonSendBackfill); err != nil {
+		return fmt.Errorf("error getting poison tx send row after backfill; %w", err)
 	}
-	if poisonSendAudit.TokenHash != tokenAHash {
-		return fmt.Errorf("error audit restored poison send row as token %x, expected token A (audit re-transcribed a later message)",
-			poisonSendAudit.TokenHash)
+	if poisonSendBackfill.TokenHash != tokenAHash {
+		return fmt.Errorf("error backfill restored poison send row as token %x, expected token A (backfill re-transcribed a later message)",
+			poisonSendBackfill.TokenHash)
 	}
-	poisonOutsAudit, err := item_slp.GetOutputs(s.ctx, []memo.Out{
+	poisonOutsBackfill, err := item_slp.GetOutputs(s.ctx, []memo.Out{
 		{TxHash: poisonTx.GetHash(), Index: 1},
 		{TxHash: poisonTx.GetHash(), Index: 2},
 		{TxHash: poisonTx.GetHash(), Index: 3},
 	})
 	if err != nil {
-		return fmt.Errorf("error getting poison tx outputs after audit; %w", err)
+		return fmt.Errorf("error getting poison tx outputs after backfill; %w", err)
 	}
 	var tokenAOuts int
-	for _, out := range poisonOutsAudit {
+	for _, out := range poisonOutsBackfill {
 		if out.TokenHash == tokenB {
-			return fmt.Errorf("error audit re-poisoned output %d with token B", out.Index)
+			return fmt.Errorf("error backfill re-poisoned output %d with token B", out.Index)
 		}
 		if out.TokenHash == tokenAHash {
 			tokenAOuts++
 		}
 	}
 	if tokenAOuts != 2 {
-		return fmt.Errorf("error audit restored %d token-A outputs, expected 2", tokenAOuts)
+		return fmt.Errorf("error backfill restored %d token-A outputs, expected 2", tokenAOuts)
 	}
-	log.Printf("✓ audit re-transcribed only the vout-0 message\n")
+	log.Printf("✓ backfill re-transcribed only the vout-0 message\n")
 
 	// Cascade later-lokad spender guard: a tx with a plain (non-SLP) vout 0
 	// and an SLP lokad only in a later output is not an SLP action. When it is
@@ -1134,7 +1071,7 @@ func (s *slpValidityState) run() error {
 	// re-derive the whole graph in a single validation pass per chunk: the
 	// topo sort puts parents first and in-call verdict visibility resolves
 	// the chain without cascade rounds, so nothing may end up pending and
-	// nothing may fall to the mempool-tail cascade.
+	// nothing may be skipped as unmined.
 	_, bfFundUtxo, err := s.fund(1e6)
 	if err != nil {
 		return err
@@ -1205,28 +1142,13 @@ func (s *slpValidityState) run() error {
 		}
 	}
 	// Mine: genesis alone at the lower height; the sends in one later block
-	// in child-first in-block order. TxMinimal writes the block associations
-	// without re-running the live SLP handler (which would re-validate here)
-	var bfHeader1 = wire.BlockHeader{Timestamp: time.Unix(1700000000, 0), Nonce: 1}
-	var bfHeader2 = wire.BlockHeader{Timestamp: time.Unix(1700000000, 0), Nonce: 2}
-	minimalSaver := saver.NewTxMinimal(false)
-	if err := minimalSaver.SaveTxs(s.ctx, dbi.WireBlockToBlock(
-		memo.GetBlockFromTxs([]*wire.MsgTx{bfGenesisTx.MsgTx}, &bfHeader1))); err != nil {
-		return fmt.Errorf("error saving backfill block 1; %w", err)
+	// in child-first in-block order (mine skips the live SLP handler, which
+	// would re-validate here)
+	if err := s.mine(700001, 1, bfGenesisTx); err != nil {
+		return err
 	}
-	if err := minimalSaver.SaveTxs(s.ctx, dbi.WireBlockToBlock(
-		memo.GetBlockFromTxs([]*wire.MsgTx{
-			bfSends[2].MsgTx, bfSends[1].MsgTx, bfSends[0].MsgTx,
-		}, &bfHeader2))); err != nil {
-		return fmt.Errorf("error saving backfill block 2; %w", err)
-	}
-	var bfBlock1Hash = [32]byte(bfHeader1.BlockHash())
-	var bfBlock2Hash = [32]byte(bfHeader2.BlockHash())
-	if err := db.Save([]db.Object{
-		&chain.BlockHeight{BlockHash: bfBlock1Hash, Height: 700001},
-		&chain.BlockHeight{BlockHash: bfBlock2Hash, Height: 700002},
-	}); err != nil {
-		return fmt.Errorf("error saving backfill block heights; %w", err)
+	if err := s.mine(700002, 2, bfSends[2], bfSends[1], bfSends[0]); err != nil {
+		return err
 	}
 	backfill := act_maint.NewSlpValidityBackfill(s.ctx, false)
 	if err := backfill.Run(); err != nil {
@@ -1238,12 +1160,12 @@ func (s *slpValidityState) run() error {
 		}
 	}
 	// Single-pass proof: nothing parked pending (the CTOR-reversed chain
-	// resolved inside its chunk) and nothing fell to the mempool-tail cascade
+	// resolved inside its chunk) and nothing was skipped as unmined
 	if backfill.Pending != 0 {
 		return fmt.Errorf("error backfill left %d txs pending, expected single-pass resolution", backfill.Pending)
 	}
 	if backfill.MempoolTail != 0 {
-		return fmt.Errorf("error backfill sent %d txs to the mempool tail, expected all mined", backfill.MempoolTail)
+		return fmt.Errorf("error backfill skipped %d txs as unmined, expected all mined", backfill.MempoolTail)
 	}
 	if backfill.SlpTxs != int64(len(bfTxs)) {
 		return fmt.Errorf("error backfill validated %d txs, expected exactly the %d wiped ones", backfill.SlpTxs, len(bfTxs))

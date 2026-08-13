@@ -100,7 +100,7 @@ func getPendingSpenders(ctx context.Context, txHashes [][32]byte, transcribed ma
 		return nil, fmt.Errorf("error reconstructing spender txs for slp cascade; %w", err)
 	}
 	// Spenders found by the cascade may not have been transcribed yet (the
-	// audit sweep or live path may simply not have reached them); their
+	// backfill, sweep, or live path may simply not have reached them); their
 	// verdicts land now, so their rows must too, or descendants would read
 	// the missing rows as contributing nothing and go falsely invalid
 	var toTranscribe = make([]Tx, 0, len(slpTxs))

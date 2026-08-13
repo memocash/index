@@ -97,8 +97,8 @@ type Prefix struct {
 
 // GetByPrefixes returns messages.
 //
-// Deprecated: Use Search instead; a prefix query is the pattern arm
-// {Uid: NewPatternPrefix(prefix)}.
+// Deprecated: Use GetFiltered instead; a prefix query is the pattern arm
+// {Uid: &Pattern{Parts: [][]byte{prefix}, AnchorStart: true}}.
 func GetByPrefixes(request RequestByPrefixes) ([]*Message, error) {
 	db, err := getDb(request.Topic, request.Shard)
 	if err != nil {

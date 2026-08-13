@@ -13,11 +13,11 @@ import (
 
 const testTopic = "server-test"
 
-// TestSearchPartlessPattern pins that a protobuf-valid pattern with anchors
-// but no parts — documented to match everything — flows through the handler
-// as a full-range scan instead of panicking the serving process (an invalid
-// client can send this shape remotely).
-func TestSearchPartlessPattern(t *testing.T) {
+// TestGetFilteredPartlessPattern pins that a protobuf-valid pattern with
+// anchors but no parts — documented to match everything — flows through the
+// handler as a full-range scan instead of panicking the serving process (an
+// invalid client can send this shape remotely).
+func TestGetFilteredPartlessPattern(t *testing.T) {
 	database, err := leveldb.OpenFile(filepath.Join(t.TempDir(), "db"), nil)
 	if err != nil {
 		t.Fatalf("error opening level db; %v", err)
@@ -37,12 +37,12 @@ func TestSearchPartlessPattern(t *testing.T) {
 		{AnchorEnd: true},
 		{AnchorStart: true, AnchorEnd: true},
 	} {
-		reply, err := s.Search(context.Background(), &queue_pb.SearchRequest{
+		reply, err := s.GetFiltered(context.Background(), &queue_pb.FilterRequest{
 			Topic:    testTopic,
-			Patterns: []*queue_pb.SearchPattern{{Uid: pattern}},
+			Patterns: []*queue_pb.FilterPattern{{Uid: pattern}},
 		})
 		if err != nil {
-			t.Fatalf("pattern %+v: error searching; %v", pattern, err)
+			t.Fatalf("pattern %+v: error getting filtered; %v", pattern, err)
 		}
 		if len(reply.Messages) != 2 {
 			t.Errorf("pattern %+v: got %d messages, want 2", pattern, len(reply.Messages))

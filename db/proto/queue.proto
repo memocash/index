@@ -13,12 +13,12 @@ service Queue {
   }
   rpc GetMessages (Request) returns (Messages) {
   }
-  // Deprecated: use Search, which subsumes prefix queries (a prefix is the
-  // pattern arm {uid: {parts: [prefix], anchor_start: true}}).
+  // Deprecated: use GetFiltered, which subsumes prefix queries (a prefix is
+  // the pattern arm {uid: {parts: [prefix], anchor_start: true}}).
   rpc GetByPrefixes (RequestPrefixes) returns (Messages) {
     option deprecated = true;
   }
-  rpc Search (SearchRequest) returns (Messages) {
+  rpc GetFiltered (FilterRequest) returns (Messages) {
   }
   rpc GetStreamMessages(RequestStream) returns (stream Message) {
   }
@@ -104,17 +104,18 @@ message RequestPrefix {
   uint32 limit = 3;
 }
 
-message SearchRequest {
+message FilterRequest {
   string topic = 1;
-  repeated SearchPattern patterns = 2;
+  repeated FilterPattern patterns = 2;
   uint32 limit = 3;
   Order order = 4;
 }
 
-// SearchPattern is one arm of a search; arms are returned in order. Callers
-// page keyset-style: asc resumes with start = last returned uid + 0x00, desc
-// resumes with start = last returned uid; a short page = range exhausted.
-message SearchPattern {
+// FilterPattern is one arm of a filtered get; arms are returned in order.
+// Callers page keyset-style: asc resumes with start = last returned uid +
+// 0x00, desc resumes with start = last returned uid; a short page = range
+// exhausted.
+message FilterPattern {
   Pattern uid = 1;
   Pattern data = 2;
   bytes start = 3; // asc: inclusive lower bound; desc: exclusive upper bound

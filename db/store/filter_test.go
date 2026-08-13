@@ -10,6 +10,20 @@ import (
 	"github.com/memocash/index/db/store"
 )
 
+// Pattern constructors live in db/client (the store package never builds
+// patterns itself); the tests build the same shapes locally.
+func patternPrefix(b []byte) *store.Pattern {
+	return &store.Pattern{Parts: [][]byte{b}, AnchorStart: true}
+}
+
+func patternContains(b []byte) *store.Pattern {
+	return &store.Pattern{Parts: [][]byte{b}}
+}
+
+func patternSuffix(b []byte) *store.Pattern {
+	return &store.Pattern{Parts: [][]byte{b}, AnchorEnd: true}
+}
+
 func TestPatternMatch(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -20,14 +34,14 @@ func TestPatternMatch(t *testing.T) {
 		{"nil pattern matches", nil, []byte("anything"), true},
 		{"empty parts matches", &store.Pattern{}, []byte("anything"), true},
 		{"empty parts matches empty", &store.Pattern{}, nil, true},
-		{"contains hit", store.NewPatternContains([]byte("ell")), []byte("hello"), true},
-		{"contains miss", store.NewPatternContains([]byte("elle")), []byte("hello"), false},
-		{"contains percent byte", store.NewPatternContains([]byte{0x25}), []byte{0x01, 0x25, 0x02}, true},
-		{"contains percent byte miss", store.NewPatternContains([]byte{0x25}), []byte{0x01, 0x02}, false},
-		{"prefix hit", store.NewPatternPrefix([]byte("he")), []byte("hello"), true},
-		{"prefix miss mid-match", store.NewPatternPrefix([]byte("el")), []byte("hello"), false},
-		{"suffix hit", store.NewPatternSuffix([]byte("lo")), []byte("hello"), true},
-		{"suffix miss", store.NewPatternSuffix([]byte("ll")), []byte("hello"), false},
+		{"contains hit", patternContains([]byte("ell")), []byte("hello"), true},
+		{"contains miss", patternContains([]byte("elle")), []byte("hello"), false},
+		{"contains percent byte", patternContains([]byte{0x25}), []byte{0x01, 0x25, 0x02}, true},
+		{"contains percent byte miss", patternContains([]byte{0x25}), []byte{0x01, 0x02}, false},
+		{"prefix hit", patternPrefix([]byte("he")), []byte("hello"), true},
+		{"prefix miss mid-match", patternPrefix([]byte("el")), []byte("hello"), false},
+		{"suffix hit", patternSuffix([]byte("lo")), []byte("hello"), true},
+		{"suffix miss", patternSuffix([]byte("ll")), []byte("hello"), false},
 		{"exact hit", &store.Pattern{Parts: [][]byte{[]byte("a")}, AnchorStart: true, AnchorEnd: true}, []byte("a"), true},
 		{"exact miss repeat", &store.Pattern{Parts: [][]byte{[]byte("a")}, AnchorStart: true, AnchorEnd: true}, []byte("aa"), false},
 		{"two parts gap", &store.Pattern{Parts: [][]byte{[]byte("ab"), []byte("cd")}}, []byte("xabycdz"), true},
@@ -55,7 +69,7 @@ var binaryMessages = []*store.Message{
 	{Uid: []byte{0x11, 0x01}, Message: []byte{0x25}},
 }
 
-func initSearchTestDb(t *testing.T) {
+func initFilterTestDb(t *testing.T) {
 	if err := initTestDb(); err != nil {
 		t.Fatalf("error initializing test db; %v", err)
 	}
@@ -64,20 +78,20 @@ func initSearchTestDb(t *testing.T) {
 	}
 }
 
-func search(t *testing.T, request store.SearchRequest) []*store.Message {
+func getFiltered(t *testing.T, request store.FilterRequest) []*store.Message {
 	t.Helper()
 	request.Topic = TestTopic
 	request.Shard = TestShard
-	messages, err := store.Search(context.Background(), request)
+	messages, err := store.GetFiltered(context.Background(), request)
 	if err != nil {
-		t.Fatalf("error searching messages; %v", err)
+		t.Fatalf("error getting filtered messages; %v", err)
 	}
 	return messages
 }
 
-func searchSingle(t *testing.T, pattern store.SearchPattern, limit int) []*store.Message {
+func getFilteredSingle(t *testing.T, pattern store.FilterPattern, limit int) []*store.Message {
 	t.Helper()
-	return search(t, store.SearchRequest{Patterns: []store.SearchPattern{pattern}, Limit: limit})
+	return getFiltered(t, store.FilterRequest{Patterns: []store.FilterPattern{pattern}, Limit: limit})
 }
 
 func checkUids(t *testing.T, messages []*store.Message, expected ...[]byte) {
@@ -99,29 +113,29 @@ func nextStartAsc(messages []*store.Message) []byte {
 	return append(store.GetPtrSlice(last.Uid), 0x00)
 }
 
-func TestSearch(t *testing.T) {
-	initSearchTestDb(t)
+func TestGetFiltered(t *testing.T) {
+	initFilterTestDb(t)
 	defer store.CloseAll()
 
 	t.Run("uid suffix", func(t *testing.T) {
-		messages := searchSingle(t, store.SearchPattern{Uid: store.NewPatternSuffix([]byte("-3"))}, 0)
+		messages := getFilteredSingle(t, store.FilterPattern{Uid: patternSuffix([]byte("-3"))}, 0)
 		checkUids(t, messages, testMessageOther3.Uid, testMessageTest3.Uid)
 	})
 
 	t.Run("uid contains binary percent", func(t *testing.T) {
-		messages := searchSingle(t, store.SearchPattern{Uid: store.NewPatternContains([]byte{0x25})}, 0)
+		messages := getFilteredSingle(t, store.FilterPattern{Uid: patternContains([]byte{0x25})}, 0)
 		checkUids(t, messages, binaryMessages[0].Uid, binaryMessages[1].Uid)
 	})
 
 	t.Run("data filter only", func(t *testing.T) {
-		messages := searchSingle(t, store.SearchPattern{Data: store.NewPatternContains([]byte("message-7"))}, 0)
+		messages := getFilteredSingle(t, store.FilterPattern{Data: patternContains([]byte("message-7"))}, 0)
 		checkUids(t, messages, testMessageOther7.Uid, testMessageTest7.Uid)
 	})
 
 	t.Run("anchored uid with data filter", func(t *testing.T) {
-		messages := searchSingle(t, store.SearchPattern{
-			Uid:  store.NewPatternPrefix([]byte(PrefixTest)),
-			Data: store.NewPatternSuffix([]byte("-5")),
+		messages := getFilteredSingle(t, store.FilterPattern{
+			Uid:  patternPrefix([]byte(PrefixTest)),
+			Data: patternSuffix([]byte("-5")),
 		}, 0)
 		checkUids(t, messages, testMessageTest5.Uid)
 	})
@@ -135,7 +149,7 @@ func TestSearch(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error getting legacy prefix messages; %v", err)
 		}
-		pattern := searchSingle(t, store.SearchPattern{Uid: store.NewPatternPrefix([]byte(PrefixTest))}, 0)
+		pattern := getFilteredSingle(t, store.FilterPattern{Uid: patternPrefix([]byte(PrefixTest))}, 0)
 		if len(legacy) != len(pattern) {
 			t.Fatalf("legacy count = %d, pattern count = %d", len(legacy), len(pattern))
 		}
@@ -147,9 +161,9 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("multiple arms return in arm order", func(t *testing.T) {
-		messages := search(t, store.SearchRequest{Patterns: []store.SearchPattern{
-			{Uid: store.NewPatternSuffix([]byte("-3"))},
-			{Uid: store.NewPatternSuffix([]byte("-7"))},
+		messages := getFiltered(t, store.FilterRequest{Patterns: []store.FilterPattern{
+			{Uid: patternSuffix([]byte("-3"))},
+			{Uid: patternSuffix([]byte("-7"))},
 		}})
 		checkUids(t, messages,
 			testMessageOther3.Uid, testMessageTest3.Uid,
@@ -157,16 +171,16 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request limit truncates across arms", func(t *testing.T) {
-		messages := search(t, store.SearchRequest{Patterns: []store.SearchPattern{
-			{Uid: store.NewPatternSuffix([]byte("-3"))},
-			{Uid: store.NewPatternSuffix([]byte("-7"))},
+		messages := getFiltered(t, store.FilterRequest{Patterns: []store.FilterPattern{
+			{Uid: patternSuffix([]byte("-3"))},
+			{Uid: patternSuffix([]byte("-7"))},
 		}, Limit: 3})
 		checkUids(t, messages,
 			testMessageOther3.Uid, testMessageTest3.Uid, testMessageOther7.Uid)
 	})
 
 	t.Run("empty request matches all", func(t *testing.T) {
-		messages := search(t, store.SearchRequest{})
+		messages := getFiltered(t, store.FilterRequest{})
 		if len(messages) != 23 {
 			t.Errorf("got %d messages, want 23", len(messages))
 		}
@@ -183,7 +197,7 @@ func TestSearch(t *testing.T) {
 			{AnchorStart: true, AnchorEnd: true},
 			{Parts: [][]byte{{}}, AnchorStart: true}, // empty first part
 		} {
-			messages := searchSingle(t, store.SearchPattern{Uid: pattern}, 0)
+			messages := getFilteredSingle(t, store.FilterPattern{Uid: pattern}, 0)
 			if len(messages) != 23 {
 				t.Errorf("pattern %+v: got %d messages, want 23", pattern, len(messages))
 			}
@@ -191,70 +205,70 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("part-less data pattern matches all", func(t *testing.T) {
-		messages := searchSingle(t, store.SearchPattern{Data: &store.Pattern{AnchorStart: true}}, 0)
+		messages := getFilteredSingle(t, store.FilterPattern{Data: &store.Pattern{AnchorStart: true}}, 0)
 		if len(messages) != 23 {
 			t.Errorf("got %d messages, want 23", len(messages))
 		}
 	})
 
 	t.Run("no matches", func(t *testing.T) {
-		messages := searchSingle(t, store.SearchPattern{Uid: store.NewPatternContains([]byte("missing"))}, 0)
+		messages := getFilteredSingle(t, store.FilterPattern{Uid: patternContains([]byte("missing"))}, 0)
 		if len(messages) != 0 {
 			t.Errorf("got %d messages, want 0", len(messages))
 		}
 	})
 
 	t.Run("desc reverses order", func(t *testing.T) {
-		messages, err := store.Search(context.Background(), store.SearchRequest{
+		messages, err := store.GetFiltered(context.Background(), store.FilterRequest{
 			Topic:    TestTopic,
 			Shard:    TestShard,
-			Patterns: []store.SearchPattern{{Uid: store.NewPatternSuffix([]byte("-3"))}},
+			Patterns: []store.FilterPattern{{Uid: patternSuffix([]byte("-3"))}},
 			Desc:     true,
 		})
 		if err != nil {
-			t.Fatalf("error searching desc; %v", err)
+			t.Fatalf("error getting filtered desc; %v", err)
 		}
 		checkUids(t, messages, testMessageTest3.Uid, testMessageOther3.Uid)
 	})
 }
 
-// TestSearchCanceled pins that a search scan observes context cancellation:
-// a sparse pattern iterates a whole topic, and an abandoned RPC must stop the
-// server-side work instead of burning disk and CPU to the end of the range.
-// The check runs on the first scanned row, so a dead context fails
-// immediately regardless of topic size.
-func TestSearchCanceled(t *testing.T) {
-	initSearchTestDb(t)
+// TestGetFilteredCanceled pins that a filter scan observes context
+// cancellation: a sparse pattern iterates a whole topic, and an abandoned RPC
+// must stop the server-side work instead of burning disk and CPU to the end
+// of the range. The check runs on the first scanned row, so a dead context
+// fails immediately regardless of topic size.
+func TestGetFilteredCanceled(t *testing.T) {
+	initFilterTestDb(t)
 	defer store.CloseAll()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := store.Search(ctx, store.SearchRequest{
+	_, err := store.GetFiltered(ctx, store.FilterRequest{
 		Topic:    TestTopic,
 		Shard:    TestShard,
-		Patterns: []store.SearchPattern{{Uid: store.NewPatternContains([]byte("missing"))}},
+		Patterns: []store.FilterPattern{{Uid: patternContains([]byte("missing"))}},
 	})
 	if err == nil {
-		t.Fatalf("expected error for canceled search scan, got nil")
+		t.Fatalf("expected error for canceled filter scan, got nil")
 	}
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
 
-// TestSearchPaging pins the keyset-pagination contract in both directions:
-// page with a limit, resume asc from last-returned-uid + 0x00 or desc from
-// last-returned-uid (exclusive upper bound), stop on a short page; the union
-// of pages equals one unpaged scan.
-func TestSearchPaging(t *testing.T) {
-	initSearchTestDb(t)
+// TestGetFilteredPaging pins the keyset-pagination contract in both
+// directions: page with a limit, resume asc from last-returned-uid + 0x00 or
+// desc from last-returned-uid (exclusive upper bound), stop on a short page;
+// the union of pages equals one unpaged scan.
+func TestGetFilteredPaging(t *testing.T) {
+	initFilterTestDb(t)
 	defer store.CloseAll()
 
 	for _, desc := range []bool{false, true} {
-		full, err := store.Search(context.Background(), store.SearchRequest{
+		full, err := store.GetFiltered(context.Background(), store.FilterRequest{
 			Topic:    TestTopic,
 			Shard:    TestShard,
-			Patterns: []store.SearchPattern{{Data: store.NewPatternContains([]byte("message"))}},
+			Patterns: []store.FilterPattern{{Data: patternContains([]byte("message"))}},
 			Desc:     desc,
 		})
 		if err != nil {
@@ -272,12 +286,12 @@ func TestSearchPaging(t *testing.T) {
 					if calls > len(full)+1 {
 						t.Fatalf("paging loop did not terminate")
 					}
-					messages, err := store.Search(context.Background(), store.SearchRequest{
+					messages, err := store.GetFiltered(context.Background(), store.FilterRequest{
 						Topic: TestTopic,
 						Shard: TestShard,
-						Patterns: []store.SearchPattern{{
+						Patterns: []store.FilterPattern{{
 							Start: start,
-							Data:  store.NewPatternContains([]byte("message")),
+							Data:  patternContains([]byte("message")),
 						}},
 						Limit: limit,
 						Desc:  desc,
@@ -308,20 +322,20 @@ func TestSearchPaging(t *testing.T) {
 	}
 }
 
-func TestSearchPatternMax(t *testing.T) {
-	initSearchTestDb(t)
+func TestGetFilteredPatternMax(t *testing.T) {
+	initFilterTestDb(t)
 	defer store.CloseAll()
 
-	messages := searchSingle(t, store.SearchPattern{
-		Data: store.NewPatternContains([]byte("message")),
+	messages := getFilteredSingle(t, store.FilterPattern{
+		Data: patternContains([]byte("message")),
 		Max:  5,
 	}, 0)
 	if len(messages) != 5 {
 		t.Fatalf("message count = %d, want 5 (per-arm max)", len(messages))
 	}
-	rest := searchSingle(t, store.SearchPattern{
+	rest := getFilteredSingle(t, store.FilterPattern{
 		Start: nextStartAsc(messages),
-		Data:  store.NewPatternContains([]byte("message")),
+		Data:  patternContains([]byte("message")),
 	}, 0)
 	if len(rest) != 15 {
 		t.Errorf("rest count = %d, want 15", len(rest))

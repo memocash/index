@@ -24,7 +24,7 @@ const (
 	Queue_GetMessage_FullMethodName        = "/queue_pb.Queue/GetMessage"
 	Queue_GetMessages_FullMethodName       = "/queue_pb.Queue/GetMessages"
 	Queue_GetByPrefixes_FullMethodName     = "/queue_pb.Queue/GetByPrefixes"
-	Queue_Search_FullMethodName            = "/queue_pb.Queue/Search"
+	Queue_GetFiltered_FullMethodName       = "/queue_pb.Queue/GetFiltered"
 	Queue_GetStreamMessages_FullMethodName = "/queue_pb.Queue/GetStreamMessages"
 	Queue_GetTopicList_FullMethodName      = "/queue_pb.Queue/GetTopicList"
 	Queue_GetMessageCount_FullMethodName   = "/queue_pb.Queue/GetMessageCount"
@@ -40,10 +40,10 @@ type QueueClient interface {
 	GetMessage(ctx context.Context, in *RequestSingle, opts ...grpc.CallOption) (*Message, error)
 	GetMessages(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Messages, error)
 	// Deprecated: Do not use.
-	// Deprecated: use Search, which subsumes prefix queries (a prefix is the
-	// pattern arm {uid: {parts: [prefix], anchor_start: true}}).
+	// Deprecated: use GetFiltered, which subsumes prefix queries (a prefix is
+	// the pattern arm {uid: {parts: [prefix], anchor_start: true}}).
 	GetByPrefixes(ctx context.Context, in *RequestPrefixes, opts ...grpc.CallOption) (*Messages, error)
-	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*Messages, error)
+	GetFiltered(ctx context.Context, in *FilterRequest, opts ...grpc.CallOption) (*Messages, error)
 	GetStreamMessages(ctx context.Context, in *RequestStream, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Message], error)
 	GetTopicList(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*TopicListReply, error)
 	GetMessageCount(ctx context.Context, in *CountRequest, opts ...grpc.CallOption) (*TopicCount, error)
@@ -109,10 +109,10 @@ func (c *queueClient) GetByPrefixes(ctx context.Context, in *RequestPrefixes, op
 	return out, nil
 }
 
-func (c *queueClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*Messages, error) {
+func (c *queueClient) GetFiltered(ctx context.Context, in *FilterRequest, opts ...grpc.CallOption) (*Messages, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Messages)
-	err := c.cc.Invoke(ctx, Queue_Search_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Queue_GetFiltered_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -177,10 +177,10 @@ type QueueServer interface {
 	GetMessage(context.Context, *RequestSingle) (*Message, error)
 	GetMessages(context.Context, *Request) (*Messages, error)
 	// Deprecated: Do not use.
-	// Deprecated: use Search, which subsumes prefix queries (a prefix is the
-	// pattern arm {uid: {parts: [prefix], anchor_start: true}}).
+	// Deprecated: use GetFiltered, which subsumes prefix queries (a prefix is
+	// the pattern arm {uid: {parts: [prefix], anchor_start: true}}).
 	GetByPrefixes(context.Context, *RequestPrefixes) (*Messages, error)
-	Search(context.Context, *SearchRequest) (*Messages, error)
+	GetFiltered(context.Context, *FilterRequest) (*Messages, error)
 	GetStreamMessages(*RequestStream, grpc.ServerStreamingServer[Message]) error
 	GetTopicList(context.Context, *EmptyRequest) (*TopicListReply, error)
 	GetMessageCount(context.Context, *CountRequest) (*TopicCount, error)
@@ -210,8 +210,8 @@ func (UnimplementedQueueServer) GetMessages(context.Context, *Request) (*Message
 func (UnimplementedQueueServer) GetByPrefixes(context.Context, *RequestPrefixes) (*Messages, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetByPrefixes not implemented")
 }
-func (UnimplementedQueueServer) Search(context.Context, *SearchRequest) (*Messages, error) {
-	return nil, status.Error(codes.Unimplemented, "method Search not implemented")
+func (UnimplementedQueueServer) GetFiltered(context.Context, *FilterRequest) (*Messages, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFiltered not implemented")
 }
 func (UnimplementedQueueServer) GetStreamMessages(*RequestStream, grpc.ServerStreamingServer[Message]) error {
 	return status.Error(codes.Unimplemented, "method GetStreamMessages not implemented")
@@ -336,20 +336,20 @@ func _Queue_GetByPrefixes_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Queue_Search_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SearchRequest)
+func _Queue_GetFiltered_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FilterRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(QueueServer).Search(ctx, in)
+		return srv.(QueueServer).GetFiltered(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Queue_Search_FullMethodName,
+		FullMethod: Queue_GetFiltered_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueueServer).Search(ctx, req.(*SearchRequest))
+		return srv.(QueueServer).GetFiltered(ctx, req.(*FilterRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -447,8 +447,8 @@ var Queue_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Queue_GetByPrefixes_Handler,
 		},
 		{
-			MethodName: "Search",
-			Handler:    _Queue_Search_Handler,
+			MethodName: "GetFiltered",
+			Handler:    _Queue_GetFiltered_Handler,
 		},
 		{
 			MethodName: "GetTopicList",

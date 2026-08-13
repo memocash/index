@@ -41,8 +41,11 @@ const (
 // height-ordered chunks (topologically sorted within a chunk — CTOR blocks
 // order txs by txid, not topologically) decides each tx in a single
 // validation call instead of the cascade's one-generation-per-round walk.
-// Mempool txs are cascaded at the end. Verdicts are final, so re-running is
-// idempotent and already-decided txs drop out at the collect phase.
+// Unmined candidates are counted and skipped: BCH SLP mempool traffic is
+// negligible, new arrivals are validated by the live save path, and a
+// skipped tx is picked up by a re-run once mined. Verdicts are final, so
+// re-running is idempotent and already-decided txs drop out at the collect
+// phase.
 type SlpValidityBackfill struct {
 	Ctx     context.Context
 	Verbose bool
@@ -58,7 +61,7 @@ type SlpValidityBackfill struct {
 	Invalid     int64
 	Pending     int64
 	Missing     int64 // candidates whose chain rows are incomplete
-	MempoolTail int64 // candidates with no mined block, cascaded at the end
+	MempoolTail int64 // candidates with no mined block, skipped (not validated)
 }
 
 func NewSlpValidityBackfill(ctx context.Context, verbose bool) *SlpValidityBackfill {
@@ -81,7 +84,7 @@ func (b *SlpValidityBackfill) Run() error {
 	}
 	b.MempoolTail = int64(len(mempool))
 	chunks := chunkByBlock(ordered)
-	log.Printf("slp validity backfill ordered: %d mined txs in %d chunks, %d mempool tail\n",
+	log.Printf("slp validity backfill ordered: %d mined txs in %d chunks, %d unmined skipped\n",
 		len(ordered), len(chunks), len(mempool))
 	validator := slp_validate.NewValidator()
 	for i, chunk := range chunks {
@@ -93,11 +96,8 @@ func (b *SlpValidityBackfill) Run() error {
 				i+1, len(chunks), chunk[0].height, b.SlpTxs, b.Valid, b.Invalid, b.Pending, b.Missing)
 		}
 	}
-	if err := b.tail(mempool); err != nil {
-		return fmt.Errorf("error processing slp validity backfill mempool tail; %w", err)
-	}
 	log.Printf("slp validity backfill done. candidates: %d, decided: %d, slp txs: %d, "+
-		"valid: %d, invalid: %d, pending: %d, missing: %d, mempool tail: %d\n",
+		"valid: %d, invalid: %d, pending: %d, missing: %d, unmined skipped: %d\n",
 		b.Candidates, b.Decided, b.SlpTxs, b.Valid, b.Invalid, b.Pending, b.Missing, b.MempoolTail)
 	return nil
 }
@@ -139,7 +139,7 @@ func (b *SlpValidityBackfill) collectShard(shard uint32) ([][32]byte, int64, int
 	var candidates [][32]byte
 	var start []byte
 	for {
-		messages, err := db.Search(b.Ctx, db.TopicChainTxOutput, shard, client.SearchPattern{
+		messages, err := db.GetFiltered(b.Ctx, db.TopicChainTxOutput, shard, client.FilterPattern{
 			Start: start,
 			Uid:   client.NewPatternSuffix([]byte{0, 0, 0, 0}),
 			Data:  client.NewPatternContains(memo.PrefixSlp),
@@ -202,7 +202,7 @@ type orderedTx struct {
 // order maps each candidate to (block height, in-block index) and sorts.
 // A tx in multiple blocks (orphans) uses its lowest block height that has a
 // height row, tie-broken by block hash for determinism; txs with no mined
-// block land in the mempool tail.
+// block are returned separately for the caller to count and skip.
 //
 // Known edge: if a child's minimum height comes from an orphaned block with a
 // height row while its parent's corresponding fork block lacks one, the child
@@ -342,41 +342,5 @@ func (b *SlpValidityBackfill) processChunk(validator *slp_validate.Validator, ch
 	b.Valid += int64(result.Valid)
 	b.Invalid += int64(result.Invalid)
 	b.Pending += int64(result.Pending)
-	return nil
-}
-
-// tail validates the unmined candidates with the cascade, which handles
-// inter-mempool spend chains regardless of visit order.
-func (b *SlpValidityBackfill) tail(txHashes [][32]byte) error {
-	for i := 0; i < len(txHashes); i += slpSweepBatchSize {
-		end := i + slpSweepBatchSize
-		if end > len(txHashes) {
-			end = len(txHashes)
-		}
-		slpTxs, missing, err := slp_validate.ReconstructSlpTxs(b.Ctx, txHashes[i:end])
-		if err != nil {
-			return fmt.Errorf("error reconstructing mempool txs for slp backfill; %w", err)
-		}
-		b.Missing += int64(len(missing))
-		if len(slpTxs) == 0 {
-			continue
-		}
-		if err := slp_validate.TranscribeTxs(slpTxs); err != nil {
-			return err
-		}
-		b.SlpTxs += int64(len(slpTxs))
-		for {
-			result, err := slp_validate.ValidateTxsCascade(b.Ctx, slpTxs)
-			if err != nil {
-				return fmt.Errorf("error validating mempool txs for slp backfill; %w", err)
-			}
-			b.Valid += int64(result.Valid)
-			b.Invalid += int64(result.Invalid)
-			if result.Decided() == 0 {
-				b.Pending += int64(result.Pending)
-				break
-			}
-		}
-	}
 	return nil
 }

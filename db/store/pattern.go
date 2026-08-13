@@ -56,18 +56,3 @@ func matchParts(b []byte, parts [][]byte, anchorEnd bool) bool {
 	}
 	return true
 }
-
-// NewPatternPrefix matches uids/values starting with b (X%).
-func NewPatternPrefix(b []byte) *Pattern {
-	return &Pattern{Parts: [][]byte{b}, AnchorStart: true}
-}
-
-// NewPatternContains matches uids/values containing b (%X%).
-func NewPatternContains(b []byte) *Pattern {
-	return &Pattern{Parts: [][]byte{b}}
-}
-
-// NewPatternSuffix matches uids/values ending with b (%X).
-func NewPatternSuffix(b []byte) *Pattern {
-	return &Pattern{Parts: [][]byte{b}, AnchorEnd: true}
-}

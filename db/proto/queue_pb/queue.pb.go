@@ -787,30 +787,30 @@ func (x *RequestPrefix) GetLimit() uint32 {
 	return 0
 }
 
-type SearchRequest struct {
+type FilterRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Topic         string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Patterns      []*SearchPattern       `protobuf:"bytes,2,rep,name=patterns,proto3" json:"patterns,omitempty"`
+	Patterns      []*FilterPattern       `protobuf:"bytes,2,rep,name=patterns,proto3" json:"patterns,omitempty"`
 	Limit         uint32                 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
 	Order         Order                  `protobuf:"varint,4,opt,name=order,proto3,enum=queue_pb.Order" json:"order,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SearchRequest) Reset() {
-	*x = SearchRequest{}
+func (x *FilterRequest) Reset() {
+	*x = FilterRequest{}
 	mi := &file_queue_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SearchRequest) String() string {
+func (x *FilterRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SearchRequest) ProtoMessage() {}
+func (*FilterRequest) ProtoMessage() {}
 
-func (x *SearchRequest) ProtoReflect() protoreflect.Message {
+func (x *FilterRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_queue_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -822,43 +822,44 @@ func (x *SearchRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SearchRequest.ProtoReflect.Descriptor instead.
-func (*SearchRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use FilterRequest.ProtoReflect.Descriptor instead.
+func (*FilterRequest) Descriptor() ([]byte, []int) {
 	return file_queue_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *SearchRequest) GetTopic() string {
+func (x *FilterRequest) GetTopic() string {
 	if x != nil {
 		return x.Topic
 	}
 	return ""
 }
 
-func (x *SearchRequest) GetPatterns() []*SearchPattern {
+func (x *FilterRequest) GetPatterns() []*FilterPattern {
 	if x != nil {
 		return x.Patterns
 	}
 	return nil
 }
 
-func (x *SearchRequest) GetLimit() uint32 {
+func (x *FilterRequest) GetLimit() uint32 {
 	if x != nil {
 		return x.Limit
 	}
 	return 0
 }
 
-func (x *SearchRequest) GetOrder() Order {
+func (x *FilterRequest) GetOrder() Order {
 	if x != nil {
 		return x.Order
 	}
 	return Order_ASC
 }
 
-// SearchPattern is one arm of a search; arms are returned in order. Callers
-// page keyset-style: asc resumes with start = last returned uid + 0x00, desc
-// resumes with start = last returned uid; a short page = range exhausted.
-type SearchPattern struct {
+// FilterPattern is one arm of a filtered get; arms are returned in order.
+// Callers page keyset-style: asc resumes with start = last returned uid +
+// 0x00, desc resumes with start = last returned uid; a short page = range
+// exhausted.
+type FilterPattern struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Uid           *Pattern               `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
 	Data          *Pattern               `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
@@ -868,20 +869,20 @@ type SearchPattern struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SearchPattern) Reset() {
-	*x = SearchPattern{}
+func (x *FilterPattern) Reset() {
+	*x = FilterPattern{}
 	mi := &file_queue_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SearchPattern) String() string {
+func (x *FilterPattern) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SearchPattern) ProtoMessage() {}
+func (*FilterPattern) ProtoMessage() {}
 
-func (x *SearchPattern) ProtoReflect() protoreflect.Message {
+func (x *FilterPattern) ProtoReflect() protoreflect.Message {
 	mi := &file_queue_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -893,33 +894,33 @@ func (x *SearchPattern) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SearchPattern.ProtoReflect.Descriptor instead.
-func (*SearchPattern) Descriptor() ([]byte, []int) {
+// Deprecated: Use FilterPattern.ProtoReflect.Descriptor instead.
+func (*FilterPattern) Descriptor() ([]byte, []int) {
 	return file_queue_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *SearchPattern) GetUid() *Pattern {
+func (x *FilterPattern) GetUid() *Pattern {
 	if x != nil {
 		return x.Uid
 	}
 	return nil
 }
 
-func (x *SearchPattern) GetData() *Pattern {
+func (x *FilterPattern) GetData() *Pattern {
 	if x != nil {
 		return x.Data
 	}
 	return nil
 }
 
-func (x *SearchPattern) GetStart() []byte {
+func (x *FilterPattern) GetStart() []byte {
 	if x != nil {
 		return x.Start
 	}
 	return nil
 }
 
-func (x *SearchPattern) GetLimit() uint32 {
+func (x *FilterPattern) GetLimit() uint32 {
 	if x != nil {
 		return x.Limit
 	}
@@ -1042,12 +1043,12 @@ const file_queue_proto_rawDesc = "" +
 	"\x06prefix\x18\x01 \x01(\fR\x06prefix\x12\x14\n" +
 	"\x05start\x18\x02 \x01(\fR\x05start\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\rR\x05limit\"\x97\x01\n" +
-	"\rSearchRequest\x12\x14\n" +
+	"\rFilterRequest\x12\x14\n" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\x123\n" +
-	"\bpatterns\x18\x02 \x03(\v2\x17.queue_pb.SearchPatternR\bpatterns\x12\x14\n" +
+	"\bpatterns\x18\x02 \x03(\v2\x17.queue_pb.FilterPatternR\bpatterns\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\rR\x05limit\x12%\n" +
 	"\x05order\x18\x04 \x01(\x0e2\x0f.queue_pb.OrderR\x05order\"\x87\x01\n" +
-	"\rSearchPattern\x12#\n" +
+	"\rFilterPattern\x12#\n" +
 	"\x03uid\x18\x01 \x01(\v2\x11.queue_pb.PatternR\x03uid\x12%\n" +
 	"\x04data\x18\x02 \x01(\v2\x11.queue_pb.PatternR\x04data\x12\x14\n" +
 	"\x05start\x18\x03 \x01(\fR\x05start\x12\x14\n" +
@@ -1059,15 +1060,15 @@ const file_queue_proto_rawDesc = "" +
 	"anchor_end\x18\x03 \x01(\bR\tanchorEnd*\x1a\n" +
 	"\x05Order\x12\a\n" +
 	"\x03ASC\x10\x00\x12\b\n" +
-	"\x04DESC\x10\x012\x80\x05\n" +
+	"\x04DESC\x10\x012\x85\x05\n" +
 	"\x05Queue\x12:\n" +
 	"\fSaveMessages\x12\x12.queue_pb.Messages\x1a\x14.queue_pb.ErrorReply\"\x00\x12?\n" +
 	"\x0eDeleteMessages\x12\x15.queue_pb.MessageUids\x1a\x14.queue_pb.ErrorReply\"\x00\x12:\n" +
 	"\n" +
 	"GetMessage\x12\x17.queue_pb.RequestSingle\x1a\x11.queue_pb.Message\"\x00\x126\n" +
 	"\vGetMessages\x12\x11.queue_pb.Request\x1a\x12.queue_pb.Messages\"\x00\x12C\n" +
-	"\rGetByPrefixes\x12\x19.queue_pb.RequestPrefixes\x1a\x12.queue_pb.Messages\"\x03\x88\x02\x01\x127\n" +
-	"\x06Search\x12\x17.queue_pb.SearchRequest\x1a\x12.queue_pb.Messages\"\x00\x12C\n" +
+	"\rGetByPrefixes\x12\x19.queue_pb.RequestPrefixes\x1a\x12.queue_pb.Messages\"\x03\x88\x02\x01\x12<\n" +
+	"\vGetFiltered\x12\x17.queue_pb.FilterRequest\x1a\x12.queue_pb.Messages\"\x00\x12C\n" +
 	"\x11GetStreamMessages\x12\x17.queue_pb.RequestStream\x1a\x11.queue_pb.Message\"\x000\x01\x12B\n" +
 	"\fGetTopicList\x12\x16.queue_pb.EmptyRequest\x1a\x18.queue_pb.TopicListReply\"\x00\x12A\n" +
 	"\x0fGetMessageCount\x12\x16.queue_pb.CountRequest\x1a\x14.queue_pb.TopicCount\"\x00\x12<\n" +
@@ -1104,8 +1105,8 @@ var file_queue_proto_goTypes = []any{
 	(*TopicCount)(nil),      // 12: queue_pb.TopicCount
 	(*RequestPrefixes)(nil), // 13: queue_pb.RequestPrefixes
 	(*RequestPrefix)(nil),   // 14: queue_pb.RequestPrefix
-	(*SearchRequest)(nil),   // 15: queue_pb.SearchRequest
-	(*SearchPattern)(nil),   // 16: queue_pb.SearchPattern
+	(*FilterRequest)(nil),   // 15: queue_pb.FilterRequest
+	(*FilterPattern)(nil),   // 16: queue_pb.FilterPattern
 	(*Pattern)(nil),         // 17: queue_pb.Pattern
 }
 var file_queue_proto_depIdxs = []int32{
@@ -1113,16 +1114,16 @@ var file_queue_proto_depIdxs = []int32{
 	9,  // 1: queue_pb.TopicListReply.topics:type_name -> queue_pb.Topic
 	14, // 2: queue_pb.RequestPrefixes.prefixes:type_name -> queue_pb.RequestPrefix
 	0,  // 3: queue_pb.RequestPrefixes.order:type_name -> queue_pb.Order
-	16, // 4: queue_pb.SearchRequest.patterns:type_name -> queue_pb.SearchPattern
-	0,  // 5: queue_pb.SearchRequest.order:type_name -> queue_pb.Order
-	17, // 6: queue_pb.SearchPattern.uid:type_name -> queue_pb.Pattern
-	17, // 7: queue_pb.SearchPattern.data:type_name -> queue_pb.Pattern
+	16, // 4: queue_pb.FilterRequest.patterns:type_name -> queue_pb.FilterPattern
+	0,  // 5: queue_pb.FilterRequest.order:type_name -> queue_pb.Order
+	17, // 6: queue_pb.FilterPattern.uid:type_name -> queue_pb.Pattern
+	17, // 7: queue_pb.FilterPattern.data:type_name -> queue_pb.Pattern
 	1,  // 8: queue_pb.Queue.SaveMessages:input_type -> queue_pb.Messages
 	4,  // 9: queue_pb.Queue.DeleteMessages:input_type -> queue_pb.MessageUids
 	5,  // 10: queue_pb.Queue.GetMessage:input_type -> queue_pb.RequestSingle
 	6,  // 11: queue_pb.Queue.GetMessages:input_type -> queue_pb.Request
 	13, // 12: queue_pb.Queue.GetByPrefixes:input_type -> queue_pb.RequestPrefixes
-	15, // 13: queue_pb.Queue.Search:input_type -> queue_pb.SearchRequest
+	15, // 13: queue_pb.Queue.GetFiltered:input_type -> queue_pb.FilterRequest
 	7,  // 14: queue_pb.Queue.GetStreamMessages:input_type -> queue_pb.RequestStream
 	8,  // 15: queue_pb.Queue.GetTopicList:input_type -> queue_pb.EmptyRequest
 	11, // 16: queue_pb.Queue.GetMessageCount:input_type -> queue_pb.CountRequest
@@ -1132,7 +1133,7 @@ var file_queue_proto_depIdxs = []int32{
 	2,  // 20: queue_pb.Queue.GetMessage:output_type -> queue_pb.Message
 	1,  // 21: queue_pb.Queue.GetMessages:output_type -> queue_pb.Messages
 	1,  // 22: queue_pb.Queue.GetByPrefixes:output_type -> queue_pb.Messages
-	1,  // 23: queue_pb.Queue.Search:output_type -> queue_pb.Messages
+	1,  // 23: queue_pb.Queue.GetFiltered:output_type -> queue_pb.Messages
 	2,  // 24: queue_pb.Queue.GetStreamMessages:output_type -> queue_pb.Message
 	10, // 25: queue_pb.Queue.GetTopicList:output_type -> queue_pb.TopicListReply
 	12, // 26: queue_pb.Queue.GetMessageCount:output_type -> queue_pb.TopicCount

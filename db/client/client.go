@@ -78,7 +78,7 @@ func (s *Client) Save(messages []*Message, timestamp time.Time) error {
 	return nil
 }
 
-// Deprecated: Use Search instead; a prefix query is the pattern arm
+// Deprecated: Use GetFiltered instead; a prefix query is the pattern arm
 // {Uid: NewPatternPrefix(prefix)}.
 func (s *Client) GetByPrefixes(ctx context.Context, topic string, prefixes []Prefix, opts ...Option) error {
 	if err := s.SetConn(); err != nil {
@@ -119,11 +119,11 @@ func (s *Client) GetByPrefixes(ctx context.Context, topic string, prefixes []Pre
 	return nil
 }
 
-// Search returns messages matching the pattern arms, in arm order. Page
+// GetFiltered returns messages matching the pattern arms, in arm order. Page
 // keyset-style: asc resumes with Start = last returned uid + 0x00, desc with
 // Start = last returned uid; a short page means the range is exhausted. Pass
 // NewOptionTimeout when a sparse pattern may scan a large topic in one call.
-func (s *Client) Search(ctx context.Context, topic string, patterns []SearchPattern, opts ...SearchOption) error {
+func (s *Client) GetFiltered(ctx context.Context, topic string, patterns []FilterPattern, opts ...Option) error {
 	if err := s.SetConn(); err != nil {
 		return fmt.Errorf("error setting connection; %w", err)
 	}
@@ -137,25 +137,25 @@ func (s *Client) Search(ctx context.Context, topic string, patterns []SearchPatt
 	ctxNew, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	s.Messages = nil
-	var reqPatterns = make([]*queue_pb.SearchPattern, len(patterns))
+	var reqPatterns = make([]*queue_pb.FilterPattern, len(patterns))
 	for i := range patterns {
-		reqPatterns[i] = &queue_pb.SearchPattern{
+		reqPatterns[i] = &queue_pb.FilterPattern{
 			Uid:   getQueuePattern(patterns[i].Uid),
 			Data:  getQueuePattern(patterns[i].Data),
 			Start: patterns[i].Start,
 			Limit: patterns[i].Limit,
 		}
 	}
-	req := &queue_pb.SearchRequest{
+	req := &queue_pb.FilterRequest{
 		Topic:    topic,
 		Patterns: reqPatterns,
 	}
 	for _, opt := range opts {
-		opt.ApplySearch(req)
+		opt.ApplyFilter(req)
 	}
-	message, err := c.Search(ctxNew, req, grpc.MaxCallRecvMsgSize(MaxMessageSize))
+	message, err := c.GetFiltered(ctxNew, req, grpc.MaxCallRecvMsgSize(MaxMessageSize))
 	if err != nil {
-		return fmt.Errorf("error searching messages rpc; %w", err)
+		return fmt.Errorf("error getting filtered messages rpc; %w", err)
 	}
 	var messages = make([]Message, len(message.Messages))
 	for i := range message.Messages {
@@ -180,7 +180,7 @@ func getQueuePattern(pattern *Pattern) *queue_pb.Pattern {
 	}
 }
 
-// Deprecated: Use Search instead.
+// Deprecated: Use GetFiltered instead.
 func (s *Client) GetByPrefix(ctx context.Context, topic string, prefix Prefix, opts ...Option) error {
 	if err := s.GetByPrefixes(ctx, topic, []Prefix{prefix}, opts...); err != nil {
 		return fmt.Errorf("error getting with single prefix; %w", err)

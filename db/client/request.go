@@ -12,10 +12,10 @@ type Prefix struct {
 	Limit  uint32
 }
 
-// SearchPattern is one arm of a Search: uid and data filters with a resume
-// cursor and an optional per-arm result cap. A legacy prefix query is the
-// arm {Uid: NewPatternPrefix(prefix)}.
-type SearchPattern struct {
+// FilterPattern is one arm of a filtered get: uid and data filters with a
+// resume cursor and an optional per-arm result cap. A legacy prefix query is
+// the arm {Uid: NewPatternPrefix(prefix)}.
+type FilterPattern struct {
 	Uid   *Pattern
 	Data  *Pattern
 	Start []byte // asc: inclusive lower bound; desc: exclusive upper bound
@@ -34,14 +34,11 @@ func NewStart(start []byte) Prefix {
 	}
 }
 
+// Option applies to both read calls; every option implements both methods so
+// one constructor set works for GetByPrefixes (deprecated) and GetFiltered.
 type Option interface {
 	Apply(*queue_pb.RequestPrefixes)
-}
-
-// SearchOption mirrors Option for the Search RPC; the shared option types
-// implement both, so constructors like NewOptionLimit work with either call.
-type SearchOption interface {
-	ApplySearch(*queue_pb.SearchRequest)
+	ApplyFilter(*queue_pb.FilterRequest)
 }
 
 type OptionLimit struct {
@@ -52,7 +49,7 @@ func (o *OptionLimit) Apply(r *queue_pb.RequestPrefixes) {
 	r.Limit = uint32(o.Limit)
 }
 
-func (o *OptionLimit) ApplySearch(r *queue_pb.SearchRequest) {
+func (o *OptionLimit) ApplyFilter(r *queue_pb.FilterRequest) {
 	r.Limit = uint32(o.Limit)
 }
 
@@ -84,7 +81,7 @@ func (o *OptionPrefixLimit) Apply(r *queue_pb.RequestPrefixes) {
 	}
 }
 
-func (o *OptionPrefixLimit) ApplySearch(r *queue_pb.SearchRequest) {
+func (o *OptionPrefixLimit) ApplyFilter(r *queue_pb.FilterRequest) {
 	for i := range r.Patterns {
 		r.Patterns[i].Limit = uint32(o.Limit)
 	}
@@ -100,17 +97,17 @@ func OptionSinglePrefixLimit() *OptionPrefixLimit {
 	return NewOptionPrefixLimit(1)
 }
 
-// OptionTimeout overrides DefaultGetTimeout for one GetByPrefixes call. It is
-// consumed client-side (a budgeted pattern scan of millions of rows can
-// legitimately outrun the 60s default); Apply is a no-op since nothing about
-// it goes on the wire.
+// OptionTimeout overrides DefaultGetTimeout for one read call. It is consumed
+// client-side (a filtered scan of millions of rows can legitimately outrun
+// the 60s default); the Apply methods are no-ops since nothing about it goes
+// on the wire.
 type OptionTimeout struct {
 	Timeout time.Duration
 }
 
 func (o *OptionTimeout) Apply(*queue_pb.RequestPrefixes) {}
 
-func (o *OptionTimeout) ApplySearch(*queue_pb.SearchRequest) {}
+func (o *OptionTimeout) ApplyFilter(*queue_pb.FilterRequest) {}
 
 func NewOptionTimeout(timeout time.Duration) *OptionTimeout {
 	return &OptionTimeout{
@@ -130,7 +127,7 @@ func (o *OptionOrder) Apply(r *queue_pb.RequestPrefixes) {
 	}
 }
 
-func (o *OptionOrder) ApplySearch(r *queue_pb.SearchRequest) {
+func (o *OptionOrder) ApplyFilter(r *queue_pb.FilterRequest) {
 	if o.Desc {
 		r.Order = queue_pb.Order_DESC
 	} else {

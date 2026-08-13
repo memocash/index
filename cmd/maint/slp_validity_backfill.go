@@ -15,8 +15,9 @@ var slpValidityBackfillCmd = &cobra.Command{
 		"validates the undecided ones in block-height order (topologically sorted within each " +
 		"chunk, since CTOR blocks order txs by txid): parents always decide before or alongside " +
 		"their children, so each tx is validated exactly once instead of cascading one generation " +
-		"per round. Unmined candidates are cascaded at the end. Verdicts are final, so re-running " +
-		"is idempotent and a restart simply re-scans; already-decided txs drop out up front.",
+		"per round. Unmined candidates are counted and skipped (the live save path handles new " +
+		"arrivals). Verdicts are final, so re-running is idempotent and a restart simply re-scans; " +
+		"already-decided txs drop out up front.",
 	Run: func(c *cobra.Command, args []string) {
 		verbose, _ := c.Flags().GetBool(FlagVerbose)
 		backfill := maint.NewSlpValidityBackfill(context.Background(), verbose)
