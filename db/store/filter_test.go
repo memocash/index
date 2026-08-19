@@ -218,6 +218,55 @@ func TestGetFiltered(t *testing.T) {
 		}
 	})
 
+	// Unlike the legacy prefix path (which silently ignores a Start that does
+	// not extend its prefix — pinned in TestGetByPrefixesPaging's foreign
+	// cursor cases), a filter arm's Start is always a plain bound intersected
+	// with the anchored prefix range
+	t.Run("start outside prefix acts as plain bound", func(t *testing.T) {
+		// "test" sorts after every "other-*" uid: as an asc lower bound it
+		// empties the range, as a desc upper bound it excludes nothing
+		messages := getFilteredSingle(t, store.FilterPattern{
+			Uid:   patternPrefix([]byte(PrefixOther)),
+			Start: []byte(PrefixTest),
+		}, 0)
+		checkUids(t, messages)
+
+		// "other" sorts before every "test-*" uid: as an asc lower bound it
+		// excludes nothing
+		messages = getFilteredSingle(t, store.FilterPattern{
+			Uid:   patternPrefix([]byte(PrefixTest)),
+			Start: []byte(PrefixOther),
+		}, 0)
+		if len(messages) != 10 {
+			t.Errorf("below-prefix asc start: got %d messages, want 10", len(messages))
+		}
+
+		// desc: Start is the exclusive upper bound; below the prefix range it
+		// empties it, above the prefix range it excludes nothing
+		below, err := store.GetFiltered(context.Background(), store.FilterRequest{
+			Topic:    TestTopic,
+			Shard:    TestShard,
+			Patterns: []store.FilterPattern{{Uid: patternPrefix([]byte(PrefixTest)), Start: []byte(PrefixOther)}},
+			Desc:     true,
+		})
+		if err != nil {
+			t.Fatalf("error getting desc below-prefix start; %v", err)
+		}
+		checkUids(t, below)
+		above, err := store.GetFiltered(context.Background(), store.FilterRequest{
+			Topic:    TestTopic,
+			Shard:    TestShard,
+			Patterns: []store.FilterPattern{{Uid: patternPrefix([]byte(PrefixOther)), Start: []byte(PrefixTest)}},
+			Desc:     true,
+		})
+		if err != nil {
+			t.Fatalf("error getting desc above-prefix start; %v", err)
+		}
+		if len(above) != 10 {
+			t.Errorf("above-prefix desc start: got %d messages, want 10", len(above))
+		}
+	})
+
 	t.Run("desc reverses order", func(t *testing.T) {
 		messages, err := store.GetFiltered(context.Background(), store.FilterRequest{
 			Topic:    TestTopic,

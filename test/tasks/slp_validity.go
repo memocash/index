@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
 	"github.com/jchavannes/btcd/wire"
@@ -1189,5 +1190,69 @@ func (s *slpValidityState) run() error {
 		}
 	}
 	log.Printf("✓ block-ordered backfill re-derived the CTOR-reversed graph in one pass\n")
+
+	// Unmined skip: an SLP candidate with chain rows but no mined block must
+	// be counted and left untouched by the backfill — no transcription, no
+	// verdict — then picked up by a re-run once mined. Saved via the minimal
+	// saver (headerless = mempool) so the live SLP handler never sees it.
+	_, umFundUtxo, err := s.fund(1e6)
+	if err != nil {
+		return err
+	}
+	umGenesisTx, err := build.TokenCreate(build.TokenCreateRequest{
+		Wallet:   s.wallet(umFundUtxo),
+		SlpType:  memo.SlpDefaultTokenType,
+		Ticker:   "UNMN",
+		Name:     "Unmined Token",
+		Quantity: 5,
+	})
+	if err != nil {
+		return fmt.Errorf("error building unmined genesis; %w", err)
+	}
+	if err := saver.NewTxMinimal(false).SaveTxs(s.ctx, dbi.WireBlockToBlock(
+		memo.GetBlockFromTxs([]*wire.MsgTx{umGenesisTx.MsgTx}, nil))); err != nil {
+		return fmt.Errorf("error saving unmined genesis minimally; %w", err)
+	}
+	umBackfill := act_maint.NewSlpValidityBackfill(s.ctx, false)
+	if err := umBackfill.Run(); err != nil {
+		return fmt.Errorf("error running slp validity backfill with unmined candidate; %w", err)
+	}
+	if umBackfill.MempoolTail != 1 {
+		return fmt.Errorf("error backfill counted %d unmined candidates, expected 1", umBackfill.MempoolTail)
+	}
+	if umBackfill.SlpTxs != 0 || umBackfill.Valid != 0 || umBackfill.Invalid != 0 || umBackfill.Pending != 0 {
+		return fmt.Errorf("error backfill touched txs with only an unmined candidate: slp %d valid %d invalid %d pending %d",
+			umBackfill.SlpTxs, umBackfill.Valid, umBackfill.Invalid, umBackfill.Pending)
+	}
+	if err := s.checkStatus("unmined candidate skipped", umGenesisTx, slp_tx.StatusPending, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	var umGenesisRow = &item_slp.Genesis{TxHash: txHash32(umGenesisTx)}
+	if err := db.GetItem(s.ctx, umGenesisRow); err == nil {
+		return fmt.Errorf("error unmined genesis was transcribed, expected skipped")
+	} else if !errors.Is(err, client.EntryNotFoundError) {
+		return fmt.Errorf("error checking unmined genesis transcription; %w", err)
+	}
+	if err := s.mine(700003, 3, umGenesisTx); err != nil {
+		return err
+	}
+	umBackfill2 := act_maint.NewSlpValidityBackfill(s.ctx, false)
+	if err := umBackfill2.Run(); err != nil {
+		return fmt.Errorf("error running slp validity backfill after mining; %w", err)
+	}
+	if umBackfill2.MempoolTail != 0 {
+		return fmt.Errorf("error backfill still skipped %d as unmined after mining", umBackfill2.MempoolTail)
+	}
+	if umBackfill2.SlpTxs != 1 || umBackfill2.Valid != 1 {
+		return fmt.Errorf("error backfill after mining validated slp %d valid %d, expected 1 and 1",
+			umBackfill2.SlpTxs, umBackfill2.Valid)
+	}
+	if err := s.checkStatus("mined on re-run", umGenesisTx, slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	if err := db.GetItem(s.ctx, umGenesisRow); err != nil {
+		return fmt.Errorf("error mined genesis row not transcribed by backfill; %w", err)
+	}
+	log.Printf("✓ backfill skipped the unmined candidate and decided it once mined\n")
 	return nil
 }

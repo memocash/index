@@ -126,6 +126,9 @@ func ShardPrefixes(bytePrefixes [][]byte) map[uint32][]client.Prefix {
 // RPC: a prefix is the pattern arm {Uid: client.NewPatternPrefix(prefix)}.
 // Per-prefix Start cursors are applied as plain bounds, so a cursor must
 // extend its prefix (which every resuming caller passes by construction).
+// An absent per-prefix limit keeps the legacy path's HugeLimit default —
+// GetFiltered arms are otherwise uncapped, and existing callers page against
+// the old silent cap rather than expecting one call to return everything.
 func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][]client.Prefix, opts ...client.Option) ([]client.Message, error) {
 	wait := NewWait(len(shardPrefixes))
 	var messages []client.Message
@@ -135,10 +138,14 @@ func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][
 			prefixes = removeDupeAndEmptyPrefixes(prefixes)
 			var patterns = make([]client.FilterPattern, len(prefixes))
 			for i := range prefixes {
+				var limit = prefixes[i].Limit
+				if limit == 0 {
+					limit = client.HugeLimit
+				}
 				patterns[i] = client.FilterPattern{
 					Uid:   client.NewPatternPrefix(prefixes[i].Prefix),
 					Start: prefixes[i].Start,
-					Limit: prefixes[i].Limit,
+					Limit: limit,
 				}
 			}
 			dbClient := GetShardClient(shard)
