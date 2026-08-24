@@ -14,7 +14,7 @@ require (
 require (
 	github.com/FactomProject/basen v0.0.0-20150613233007-fe3947df716e // indirect
 	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/jchavannes/bchutil v1.1.5-0.20220519214029-6a6c086b1f21 // indirect
 	github.com/jchavannes/btclog v1.1.0 // indirect
 	github.com/jchavannes/btcutil v1.1.4 // indirect
