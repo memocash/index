@@ -7,4 +7,5 @@ type Tx {
     seen: Date
     version:  Int32!
     locktime: Uint32!
+    slp: TxSlp
 }

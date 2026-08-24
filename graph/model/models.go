@@ -9,6 +9,7 @@ type Tx struct {
 	Inputs   []*TxInput  `json:"inputs"`
 	Outputs  []*TxOutput `json:"outputs"`
 	Blocks   []*TxBlock  `json:"blocks"`
+	Slp      *TxSlp      `json:"slp"`
 }
 
 type TxOutput struct {
@@ -199,7 +200,7 @@ type SlpOutput struct {
 	Hash      Hash        `json:"hash"`
 	Index     uint32      `json:"index"`
 	TokenHash Hash        `json:"token_hash"`
-	Amount    uint64      `json:"amount"`
+	Amount    Uint64      `json:"amount"`
 	Genesis   *SlpGenesis `json:"genesis"`
 	Output    *TxOutput   `json:"output"`
 	Validity  SlpValidity `json:"validity"`
@@ -213,4 +214,24 @@ const (
 	SlpValidityValid   SlpValidity = "VALID"
 	SlpValidityInvalid SlpValidity = "INVALID"
 	SlpValidityPending SlpValidity = "PENDING"
+)
+
+// TxSlp is the SLP action at a tx's vout 0 with the tx-level verdict;
+// present even when the action wrote no token output rows (e.g. a
+// zero-quantity SEND), which the per-output slp fields cannot represent.
+// Type and TokenHash are nil when a verdict exists without a transcribed
+// action (SLP lokad at vout 0 but the message was unparseable).
+type TxSlp struct {
+	Type      *SlpActionType `json:"type"`
+	TokenHash *Hash          `json:"token_hash"`
+	Genesis   *SlpGenesis    `json:"genesis"`
+	Validity  SlpValidity    `json:"validity"`
+}
+
+type SlpActionType string
+
+const (
+	SlpActionTypeGenesis SlpActionType = "GENESIS"
+	SlpActionTypeMint    SlpActionType = "MINT"
+	SlpActionTypeSend    SlpActionType = "SEND"
 )

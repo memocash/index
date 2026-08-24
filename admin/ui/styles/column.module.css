@@ -109,6 +109,10 @@
     color: var(--color-orange);
 }
 
+.green {
+    color: var(--color-green);
+}
+
 .bold {
     font-weight: bold;
 }

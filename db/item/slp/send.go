@@ -1,6 +1,8 @@
 package slp
 
 import (
+	"context"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -45,4 +47,23 @@ func (s *Send) Deserialize(data []byte) {
 	}
 	copy(s.TokenHash[:], jutil.ByteReverse(data[:memo.TxHashLength]))
 	s.TokenType = data[memo.TxHashLength]
+}
+
+func GetSends(ctx context.Context, txHashes [][32]byte) ([]*Send, error) {
+	var shardUids = make(map[uint32][][]byte)
+	for _, txHash := range txHashes {
+		shard := db.GetShardIdFromByte32(txHash[:])
+		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(txHash[:]))
+	}
+	messages, err := db.GetSpecific(ctx, db.TopicSlpSend, shardUids)
+	if err != nil {
+		return nil, fmt.Errorf("error getting slp sends; %w", err)
+	}
+	var sends []*Send
+	for i := range messages {
+		var send = new(Send)
+		db.Set(send, messages[i])
+		sends = append(sends, send)
+	}
+	return sends, nil
 }

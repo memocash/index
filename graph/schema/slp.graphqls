@@ -41,6 +41,28 @@ enum SlpValidity {
     PENDING
 }
 
+"""
+The SLP action at a tx's vout 0 and the tx-level verdict. Validity is a
+property of the whole tx, so this is exposed even when the action produced no
+token output rows (e.g. a zero-quantity SEND, a legal burn/no-op) — the case
+the per-output slp fields cannot show. Null means the index holds no SLP
+knowledge of the tx at all; a null type with an INVALID validity means vout 0
+carries the SLP lokad but the message was unparseable, so no action was
+transcribed.
+"""
+type TxSlp {
+    type: SlpActionType
+    token_hash: Hash
+    genesis: SlpGenesis
+    validity: SlpValidity!
+}
+
+enum SlpActionType {
+    GENESIS
+    MINT
+    SEND
+}
+
 #type SlpMint {
 #    tx: Tx!
 #    hash: String!

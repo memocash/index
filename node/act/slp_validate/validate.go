@@ -107,6 +107,29 @@ func ValidateTxs(ctx context.Context, txs []Tx) (*Result, error) {
 	return validateTxsCached(ctx, txs, newResolveCache())
 }
 
+// validatorMaxCacheEntries bounds the run-long cache of a Validator. The cache
+// only holds final facts, so dropping it costs re-fetches, not correctness; a
+// multi-million-tx backfill would otherwise grow it without limit.
+const validatorMaxCacheEntries = 4 * 1000 * 1000
+
+// Validator carries one resolve cache across many ValidateTxs calls, so a bulk
+// backfill's chunks share final resolution facts (parent verdicts, transcribed
+// rows, vout-0 lokad answers) instead of re-fetching them per chunk.
+type Validator struct {
+	cache *resolveCache
+}
+
+func NewValidator() *Validator {
+	return &Validator{cache: newResolveCache()}
+}
+
+func (v *Validator) ValidateTxs(ctx context.Context, txs []Tx) (*Result, error) {
+	if len(v.cache.validities)+len(v.cache.resolvedOps)+len(v.cache.voutLokad) > validatorMaxCacheEntries {
+		v.cache = newResolveCache()
+	}
+	return validateTxsCached(ctx, txs, v.cache)
+}
+
 // validateTxsCached is ValidateTxs with a caller-owned resolve cache; the
 // cascade passes one cache across all its rounds.
 func validateTxsCached(ctx context.Context, txs []Tx, cache *resolveCache) (*Result, error) {
@@ -347,6 +370,19 @@ func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byt
 		}
 		return 0, false
 	}
+	// parentDecidedValid resolves a parent with no db validity against the
+	// verdicts decided earlier in this same call (the map also holds pending
+	// entries, which decide nothing). With works topo-ordered and transcribed
+	// up front, an arbitrarily deep in-call chain resolves in a single pass —
+	// no cascade rounds; for unordered callers this only helps when map order
+	// cooperates and is otherwise inert.
+	var parentDecidedValid = func(hash [32]byte) (valid bool, decided bool) {
+		verdict, ok := verdicts[hash]
+		if !ok || verdict.Status == slp.StatusPending {
+			return false, false
+		}
+		return verdict.Status == slp.StatusValid, true
+	}
 	for _, w := range works {
 		var inputs = make([]slp.Input, len(w.tx.Inputs))
 		for i, txIn := range w.tx.Inputs {
@@ -371,20 +407,34 @@ func resolveAndValidate(ctx context.Context, works []*work, verdicts map[[32]byt
 				}
 			}
 			validity := parentValidities[op.hash]
+			var inCallValid, inCallDecided bool
+			if validity == nil {
+				inCallValid, inCallDecided = parentDecidedValid(op.hash)
+			}
 			switch {
 			case outputRow != nil || batonRow != nil:
 				switch {
-				case validity == nil:
-					input.State = slp.ParentPending
-				case validity.IsValid():
-					input.State = slp.ParentValid
+				case validity != nil:
+					if validity.IsValid() {
+						input.State = slp.ParentValid
+					} else {
+						input.State = slp.ParentInvalid
+					}
+				case inCallDecided:
+					if inCallValid {
+						input.State = slp.ParentValid
+					} else {
+						input.State = slp.ParentInvalid
+					}
 				default:
-					input.State = slp.ParentInvalid
+					input.State = slp.ParentPending
 				}
-			case validity != nil || notSlp[op.hash]:
+			case validity != nil || inCallDecided || notSlp[op.hash]:
 				// A validity row implies the parent's transcription is
 				// complete, so a missing row here is definitive; no SLP
-				// lokad at vout 0 means the rows can never exist
+				// lokad at vout 0 means the rows can never exist. In-call
+				// verdicts carry the same guarantee: every path transcribes
+				// before validating
 				input.State = slp.ParentNotSlp
 			default:
 				input.State = slp.ParentUnknown

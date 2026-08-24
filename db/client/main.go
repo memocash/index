@@ -8,6 +8,7 @@ import (
 
 	"github.com/jchavannes/jgo/db_util"
 	"github.com/jchavannes/jgo/jutil"
+	"github.com/memocash/index/db/store"
 )
 
 const (
@@ -25,7 +26,7 @@ const (
 )
 
 const (
-	MaxMessages    = 10 * 1e6   // 10 million
+	MaxMessages    = store.MaxMessages
 	MaxMessageSize = 3200 * 1e6 // 3.2gb
 )
 

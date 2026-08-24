@@ -44,6 +44,7 @@ export default function Hash() {
                     slp {
                         token_hash
                         amount
+                        validity
                         genesis {
                             ticker
                             decimals
@@ -51,6 +52,7 @@ export default function Hash() {
                     }
                     slp_baton {
                         token_hash
+                        validity
                         genesis {
                             ticker
                             decimals
@@ -90,6 +92,14 @@ export default function Hash() {
                     hash
                     height
                     timestamp
+                }
+            }
+            slp {
+                type
+                token_hash
+                validity
+                genesis {
+                    ticker
                 }
             }
         }
@@ -171,6 +181,7 @@ export default function Hash() {
                         <div className={column.width15}>First Seen</div>
                         <div className={column.width85}>{tx.seen ? tx.seen : "-"}</div>
                     </div>
+                    <SlpInfo tx={tx}/>
                     <BlockInfo tx={tx}/>
                     <div className={column.container}>
                         <Inputs tx={tx}/>
@@ -193,6 +204,47 @@ function hasCoinbase(tx) {
         }
     }
     return false
+}
+
+const FormatSlpAmount = (amount, genesis) => {
+    const addCommas = (s) => s.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+    if (!genesis || !genesis.decimals) {
+        return addCommas(String(amount))
+    }
+    const str = String(amount).padStart(genesis.decimals + 1, "0")
+    return addCommas(str.slice(0, -genesis.decimals)) + "." + str.slice(-genesis.decimals)
+}
+
+function SlpValidity({validity}) {
+    const colors = {
+        VALID: column.green,
+        INVALID: column.red,
+        PENDING: column.orange,
+    }
+    return (
+        <span className={[colors[validity], column.bold].join(" ")}>{validity}</span>
+    )
+}
+
+function SlpInfo({tx}) {
+    if (!tx.slp) {
+        return null
+    }
+    return (
+        <div className={column.container}>
+            <div className={column.width15}>SLP</div>
+            <div className={column.width85}>
+                {tx.slp.type ? tx.slp.type : "Unparseable"}
+                {tx.slp.token_hash ? <>
+                    {" "}<Link href={"/tx/" + tx.slp.token_hash}>
+                    {tx.slp.genesis && tx.slp.genesis.ticker.length ?
+                        tx.slp.genesis.ticker : ShortTxHash(tx.slp.token_hash)}
+                </Link>
+                </> : null}
+                {" "}<SlpValidity validity={tx.slp.validity}/>
+            </div>
+        </div>
+    )
 }
 
 function BlockInfo({tx}) {
@@ -239,16 +291,16 @@ function Inputs({tx}) {
                             className={[pre.pre, pre.inline].join(" ")}>{input.script}</pre>
                             <br/>
                             {input.output.slp ? <div>
-                                SLP: {input.output.slp.amount} {input.output.slp.genesis ?
+                                SLP: {FormatSlpAmount(input.output.slp.amount, input.output.slp.genesis)} {input.output.slp.genesis ?
                                 <Link href={"/tx/" + input.output.slp.token_hash}>
                                     {input.output.slp.genesis.ticker}
-                                </Link> : null}
+                                </Link> : null} <SlpValidity validity={input.output.slp.validity}/>
                             </div> : null}
                             {input.output.slp_baton ? <div>
                                 SLP Baton: {input.output.slp_baton.genesis ?
                                 <Link href={"/tx/" + input.output.slp_baton.token_hash}>
                                     {input.output.slp_baton.genesis.ticker}
-                                </Link> : null}
+                                </Link> : null} <SlpValidity validity={input.output.slp_baton.validity}/>
                             </div> : null}
                             {!isCoinbase(input) && input.output.spends && input.output.spends.length >= 2 ?
                                 <div className={[column.red, column.bold].join(" ")}>
@@ -350,7 +402,7 @@ function Outputs({tx}) {
                             LockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
                             {output.slp ? <div>
-                                SLP: {output.slp.amount} {output.slp.genesis ?
+                                SLP: {FormatSlpAmount(output.slp.amount, output.slp.genesis)} {output.slp.genesis ?
                                 <Link href={"/tx/" + output.slp.token_hash}>
                                     {output.slp.genesis.ticker}
                                 </Link> : null}

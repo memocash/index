@@ -122,6 +122,13 @@ func ShardPrefixes(bytePrefixes [][]byte) map[uint32][]client.Prefix {
 	return shardPrefixes
 }
 
+// GetByPrefixes fans prefix queries out per shard through the GetFiltered
+// RPC: a prefix is the pattern arm {Uid: client.NewPatternPrefix(prefix)}.
+// Per-prefix Start cursors are applied as plain bounds, so a cursor must
+// extend its prefix (which every resuming caller passes by construction).
+// An absent per-prefix limit keeps the legacy path's HugeLimit default —
+// GetFiltered arms are otherwise uncapped, and existing callers page against
+// the old silent cap rather than expecting one call to return everything.
 func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][]client.Prefix, opts ...client.Option) ([]client.Message, error) {
 	wait := NewWait(len(shardPrefixes))
 	var messages []client.Message
@@ -129,16 +136,28 @@ func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][
 		go func(shard uint32, prefixes []client.Prefix) {
 			defer wait.Group.Done()
 			prefixes = removeDupeAndEmptyPrefixes(prefixes)
-			dbClient := GetShardClient(shard)
-			for len(prefixes) > 0 {
-				var prefixesToUse []client.Prefix
-				if len(prefixes) > client.HugeLimit {
-					prefixesToUse, prefixes = prefixes[:client.HugeLimit], prefixes[client.HugeLimit:]
-				} else {
-					prefixesToUse, prefixes = prefixes, nil
+			var patterns = make([]client.FilterPattern, len(prefixes))
+			for i := range prefixes {
+				var limit = prefixes[i].Limit
+				if limit == 0 {
+					limit = client.HugeLimit
 				}
-				if err := dbClient.GetByPrefixes(ctx, topic, prefixesToUse, opts...); err != nil {
-					wait.AddError(fmt.Errorf("error getting client message get by prefixes; %w", err))
+				patterns[i] = client.FilterPattern{
+					Uid:   client.NewPatternPrefix(prefixes[i].Prefix),
+					Start: prefixes[i].Start,
+					Limit: limit,
+				}
+			}
+			dbClient := GetShardClient(shard)
+			for len(patterns) > 0 {
+				var patternsToUse []client.FilterPattern
+				if len(patterns) > client.HugeLimit {
+					patternsToUse, patterns = patterns[:client.HugeLimit], patterns[client.HugeLimit:]
+				} else {
+					patternsToUse, patterns = patterns, nil
+				}
+				if err := dbClient.GetFiltered(ctx, topic, patternsToUse, opts...); err != nil {
+					wait.AddError(fmt.Errorf("error getting client filtered prefix messages; %w", err))
 					return
 				}
 				wait.Lock.Lock()

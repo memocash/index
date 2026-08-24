@@ -17,54 +17,75 @@ import (
 // every path that writes a verdict must transcribe first, since validation
 // treats a decided parent's missing output rows as definitive.
 func TranscribeSlp(info parse.OpReturn) error {
+	objects, err := TranscribeSlpObjects(info)
+	if err != nil {
+		return fmt.Errorf("error getting slp transcription objects; %w", err)
+	}
+	if len(objects) == 0 {
+		return nil
+	}
+	if err := db.Save(objects); err != nil {
+		return fmt.Errorf("error saving slp transcription objects; %w", err)
+	}
+	return nil
+}
+
+// TranscribeSlpObjects builds the db objects for one SLP op_return without
+// saving them, so bulk callers can batch a single db.Save across many txs.
+// Process errors for malformed messages are still logged immediately.
+func TranscribeSlpObjects(info parse.OpReturn) ([]db.Object, error) {
 	if len(info.PushData) < 5 {
 		if err := item.LogProcessError(&item.ProcessError{
 			TxHash: info.TxHash,
 			Error:  fmt.Sprintf("invalid slp, incorrect push data (%d) op return handler", len(info.PushData)),
 		}); err != nil {
-			return fmt.Errorf("error saving process error for slp incorrect push data; %w", err)
+			return nil, fmt.Errorf("error saving process error for slp incorrect push data; %w", err)
 		}
-		return nil
+		return nil, nil
 	}
 	switch memo.SlpType(info.PushData[2]) {
 	case memo.SlpTxTypeGenesis:
-		if err := SlpGenesis(info); err != nil {
-			return fmt.Errorf("error saving slp genesis op return handler; %w", err)
+		objects, err := slpGenesisObjects(info)
+		if err != nil {
+			return nil, fmt.Errorf("error building slp genesis op return handler; %w", err)
 		}
+		return objects, nil
 	case memo.SlpTxTypeMint:
-		if err := SlpMint(info); err != nil {
-			return fmt.Errorf("error saving slp mint op return handler; %w", err)
+		objects, err := slpMintObjects(info)
+		if err != nil {
+			return nil, fmt.Errorf("error building slp mint op return handler; %w", err)
 		}
+		return objects, nil
 	case memo.SlpTxTypeSend:
-		if err := SlpSend(info); err != nil {
-			return fmt.Errorf("error saving slp send op return handler; %w", err)
+		objects, err := slpSendObjects(info)
+		if err != nil {
+			return nil, fmt.Errorf("error building slp send op return handler; %w", err)
 		}
+		return objects, nil
 	case memo.SlpTxTypeCommit:
-		if err := SlpCommit(info); err != nil {
-			return fmt.Errorf("error saving slp commit op return handler; %w", err)
-		}
+		// Ignore commits for now
+		return nil, nil
 	default:
 		if err := item.LogProcessError(&item.ProcessError{
 			TxHash: info.TxHash,
 			Error:  fmt.Sprintf("unknown slp tx type op return handler: %s", info.PushData[2]),
 		}); err != nil {
-			return fmt.Errorf("error saving process error for slp unknown tx type; %w", err)
+			return nil, fmt.Errorf("error saving process error for slp unknown tx type; %w", err)
 		}
-		return nil
+		return nil, nil
 	}
-	return nil
 }
 
-func SlpGenesis(info parse.OpReturn) error {
+func slpGenesisObjects(info parse.OpReturn) ([]db.Object, error) {
 	const ExpectedPushDataCount = 10
 	if len(info.PushData) < ExpectedPushDataCount {
 		if err := item.LogProcessError(&item.ProcessError{
 			TxHash: info.TxHash,
 			Error:  fmt.Sprintf("invalid slp genesis, incorrect push data (%d), expected %d", len(info.PushData), ExpectedPushDataCount),
 		}); err != nil {
-			return fmt.Errorf("error saving process error for slp genesis incorrect push data; %w", err)
+			return nil, fmt.Errorf("error saving process error for slp genesis incorrect push data; %w", err)
 		}
-		return nil
+		return nil, nil
 	}
 	docHash, err := chainhash.NewHash(info.PushData[6])
 	if err != nil {
@@ -80,28 +101,34 @@ func SlpGenesis(info parse.OpReturn) error {
 		Decimals:   uint8(jutil.GetUint64(info.PushData[7])),
 		BatonIndex: uint32(jutil.GetUint64(info.PushData[8])),
 	}
-	if err := db.Save([]db.Object{genesis}); err != nil {
-		return fmt.Errorf("error saving slp genesis op return to db; %w", err)
+	var objects = []db.Object{genesis}
+	output, err := slpOutputObject(info, genesis.TxHash, memo.SlpMintTokenIndex, jutil.GetUint64(info.PushData[9]))
+	if err != nil {
+		return nil, fmt.Errorf("error building slp output for genesis; %w", err)
 	}
-	if err := SlpOutput(info, genesis.TxHash, memo.SlpMintTokenIndex, jutil.GetUint64(info.PushData[9])); err != nil {
-		return fmt.Errorf("error saving slp output for genesis; %w", err)
+	if output != nil {
+		objects = append(objects, output)
 	}
-	if err := SlpBaton(info, genesis.TxHash, genesis.BatonIndex); err != nil {
-		return fmt.Errorf("error saving slp baton for genesis; %w", err)
+	baton, err := slpBatonObject(info, genesis.TxHash, genesis.BatonIndex)
+	if err != nil {
+		return nil, fmt.Errorf("error building slp baton for genesis; %w", err)
 	}
-	return nil
+	if baton != nil {
+		objects = append(objects, baton)
+	}
+	return objects, nil
 }
 
-func SlpMint(info parse.OpReturn) error {
+func slpMintObjects(info parse.OpReturn) ([]db.Object, error) {
 	const ExpectedPushDataCount = 6
 	if len(info.PushData) < ExpectedPushDataCount {
 		if err := item.LogProcessError(&item.ProcessError{
 			TxHash: info.TxHash,
 			Error:  fmt.Sprintf("invalid slp mint, incorrect push data (%d), expected %d", len(info.PushData), ExpectedPushDataCount),
 		}); err != nil {
-			return fmt.Errorf("error saving process error for slp mint incorrect push data; %w", err)
+			return nil, fmt.Errorf("error saving process error for slp mint incorrect push data; %w", err)
 		}
-		return nil
+		return nil, nil
 	}
 	tokenHash, err := chainhash.NewHash(jutil.ByteReverse(info.PushData[3]))
 	if err != nil {
@@ -109,9 +136,9 @@ func SlpMint(info parse.OpReturn) error {
 			TxHash: info.TxHash,
 			Error:  fmt.Sprintf("invalid token hash for slp mint (%x)", info.PushData[3]),
 		}); err != nil {
-			return fmt.Errorf("error saving process error for slp mint invalid token hash; %w", err)
+			return nil, fmt.Errorf("error saving process error for slp mint invalid token hash; %w", err)
 		}
-		return nil
+		return nil, nil
 	}
 	var mint = &slp.Mint{
 		TxHash:     info.TxHash,
@@ -120,28 +147,34 @@ func SlpMint(info parse.OpReturn) error {
 		BatonIndex: uint32(jutil.GetUint64(info.PushData[4])),
 		Quantity:   jutil.GetUint64(info.PushData[5]),
 	}
-	if err := db.Save([]db.Object{mint}); err != nil {
-		return fmt.Errorf("error saving mint op return to db; %w", err)
+	var objects = []db.Object{mint}
+	output, err := slpOutputObject(info, mint.TokenHash, memo.SlpMintTokenIndex, mint.Quantity)
+	if err != nil {
+		return nil, fmt.Errorf("error building slp output for mint; %w", err)
 	}
-	if err := SlpOutput(info, mint.TokenHash, memo.SlpMintTokenIndex, mint.Quantity); err != nil {
-		return fmt.Errorf("error saving slp output for mint; %w", err)
+	if output != nil {
+		objects = append(objects, output)
 	}
-	if err := SlpBaton(info, mint.TokenHash, mint.BatonIndex); err != nil {
-		return fmt.Errorf("error saving slp baton for mint; %w", err)
+	baton, err := slpBatonObject(info, mint.TokenHash, mint.BatonIndex)
+	if err != nil {
+		return nil, fmt.Errorf("error building slp baton for mint; %w", err)
 	}
-	return nil
+	if baton != nil {
+		objects = append(objects, baton)
+	}
+	return objects, nil
 }
 
-func SlpSend(info parse.OpReturn) error {
+func slpSendObjects(info parse.OpReturn) ([]db.Object, error) {
 	const ExpectedPushDataCount = 5
 	if len(info.PushData) < ExpectedPushDataCount {
 		if err := item.LogProcessError(&item.ProcessError{
 			TxHash: info.TxHash,
 			Error: fmt.Sprintf("invalid slp send, incorrect push data (%d), expected %d",
 				len(info.PushData), ExpectedPushDataCount)}); err != nil {
-			return fmt.Errorf("error saving process error for slp send incorrect push data; %w", err)
+			return nil, fmt.Errorf("error saving process error for slp send incorrect push data; %w", err)
 		}
-		return nil
+		return nil, nil
 	}
 	tokenHash, err := chainhash.NewHash(jutil.ByteReverse(info.PushData[3]))
 	if err != nil {
@@ -149,76 +182,67 @@ func SlpSend(info parse.OpReturn) error {
 			TxHash: info.TxHash,
 			Error:  fmt.Sprintf("invalid token hash for slp send (%x)", info.PushData[3]),
 		}); err != nil {
-			return fmt.Errorf("error saving process error for slp send invalid token hash; %w", err)
+			return nil, fmt.Errorf("error saving process error for slp send invalid token hash; %w", err)
 		}
-		return nil
+		return nil, nil
 	}
 	var send = &slp.Send{
 		TxHash:    info.TxHash,
 		TokenHash: *tokenHash,
 		TokenType: uint8(jutil.GetUint64(info.PushData[1])),
 	}
-	if err := db.Save([]db.Object{send}); err != nil {
-		return fmt.Errorf("error saving send op return to db; %w", err)
-	}
+	var objects = []db.Object{send}
 	for i := 4; i < len(info.PushData); i++ {
 		var index = uint32(i - 3)
 		var quantity = jutil.GetUint64(info.PushData[i])
 		if quantity == 0 {
 			continue
 		}
-		if err := SlpOutput(info, send.TokenHash, index, quantity); err != nil {
-			return fmt.Errorf("error saving slp output for send; %w", err)
+		output, err := slpOutputObject(info, send.TokenHash, index, quantity)
+		if err != nil {
+			return nil, fmt.Errorf("error building slp output for send; %w", err)
+		}
+		if output != nil {
+			objects = append(objects, output)
 		}
 	}
-	return nil
+	return objects, nil
 }
 
-func SlpCommit(parse.OpReturn) error {
-	// Ignore commits for now
-	return nil
-}
-
-func SlpOutput(info parse.OpReturn, tokenHash [32]byte, index uint32, quantity uint64) error {
+func slpOutputObject(info parse.OpReturn, tokenHash [32]byte, index uint32, quantity uint64) (db.Object, error) {
 	if quantity == 0 {
-		return nil
+		return nil, nil
 	}
 	if len(info.Outputs) <= int(index) {
 		if err := item.LogProcessError(&item.ProcessError{
 			TxHash: info.TxHash,
 			Error: fmt.Sprintf("invalid slp output, index out of range (len: %d, index: %d)",
 				len(info.Outputs), index)}); err != nil {
-			return fmt.Errorf("error saving process error for slp output index out of range; %w", err)
+			return nil, fmt.Errorf("error saving process error for slp output index out of range; %w", err)
 		}
-		return nil
+		return nil, nil
 	}
-	if err := db.Save([]db.Object{&slp.Output{
+	return &slp.Output{
 		TxHash:    info.TxHash,
 		Index:     index,
 		TokenHash: tokenHash,
 		Quantity:  quantity,
-	}}); err != nil {
-		return fmt.Errorf("error saving slp output op return to db; %w", err)
-	}
-	return nil
+	}, nil
 }
 
-func SlpBaton(info parse.OpReturn, tokenHash [32]byte, index uint32) error {
+func slpBatonObject(info parse.OpReturn, tokenHash [32]byte, index uint32) (db.Object, error) {
 	if len(info.Outputs) <= int(index) {
 		if err := item.LogProcessError(&item.ProcessError{
 			TxHash: info.TxHash,
 			Error: fmt.Sprintf("invalid slp baton, index out of range (len: %d, index: %d)",
 				len(info.Outputs), index)}); err != nil {
-			return fmt.Errorf("error saving process error for slp baton index out of range; %w", err)
+			return nil, fmt.Errorf("error saving process error for slp baton index out of range; %w", err)
 		}
-		return nil
+		return nil, nil
 	}
-	if err := db.Save([]db.Object{&slp.Baton{
+	return &slp.Baton{
 		TxHash:    info.TxHash,
 		Index:     index,
 		TokenHash: tokenHash,
-	}}); err != nil {
-		return fmt.Errorf("error saving slp baton op return to db; %w", err)
-	}
-	return nil
+	}, nil
 }

@@ -1,6 +1,8 @@
 package slp
 
 import (
+	"context"
+	"fmt"
 	"github.com/jchavannes/jgo/jutil"
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
@@ -51,4 +53,23 @@ func (m *Mint) Deserialize(data []byte) {
 	m.BatonIndex = jutil.GetUint32(data[memo.TxHashLength : memo.TxHashLength+4])
 	m.Quantity = jutil.GetUint64(data[memo.TxHashLength+4 : memo.TxHashLength+12])
 	m.TokenType = data[memo.TxHashLength+12]
+}
+
+func GetMints(ctx context.Context, txHashes [][32]byte) ([]*Mint, error) {
+	var shardUids = make(map[uint32][][]byte)
+	for _, txHash := range txHashes {
+		shard := db.GetShardIdFromByte32(txHash[:])
+		shardUids[shard] = append(shardUids[shard], jutil.ByteReverse(txHash[:]))
+	}
+	messages, err := db.GetSpecific(ctx, db.TopicSlpMint, shardUids)
+	if err != nil {
+		return nil, fmt.Errorf("error getting slp mints; %w", err)
+	}
+	var mints []*Mint
+	for i := range messages {
+		var mint = new(Mint)
+		db.Set(mint, messages[i])
+		mints = append(mints, mint)
+	}
+	return mints, nil
 }

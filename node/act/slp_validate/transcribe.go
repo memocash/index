@@ -3,6 +3,7 @@ package slp_validate
 import (
 	"fmt"
 	"github.com/jchavannes/btcd/txscript"
+	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/node/obj/op_return/save"
 	"github.com/memocash/index/ref/bitcoin/tx/parse"
 	"github.com/memocash/index/ref/bitcoin/tx/slp"
@@ -20,7 +21,11 @@ var CascadeTranscribe = TranscribeTxs
 // definitive (contributing nothing), so every path that writes verdicts must
 // transcribe first — including the cascade, whose reconstructed spenders may
 // not have been visited by the live save path or the sweep yet.
+// Objects are collected across all txs and written with a single db.Save
+// (which fans out per shard/topic internally), since per-tx saves cost 2-3
+// round trips each and dominate bulk backfill time.
 func TranscribeTxs(slpTxs []Tx) error {
+	var objects []db.Object
 	for _, tx := range slpTxs {
 		// Only the vout-0 message is an SLP action; later-output lokads are
 		// not transcribed (spec Consideration A)
@@ -31,16 +36,24 @@ func TranscribeTxs(slpTxs []Tx) error {
 		if err != nil {
 			continue
 		}
-		if err := save.TranscribeSlp(parse.OpReturn{
+		txObjects, err := save.TranscribeSlpObjects(parse.OpReturn{
 			Saved:       true,
 			TxHash:      tx.TxHash,
 			PushData:    pushData,
 			Outputs:     tx.Outputs,
 			Inputs:      tx.Inputs,
 			OutputIndex: 0,
-		}); err != nil {
+		})
+		if err != nil {
 			return fmt.Errorf("error transcribing slp tx; %w", err)
 		}
+		objects = append(objects, txObjects...)
+	}
+	if len(objects) == 0 {
+		return nil
+	}
+	if err := db.Save(objects); err != nil {
+		return fmt.Errorf("error saving slp transcription objects; %w", err)
 	}
 	return nil
 }

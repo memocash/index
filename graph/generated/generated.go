@@ -236,6 +236,7 @@ type ComplexityRoot struct {
 		Outputs  func(childComplexity int) int
 		Raw      func(childComplexity int) int
 		Seen     func(childComplexity int) int
+		Slp      func(childComplexity int) int
 		Version  func(childComplexity int) int
 	}
 
@@ -268,6 +269,13 @@ type ComplexityRoot struct {
 		SlpBaton func(childComplexity int) int
 		Spends   func(childComplexity int) int
 		Tx       func(childComplexity int) int
+	}
+
+	TxSlp struct {
+		Genesis   func(childComplexity int) int
+		TokenHash func(childComplexity int) int
+		Type      func(childComplexity int) int
+		Validity  func(childComplexity int) int
 	}
 }
 
@@ -1310,6 +1318,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Tx.Seen(childComplexity), true
+	case "Tx.slp":
+		if e.ComplexityRoot.Tx.Slp == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Tx.Slp(childComplexity), true
 	case "Tx.version":
 		if e.ComplexityRoot.Tx.Version == nil {
 			break
@@ -1451,6 +1465,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.TxOutput.Tx(childComplexity), true
+
+	case "TxSlp.genesis":
+		if e.ComplexityRoot.TxSlp.Genesis == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TxSlp.Genesis(childComplexity), true
+	case "TxSlp.token_hash":
+		if e.ComplexityRoot.TxSlp.TokenHash == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TxSlp.TokenHash(childComplexity), true
+	case "TxSlp.type":
+		if e.ComplexityRoot.TxSlp.Type == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TxSlp.Type(childComplexity), true
+	case "TxSlp.validity":
+		if e.ComplexityRoot.TxSlp.Validity == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TxSlp.Validity(childComplexity), true
 
 	}
 	return 0, false
@@ -1765,6 +1804,28 @@ enum SlpValidity {
     PENDING
 }
 
+"""
+The SLP action at a tx's vout 0 and the tx-level verdict. Validity is a
+property of the whole tx, so this is exposed even when the action produced no
+token output rows (e.g. a zero-quantity SEND, a legal burn/no-op) — the case
+the per-output slp fields cannot show. Null means the index holds no SLP
+knowledge of the tx at all; a null type with an INVALID validity means vout 0
+carries the SLP lokad but the message was unparseable, so no action was
+transcribed.
+"""
+type TxSlp {
+    type: SlpActionType
+    token_hash: Hash
+    genesis: SlpGenesis
+    validity: SlpValidity!
+}
+
+enum SlpActionType {
+    GENESIS
+    MINT
+    SEND
+}
+
 #type SlpMint {
 #    tx: Tx!
 #    hash: String!
@@ -1788,6 +1849,7 @@ enum SlpValidity {
     seen: Date
     version:  Int32!
     locktime: Uint32!
+    slp: TxSlp
 }
 `, BuiltIn: false},
 	{Name: "../schema/tx_block.graphqls", Input: `type TxBlock {
@@ -2168,6 +2230,8 @@ func (ec *executionContext) childFields_Tx(ctx context.Context, field graphql.Co
 		return ec.fieldContext_Tx_version(ctx, field)
 	case "locktime":
 		return ec.fieldContext_Tx_locktime(ctx, field)
+	case "slp":
+		return ec.fieldContext_Tx_slp(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Tx", field.Name)
 }
@@ -2232,6 +2296,20 @@ func (ec *executionContext) childFields_TxOutput(ctx context.Context, field grap
 		return ec.fieldContext_TxOutput_lock(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type TxOutput", field.Name)
+}
+
+func (ec *executionContext) childFields_TxSlp(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "type":
+		return ec.fieldContext_TxSlp_type(ctx, field)
+	case "token_hash":
+		return ec.fieldContext_TxSlp_token_hash(ctx, field)
+	case "genesis":
+		return ec.fieldContext_TxSlp_genesis(ctx, field)
+	case "validity":
+		return ec.fieldContext_TxSlp_validity(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type TxSlp", field.Name)
 }
 
 func (ec *executionContext) childFields___Directive(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -6570,8 +6648,8 @@ func (ec *executionContext) _SlpOutput_amount(ctx context.Context, field graphql
 			return obj.Amount, nil
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v uint64) graphql.Marshaler {
-			return ec.marshalNUint642uint64(ctx, selections, v)
+		func(ctx context.Context, selections ast.SelectionSet, v model.Uint64) graphql.Marshaler {
+			return ec.marshalNUint642githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐUint64(ctx, selections, v)
 		},
 		true,
 		true,
@@ -7210,6 +7288,38 @@ func (ec *executionContext) fieldContext_Tx_locktime(_ context.Context, field gr
 	return graphql.NewScalarFieldContext("Tx", field, false, false, errors.New("field of type Uint32 does not have child fields"))
 }
 
+func (ec *executionContext) _Tx_slp(ctx context.Context, field graphql.CollectedField, obj *model.Tx) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Tx_slp(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Slp, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.TxSlp) graphql.Marshaler {
+			return ec.marshalOTxSlp2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTxSlp(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Tx_slp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Tx",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TxSlp(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _TxBlock_tx_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxBlock) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -7795,6 +7905,107 @@ func (ec *executionContext) fieldContext_TxOutput_lock(_ context.Context, field 
 		},
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _TxSlp_type(ctx context.Context, field graphql.CollectedField, obj *model.TxSlp) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TxSlp_type(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.SlpActionType) graphql.Marshaler {
+			return ec.marshalOSlpActionType2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐSlpActionType(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_TxSlp_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TxSlp", field, false, false, errors.New("field of type SlpActionType does not have child fields"))
+}
+
+func (ec *executionContext) _TxSlp_token_hash(ctx context.Context, field graphql.CollectedField, obj *model.TxSlp) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TxSlp_token_hash(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TokenHash, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Hash) graphql.Marshaler {
+			return ec.marshalOHash2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_TxSlp_token_hash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TxSlp", field, false, false, errors.New("field of type Hash does not have child fields"))
+}
+
+func (ec *executionContext) _TxSlp_genesis(ctx context.Context, field graphql.CollectedField, obj *model.TxSlp) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TxSlp_genesis(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Genesis, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.SlpGenesis) graphql.Marshaler {
+			return ec.marshalOSlpGenesis2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐSlpGenesis(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_TxSlp_genesis(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TxSlp",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_SlpGenesis(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TxSlp_validity(ctx context.Context, field graphql.CollectedField, obj *model.TxSlp) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TxSlp_validity(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Validity, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.SlpValidity) graphql.Marshaler {
+			return ec.marshalNSlpValidity2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐSlpValidity(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TxSlp_validity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TxSlp", field, false, false, errors.New("field of type SlpValidity does not have child fields"))
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -10428,6 +10639,11 @@ func (ec *executionContext) _Tx(ctx context.Context, sel ast.SelectionSet, obj *
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "slp":
+			out.Values[i] = ec._Tx_slp(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10635,6 +10851,59 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 		case "lock":
 			out.Values[i] = ec._TxOutput_lock(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var txSlpImplementors = []string{"TxSlp"}
+
+func (ec *executionContext) _TxSlp(ctx context.Context, sel ast.SelectionSet, obj *model.TxSlp) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, txSlpImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TxSlp")
+		case "type":
+			out.Values[i] = ec._TxSlp_type(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "token_hash":
+			out.Values[i] = ec._TxSlp_token_hash(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "genesis":
+			out.Values[i] = ec._TxSlp_genesis(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "validity":
+			out.Values[i] = ec._TxSlp_validity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		default:
@@ -11389,14 +11658,14 @@ func (ec *executionContext) marshalNUint322uint32(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNUint642uint64(ctx context.Context, v any) (uint64, error) {
-	res, err := graphql.UnmarshalUint64(v)
+func (ec *executionContext) unmarshalNUint642githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐUint64(ctx context.Context, v any) (model.Uint64, error) {
+	res, err := model.UnmarshalUint64(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUint642uint64(ctx context.Context, sel ast.SelectionSet, v uint64) graphql.Marshaler {
+func (ec *executionContext) marshalNUint642githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐUint64(ctx context.Context, sel ast.SelectionSet, v model.Uint64) graphql.Marshaler {
 	_ = sel
-	res := graphql.MarshalUint64(v)
+	res := model.MarshalUint64(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -12021,6 +12290,25 @@ func (ec *executionContext) marshalOSetProfile2ᚖgithubᚗcomᚋmemocashᚋinde
 	return ec._SetProfile(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOSlpActionType2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐSlpActionType(ctx context.Context, v any) (*model.SlpActionType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	tmp, err := graphql.UnmarshalString(v)
+	res := model.SlpActionType(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOSlpActionType2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐSlpActionType(ctx context.Context, sel ast.SelectionSet, v *model.SlpActionType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
+}
+
 func (ec *executionContext) marshalOSlpBaton2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐSlpBaton(ctx context.Context, sel ast.SelectionSet, v *model.SlpBaton) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -12198,6 +12486,13 @@ func (ec *executionContext) marshalOTxOutput2ᚖgithubᚗcomᚋmemocashᚋindex�
 		return graphql.Null
 	}
 	return ec._TxOutput(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOTxSlp2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTxSlp(ctx context.Context, sel ast.SelectionSet, v *model.TxSlp) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TxSlp(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOUint322ᚖuint32(ctx context.Context, v any) (*uint32, error) {
