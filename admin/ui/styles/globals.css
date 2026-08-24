@@ -10,6 +10,7 @@
   --color-pagination-hover: #f4f4f4;
   --color-red: red;
   --color-orange: orange;
+  --color-green: green;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,6 +26,7 @@
     --color-pagination-hover: #333333;
     --color-red: #ff6b6b;
     --color-orange: #ffa94d;
+    --color-green: #69db7c;
   }
 }
 
