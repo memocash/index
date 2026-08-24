@@ -64,6 +64,40 @@ func UnmarshalUint32(v interface{}) (Uint32, error) {
 	}
 }
 
+type Uint64 uint64
+
+// MarshalUint64 writes the value as a quoted JSON string: JavaScript clients
+// parse unquoted numbers as float64 and silently lose digits above 2^53-1,
+// while SLP quantities use the full uint64 range.
+func MarshalUint64(ui Uint64) graphql.Marshaler {
+	return graphql.WriterFunc(func(w io.Writer) {
+		_, _ = io.WriteString(w, strconv.Quote(strconv.FormatUint(uint64(ui), 10)))
+	})
+}
+
+func UnmarshalUint64(v interface{}) (Uint64, error) {
+	switch v := v.(type) {
+	case string:
+		u64, err := strconv.ParseUint(v, 10, 64)
+		return Uint64(u64), err
+	case int:
+		return Uint64(v), nil
+	case int64:
+		return Uint64(v), nil
+	case uint:
+		return Uint64(v), nil
+	case uint8:
+		return Uint64(v), nil
+	case uint64:
+		return Uint64(v), nil
+	case json.Number:
+		u64, err := strconv.ParseUint(string(v), 10, 64)
+		return Uint64(u64), err
+	default:
+		return 0, fmt.Errorf("%T is not an uint64", v)
+	}
+}
+
 func IntPtr(i int) *int {
 	return &i
 }

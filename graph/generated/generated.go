@@ -6648,8 +6648,8 @@ func (ec *executionContext) _SlpOutput_amount(ctx context.Context, field graphql
 			return obj.Amount, nil
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v uint64) graphql.Marshaler {
-			return ec.marshalNUint642uint64(ctx, selections, v)
+		func(ctx context.Context, selections ast.SelectionSet, v model.Uint64) graphql.Marshaler {
+			return ec.marshalNUint642githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐUint64(ctx, selections, v)
 		},
 		true,
 		true,
@@ -11658,14 +11658,14 @@ func (ec *executionContext) marshalNUint322uint32(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNUint642uint64(ctx context.Context, v any) (uint64, error) {
-	res, err := graphql.UnmarshalUint64(v)
+func (ec *executionContext) unmarshalNUint642githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐUint64(ctx context.Context, v any) (model.Uint64, error) {
+	res, err := model.UnmarshalUint64(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUint642uint64(ctx context.Context, sel ast.SelectionSet, v uint64) graphql.Marshaler {
+func (ec *executionContext) marshalNUint642githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐUint64(ctx context.Context, sel ast.SelectionSet, v model.Uint64) graphql.Marshaler {
 	_ = sel
-	res := graphql.MarshalUint64(v)
+	res := model.MarshalUint64(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")

@@ -206,6 +206,15 @@ function hasCoinbase(tx) {
     return false
 }
 
+const FormatSlpAmount = (amount, genesis) => {
+    const addCommas = (s) => s.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+    if (!genesis || !genesis.decimals) {
+        return addCommas(String(amount))
+    }
+    const str = String(amount).padStart(genesis.decimals + 1, "0")
+    return addCommas(str.slice(0, -genesis.decimals)) + "." + str.slice(-genesis.decimals)
+}
+
 function SlpValidity({validity}) {
     const colors = {
         VALID: column.green,
@@ -282,7 +291,7 @@ function Inputs({tx}) {
                             className={[pre.pre, pre.inline].join(" ")}>{input.script}</pre>
                             <br/>
                             {input.output.slp ? <div>
-                                SLP: {input.output.slp.amount} {input.output.slp.genesis ?
+                                SLP: {FormatSlpAmount(input.output.slp.amount, input.output.slp.genesis)} {input.output.slp.genesis ?
                                 <Link href={"/tx/" + input.output.slp.token_hash}>
                                     {input.output.slp.genesis.ticker}
                                 </Link> : null} <SlpValidity validity={input.output.slp.validity}/>
@@ -393,7 +402,7 @@ function Outputs({tx}) {
                             LockScript: <pre
                             className={[pre.pre, pre.inline].join(" ")}>{output.script}</pre>
                             {output.slp ? <div>
-                                SLP: {output.slp.amount} {output.slp.genesis ?
+                                SLP: {FormatSlpAmount(output.slp.amount, output.slp.genesis)} {output.slp.genesis ?
                                 <Link href={"/tx/" + output.slp.token_hash}>
                                     {output.slp.genesis.ticker}
                                 </Link> : null}

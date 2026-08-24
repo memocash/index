@@ -52,7 +52,7 @@ models:
   Uint32:
     model: github.com/99designs/gqlgen/graphql.Uint32
   Uint64:
-    model: github.com/99designs/gqlgen/graphql.Uint64
+    model: github.com/memocash/index/graph/model.Uint64
   Bytes:
     model: github.com/memocash/index/graph/model.Bytes
   Hash:

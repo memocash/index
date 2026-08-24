@@ -200,7 +200,7 @@ type SlpOutput struct {
 	Hash      Hash        `json:"hash"`
 	Index     uint32      `json:"index"`
 	TokenHash Hash        `json:"token_hash"`
-	Amount    uint64      `json:"amount"`
+	Amount    Uint64      `json:"amount"`
 	Genesis   *SlpGenesis `json:"genesis"`
 	Output    *TxOutput   `json:"output"`
 	Validity  SlpValidity `json:"validity"`

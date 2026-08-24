@@ -165,7 +165,7 @@ func (o *Outputs) AttachSlps() {
 				Hash:      slpOutputs[j].TxHash,
 				Index:     slpOutputs[j].Index,
 				TokenHash: slpOutputs[j].TokenHash,
-				Amount:    slpOutputs[j].Quantity,
+				Amount:    model.Uint64(slpOutputs[j].Quantity),
 			}
 			allSlpOutputs = append(allSlpOutputs, o.Outputs[i].Slp)
 		}
