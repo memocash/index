@@ -27,12 +27,13 @@ func ToTxs(ctx context.Context, fields []Field, txs []*model.Tx) error {
 		Txs:  txs,
 	}
 	t.DetailsWait.Add(3)
-	t.Wait.Add(4)
+	t.Wait.Add(5)
 	go t.AttachInputs()
 	go t.AttachOutputs()
 	go t.AttachInfo()
 	go t.AttachSeens()
 	go t.AttachBlocks()
+	go t.AttachSlps()
 	t.DetailsWait.Wait()
 	go t.AttachRaws()
 	t.Wait.Wait()

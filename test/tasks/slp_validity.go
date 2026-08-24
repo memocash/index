@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	item_slp "github.com/memocash/index/db/item/slp"
+	"github.com/memocash/index/graph/attach"
+	"github.com/memocash/index/graph/model"
 	act_maint "github.com/memocash/index/node/act/maint"
 	"github.com/memocash/index/node/act/slp_validate"
 	"github.com/memocash/index/node/obj/saver"
@@ -65,6 +68,13 @@ func txHash32(tx *memo.Tx) [32]byte {
 	copy(txHash[:], tx.GetHash())
 	return txHash
 }
+
+// rawScript emits fixed script bytes, for fixture txs whose vout 0 must be
+// byte-exact (e.g. a malformed SLP message)
+type rawScript struct{ pk []byte }
+
+func (r rawScript) Get() ([]byte, error)  { return r.pk, nil }
+func (r rawScript) Type() memo.OutputType { return memo.OutputTypeUnknown }
 
 // mine writes block associations for txs at the given height (nonce makes the
 // block hash unique) via the minimal saver, which skips the live SLP handler,
@@ -1254,5 +1264,144 @@ func (s *slpValidityState) run() error {
 		return fmt.Errorf("error mined genesis row not transcribed by backfill; %w", err)
 	}
 	log.Printf("✓ backfill skipped the unmined candidate and decided it once mined\n")
+
+	// Zero-quantity send: a legal burn/no-op — declared output sum 0 needs no
+	// token inputs, so it is self-evidently valid. The live path must write
+	// the send row and a VALID verdict while writing NO token output rows;
+	// this is the tx-level shape the per-output graph fields cannot show
+	_, zeroFundUtxo, err := s.fund(1e5)
+	if err != nil {
+		return err
+	}
+	zeroSend, err := build.TokenSend(build.TokenSendRequest{
+		Wallet:    s.wallet(zeroFundUtxo),
+		TokenHash: bfTokenHash,
+		Recipient: test_tx.Address2,
+		Quantity:  0,
+		TokenType: memo.SlpDefaultTokenType,
+	})
+	if err != nil {
+		return fmt.Errorf("error building zero-quantity send; %w", err)
+	}
+	if err := s.save(zeroSend); err != nil {
+		return err
+	}
+	if err := s.checkStatus("zero-quantity send", zeroSend, slp_tx.StatusValid, slp_tx.ReasonNone); err != nil {
+		return err
+	}
+	zeroSendHash := txHash32(zeroSend)
+	var zeroSendRow = &item_slp.Send{TxHash: zeroSendHash}
+	if err := db.GetItem(s.ctx, zeroSendRow); err != nil {
+		return fmt.Errorf("error zero-quantity send row not transcribed; %w", err)
+	}
+	if !bytes.Equal(zeroSendRow.TokenHash[:], bfTokenHash) {
+		return fmt.Errorf("error zero-quantity send row token %x, expected %x", zeroSendRow.TokenHash, bfTokenHash)
+	}
+	zeroOutputs, err := item_slp.GetOutputs(s.ctx, []memo.Out{
+		{TxHash: zeroSendHash[:], Index: 1},
+		{TxHash: zeroSendHash[:], Index: 2},
+	})
+	if err != nil {
+		return fmt.Errorf("error getting zero-quantity send output rows; %w", err)
+	}
+	if len(zeroOutputs) != 0 {
+		return fmt.Errorf("error zero-quantity send has %d token output rows, expected none", len(zeroOutputs))
+	}
+	log.Printf("✓ zero-quantity send: valid verdict, send row, no token output rows\n")
+
+	// Unparseable vout-0 lokad: carries the SLP prefix, so the backfill must
+	// consider it, but only 3 pushes — below the minimum for any action.
+	// Transcription declines it and strict validation records INVALID: a
+	// verdict row with no action row
+	_, malformedFundUtxo, err := s.fund(1e5)
+	if err != nil {
+		return err
+	}
+	// OP_RETURN, push "SLP\x00", push 0x01 (type 1), push "SEND"
+	malformedTx, err := build.SimpleSingle(s.wallet(malformedFundUtxo), []*memo.Output{
+		{Script: rawScript{pk: []byte{0x6a, 0x04, 'S', 'L', 'P', 0x00, 0x01, 0x01, 0x04, 'S', 'E', 'N', 'D'}}},
+		gen.GetAddressOutput(test_tx.Address2, memo.DustMinimumOutput),
+	})
+	if err != nil {
+		return fmt.Errorf("error building malformed slp tx; %w", err)
+	}
+	if err := saver.NewTxMinimal(false).SaveTxs(s.ctx, dbi.WireBlockToBlock(
+		memo.GetBlockFromTxs([]*wire.MsgTx{malformedTx.MsgTx}, nil))); err != nil {
+		return fmt.Errorf("error saving malformed slp tx minimally; %w", err)
+	}
+	if err := s.mine(700004, 4, malformedTx); err != nil {
+		return err
+	}
+	if err := act_maint.NewSlpValidityBackfill(s.ctx, false).Run(); err != nil {
+		return fmt.Errorf("error running backfill for malformed slp tx; %w", err)
+	}
+	if err := s.checkStatus("malformed vout-0 lokad", malformedTx,
+		slp_tx.StatusInvalid, slp_tx.ReasonParse); err != nil {
+		return err
+	}
+	malformedHash := txHash32(malformedTx)
+	if err := db.GetItem(s.ctx, &item_slp.Send{TxHash: malformedHash}); err == nil {
+		return fmt.Errorf("error malformed slp tx has a send row, expected none")
+	} else if !errors.Is(err, client.EntryNotFoundError) {
+		return fmt.Errorf("error checking malformed slp send row; %w", err)
+	}
+	log.Printf("✓ malformed lokad: invalid verdict with no action row\n")
+
+	// Tx-level slp attach: validity is a per-tx fact, so the graph layer must
+	// surface it from the action + validity rows alone — including the two
+	// sparse shapes above, which have no token output rows to hang it on
+	nonSlpTx, _, err := s.fund(1e5)
+	if err != nil {
+		return err
+	}
+	var attachTxs = []*model.Tx{
+		{Hash: model.Hash(txHash32(bfGenesisTx))},
+		{Hash: model.Hash(txHash32(fakeSend))},
+		{Hash: model.Hash(txHash32(nonSlpTx))},
+		{Hash: model.Hash(zeroSendHash)},
+		{Hash: model.Hash(malformedHash)},
+	}
+	if err := attach.ToTxs(s.ctx, []attach.Field{{Name: "slp", Fields: []attach.Field{
+		{Name: "type"}, {Name: "token_hash"}, {Name: "validity"},
+		{Name: "genesis", Fields: []attach.Field{{Name: "ticker"}}},
+	}}}, attachTxs); err != nil {
+		return fmt.Errorf("error attaching slp to txs; %w", err)
+	}
+	genesisSlp, fakeSendSlp, nonSlpSlp := attachTxs[0].Slp, attachTxs[1].Slp, attachTxs[2].Slp
+	if genesisSlp == nil || genesisSlp.Type == nil || *genesisSlp.Type != model.SlpActionTypeGenesis ||
+		genesisSlp.TokenHash == nil || *genesisSlp.TokenHash != model.Hash(txHash32(bfGenesisTx)) ||
+		genesisSlp.Validity != model.SlpValidityValid {
+		return fmt.Errorf("error tx-level slp for genesis = %+v, expected valid genesis of itself", genesisSlp)
+	}
+	if fakeSendSlp == nil || fakeSendSlp.Type == nil || *fakeSendSlp.Type != model.SlpActionTypeSend ||
+		fakeSendSlp.TokenHash == nil || !bytes.Equal(fakeSendSlp.TokenHash[:], tokenHash) ||
+		fakeSendSlp.Validity != model.SlpValidityInvalid {
+		return fmt.Errorf("error tx-level slp for fake send = %+v, expected invalid send of token A", fakeSendSlp)
+	}
+	if nonSlpSlp != nil {
+		return fmt.Errorf("error tx-level slp for plain bch tx = %+v, expected nil", nonSlpSlp)
+	}
+	zeroSlp, malformedSlp := attachTxs[3].Slp, attachTxs[4].Slp
+	if zeroSlp == nil || zeroSlp.Type == nil || *zeroSlp.Type != model.SlpActionTypeSend ||
+		zeroSlp.TokenHash == nil || !bytes.Equal(zeroSlp.TokenHash[:], bfTokenHash) ||
+		zeroSlp.Validity != model.SlpValidityValid {
+		return fmt.Errorf("error tx-level slp for zero-quantity send = %+v, expected valid send", zeroSlp)
+	}
+	if malformedSlp == nil || malformedSlp.Type != nil || malformedSlp.TokenHash != nil ||
+		malformedSlp.Validity != model.SlpValidityInvalid {
+		return fmt.Errorf("error tx-level slp for malformed lokad = %+v, expected invalid with nil type", malformedSlp)
+	}
+	// Genesis resolution: a genesis action resolves to itself, a send to its
+	// token's genesis; no token hash (malformed) or plain BCH means none
+	if genesisSlp.Genesis == nil || !bytes.Equal(genesisSlp.Genesis.Hash[:], bfTokenHash) {
+		return fmt.Errorf("error tx-level slp genesis for genesis action = %+v, expected itself", genesisSlp.Genesis)
+	}
+	if zeroSlp.Genesis == nil || zeroSlp.Genesis.Ticker != "BKFL" {
+		return fmt.Errorf("error tx-level slp genesis for zero-quantity send = %+v, expected BKFL token", zeroSlp.Genesis)
+	}
+	if malformedSlp.Genesis != nil {
+		return fmt.Errorf("error tx-level slp genesis for malformed lokad = %+v, expected nil", malformedSlp.Genesis)
+	}
+	log.Printf("✓ tx-level slp attach surfaces action and verdict without output rows\n")
 	return nil
 }
