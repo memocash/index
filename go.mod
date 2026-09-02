@@ -8,7 +8,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
 	github.com/jchavannes/bchutil v1.1.5-0.20220519214029-6a6c086b1f21
-	github.com/jchavannes/btcd v1.1.5-0.20260720113229-120eb47fb816
+	github.com/jchavannes/btcd v1.1.5-0.20260902182316-eca53ff3f32f
 	github.com/jchavannes/btclog v1.1.0
 	github.com/jchavannes/btcutil v1.1.4
 	github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65

@@ -5,8 +5,8 @@ replace github.com/memocash/index => ../../
 go 1.25.0
 
 require (
-	github.com/jchavannes/btcd v1.1.5-0.20260720113229-120eb47fb816
-	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/jchavannes/btcd v1.1.5-0.20260902182316-eca53ff3f32f
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/memocash/index v0.0.0-00010101000000-000000000000
 	golang.org/x/term v0.45.0
 )
@@ -19,11 +19,12 @@ require (
 	github.com/jchavannes/btclog v1.1.0 // indirect
 	github.com/jchavannes/btcutil v1.1.4 // indirect
 	github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65 // indirect
-	github.com/jchavannes/gorm v0.0.0-20190714222221-6e209826f9bd // indirect
-	github.com/jchavannes/jgo v0.0.0-20240515195449-361d07b9e227 // indirect
+	github.com/jchavannes/jgo v0.2.1-0.20260824220156-7b087a18121f // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/tyler-smith/go-bip32 v1.0.0 // indirect
 	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
+	gorm.io/gorm v1.25.12 // indirect
 )
