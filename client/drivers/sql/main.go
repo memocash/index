@@ -12,6 +12,9 @@ func initDb(db *sql.DB, prefix string) error {
 			return fmt.Errorf("error creating table; %w", err)
 		}
 	}
+	if err := migrateSlpAmountText(db, prefix); err != nil {
+		return fmt.Errorf("error migrating slp amount column; %w", err)
+	}
 	return nil
 }
 
@@ -172,7 +175,10 @@ var tables = map[string]Table{
 			"hash":       "CHAR",
 			"index":      "INT",
 			"token_hash": "CHAR",
-			"amount":     "INT",
+			// Stored as a decimal string: SLP amounts span the full uint64
+			// range, which neither database/sql (rejects uint64 with the high
+			// bit set) nor a 64-bit signed INT column can carry losslessly.
+			"amount": "CHAR",
 		},
 		Indexes: []string{"UNIQUE(hash, `index`)"},
 	},

@@ -13,6 +13,7 @@ require (
 	github.com/jchavannes/btcutil v1.1.4
 	github.com/jchavannes/go-mnemonic v0.0.0-20191017214729-76f026914b65
 	github.com/jchavannes/jgo v0.2.1-0.20260824220156-7b087a18121f
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/profile v1.6.0
 	github.com/spf13/cobra v1.2.1

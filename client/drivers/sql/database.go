@@ -7,6 +7,7 @@ import (
 	"github.com/memocash/index/client/lib"
 	"github.com/memocash/index/client/lib/graph"
 	"github.com/memocash/index/ref/bitcoin/wallet"
+	"strconv"
 	"time"
 )
 
@@ -199,7 +200,7 @@ func (d *Database) SaveTxs(txs []graph.Tx) error {
 						"hash":       tx.Hash,
 						"index":      output.Index,
 						"token_hash": output.Slp.TokenHash,
-						"amount":     int64(output.Slp.Amount),
+						"amount":     strconv.FormatUint(output.Slp.Amount, 10),
 					}))
 				if output.Slp.Genesis != nil {
 					queries = append(queries,
