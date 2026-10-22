@@ -8,6 +8,7 @@ const (
 	TestQueueWait      = "queue_wait"
 	TestSlpValidity    = "slp_validity"
 	TestOpReturnSender = "op_return_sender"
+	TestCashToken      = "cash_token"
 )
 
 func GetTests() []suite.Test {
@@ -16,5 +17,6 @@ func GetTests() []suite.Test {
 		queueTest,
 		SlpValidity,
 		OpReturnSender,
+		CashToken,
 	}
 }

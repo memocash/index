@@ -7,5 +7,6 @@ type TxOutput {
     spends: [TxInput]
     slp: SlpOutput
     slp_baton: SlpBaton
+    cash_token: CashTokenOutput
     lock: Lock
 }

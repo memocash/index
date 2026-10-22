@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	item_cashtoken "github.com/memocash/index/db/item/cashtoken"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/slp"
 	"github.com/memocash/index/graph/model"
@@ -32,11 +33,12 @@ func ToOutputs(ctx context.Context, fields Fields, outputs []*model.TxOutput) er
 		Outputs: outputs,
 	}
 	o.DetailsWait.Add(1)
-	o.Wait.Add(5)
+	o.Wait.Add(6)
 	go o.AttachInfo()
 	go o.AttachSpends()
 	go o.AttachSlps()
 	go o.AttachSlpBatons()
+	go o.AttachCashTokens()
 	go o.AttachTxs()
 	o.DetailsWait.Wait()
 	go o.AttachLocks()
@@ -208,6 +210,45 @@ func (o *Outputs) AttachSlpBatons() {
 	o.Mutex.Unlock()
 	if err := ToSlpBatons(o.Ctx, GetPrefixFields(o.Fields, "slp_baton."), allSlpBatons); err != nil {
 		o.AddError(fmt.Errorf("error attaching to slp batons for tx outputs; %w", err))
+		return
+	}
+}
+
+func (o *Outputs) AttachCashTokens() {
+	defer o.Wait.Done()
+	if !o.HasField([]string{"cash_token"}) {
+		return
+	}
+	outs := o.GetOuts(false)
+	tokenOutputs, err := item_cashtoken.GetOutputs(o.Ctx, outs)
+	if err != nil {
+		o.AddError(fmt.Errorf("error getting cash token outputs for model tx outputs; %w", err))
+		return
+	}
+	outputIndexMap := o.getOutputIndexMap()
+	var allTokenOutputs []*model.CashTokenOutput
+	o.Mutex.Lock()
+	for j := range tokenOutputs {
+		indices, ok := outputIndexMap[outKey{tokenOutputs[j].TxHash, tokenOutputs[j].Index}]
+		if !ok {
+			continue
+		}
+		for _, i := range indices {
+			o.Outputs[i].CashToken = &model.CashTokenOutput{
+				Hash:       tokenOutputs[j].TxHash,
+				Index:      tokenOutputs[j].Index,
+				Category:   tokenOutputs[j].Category,
+				Amount:     model.Uint64(tokenOutputs[j].Amount),
+				Nft:        tokenOutputs[j].HasNft,
+				Capability: model.CashTokenCapability(tokenOutputs[j].Capability.String()),
+				Commitment: tokenOutputs[j].Commitment,
+			}
+			allTokenOutputs = append(allTokenOutputs, o.Outputs[i].CashToken)
+		}
+	}
+	o.Mutex.Unlock()
+	if err := ToCashTokenOutputs(o.Ctx, GetPrefixFields(o.Fields, "cash_token."), allTokenOutputs); err != nil {
+		o.AddError(fmt.Errorf("error attaching to cash token outputs for tx outputs; %w", err))
 		return
 	}
 }

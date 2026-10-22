@@ -47,6 +47,17 @@ type ComplexityRoot struct {
 		Txs       func(childComplexity int, start *uint32) int
 	}
 
+	CashTokenOutput struct {
+		Amount     func(childComplexity int) int
+		Capability func(childComplexity int) int
+		Category   func(childComplexity int) int
+		Commitment func(childComplexity int) int
+		Hash       func(childComplexity int) int
+		Index      func(childComplexity int) int
+		Nft        func(childComplexity int) int
+		Output     func(childComplexity int) int
+	}
+
 	Follow struct {
 		Address       func(childComplexity int) int
 		FollowAddress func(childComplexity int) int
@@ -260,15 +271,16 @@ type ComplexityRoot struct {
 	}
 
 	TxOutput struct {
-		Amount   func(childComplexity int) int
-		Hash     func(childComplexity int) int
-		Index    func(childComplexity int) int
-		Lock     func(childComplexity int) int
-		Script   func(childComplexity int) int
-		Slp      func(childComplexity int) int
-		SlpBaton func(childComplexity int) int
-		Spends   func(childComplexity int) int
-		Tx       func(childComplexity int) int
+		Amount    func(childComplexity int) int
+		CashToken func(childComplexity int) int
+		Hash      func(childComplexity int) int
+		Index     func(childComplexity int) int
+		Lock      func(childComplexity int) int
+		Script    func(childComplexity int) int
+		Slp       func(childComplexity int) int
+		SlpBaton  func(childComplexity int) int
+		Spends    func(childComplexity int) int
+		Tx        func(childComplexity int) int
 	}
 
 	TxSlp struct {
@@ -376,6 +388,55 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Block.Txs(childComplexity, args["start"].(*uint32)), true
+
+	case "CashTokenOutput.amount":
+		if e.ComplexityRoot.CashTokenOutput.Amount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CashTokenOutput.Amount(childComplexity), true
+	case "CashTokenOutput.capability":
+		if e.ComplexityRoot.CashTokenOutput.Capability == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CashTokenOutput.Capability(childComplexity), true
+	case "CashTokenOutput.category":
+		if e.ComplexityRoot.CashTokenOutput.Category == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CashTokenOutput.Category(childComplexity), true
+	case "CashTokenOutput.commitment":
+		if e.ComplexityRoot.CashTokenOutput.Commitment == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CashTokenOutput.Commitment(childComplexity), true
+	case "CashTokenOutput.hash":
+		if e.ComplexityRoot.CashTokenOutput.Hash == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CashTokenOutput.Hash(childComplexity), true
+	case "CashTokenOutput.index":
+		if e.ComplexityRoot.CashTokenOutput.Index == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CashTokenOutput.Index(childComplexity), true
+	case "CashTokenOutput.nft":
+		if e.ComplexityRoot.CashTokenOutput.Nft == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CashTokenOutput.Nft(childComplexity), true
+	case "CashTokenOutput.output":
+		if e.ComplexityRoot.CashTokenOutput.Output == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CashTokenOutput.Output(childComplexity), true
 
 	case "Follow.address":
 		if e.ComplexityRoot.Follow.Address == nil {
@@ -1417,6 +1478,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.TxOutput.Amount(childComplexity), true
+	case "TxOutput.cash_token":
+		if e.ComplexityRoot.TxOutput.CashToken == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TxOutput.CashToken(childComplexity), true
 	case "TxOutput.hash":
 		if e.ComplexityRoot.TxOutput.Hash == nil {
 			break
@@ -1598,6 +1665,31 @@ var sources = []*ast.Source{
     size: Int64
     tx_count: Int
     txs(start: Uint32): [TxBlock!]
+}
+`, BuiltIn: false},
+	{Name: "../schema/cash_token.graphqls", Input: `"""
+The CashTokens prefix of a token-carrying output. Category is the token's
+genesis tx hash. A fungible-only output has nft false, capability NONE and a
+non-zero amount; an NFT output has nft true, may carry an amount too, and
+has a commitment when the prefix includes one. Tokens are consensus-level,
+so unlike SLP there is no validity: an output that exists carries what its
+prefix says. Wallets must not spend an output with a cash_token as plain BCH.
+"""
+type CashTokenOutput {
+    output: TxOutput!
+    hash: Hash!
+    index: Uint32!
+    category: Hash!
+    amount: Uint64!
+    nft: Boolean!
+    capability: CashTokenCapability!
+    commitment: Bytes
+}
+
+enum CashTokenCapability {
+    NONE
+    MUTABLE
+    MINTING
 }
 `, BuiltIn: false},
 	{Name: "../schema/link.graphqls", Input: `type LinkRequest {
@@ -1880,6 +1972,7 @@ enum SlpActionType {
     spends: [TxInput]
     slp: SlpOutput
     slp_baton: SlpBaton
+    cash_token: CashTokenOutput
     lock: Lock
 }
 `, BuiltIn: false},
@@ -1908,6 +2001,28 @@ func (ec *executionContext) childFields_Block(ctx context.Context, field graphql
 		return ec.fieldContext_Block_txs(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Block", field.Name)
+}
+
+func (ec *executionContext) childFields_CashTokenOutput(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "output":
+		return ec.fieldContext_CashTokenOutput_output(ctx, field)
+	case "hash":
+		return ec.fieldContext_CashTokenOutput_hash(ctx, field)
+	case "index":
+		return ec.fieldContext_CashTokenOutput_index(ctx, field)
+	case "category":
+		return ec.fieldContext_CashTokenOutput_category(ctx, field)
+	case "amount":
+		return ec.fieldContext_CashTokenOutput_amount(ctx, field)
+	case "nft":
+		return ec.fieldContext_CashTokenOutput_nft(ctx, field)
+	case "capability":
+		return ec.fieldContext_CashTokenOutput_capability(ctx, field)
+	case "commitment":
+		return ec.fieldContext_CashTokenOutput_commitment(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CashTokenOutput", field.Name)
 }
 
 func (ec *executionContext) childFields_Follow(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -2292,6 +2407,8 @@ func (ec *executionContext) childFields_TxOutput(ctx context.Context, field grap
 		return ec.fieldContext_TxOutput_slp(ctx, field)
 	case "slp_baton":
 		return ec.fieldContext_TxOutput_slp_baton(ctx, field)
+	case "cash_token":
+		return ec.fieldContext_TxOutput_cash_token(ctx, field)
 	case "lock":
 		return ec.fieldContext_TxOutput_lock(ctx, field)
 	}
@@ -3201,6 +3318,199 @@ func (ec *executionContext) fieldContext_Block_txs(ctx context.Context, field gr
 		return fc, err
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _CashTokenOutput_output(ctx context.Context, field graphql.CollectedField, obj *model.CashTokenOutput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CashTokenOutput_output(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Output, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.TxOutput) graphql.Marshaler {
+			return ec.marshalNTxOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐTxOutput(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CashTokenOutput_output(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CashTokenOutput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TxOutput(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CashTokenOutput_hash(ctx context.Context, field graphql.CollectedField, obj *model.CashTokenOutput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CashTokenOutput_hash(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Hash, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Hash) graphql.Marshaler {
+			return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CashTokenOutput_hash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CashTokenOutput", field, false, false, errors.New("field of type Hash does not have child fields"))
+}
+
+func (ec *executionContext) _CashTokenOutput_index(ctx context.Context, field graphql.CollectedField, obj *model.CashTokenOutput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CashTokenOutput_index(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Index, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v uint32) graphql.Marshaler {
+			return ec.marshalNUint322uint32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CashTokenOutput_index(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CashTokenOutput", field, false, false, errors.New("field of type Uint32 does not have child fields"))
+}
+
+func (ec *executionContext) _CashTokenOutput_category(ctx context.Context, field graphql.CollectedField, obj *model.CashTokenOutput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CashTokenOutput_category(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Category, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Hash) graphql.Marshaler {
+			return ec.marshalNHash2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐHash(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CashTokenOutput_category(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CashTokenOutput", field, false, false, errors.New("field of type Hash does not have child fields"))
+}
+
+func (ec *executionContext) _CashTokenOutput_amount(ctx context.Context, field graphql.CollectedField, obj *model.CashTokenOutput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CashTokenOutput_amount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Amount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Uint64) graphql.Marshaler {
+			return ec.marshalNUint642githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐUint64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CashTokenOutput_amount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CashTokenOutput", field, false, false, errors.New("field of type Uint64 does not have child fields"))
+}
+
+func (ec *executionContext) _CashTokenOutput_nft(ctx context.Context, field graphql.CollectedField, obj *model.CashTokenOutput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CashTokenOutput_nft(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Nft, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CashTokenOutput_nft(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CashTokenOutput", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _CashTokenOutput_capability(ctx context.Context, field graphql.CollectedField, obj *model.CashTokenOutput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CashTokenOutput_capability(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Capability, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.CashTokenCapability) graphql.Marshaler {
+			return ec.marshalNCashTokenCapability2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐCashTokenCapability(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CashTokenOutput_capability(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CashTokenOutput", field, false, false, errors.New("field of type CashTokenCapability does not have child fields"))
+}
+
+func (ec *executionContext) _CashTokenOutput_commitment(ctx context.Context, field graphql.CollectedField, obj *model.CashTokenOutput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CashTokenOutput_commitment(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Commitment, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.Bytes) graphql.Marshaler {
+			return ec.marshalOBytes2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐBytes(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CashTokenOutput_commitment(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CashTokenOutput", field, false, false, errors.New("field of type Bytes does not have child fields"))
 }
 
 func (ec *executionContext) _Follow_tx(ctx context.Context, field graphql.CollectedField, obj *model.Follow) (ret graphql.Marshaler) {
@@ -7875,6 +8185,38 @@ func (ec *executionContext) fieldContext_TxOutput_slp_baton(_ context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _TxOutput_cash_token(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TxOutput_cash_token(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CashToken, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.CashTokenOutput) graphql.Marshaler {
+			return ec.marshalOCashTokenOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐCashTokenOutput(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_TxOutput_cash_token(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TxOutput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CashTokenOutput(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _TxOutput_lock(ctx context.Context, field graphql.CollectedField, obj *model.TxOutput) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9119,6 +9461,79 @@ func (ec *executionContext) _Block(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "txs":
 			out.Values[i] = ec._Block_txs(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var cashTokenOutputImplementors = []string{"CashTokenOutput"}
+
+func (ec *executionContext) _CashTokenOutput(ctx context.Context, sel ast.SelectionSet, obj *model.CashTokenOutput) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cashTokenOutputImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CashTokenOutput")
+		case "output":
+			out.Values[i] = ec._CashTokenOutput_output(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hash":
+			out.Values[i] = ec._CashTokenOutput_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "index":
+			out.Values[i] = ec._CashTokenOutput_index(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "category":
+			out.Values[i] = ec._CashTokenOutput_category(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "amount":
+			out.Values[i] = ec._CashTokenOutput_amount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "nft":
+			out.Values[i] = ec._CashTokenOutput_nft(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "capability":
+			out.Values[i] = ec._CashTokenOutput_capability(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "commitment":
+			out.Values[i] = ec._CashTokenOutput_commitment(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
@@ -10848,6 +11263,11 @@ func (ec *executionContext) _TxOutput(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
+		case "cash_token":
+			out.Values[i] = ec._TxOutput_cash_token(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "lock":
 			out.Values[i] = ec._TxOutput_lock(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
@@ -11375,6 +11795,23 @@ func (ec *executionContext) marshalNBytes2githubᚗcomᚋmemocashᚋindexᚋgrap
 	}
 	_ = sel
 	res := model.MarshalBytes(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNCashTokenCapability2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐCashTokenCapability(ctx context.Context, v any) (model.CashTokenCapability, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := model.CashTokenCapability(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCashTokenCapability2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐCashTokenCapability(ctx context.Context, sel ast.SelectionSet, v model.CashTokenCapability) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -11931,6 +12368,31 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOBytes2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐBytes(ctx context.Context, v any) (model.Bytes, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := model.UnmarshalBytes(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOBytes2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐBytes(ctx context.Context, sel ast.SelectionSet, v model.Bytes) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := model.MarshalBytes(v)
+	return res
+}
+
+func (ec *executionContext) marshalOCashTokenOutput2ᚖgithubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐCashTokenOutput(ctx context.Context, sel ast.SelectionSet, v *model.CashTokenOutput) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CashTokenOutput(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalODate2githubᚗcomᚋmemocashᚋindexᚋgraphᚋmodelᚐDate(ctx context.Context, v any) (model.Date, error) {

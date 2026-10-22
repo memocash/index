@@ -58,3 +58,27 @@ func TestUnlockScriptAddr(t *testing.T) {
 		log.Printf("success address: %s\n", test.Address)
 	}
 }
+
+// A CashTokens prefix (0xef, category, bitfield, optional commitment and
+// amount) precedes the locking bytecode; the address is that of the wrapped
+// script.
+var tokenPrefix, _ = hex.DecodeString("ef" +
+	"0000000000000000000000000000000000000000000000000000000000000001" +
+	"72" + "03" + "010203" + "fde803")
+
+func TestLockScriptAddrCashToken(t *testing.T) {
+	for _, test := range tests {
+		addr, err := wallet.GetAddrFromLockScript(append(append([]byte{}, tokenPrefix...), test.LockScript...))
+		if err != nil {
+			t.Errorf("error getting address from token lock script: %s; %v", test.Address, err)
+			continue
+		}
+		if addr.String() != test.Address {
+			t.Errorf("token address mismatch: %s %s", addr.String(), test.Address)
+		}
+	}
+	// A malformed prefix is not a token and must not resolve to the address.
+	if _, err := wallet.GetAddrFromLockScript(append(append([]byte{}, tokenPrefix[:10]...), LockScript1...)); err == nil {
+		t.Error("expected error for malformed token prefix")
+	}
+}
