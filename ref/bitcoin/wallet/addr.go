@@ -8,6 +8,7 @@ import (
 	"github.com/jchavannes/btcutil"
 	"github.com/jchavannes/btcutil/base58"
 	"github.com/jchavannes/jgo/jerr"
+	"github.com/memocash/index/ref/bitcoin/tx/cashtoken"
 )
 
 const (
@@ -115,7 +116,11 @@ func GetP2shAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
 	return addr, nil
 }
 
+// GetAddrFromLockScript resolves the address a lock script pays to. A
+// CashTokens prefix is dropped first, so a token-carrying output resolves to
+// the same address as the plain output it wraps.
 func GetAddrFromLockScript(lockScript []byte) (*Addr, error) {
+	lockScript = cashtoken.StripPrefix(lockScript)
 	p2pkhAddr, errP2pkh := GetP2pkhAddrFromLockScript(lockScript)
 	if errP2pkh == nil {
 		return p2pkhAddr, nil
