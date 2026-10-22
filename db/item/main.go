@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	"github.com/memocash/index/db/item/addr"
+	"github.com/memocash/index/db/item/cashtoken"
 	"github.com/memocash/index/db/item/chain"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/db/item/memo"
@@ -22,6 +23,7 @@ func GetTopics() []db.Object {
 		&SyncStatus{},
 	},
 		addr.GetTopics(),
+		cashtoken.GetTopics(),
 		chain.GetTopics(),
 		memo.GetTopics(),
 		slp.GetTopics(),

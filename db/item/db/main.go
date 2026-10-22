@@ -68,6 +68,8 @@ const (
 	TopicSlpValidity = "slp_validity"
 
 	TopicAddrSeenTx = "addr_seen_tx"
+
+	TopicCashTokenOutput = "cash_token_output"
 )
 
 type Object interface {

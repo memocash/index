@@ -13,15 +13,16 @@ type Tx struct {
 }
 
 type TxOutput struct {
-	Hash     Hash       `json:"hash"`
-	Index    uint32     `json:"index"`
-	Amount   int64      `json:"amount"`
-	Script   Bytes      `json:"script"`
-	Tx       *Tx        `json:"tx"`
-	Lock     *Lock      `json:"lock"`
-	Spends   []*TxInput `json:"spends"`
-	Slp      *SlpOutput `json:"slp"`
-	SlpBaton *SlpBaton  `json:"slp_baton"`
+	Hash      Hash             `json:"hash"`
+	Index     uint32           `json:"index"`
+	Amount    int64            `json:"amount"`
+	Script    Bytes            `json:"script"`
+	Tx        *Tx              `json:"tx"`
+	Lock      *Lock            `json:"lock"`
+	Spends    []*TxInput       `json:"spends"`
+	Slp       *SlpOutput       `json:"slp"`
+	SlpBaton  *SlpBaton        `json:"slp_baton"`
+	CashToken *CashTokenOutput `json:"cash_token"`
 }
 
 type TxInput struct {
@@ -234,4 +235,25 @@ const (
 	SlpActionTypeGenesis SlpActionType = "GENESIS"
 	SlpActionTypeMint    SlpActionType = "MINT"
 	SlpActionTypeSend    SlpActionType = "SEND"
+)
+
+// CashTokenOutput is the decoded CashTokens prefix of a token-carrying
+// output; Commitment is nil when the prefix has none.
+type CashTokenOutput struct {
+	Hash       Hash                `json:"hash"`
+	Index      uint32              `json:"index"`
+	Category   Hash                `json:"category"`
+	Amount     Uint64              `json:"amount"`
+	Nft        bool                `json:"nft"`
+	Capability CashTokenCapability `json:"capability"`
+	Commitment Bytes               `json:"commitment"`
+	Output     *TxOutput           `json:"output"`
+}
+
+type CashTokenCapability string
+
+const (
+	CashTokenCapabilityNone    CashTokenCapability = "NONE"
+	CashTokenCapabilityMutable CashTokenCapability = "MUTABLE"
+	CashTokenCapabilityMinting CashTokenCapability = "MINTING"
 )

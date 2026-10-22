@@ -1,0 +1,24 @@
+"""
+The CashTokens prefix of a token-carrying output. Category is the token's
+genesis tx hash. A fungible-only output has nft false, capability NONE and a
+non-zero amount; an NFT output has nft true, may carry an amount too, and
+has a commitment when the prefix includes one. Tokens are consensus-level,
+so unlike SLP there is no validity: an output that exists carries what its
+prefix says. Wallets must not spend an output with a cash_token as plain BCH.
+"""
+type CashTokenOutput {
+    output: TxOutput!
+    hash: Hash!
+    index: Uint32!
+    category: Hash!
+    amount: Uint64!
+    nft: Boolean!
+    capability: CashTokenCapability!
+    commitment: Bytes
+}
+
+enum CashTokenCapability {
+    NONE
+    MUTABLE
+    MINTING
+}
