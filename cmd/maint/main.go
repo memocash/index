@@ -24,6 +24,7 @@ func GetCommand() *cobra.Command {
 	populateP2shDirectCmd.Flags().BoolP(FlagRestart, "", false, "Restart from beginning")
 	populateAddrOutputsCmd.Flags().BoolP(FlagRestart, "", false, "Restart from beginning")
 	populateAddrInputsCmd.Flags().BoolP(FlagRestart, "", false, "Restart from beginning")
+	populateCashTokenCmd.Flags().BoolP(FlagRestart, "", false, "Restart from beginning")
 	backfillCmd.Flags().Int64(FlagStart, 0, "Start height (required)")
 	backfillCmd.Flags().Int64(FlagEnd, 0, "End height (required)")
 	backfillCmd.MarkFlagRequired(FlagStart)
@@ -54,6 +55,7 @@ func GetCommand() *cobra.Command {
 		populateP2shDirectCmd,
 		populateAddrOutputsCmd,
 		populateAddrInputsCmd,
+		populateCashTokenCmd,
 		populateSeenPostsCmd,
 		populateLinkRequestParentsCmd,
 		doubleSpendCmd,
