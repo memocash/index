@@ -83,3 +83,30 @@ func (a *MemoRoomFollow) AttachTxs() {
 		return
 	}
 }
+
+// ToMemoRoomFollowForms attaches a room follow recorded under a memo key
+// and returns one copy per address form it was requested by. The memo
+// fields are attached once and shared; the lock is attached per copy under
+// its own address, so lock.address is the form asked for.
+func ToMemoRoomFollowForms(ctx context.Context, fields Fields, roomFollow *model.RoomFollow, forms []model.Address) ([]*model.RoomFollow, error) {
+	if err := ToMemoRoomFollows(ctx, fields.Without("lock"), []*model.RoomFollow{roomFollow}); err != nil {
+		return nil, err
+	}
+	var events = make([]*model.RoomFollow, len(forms))
+	var locks []*model.Lock
+	for i, form := range forms {
+		event := *roomFollow
+		event.Address = form
+		if fields.HasField("lock") {
+			event.Lock = &model.Lock{Address: form}
+			locks = append(locks, event.Lock)
+		}
+		events[i] = &event
+	}
+	if len(locks) > 0 {
+		if err := ToLocks(ctx, GetPrefixFields(fields, "lock."), locks); err != nil {
+			return nil, fmt.Errorf("error attaching to locks for memo room follow forms; %w", err)
+		}
+	}
+	return events, nil
+}

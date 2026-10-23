@@ -43,11 +43,11 @@ func (a *MemoLinkRequest) AttachAccepts() {
 	addresses := make([][25]byte, 0, len(a.LinkRequests))
 	seenAddresses := make(map[[25]byte]struct{}, len(a.LinkRequests))
 	for _, linkRequest := range a.LinkRequests {
-		if _, ok := seenAddresses[linkRequest.ParentAddress]; ok {
+		if _, ok := seenAddresses[linkRequest.ParentAddress.Addr()]; ok {
 			continue
 		}
-		seenAddresses[linkRequest.ParentAddress] = struct{}{}
-		addresses = append(addresses, linkRequest.ParentAddress)
+		seenAddresses[linkRequest.ParentAddress.Addr()] = struct{}{}
+		addresses = append(addresses, linkRequest.ParentAddress.Addr())
 	}
 	addrAccepts, err := getAddrLinkAccepts(a.Ctx, addresses)
 	if err != nil {
@@ -65,11 +65,11 @@ func (a *MemoLinkRequest) AttachAccepts() {
 	a.Mutex.Lock()
 	for _, linkRequest := range a.LinkRequests {
 		// A link accept is valid only when broadcast by the request's parent.
-		key := linkTxAddressKey{hash: linkRequest.TxHash, addr: linkRequest.ParentAddress}
+		key := linkTxAddressKey{hash: linkRequest.TxHash, addr: linkRequest.ParentAddress.Addr()}
 		for _, addrAccept := range acceptsByRequest[key] {
 			accept := &model.LinkAccept{
 				TxHash:        addrAccept.TxHash,
-				Address:       addrAccept.Addr,
+				Address:       model.NewAddress(addrAccept.Addr),
 				RequestTxHash: addrAccept.RequestTxHash,
 				Message:       addrAccept.Message,
 			}

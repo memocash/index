@@ -40,7 +40,7 @@ func (a *MemoSetPic) getAddresses() [][25]byte {
 	defer a.Mutex.Unlock()
 	var addresses [][25]byte
 	for i := range a.SetPics {
-		addresses = append(addresses, a.SetPics[i].Address)
+		addresses = append(addresses, a.SetPics[i].Address.Addr())
 	}
 	return addresses
 }
@@ -50,7 +50,7 @@ func (a *MemoSetPic) getSetPicIndexMap() map[[25]byte][]int {
 	defer a.Mutex.Unlock()
 	m := make(map[[25]byte][]int, len(a.SetPics))
 	for i := range a.SetPics {
-		m[a.SetPics[i].Address] = append(m[a.SetPics[i].Address], i)
+		m[a.SetPics[i].Address.Addr()] = append(m[a.SetPics[i].Address.Addr()], i)
 	}
 	return m
 }

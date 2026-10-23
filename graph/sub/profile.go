@@ -3,27 +3,57 @@ package sub
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/graph/attach"
 	"github.com/memocash/index/graph/model"
-	"log"
+	"github.com/memocash/index/ref/bitcoin/wallet"
 )
 
+// Profile streams profile updates for a set of addresses. Memo activity is
+// keyed by the 20-byte form, so a P2SH32 address is followed through its
+// P2SH20 alias and reported under the address the client asked for (under
+// each, if both forms were asked for). A P2SH32 address whose script has not
+// been spent yet has no alias; its link is watched and, once the first
+// spend writes one, the alias is followed from then on.
 type Profile struct {
 	Addresses        [][25]byte
 	AddrUpdateChan   chan [25]byte
 	Cancel           context.CancelFunc
+	Fields           attach.Fields
+	MemoAddrs        *attach.MemoAddresses
 	NameAddresses    [][25]byte
 	ProfileAddresses [][25]byte
 	PicAddresses     [][25]byte
 }
 
-func (p *Profile) Listen(ctx context.Context, addresses [][25]byte, fields attach.Fields) (<-chan *model.Profile, error) {
+func (p *Profile) Listen(ctx context.Context, addresses []model.Address, fields attach.Fields) (<-chan *model.Profile, error) {
 	ctx, p.Cancel = context.WithCancel(ctx)
-	if err := p.SetupAddresses(addresses); err != nil {
+	p.Fields = fields
+	// Watch links before resolving, so a first spend between the two is
+	// still seen (by the watch rather than the lookup).
+	watch, err := newLinkWatch(ctx, p2sh32Addrs(model.AddressesToLockAddrs(addresses)))
+	if err != nil {
+		p.Cancel()
+		return nil, fmt.Errorf("error watching p2sh links for profile subscription; %w", err)
+	}
+	memoAddrs, err := attach.ResolveMemoAddresses(ctx, addresses)
+	if err != nil {
+		p.Cancel()
+		return nil, fmt.Errorf("error resolving memo addresses for profile subscription; %w", err)
+	}
+	p.MemoAddrs = memoAddrs
+	for _, addr := range memoAddrs.Keys {
+		watch.Follow(wallet.Addr(addr).LockAddr())
+	}
+	if err := p.SetupAddresses(memoAddrs.Keys); err != nil {
 		return nil, fmt.Errorf("error setting up lock hashes for profile; %w", err)
 	}
-	if fields.HasField("following") {
+	// With no resolved address yet (only unlinked P2SH32 addresses) there
+	// is nothing to listen to until an alias appears; the listeners are
+	// attached then, by listenAlias.
+	if fields.HasField("following") && len(p.Addresses) > 0 {
 		if err := p.ListenFollowing(ctx, p.Addresses); err != nil {
 			return nil, fmt.Errorf("error listening following; %w", err)
 		}
@@ -31,7 +61,7 @@ func (p *Profile) Listen(ctx context.Context, addresses [][25]byte, fields attac
 			return nil, fmt.Errorf("error setting up following lock hashes for profile subscription; %w", err)
 		}
 	}
-	if fields.HasField("followers") {
+	if fields.HasField("followers") && len(p.Addresses) > 0 {
 		if err := p.ListenFollowers(ctx, p.Addresses); err != nil {
 			return nil, fmt.Errorf("error listening followers; %w", err)
 		}
@@ -63,7 +93,69 @@ func (p *Profile) Listen(ctx context.Context, addresses [][25]byte, fields attac
 			return nil, fmt.Errorf("error listening pics; %w", err)
 		}
 	}
+	if watch.Aliases != nil {
+		go func() {
+			// The watch ends only with the subscription or with its link
+			// stream; either way the subscription is over.
+			defer p.Cancel()
+			for link := range watch.Aliases {
+				key := link.Other.Addr()
+				p.MemoAddrs.AddAlias(key, link.Addr)
+				if !watch.Follow(link.Other) {
+					// The alias was asked for directly and is already
+					// followed; the new form just gets a snapshot.
+					if !p.forward(ctx, key) {
+						return
+					}
+					continue
+				}
+				if err := p.listenAlias(ctx, key); err != nil {
+					log.Printf("error following new p2sh alias for profile subscription; %v", err)
+					return
+				}
+			}
+		}()
+	}
 	return p.GetProfileChan(ctx), nil
+}
+
+// listenAlias attaches the requested listeners for an alias that appeared
+// after the start, then emits its current profile. The listeners are
+// registered before the profile is read, so a memo action written at any
+// point after the link (the first spend's own actions are saved right after
+// its link) is reflected either in that read or in a later update.
+func (p *Profile) listenAlias(ctx context.Context, alias [25]byte) error {
+	addrs := [][25]byte{alias}
+	if p.Fields.HasField("following") {
+		if err := p.ListenFollowing(ctx, addrs); err != nil {
+			return err
+		}
+	}
+	if p.Fields.HasField("followers") {
+		if err := p.ListenFollowers(ctx, addrs); err != nil {
+			return err
+		}
+	}
+	if p.Fields.HasField("name") {
+		if err := p.ListenNames(ctx, addrs); err != nil {
+			return err
+		}
+	}
+	if p.Fields.HasField("profile") {
+		if err := p.ListenProfiles(ctx, addrs); err != nil {
+			return err
+		}
+	}
+	if p.Fields.HasField("pic") {
+		if err := p.ListenPics(ctx, addrs); err != nil {
+			return err
+		}
+	}
+	select {
+	case <-ctx.Done():
+	case p.AddrUpdateChan <- alias:
+	}
+	return nil
 }
 
 func (p *Profile) SetupAddresses(addresses [][25]byte) error {
@@ -138,6 +230,17 @@ func (p *Profile) SetupFollowersLockHashes(ctx context.Context, fields attach.Fi
 	return nil
 }
 
+// forward sends an updated address to the profile loop until the
+// subscription ends.
+func (p *Profile) forward(ctx context.Context, addr [25]byte) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case p.AddrUpdateChan <- addr:
+		return true
+	}
+}
+
 func (p *Profile) ListenFollowing(ctx context.Context, addrs [][25]byte) error {
 	addrMemoFollowingListener, err := memo.ListenAddrFollows(ctx, addrs)
 	if err != nil {
@@ -151,10 +254,9 @@ func (p *Profile) ListenFollowing(ctx context.Context, addrs [][25]byte) error {
 			case <-ctx.Done():
 				return
 			case addrMemoFollow, ok := <-addrMemoFollowingListener:
-				if !ok {
+				if !ok || !p.forward(ctx, addrMemoFollow.Addr) {
 					return
 				}
-				p.AddrUpdateChan <- addrMemoFollow.Addr
 			}
 		}
 	}()
@@ -174,10 +276,9 @@ func (p *Profile) ListenFollowers(ctx context.Context, addrs [][25]byte) error {
 			case <-ctx.Done():
 				return
 			case lockMemoFollow, ok := <-lockMemoFollowerListener:
-				if !ok {
+				if !ok || !p.forward(ctx, lockMemoFollow.Addr) {
 					return
 				}
-				p.AddrUpdateChan <- lockMemoFollow.Addr
 			}
 		}
 	}()
@@ -197,10 +298,9 @@ func (p *Profile) ListenNames(ctx context.Context, addrs [][25]byte) error {
 			case <-ctx.Done():
 				return
 			case lockMemoName, ok := <-lockMemoNameListener:
-				if !ok {
+				if !ok || !p.forward(ctx, lockMemoName.Addr) {
 					return
 				}
-				p.AddrUpdateChan <- lockMemoName.Addr
 			}
 		}
 	}()
@@ -220,10 +320,9 @@ func (p *Profile) ListenProfiles(ctx context.Context, addrs [][25]byte) error {
 			case <-ctx.Done():
 				return
 			case lockMemoProfile, ok := <-lockMemoProfileListener:
-				if !ok {
+				if !ok || !p.forward(ctx, lockMemoProfile.Addr) {
 					return
 				}
-				p.AddrUpdateChan <- lockMemoProfile.Addr
 			}
 		}
 	}()
@@ -243,39 +342,44 @@ func (p *Profile) ListenPics(ctx context.Context, addrs [][25]byte) error {
 			case <-ctx.Done():
 				return
 			case lockMemoProfilePic, ok := <-lockMemoProfilePicListener:
-				if !ok {
+				if !ok || !p.forward(ctx, lockMemoProfilePic.Addr) {
 					return
 				}
-				p.AddrUpdateChan <- lockMemoProfilePic.Addr
 			}
 		}
 	}()
 	return nil
 }
 
+// GetProfileChan attaches and emits a profile for each updated address. The
+// update channel is never closed: the listeners that send on it stop with
+// the context, and a close would race their sends.
 func (p *Profile) GetProfileChan(ctx context.Context) <-chan *model.Profile {
 	var profileChan = make(chan *model.Profile)
 	go func() {
 		defer func() {
-			close(p.AddrUpdateChan)
 			close(profileChan)
 			p.Cancel()
 		}()
-		profileFields := attach.GetFields(ctx)
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case addr, ok := <-p.AddrUpdateChan:
-				if !ok {
-					return
-				}
-				var profile = &model.Profile{Address: addr}
-				if err := attach.ToMemoProfiles(ctx, profileFields, []*model.Profile{profile}); err != nil {
+			case addr := <-p.AddrUpdateChan:
+				// Attached under the memo key, reported under each address
+				// the client asked for it by.
+				profiles, err := attach.GetMemoProfilesForEntries(ctx, p.Fields, p.MemoAddrs.KeyEntries(addr))
+				if err != nil {
 					log.Printf("error attaching to memo profiles for profile subscription resolver; %v", err)
 					return
 				}
-				profileChan <- profile
+				for _, profile := range profiles {
+					select {
+					case <-ctx.Done():
+						return
+					case profileChan <- profile:
+					}
+				}
 			}
 		}
 	}()

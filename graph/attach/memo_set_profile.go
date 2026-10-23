@@ -40,7 +40,7 @@ func (a *MemoSetProfile) getAddresses() [][25]byte {
 	defer a.Mutex.Unlock()
 	var addresses [][25]byte
 	for i := range a.SetProfiles {
-		addresses = append(addresses, a.SetProfiles[i].Address)
+		addresses = append(addresses, a.SetProfiles[i].Address.Addr())
 	}
 	return addresses
 }
@@ -50,7 +50,7 @@ func (a *MemoSetProfile) getSetProfileIndexMap() map[[25]byte][]int {
 	defer a.Mutex.Unlock()
 	m := make(map[[25]byte][]int, len(a.SetProfiles))
 	for i := range a.SetProfiles {
-		m[a.SetProfiles[i].Address] = append(m[a.SetProfiles[i].Address], i)
+		m[a.SetProfiles[i].Address.Addr()] = append(m[a.SetProfiles[i].Address.Addr()], i)
 	}
 	return m
 }

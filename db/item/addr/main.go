@@ -4,6 +4,7 @@ import "github.com/memocash/index/db/item/db"
 
 func GetTopics() []db.Object {
 	return []db.Object{
+		&P2shLink{},
 		&SeenTx{},
 	}
 }
