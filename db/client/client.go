@@ -297,6 +297,14 @@ func (s *Client) Listen(ctx context.Context, topic string, prefixes [][]byte) (c
 		cancel()
 		return nil, fmt.Errorf("error getting stream messages; %w", err)
 	}
+	// The server sends the header once the subscription is registered, so a
+	// message saved after Listen returns is delivered. Without this the call
+	// returns before the server has subscribed and an immediate save can be
+	// missed.
+	if _, err := stream.Header(); err != nil {
+		cancel()
+		return nil, fmt.Errorf("error waiting for stream registration; %w", err)
+	}
 	var messageChan = make(chan *Message)
 	go func() {
 		stat := newStat()
@@ -311,10 +319,15 @@ func (s *Client) Listen(ctx context.Context, topic string, prefixes [][]byte) (c
 				cancel()
 				return
 			}
-			messageChan <- &Message{
+			select {
+			case <-ctx.Done():
+				// The consumer is gone; Recv fails next and closes the channel.
+				continue
+			case messageChan <- &Message{
 				Topic:   msg.Topic,
 				Uid:     msg.Uid,
 				Message: msg.Message,
+			}:
 			}
 			stat.incr()
 		}
