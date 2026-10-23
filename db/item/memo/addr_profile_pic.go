@@ -77,14 +77,15 @@ func ListenAddrProfilePics(ctx context.Context, addrs [][25]byte) (chan *AddrPro
 	}
 	var addrProfilePicChan = make(chan *AddrProfilePic)
 	go func() {
-		for {
-			msg, ok := <-chanMessages
-			if !ok {
-				return
-			}
+		defer close(addrProfilePicChan)
+		for msg := range chanMessages {
 			var addrProfilePic = new(AddrProfilePic)
 			db.Set(addrProfilePic, *msg)
-			addrProfilePicChan <- addrProfilePic
+			select {
+			case <-ctx.Done():
+				return
+			case addrProfilePicChan <- addrProfilePic:
+			}
 		}
 	}()
 	return addrProfilePicChan, nil

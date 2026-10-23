@@ -135,7 +135,7 @@ func (o *MemoRoom) AttachFollowers() {
 		for i := range modelRoomFollows {
 			modelRoomFollows[i] = &model.RoomFollow{
 				Name:     roomName,
-				Address:  dbRoomFollows[i].Addr,
+				Address:  model.NewAddress(dbRoomFollows[i].Addr),
 				Unfollow: dbRoomFollows[i].Unfollow,
 				TxHash:   dbRoomFollows[i].TxHash,
 			}

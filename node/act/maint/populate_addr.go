@@ -130,7 +130,8 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 		shardStatus = item.NewProcessStatus(uint(shard), p.GetStatusName())
 	}
 	seenTime := time.Now()
-	var objMap = make(map[[57]byte]*addr.SeenTx)
+	var objMap = make(map[addrTxKey]*addr.SeenTx)
+	var links = make(map[wallet.Addr32]wallet.Addr)
 	var checked int
 	if p.Inputs {
 		txInputs, err := chain.GetAllTxInputs(p.Context, shard, shardStatus.Status)
@@ -142,12 +143,20 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 			if jutil.ByteGT(uid, shardStatus.Status) {
 				shardStatus.Status = uid
 			}
-			address, err := wallet.GetAddrFromUnlockScript(txInput.UnlockScript)
-			if err != nil {
+			// As in the live saver: P2PKH from the pubkey, a P2SH-shaped spend
+			// under the P2SH20 alias of its redeem script plus the link.
+			var address wallet.Addr
+			if p2pkhAddr, err := wallet.GetP2pkhAddrFromUnlockScript(txInput.UnlockScript); err == nil {
+				address = *p2pkhAddr
+			} else if redeemScript, err := wallet.GetP2shRedeemScriptFromUnlockScript(txInput.UnlockScript); err == nil {
+				var p2sh32Addr wallet.Addr32
+				address, p2sh32Addr = wallet.GetP2shAddrsFromRedeemScript(redeemScript)
+				links[p2sh32Addr] = address
+			} else {
 				continue
 			}
-			objMap[getAddrTxHashId(*address, txInput.TxHash)] = &addr.SeenTx{
-				Addr:   *address,
+			objMap[getAddrTxKey(address.LockAddr(), txInput.TxHash)] = &addr.SeenTx{
+				Addr:   address.LockAddr(),
 				TxHash: txInput.TxHash,
 				Seen:   seenTime,
 			}
@@ -163,21 +172,24 @@ func (p *PopulateAddr) populateShardSingle(shard uint32) (bool, error) {
 			if jutil.ByteGT(uid, shardStatus.Status) {
 				shardStatus.Status = uid
 			}
-			address, err := wallet.GetAddrFromLockScript(txOutput.LockScript)
+			address, err := wallet.GetLockAddrFromLockScript(txOutput.LockScript)
 			if err != nil {
 				continue
 			}
-			objMap[getAddrTxHashId(*address, txOutput.TxHash)] = &addr.SeenTx{
-				Addr:   *address,
+			objMap[getAddrTxKey(address, txOutput.TxHash)] = &addr.SeenTx{
+				Addr:   address,
 				TxHash: txOutput.TxHash,
 				Seen:   seenTime,
 			}
 		}
 		checked = len(txOutputs)
 	}
-	var objectsToSave = make([]db.Object, 0, len(objMap))
+	var objectsToSave = make([]db.Object, 0, len(objMap)+2*len(links))
 	for _, obj := range objMap {
 		objectsToSave = append(objectsToSave, obj)
+	}
+	for p2sh32Addr, p2shAddr := range links {
+		objectsToSave = append(objectsToSave, addr.NewP2shLinks(p2shAddr, p2sh32Addr)...)
 	}
 	if err := db.Save(objectsToSave); err != nil {
 		return false, fmt.Errorf("error saving objects for addr populate single; %w", err)

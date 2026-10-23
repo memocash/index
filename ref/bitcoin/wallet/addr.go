@@ -95,24 +95,11 @@ func GetP2pkhAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
 }
 
 func GetP2shAddrFromUnlockScript(unlockScript []byte) (*Addr, error) {
-	if len(unlockScript) < 2 {
-		return nil, fmt.Errorf("error unlock script is too short for p2sh")
+	redeemScript, err := GetP2shRedeemScriptFromUnlockScript(unlockScript)
+	if err != nil {
+		return nil, err
 	}
-	opCodes := Decompile(unlockScript)
-	if len(opCodes) == 0 {
-		return nil, fmt.Errorf("error decompiling unlock script for p2sh")
-	}
-	redeemScript := opCodes[len(opCodes)-1].Data
-	chunks := Decompile(redeemScript)
-	if len(chunks) == 0 {
-		return nil, fmt.Errorf("error decompiling redeem script for p2sh")
-	}
-	hash := btcutil.Hash160(redeemScript)
-	var addr = new(Addr)
-	addr[0] = AddrVersionP2SH
-	copy(addr[1:21], hash)
-	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
-	return addr, nil
+	return GetAddrFromScriptHash(btcutil.Hash160(redeemScript)), nil
 }
 
 func GetAddrFromLockScript(lockScript []byte) (*Addr, error) {
@@ -149,11 +136,16 @@ func GetP2shAddrFromLockScript(lockScript []byte) (*Addr, error) {
 		lockScript[22] != txscript.OP_EQUAL {
 		return nil, fmt.Errorf("error lock script is not a p2sh address")
 	}
+	return GetAddrFromScriptHash(lockScript[2:22]), nil
+}
+
+// GetAddrFromScriptHash builds a P2SH20 address from a 20-byte script hash.
+func GetAddrFromScriptHash(scriptHash []byte) *Addr {
 	var addr = new(Addr)
 	addr[0] = AddrVersionP2SH
-	copy(addr[1:21], lockScript[2:22])
+	copy(addr[1:21], scriptHash)
 	copy(addr[21:], chainhash.DoubleHashB(addr[0:21])[:4])
-	return addr, nil
+	return addr
 }
 
 func GetAddrFromBytes(b []byte) *Addr {

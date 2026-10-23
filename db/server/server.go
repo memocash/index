@@ -10,6 +10,7 @@ import (
 	"github.com/memocash/index/db/proto/queue_pb"
 	"github.com/memocash/index/db/store"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	"net"
 	"time"
@@ -204,6 +205,11 @@ func (s *Server) GetStreamMessages(request *queue_pb.RequestStream, server queue
 	ctx := server.Context()
 	metric.AddTopicListen(metric.TopicListen{Topic: request.Topic})
 	uidChan := Listen(ctx, s.Shard, request.Topic, request.Prefixes)
+	// The subscription is registered; the header tells the client so, which
+	// waits for it before returning from its Listen (see client.Listen).
+	if err := server.SendHeader(metadata.MD{}); err != nil {
+		return fmt.Errorf("error sending stream header for topic: %s; %w", request.Topic, err)
+	}
 	for {
 		select {
 		case <-ctx.Done():

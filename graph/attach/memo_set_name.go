@@ -40,7 +40,7 @@ func (a *MemoSetName) getAddresses() [][25]byte {
 	defer a.Mutex.Unlock()
 	var addresses [][25]byte
 	for i := range a.SetNames {
-		addresses = append(addresses, a.SetNames[i].Address)
+		addresses = append(addresses, a.SetNames[i].Address.Addr())
 	}
 	return addresses
 }
@@ -50,7 +50,7 @@ func (a *MemoSetName) getSetNameIndexMap() map[[25]byte][]int {
 	defer a.Mutex.Unlock()
 	m := make(map[[25]byte][]int, len(a.SetNames))
 	for i := range a.SetNames {
-		m[a.SetNames[i].Address] = append(m[a.SetNames[i].Address], i)
+		m[a.SetNames[i].Address.Addr()] = append(m[a.SetNames[i].Address.Addr()], i)
 	}
 	return m
 }

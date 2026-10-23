@@ -67,7 +67,8 @@ const (
 	TopicSlpSend     = "slp_send"
 	TopicSlpValidity = "slp_validity"
 
-	TopicAddrSeenTx = "addr_seen_tx"
+	TopicAddrSeenTx   = "addr_seen_tx"
+	TopicAddrP2shLink = "addr_p2sh_link"
 )
 
 type Object interface {
