@@ -12,6 +12,8 @@ const (
 	ProcessStatusPopulateP2sh       = "populate-p2sh"
 	ProcessStatusPopulateAddr       = "populate-addr"
 	ProcessStatusPopulateAddrInputs = "populate-addr-inputs"
+	ProcessStatusPopulateP2sh32     = "populate-p2sh32-outputs"
+	ProcessStatusPopulateP2shLinks  = "populate-p2sh-links"
 )
 
 type ProcessStatus struct {
