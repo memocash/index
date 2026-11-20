@@ -86,24 +86,25 @@ func (s *PubSub) Publish(shard uint, topic string, uid []byte) {
 	s.Mutex.Unlock()
 }
 
-var _globalPubSub *PubSub
+// _globalPubSub is initialised at package load so that the publishers,
+// subscribers and counters, which run on different goroutines, never race
+// on the pointer itself; only the metric ticker is started lazily.
+var _globalPubSub = &PubSub{
+	Subs: make(map[int64]*Subscribe),
+}
+
+var _listenMetricOnce sync.Once
 
 func initNewListener() {
-	if _globalPubSub == nil {
-		_globalPubSub = &PubSub{
-			Subs: make(map[int64]*Subscribe),
-		}
+	_listenMetricOnce.Do(func() {
 		go func() {
 			t := time.NewTicker(10 * time.Second)
 			for {
 				<-t.C
-				_globalPubSub.Mutex.Lock()
-				quantity := len(_globalPubSub.Subs)
-				_globalPubSub.Mutex.Unlock()
-				metric.AddListenCount(metric.ListenCount{Quantity: quantity})
+				metric.AddListenCount(metric.ListenCount{Quantity: ListenCount()})
 			}
 		}()
-	}
+	})
 }
 
 // ListenSingle returns nil if a matching new item is found, otherwise an error
@@ -123,12 +124,13 @@ func ListenSingle(ctx context.Context, shard uint, topic string, start []byte, p
 	return <-done
 }
 
-// Listen returns a channel of messages
+// Listen returns a channel of uids. The subscription is registered before
+// Listen returns, so a uid published after Listen returns is delivered.
 func Listen(ctx context.Context, shard uint, topic string, prefixes [][]byte) chan []byte {
 	initNewListener()
 	var uidChan = make(chan []byte)
+	sub := _globalPubSub.Subscribe(shard, topic, nil, prefixes)
 	go func() {
-		sub := _globalPubSub.Subscribe(shard, topic, nil, prefixes)
 		defer func() {
 			sub.Close()
 			close(uidChan)
@@ -146,6 +148,14 @@ func Listen(ctx context.Context, shard uint, topic string, prefixes [][]byte) ch
 		}
 	}()
 	return uidChan
+}
+
+// ListenCount is the number of open subscriptions in this process.
+func ListenCount() int {
+	initNewListener()
+	_globalPubSub.Mutex.Lock()
+	defer _globalPubSub.Mutex.Unlock()
+	return len(_globalPubSub.Subs)
 }
 
 func ReceiveNew(shard uint, topic string, uid []byte) {

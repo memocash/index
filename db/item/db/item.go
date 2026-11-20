@@ -173,19 +173,38 @@ func GetByPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][
 	return messages, nil
 }
 
+// ListenPrefixes merges the streams of every shard holding one of the
+// prefixes into one channel. The channel is closed once every shard stream
+// has ended, so a consumer may range over it, and a forwarder never blocks
+// on a consumer that has already stopped. A shard stream ends when ctx is
+// cancelled or when its connection fails; either way the sibling streams
+// are ended too and the channel closed, so the consumer learns that the
+// subscription no longer covers every shard and can resubscribe, rather
+// than silently missing one shard's rows. With no prefixes there is
+// nothing to stream and the channel stays open until ctx is cancelled.
 func ListenPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32][][]byte) (chan *client.Message, error) {
 	var chanMessages = make(chan *client.Message)
-	var once sync.Once
+	ctx, cancel := context.WithCancel(ctx)
+	if len(shardPrefixes) == 0 {
+		go func() {
+			<-ctx.Done()
+			cancel()
+			close(chanMessages)
+		}()
+		return chanMessages, nil
+	}
+	var wg sync.WaitGroup
 	for shard, prefixes := range shardPrefixes {
 		shardConfig := config.GetShardConfig(shard, config.GetQueueShards())
 		chanMessage, err := client.NewClient(shardConfig.GetHost()).Listen(ctx, topic, prefixes)
 		if err != nil {
+			cancel()
 			return nil, fmt.Errorf("error getting listen messages chan shard: %d; %w", shard, err)
 		}
+		wg.Add(1)
 		go func() {
-			defer once.Do(func() {
-				close(chanMessages)
-			})
+			defer wg.Done()
+			defer cancel() // one stream ending ends them all
 			for {
 				select {
 				case <-ctx.Done():
@@ -194,10 +213,19 @@ func ListenPrefixes(ctx context.Context, topic string, shardPrefixes map[uint32]
 					if !ok {
 						return
 					}
-					chanMessages <- msg
+					select {
+					case <-ctx.Done():
+						return
+					case chanMessages <- msg:
+					}
 				}
 			}
 		}()
 	}
+	go func() {
+		wg.Wait()
+		cancel()
+		close(chanMessages)
+	}()
 	return chanMessages, nil
 }

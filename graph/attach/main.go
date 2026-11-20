@@ -19,6 +19,17 @@ func (f Fields) HasField(check string) bool {
 	return f.HasFieldAny([]string{check})
 }
 
+// Without returns the fields minus the named top-level field.
+func (f Fields) Without(name string) Fields {
+	var fields = make(Fields, 0, len(f))
+	for _, field := range f {
+		if field.Name != name {
+			fields = append(fields, field)
+		}
+	}
+	return fields
+}
+
 func (f Fields) HasFieldAny(checks []string) bool {
 	for _, check := range checks {
 		var checkFields = f

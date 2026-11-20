@@ -23,7 +23,7 @@ func TestAttachAcceptsMatchesRequestHashAndParentAddress(t *testing.T) {
 		}, nil
 	}
 
-	request := &model.LinkRequest{TxHash: requestHash, ParentAddress: parentAddress}
+	request := &model.LinkRequest{TxHash: requestHash, ParentAddress: model.NewAddress(parentAddress)}
 	a := MemoLinkRequest{
 		base:         base{Ctx: context.Background(), Fields: Fields{{Name: "accepts"}}},
 		LinkRequests: []*model.LinkRequest{request},
@@ -33,7 +33,7 @@ func TestAttachAcceptsMatchesRequestHashAndParentAddress(t *testing.T) {
 	if len(a.Errors) != 0 {
 		t.Fatalf("AttachAccepts() errors = %v", a.Errors)
 	}
-	if len(request.Accepts) != 1 || request.Accepts[0].Address != parentAddress {
+	if len(request.Accepts) != 1 || request.Accepts[0].Address != model.NewAddress(parentAddress) {
 		t.Fatalf("accepts = %+v, want only parent-address accept", request.Accepts)
 	}
 }
@@ -56,11 +56,11 @@ func TestAttachRevokesMatchesAcceptHashAndEitherParty(t *testing.T) {
 		}, nil
 	}
 
-	accept := &model.LinkAccept{TxHash: acceptHash, Address: acceptAddress}
+	accept := &model.LinkAccept{TxHash: acceptHash, Address: model.NewAddress(acceptAddress)}
 	a := MemoLinkAccept{
 		base:             base{Ctx: context.Background(), Fields: Fields{{Name: "revokes"}}},
 		LinkAccepts:      []*model.LinkAccept{accept},
-		RequestAddresses: map[*model.LinkAccept]model.Address{accept: requestAddress},
+		RequestAddresses: map[*model.LinkAccept]model.Address{accept: model.NewAddress(requestAddress)},
 	}
 	a.Wait.Add(1)
 	a.AttachRevokes()

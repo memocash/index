@@ -125,7 +125,7 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 		return false, fmt.Errorf("error getting tx outputs for populate p2sh shard: %d; %w", shard, err)
 	}
 	seenTime := time.Now()
-	var objMap = make(map[[57]byte]*addr.SeenTx)
+	var objMap = make(map[addrTxKey]*addr.SeenTx)
 	var outAddrMap = make(map[[36]byte]wallet.Addr)
 	var spendOuts []memo.Out
 	for _, txOutput := range txOutputs {
@@ -137,8 +137,8 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 		if err != nil || !address.IsP2SH() {
 			continue
 		}
-		objMap[getAddrTxHashId(*address, txOutput.TxHash)] = &addr.SeenTx{
-			Addr:   *address,
+		objMap[getAddrTxKey(address.LockAddr(), txOutput.TxHash)] = &addr.SeenTx{
+			Addr:   address.LockAddr(),
 			TxHash: txOutput.TxHash,
 			Seen:   seenTime,
 		}
@@ -154,8 +154,8 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 	}
 	for _, spend := range spends {
 		address := outAddrMap[getTxOutId(spend.PrevHash, spend.PrevIndex)]
-		objMap[getAddrTxHashId(address, spend.Hash)] = &addr.SeenTx{
-			Addr:   address,
+		objMap[getAddrTxKey(address.LockAddr(), spend.Hash)] = &addr.SeenTx{
+			Addr:   address.LockAddr(),
 			TxHash: spend.Hash,
 			Seen:   seenTime,
 		}
@@ -178,10 +178,13 @@ func (p *PopulateP2shDirect) populateShardSingle(shard uint32) (bool, error) {
 	return len(txOutputs) < client.HugeLimit, nil
 }
 
-func getAddrTxHashId(addr [25]byte, txHash [32]byte) [57]byte {
-	var id [57]byte
-	_ = append(append(id[:0], addr[:]...), txHash[:]...)
-	return id
+type addrTxKey struct {
+	Addr   wallet.LockAddr
+	TxHash [32]byte
+}
+
+func getAddrTxKey(addr wallet.LockAddr, txHash [32]byte) addrTxKey {
+	return addrTxKey{Addr: addr, TxHash: txHash}
 }
 
 func getTxOutId(txHash [32]byte, index uint32) [36]byte {

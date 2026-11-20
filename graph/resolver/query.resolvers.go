@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/jchavannes/btcd/chaincfg/chainhash"
-	"github.com/memocash/index/db/item/addr"
 	"github.com/memocash/index/db/item/chain"
 	memo_db "github.com/memocash/index/db/item/memo"
 	"github.com/memocash/index/db/metric"
@@ -57,9 +56,9 @@ func (r *queryResolver) Address(ctx context.Context, address model.Address) (*mo
 // Addresses is the resolver for the addresses field.
 func (r *queryResolver) Addresses(ctx context.Context, addresses []model.Address) ([]*model.Lock, error) {
 	SetEndPoint(ctx, metric.EndPointAddresses)
-	var locks = make([]*model.Lock, len(addresses))
-	for i := range addresses {
-		locks[i] = &model.Lock{Address: addresses[i]}
+	var locks = make([]*model.Lock, 0, len(addresses))
+	for _, address := range addresses {
+		locks = append(locks, &model.Lock{Address: address})
 	}
 	if err := attach.ToLocks(ctx, attach.GetFields(ctx), locks); err != nil {
 		return nil, InternalError{fmt.Errorf("error attaching to locks for query resolver; %w", err)}
@@ -163,12 +162,11 @@ func (r *queryResolver) Blocks(ctx context.Context, newest *bool, start *uint32)
 // Profiles is the resolver for the profiles field.
 func (r *queryResolver) Profiles(ctx context.Context, addresses []model.Address) ([]*model.Profile, error) {
 	SetEndPoint(ctx, metric.EndPointProfiles)
-	var profiles []*model.Profile
-	for _, address := range addresses {
-		profiles = append(profiles, &model.Profile{Address: address})
-	}
-	if err := attach.ToMemoProfiles(ctx, attach.GetFields(ctx), profiles); err != nil {
-		return nil, InternalError{fmt.Errorf("error attaching to profiles for query resolver; %w", err)}
+	// One profile per requested address; a P2SH32 address is looked up
+	// through its alias and reported under the address asked for.
+	profiles, err := attach.GetMemoProfiles(ctx, attach.GetFields(ctx), addresses)
+	if err != nil {
+		return nil, InternalError{fmt.Errorf("error getting profiles for query resolver; %w", err)}
 	}
 	return profiles, nil
 }
@@ -193,7 +191,7 @@ func (r *queryResolver) Posts(ctx context.Context, txHashes []model.Hash) ([]*mo
 		if post := storedByHash[txHash]; post != nil {
 			posts = append(posts, &model.Post{
 				TxHash:  post.TxHash,
-				Address: post.Addr,
+				Address: model.NewAddress(post.Addr),
 				Text:    post.Post,
 			})
 		}
@@ -312,7 +310,7 @@ func (r *subscriptionResolver) Address(ctx context.Context, address model.Addres
 func (r *subscriptionResolver) Addresses(ctx context.Context, addresses []model.Address) (<-chan *model.Tx, error) {
 	OpenSubscriptionWithRequest(ctx, "addresses")
 	ctx, cancel := context.WithCancel(ctx)
-	addrSeenTxsListener, err := addr.ListenAddrSeenTxs(ctx, model.AddressesToArrays(addresses))
+	addrSeenTxsListener, err := sub.ListenAddrSeenTxs(ctx, model.AddressesToLockAddrs(addresses))
 	if err != nil {
 		cancel()
 		return nil, InternalError{fmt.Errorf("error getting addr seen txs listener for address subscription; %w", err)}
@@ -367,7 +365,7 @@ func (r *subscriptionResolver) Posts(ctx context.Context, hashes []model.Hash) (
 func (r *subscriptionResolver) Profiles(ctx context.Context, addresses []model.Address) (<-chan *model.Profile, error) {
 	OpenSubscriptionWithRequest(ctx, "profiles")
 	var profile = new(sub.Profile)
-	profileChan, err := profile.Listen(ctx, model.AddressesToArrays(addresses), attach.GetFields(ctx))
+	profileChan, err := profile.Listen(ctx, addresses, attach.GetFields(ctx))
 	if err != nil {
 		return nil, InternalError{fmt.Errorf("error getting profile listener for subscription; %w", err)}
 	}
@@ -389,7 +387,7 @@ func (r *subscriptionResolver) Rooms(ctx context.Context, names []string) (<-cha
 func (r *subscriptionResolver) RoomFollows(ctx context.Context, addresses []model.Address) (<-chan *model.RoomFollow, error) {
 	OpenSubscriptionWithRequest(ctx, "room follows")
 	var roomFollow = new(sub.RoomFollow)
-	roomFollowsChan, err := roomFollow.Listen(ctx, model.AddressesToArrays(addresses))
+	roomFollowsChan, err := roomFollow.Listen(ctx, addresses, attach.GetFields(ctx))
 	if err != nil {
 		return nil, InternalError{fmt.Errorf("error getting room follow listener for subscription; %w", err)}
 	}

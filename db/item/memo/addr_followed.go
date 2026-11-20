@@ -7,7 +7,6 @@ import (
 	"github.com/memocash/index/db/client"
 	"github.com/memocash/index/db/item/db"
 	"github.com/memocash/index/ref/bitcoin/memo"
-	"github.com/memocash/index/ref/config"
 	"time"
 )
 
@@ -100,26 +99,22 @@ func ListenAddrFolloweds(ctx context.Context, followAddrs [][25]byte) (chan *Add
 		shard := db.GetShardIdFromByte32(followAddrs[i][:])
 		shardPrefixes[shard] = append(shardPrefixes[shard], followAddrs[i][:])
 	}
-	shardConfigs := config.GetQueueShards()
-	var addrFollowedChan = make(chan *AddrFollowed)
-	cancelCtx := db.NewCancelContext(ctx, func() {
-		close(addrFollowedChan)
-	})
-	for shard, prefixes := range shardPrefixes {
-		shardConfig := config.GetShardConfig(shard, shardConfigs)
-		chanMessage, err := client.NewClient(shardConfig.GetHost()).
-			Listen(cancelCtx.Context, db.TopicMemoAddrFollowed, prefixes)
-		if err != nil {
-			return nil, fmt.Errorf("error listening to db addr memo followeds by prefix; %w", err)
-		}
-		go func() {
-			for msg := range chanMessage {
-				var addrFollowed = new(AddrFollowed)
-				db.Set(addrFollowed, *msg)
-				addrFollowedChan <- addrFollowed
-			}
-			cancelCtx.Cancel()
-		}()
+	chanMessages, err := db.ListenPrefixes(ctx, db.TopicMemoAddrFollowed, shardPrefixes)
+	if err != nil {
+		return nil, fmt.Errorf("error listening to db addr memo followeds by prefix; %w", err)
 	}
+	var addrFollowedChan = make(chan *AddrFollowed)
+	go func() {
+		defer close(addrFollowedChan)
+		for msg := range chanMessages {
+			var addrFollowed = new(AddrFollowed)
+			db.Set(addrFollowed, *msg)
+			select {
+			case <-ctx.Done():
+				return
+			case addrFollowedChan <- addrFollowed:
+			}
+		}
+	}()
 	return addrFollowedChan, nil
 }

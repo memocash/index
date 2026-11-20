@@ -41,12 +41,23 @@ func ToMemoProfiles(ctx context.Context, fields []Field, profiles []*model.Profi
 	return nil
 }
 
+// getAddresses returns the distinct memo keys of the profiles, in first
+// order. Two profiles can share a key (a P2SH32 address and its alias, or
+// the same address twice); each key is read once and its rows handed to
+// every profile under it through getProfileIndexMap, so no profile gets a
+// row more than once.
 func (a *MemoProfile) getAddresses() [][25]byte {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 	var addresses [][25]byte
+	var seen = make(map[[25]byte]struct{}, len(a.Profiles))
 	for i := range a.Profiles {
-		addresses = append(addresses, a.Profiles[i].Address)
+		address := a.Profiles[i].Address.Addr()
+		if _, ok := seen[address]; ok {
+			continue
+		}
+		seen[address] = struct{}{}
+		addresses = append(addresses, address)
 	}
 	return addresses
 }
@@ -56,7 +67,7 @@ func (a *MemoProfile) getProfileIndexMap() map[[25]byte][]int {
 	defer a.Mutex.Unlock()
 	m := make(map[[25]byte][]int, len(a.Profiles))
 	for i := range a.Profiles {
-		m[a.Profiles[i].Address] = append(m[a.Profiles[i].Address], i)
+		m[a.Profiles[i].Address.Addr()] = append(m[a.Profiles[i].Address.Addr()], i)
 	}
 	return m
 }
@@ -142,10 +153,10 @@ func (a *MemoProfile) AttachFollowing() {
 		for _, i := range profileIndexMap[addr] {
 			for _, addrMemoFollow := range addrMemoFollows {
 				follow := &model.Follow{
-					Address:       addrMemoFollow.Addr,
+					Address:       model.NewAddress(addrMemoFollow.Addr),
 					TxHash:        addrMemoFollow.TxHash,
 					Unfollow:      addrMemoFollow.Unfollow,
-					FollowAddress: addrMemoFollow.FollowAddr,
+					FollowAddress: model.NewAddress(addrMemoFollow.FollowAddr),
 				}
 				a.Profiles[i].Following = append(a.Profiles[i].Following, follow)
 				allFollows = append(allFollows, follow)
@@ -183,10 +194,10 @@ func (a *MemoProfile) AttachFollowers() {
 		for _, i := range profileIndexMap[addr] {
 			for _, addrMemoFollow := range addrMemoFollows {
 				follow := &model.Follow{
-					Address:       addrMemoFollow.Addr,
+					Address:       model.NewAddress(addrMemoFollow.Addr),
 					TxHash:        addrMemoFollow.TxHash,
 					Unfollow:      addrMemoFollow.Unfollow,
-					FollowAddress: addrMemoFollow.FollowAddr,
+					FollowAddress: model.NewAddress(addrMemoFollow.FollowAddr),
 				}
 				a.Profiles[i].Followers = append(a.Profiles[i].Followers, follow)
 				allFollows = append(allFollows, follow)
@@ -253,9 +264,9 @@ func mergeLinkRequests(addrRequests []*memo.AddrLinkRequest, parentRequests []*m
 		items = append(items, linkRequestPageItem{
 			seen: request.Seen,
 			request: &model.LinkRequest{
-				Address:       request.Addr,
+				Address:       model.NewAddress(request.Addr),
 				TxHash:        request.TxHash,
-				ParentAddress: request.ParentAddr,
+				ParentAddress: model.NewAddress(request.ParentAddr),
 				Message:       request.Message,
 			},
 		})
@@ -268,9 +279,9 @@ func mergeLinkRequests(addrRequests []*memo.AddrLinkRequest, parentRequests []*m
 		items = append(items, linkRequestPageItem{
 			seen: request.Seen,
 			request: &model.LinkRequest{
-				Address:       request.Addr,
+				Address:       model.NewAddress(request.Addr),
 				TxHash:        request.TxHash,
-				ParentAddress: request.ParentAddr,
+				ParentAddress: model.NewAddress(request.ParentAddr),
 				Message:       request.Message,
 			},
 		})
@@ -321,7 +332,7 @@ func (a *MemoProfile) AttachRooms() {
 		for _, i := range indices {
 			roomFollow := &model.RoomFollow{
 				Name:     lockRoomFollow.Room,
-				Address:  lockRoomFollow.Addr,
+				Address:  model.NewAddress(lockRoomFollow.Addr),
 				TxHash:   lockRoomFollow.TxHash,
 				Unfollow: lockRoomFollow.Unfollow,
 			}
@@ -343,7 +354,7 @@ func (a *MemoProfile) AttachNames() {
 	}
 	var allSetNames []*model.SetName
 	for _, address := range a.getAddresses() {
-		allSetNames = append(allSetNames, &model.SetName{Address: address})
+		allSetNames = append(allSetNames, &model.SetName{Address: model.NewAddress(address)})
 	}
 	if err := ToMemoSetNames(a.Ctx, GetPrefixFields(a.Fields, "name"), allSetNames); err != nil {
 		a.AddError(fmt.Errorf("error attaching to names for memo profiles; %w", err))
@@ -356,7 +367,7 @@ func (a *MemoProfile) AttachNames() {
 		if !SetNameExists(setName) {
 			continue
 		}
-		for _, i := range profileIndexMap[setName.Address] {
+		for _, i := range profileIndexMap[setName.Address.Addr()] {
 			a.Profiles[i].Name = setName
 		}
 	}
@@ -369,7 +380,7 @@ func (a *MemoProfile) AttachProfiles() {
 	}
 	var allSetProfiles []*model.SetProfile
 	for _, address := range a.getAddresses() {
-		allSetProfiles = append(allSetProfiles, &model.SetProfile{Address: address})
+		allSetProfiles = append(allSetProfiles, &model.SetProfile{Address: model.NewAddress(address)})
 	}
 	if err := ToMemoSetProfiles(a.Ctx, GetPrefixFields(a.Fields, "profile"), allSetProfiles); err != nil {
 		a.AddError(fmt.Errorf("error attaching to profiles for memo profiles; %w", err))
@@ -382,7 +393,7 @@ func (a *MemoProfile) AttachProfiles() {
 		if !SetProfileExists(setProfile) {
 			continue
 		}
-		for _, i := range profileIndexMap[setProfile.Address] {
+		for _, i := range profileIndexMap[setProfile.Address.Addr()] {
 			a.Profiles[i].Profile = setProfile
 		}
 	}
@@ -395,7 +406,7 @@ func (a *MemoProfile) AttachPics() {
 	}
 	var allSetPics []*model.SetPic
 	for _, address := range a.getAddresses() {
-		allSetPics = append(allSetPics, &model.SetPic{Address: address})
+		allSetPics = append(allSetPics, &model.SetPic{Address: model.NewAddress(address)})
 	}
 	if err := ToMemoSetPics(a.Ctx, GetPrefixFields(a.Fields, "pic"), allSetPics); err != nil {
 		a.AddError(fmt.Errorf("error attaching to pics for memo profiles; %w", err))
@@ -408,8 +419,67 @@ func (a *MemoProfile) AttachPics() {
 		if !SetPicExists(setPic) {
 			continue
 		}
-		for _, i := range profileIndexMap[setPic.Address] {
+		for _, i := range profileIndexMap[setPic.Address.Addr()] {
 			a.Profiles[i].Pic = setPic
 		}
 	}
+}
+
+// GetMemoProfiles returns one profile per requested address, in request
+// order, with fields attached. A P2SH32 address is looked up through its
+// alias and reported under the address asked for.
+func GetMemoProfiles(ctx context.Context, fields Fields, addresses []model.Address) ([]*model.Profile, error) {
+	memoAddrs, err := ResolveMemoAddresses(ctx, addresses)
+	if err != nil {
+		return nil, fmt.Errorf("error resolving memo addresses for profiles; %w", err)
+	}
+	return GetMemoProfilesForEntries(ctx, fields, memoAddrs.Entries)
+}
+
+// GetMemoProfilesForEntries returns one profile per entry, in order. Memo
+// activity is keyed by the 20-byte form, so the memo fields are attached
+// once per distinct key (attaching the same key twice would read and append
+// its list rows twice) and every entry with that key gets its own copy
+// sharing that data. The lock is the entry's own: it is attached per entry
+// under the requested address, so lock.address is the form asked for and
+// lock.txs the history of that address (merged across both keys for a P2SH
+// address). An entry with no key (an unlinked P2SH32 address) has no memo
+// activity and gets an empty profile, without the memo topics being read
+// through a zero key; its lock is still attached, since an unspent address
+// can have received outputs.
+func GetMemoProfilesForEntries(ctx context.Context, fields Fields, entries []MemoAddress) ([]*model.Profile, error) {
+	var byKey = make(map[[25]byte]*model.Profile)
+	var keyProfiles []*model.Profile
+	for _, entry := range entries {
+		if _, ok := byKey[entry.Key]; entry.HasKey && !ok {
+			profile := &model.Profile{Address: model.NewAddress(entry.Key)}
+			byKey[entry.Key] = profile
+			keyProfiles = append(keyProfiles, profile)
+		}
+	}
+	if err := ToMemoProfiles(ctx, fields.Without("lock"), keyProfiles); err != nil {
+		return nil, fmt.Errorf("error attaching to memo profiles; %w", err)
+	}
+	var profiles = make([]*model.Profile, len(entries))
+	var locks []*model.Lock
+	for i, entry := range entries {
+		var profile model.Profile
+		if entry.HasKey {
+			// A copy per requested form; the attached memo data is shared
+			// and only read from here on.
+			profile = *byKey[entry.Key]
+		}
+		profile.Address = entry.Address
+		if fields.HasField("lock") {
+			profile.Lock = &model.Lock{Address: entry.Address}
+			locks = append(locks, profile.Lock)
+		}
+		profiles[i] = &profile
+	}
+	if len(locks) > 0 {
+		if err := ToLocks(ctx, GetPrefixFields(fields, "lock."), locks); err != nil {
+			return nil, fmt.Errorf("error attaching to locks for memo profiles; %w", err)
+		}
+	}
+	return profiles, nil
 }

@@ -89,6 +89,8 @@ var itemRoute = admin.Route{
 					switch v := fieldValue.Interface().(type) {
 					case time.Time:
 						props[fieldName] = v.Format(time.RFC3339Nano)
+					case wallet.LockAddr:
+						props[fieldName] = v.String()
 					default:
 						props[fieldName] = fieldValue.String()
 					}

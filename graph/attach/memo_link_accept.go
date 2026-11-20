@@ -55,7 +55,7 @@ func (a *MemoLinkAccept) AttachRevokes() {
 			return
 		}
 		requestAddresses = append(requestAddresses, requestAddress)
-		for _, address := range [][25]byte{linkAccept.Address, requestAddress} {
+		for _, address := range [][25]byte{linkAccept.Address.Addr(), requestAddress.Addr()} {
 			if _, ok := seenAddresses[address]; ok {
 				continue
 			}
@@ -80,8 +80,8 @@ func (a *MemoLinkAccept) AttachRevokes() {
 		requestAddress := requestAddresses[i]
 		// Either party to a link accept may revoke it.
 		keys := [...]linkTxAddressKey{
-			{hash: linkAccept.TxHash, addr: linkAccept.Address},
-			{hash: linkAccept.TxHash, addr: requestAddress},
+			{hash: linkAccept.TxHash, addr: linkAccept.Address.Addr()},
+			{hash: linkAccept.TxHash, addr: requestAddress.Addr()},
 		}
 		keyCount := len(keys)
 		if linkAccept.Address == requestAddress {
@@ -91,7 +91,7 @@ func (a *MemoLinkAccept) AttachRevokes() {
 			for _, addrRevoke := range revokesByAccept[key] {
 				revoke := &model.LinkRevoke{
 					TxHash:       addrRevoke.TxHash,
-					Address:      addrRevoke.Addr,
+					Address:      model.NewAddress(addrRevoke.Addr),
 					AcceptTxHash: addrRevoke.AcceptTxHash,
 					Message:      addrRevoke.Message,
 				}

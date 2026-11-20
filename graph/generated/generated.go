@@ -1758,6 +1758,11 @@ scalar Uint64
 scalar HashIndex
 scalar Date
 scalar Hash
+"""
+A P2PKH or P2SH20 address as legacy base58, or a P2SH32 address as a CashAddr
+(legacy base58 has no P2SH32 form). Input accepts base58 or CashAddr, with or
+without the bitcoincash: prefix, for any kind.
+"""
 scalar Address
 scalar Bytes
 `, BuiltIn: false},

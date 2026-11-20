@@ -46,7 +46,7 @@ func (a *MemoLike) getTxHashes(checkAddressPostTxHash, checkTips bool) [][32]byt
 	for i := range a.Likes {
 		if checkAddressPostTxHash &&
 			!jutil.AllZeros(a.Likes[i].PostTxHash[:]) &&
-			!jutil.AllZeros(a.Likes[i].Address[:]) {
+			!jutil.AllZeros(a.Likes[i].Address.LockAddr().Bytes()) {
 			continue
 		} else if checkTips && a.Likes[i].Tip > 0 {
 			continue

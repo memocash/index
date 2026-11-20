@@ -104,14 +104,15 @@ func ListenAddrFollows(ctx context.Context, addrs [][25]byte) (chan *AddrFollow,
 	}
 	var addrFollowChan = make(chan *AddrFollow)
 	go func() {
-		for {
-			msg, ok := <-chanMessages
-			if !ok {
-				return
-			}
+		defer close(addrFollowChan)
+		for msg := range chanMessages {
 			var addrProfile = new(AddrFollow)
 			db.Set(addrProfile, *msg)
-			addrFollowChan <- addrProfile
+			select {
+			case <-ctx.Done():
+				return
+			case addrFollowChan <- addrProfile:
+			}
 		}
 	}()
 	return addrFollowChan, nil

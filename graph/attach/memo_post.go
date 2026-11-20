@@ -57,7 +57,7 @@ func (a *MemoPost) AttachRecipients() {
 	a.Mutex.Lock()
 	for _, send := range sends {
 		for _, i := range postIndexMap[send.TxHash] {
-			a.Posts[i].Recipient = &model.Lock{Address: send.Recipient}
+			a.Posts[i].Recipient = &model.Lock{Address: model.NewAddress(send.Recipient)}
 			locks = append(locks, a.Posts[i].Recipient)
 		}
 	}
@@ -74,7 +74,7 @@ func (a *MemoPost) getTxHashes(checkTextAddress bool) [][32]byte {
 	for i := range a.Posts {
 		if checkTextAddress &&
 			a.Posts[i].Text != "" &&
-			!jutil.AllZeros(a.Posts[i].Address[:]) {
+			!jutil.AllZeros(a.Posts[i].Address.LockAddr().Bytes()) {
 			continue
 		}
 		txHashes = append(txHashes, a.Posts[i].TxHash)
@@ -110,7 +110,7 @@ func (a *MemoPost) AttachInfo() {
 			continue
 		}
 		for _, i := range indices {
-			a.Posts[i].Address = memoPost.Addr
+			a.Posts[i].Address = model.NewAddress(memoPost.Addr)
 			a.Posts[i].Text = memoPost.Post
 		}
 	}
@@ -226,7 +226,7 @@ func (a *MemoPost) AttachLikes() {
 			like := &model.Like{
 				TxHash:     memoPostLike.LikeTxHash,
 				PostTxHash: memoPostLike.PostTxHash,
-				Address:    memoPostLike.Addr,
+				Address:    model.NewAddress(memoPostLike.Addr),
 			}
 			a.Posts[i].Likes = append(a.Posts[i].Likes, like)
 			allLikes = append(allLikes, like)
